@@ -23,7 +23,7 @@ export default defineConfig({
                 '@so360/shell-context': { singleton: true },
                 '@so360/design-system': { singleton: true },
                 '@so360/event-bus': { singleton: true },
-            },
+            } as any,
         }),
     ],
     build: {

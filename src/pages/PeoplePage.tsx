@@ -8,7 +8,8 @@ import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { peopleApi } from '../services/peopleService';
 import type { Person, CreatePersonPayload, PersonStatus } from '../types/people';
-import { DepartmentSelector, UserSelector } from '@so360/design-system';
+import DepartmentSelector from '../components/DepartmentSelector';
+import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
 
 const PeoplePage: React.FC = () => {

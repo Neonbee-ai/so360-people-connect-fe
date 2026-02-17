@@ -8,7 +8,7 @@ import { ShellContext, ShellContextType } from '@so360/shell-context';
 
 // Mock Provider for Standalone Development
 const MockShellProvider = ({ children }: { children: React.ReactNode }) => {
-    const mockContext: ShellContextType = {
+    const mockContext = {
         user: {
             id: 'mock-user-id',
             email: 'admin@so360.com',
@@ -37,7 +37,7 @@ const MockShellProvider = ({ children }: { children: React.ReactNode }) => {
         modulesLoading: false,
         emitNotification: async () => ({ success: true, notificationIds: [], errors: [] }),
         recordActivity: async () => {},
-    };
+    } as unknown as ShellContextType;
 
     return (
         <ShellContext.Provider value={mockContext}>
