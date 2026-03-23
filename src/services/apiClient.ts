@@ -3,7 +3,7 @@
 // All service modules import this instead of duplicating ApiClient.
 // =============================================================================
 
-const API_BASE_URL = '/people-api';
+const API_BASE_URL = (import.meta as any).env?.VITE_SO360_PEOPLE_API || '/people-api';
 let TENANT_ID = '';
 let ORG_ID = '';
 let USER_ID = '';
