@@ -24,7 +24,8 @@ export class ApiClient {
       'X-Tenant-Id': TENANT_ID,
       'X-Org-Id': ORG_ID,
       'X-User-Id': USER_ID,
-      'X-User-Name': USER_NAME,
+      // X-User-Name omitted: nginx API gateway CORS config does not whitelist it,
+      // causing preflight failures. User identity is established via X-User-Id + JWT.
       ...(ACCESS_TOKEN ? { Authorization: `Bearer ${ACCESS_TOKEN}` } : {}),
     };
   }
@@ -34,7 +35,6 @@ export class ApiClient {
       'X-Tenant-Id': TENANT_ID,
       'X-Org-Id': ORG_ID,
       'X-User-Id': USER_ID,
-      'X-User-Name': USER_NAME,
       ...(ACCESS_TOKEN ? { Authorization: `Bearer ${ACCESS_TOKEN}` } : {}),
     };
   }
