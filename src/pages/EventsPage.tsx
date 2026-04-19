@@ -26,7 +26,7 @@ const EventsPage: React.FC = () => {
                 limit: 30,
             });
             setEvents(result.data);
-            setTotalEvents(result.meta.total);
+            setTotalEvents(result.total);
         } catch (error) {
             console.error('Failed to load events:', error);
             setToast({ message: 'Failed to load events', type: 'error' });
