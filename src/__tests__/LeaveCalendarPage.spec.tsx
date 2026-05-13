@@ -53,6 +53,36 @@ describe('LeaveCalendarPage', () => {
     });
   });
 
+  describe('Given month navigation', () => {
+    it('When the next month button is clicked / Then the calendar advances', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Leave Calendar')).toBeInTheDocument());
+      const nextBtn = screen.getByTestId('icon-ChevronRight').closest('button');
+      if (nextBtn) {
+        fireEvent.click(nextBtn);
+        await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalledTimes(4));
+      }
+    });
+
+    it('When the prev month button is clicked / Then the calendar goes back', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Leave Calendar')).toBeInTheDocument());
+      const prevBtn = screen.getByTestId('icon-ChevronLeft').closest('button');
+      if (prevBtn) {
+        fireEvent.click(prevBtn);
+        await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalledTimes(4));
+      }
+    });
+
+    it('When department filter is changed / Then leaves are reloaded', async () => {
+      renderPage();
+      await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
+      const deptSelect = screen.getByDisplayValue('All Departments');
+      fireEvent.change(deptSelect, { target: { value: 'd1' } });
+      await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalledTimes(2));
+    });
+  });
+
   describe('Given leaves exist for the month', () => {
     beforeEach(() => {
       const now = new Date();

@@ -62,6 +62,30 @@ describe('AllocationsPage', () => {
     });
   });
 
+  describe('Given the user interacts with allocations', () => {
+    beforeEach(() => {
+      mockAllocApi.getAll.mockResolvedValue({
+        data: [
+          { id: 'a1', person_id: 'p1', person: { full_name: 'Alice' }, entity_type: 'project', entity_id: 'proj-1', entity_name: 'Website', start_date: '2026-01-01', end_date: '2026-06-30', allocation_type: 'percentage', allocation_value: 80, allocation_period: 'daily', status: 'active', notes: '' },
+        ],
+      });
+    });
+
+    it('When entity type filter is changed / Then allocations are re-fetched', async () => {
+      renderPage();
+      await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
+      fireEvent.change(screen.getByDisplayValue('All Entity Types'), { target: { value: 'project' } });
+      await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ entity_type: 'project' })));
+    });
+
+    it('When New Allocation is clicked / Then the create modal opens', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('New Allocation'));
+      await waitFor(() => expect(screen.getByText('Person *')).toBeInTheDocument());
+    });
+  });
+
   describe('Given no allocations exist', () => {
     beforeEach(() => {
       mockAllocApi.getAll.mockResolvedValue({ data: [] });
