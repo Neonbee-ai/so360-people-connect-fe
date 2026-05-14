@@ -1,0 +1,6 @@
+# Ignore example/template env files — these contain placeholder values only
+.env.example
+*.env.example
+.env.template
+*.env.template
+
