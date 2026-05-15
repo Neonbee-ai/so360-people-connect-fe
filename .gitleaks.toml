@@ -1,0 +1,15 @@
+title = "Gitleaks Configuration"
+
+[allowlist]
+description = "Exclude test and spec files (contain mock data and fixtures, not real secrets)"
+paths = [
+    '.*\.spec\.ts$',
+    '.*\.test\.ts$',
+    '.*\.spec\.js$',
+    '.*\.test\.js$',
+    '.*__tests__.*',
+    '.*test-support.*',
+    '.*fixtures.*',
+    '.*mocks.*',
+]
+
