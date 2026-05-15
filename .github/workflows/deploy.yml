@@ -75,7 +75,7 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.CONTABO_SSH_KEY }}
 
