@@ -6,6 +6,7 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { performanceReviewsApi, PerformanceReview, CreatePerformanceReviewPayload } from '../services/performanceReviewsService';
 import { reviewTemplatesApi, ReviewTemplate } from '../services/reviewTemplatesService';
 import { peopleApi } from '../services/peopleService';
@@ -13,6 +14,7 @@ import type { Person } from '../types/people';
 
 const PerformanceReviewsPage: React.FC = () => {
     const navigate = useNavigate();
+    const { recordActivity } = useActivity();
     const [reviews, setReviews] = useState<PerformanceReview[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'all' | 'my' | 'team'>('all');
@@ -47,9 +49,10 @@ const PerformanceReviewsPage: React.FC = () => {
 
     const handleCreate = async (data: CreatePerformanceReviewPayload) => {
         try {
-            await performanceReviewsApi.create(data);
+            const created = await performanceReviewsApi.create(data);
             setShowCreateModal(false);
             setToast({ message: 'Performance review created successfully', type: 'success' });
+            recordActivity({ eventType: 'people.review.created', eventCategory: 'data', description: `Performance review was created`, resourceType: 'review', resourceId: created?.id }).catch(() => {});
             loadReviews();
         } catch (error) {
             setToast({ message: 'Failed to create performance review', type: 'error' });

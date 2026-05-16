@@ -5,11 +5,13 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance } from '../services/leaveRequestsService';
 import { leaveTypesApi, LeaveType } from '../services/leaveTypesService';
 import { apiContext } from '../services/apiClient';
 
 const LeaveRequestsPage: React.FC = () => {
+    const { recordActivity } = useActivity();
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'my' | 'team'>('my');
@@ -43,6 +45,7 @@ const LeaveRequestsPage: React.FC = () => {
             await leaveRequestsApi.submit(created.id);
             setShowCreateModal(false);
             setToast({ message: 'Leave request submitted successfully', type: 'success' });
+            recordActivity({ eventType: 'people.leave.requested', eventCategory: 'data', description: `Leave request submitted from ${data.start_date} to ${data.end_date}`, resourceType: 'leave_request', resourceId: created.id }).catch(() => {});
             loadRequests();
         } catch (error) {
             setToast({ message: 'Failed to create leave request', type: 'error' });

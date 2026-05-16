@@ -8,10 +8,12 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { timeEntriesApi, peopleApi, allocationsApi } from '../services/peopleService';
 import type { TimeEntry, CreateTimeEntryPayload, Person, Allocation, TimeEntryStatus } from '../types/people';
 
 const TimeEntriesPage: React.FC = () => {
+    const { recordActivity } = useActivity();
     const [entries, setEntries] = useState<TimeEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -51,9 +53,10 @@ const TimeEntriesPage: React.FC = () => {
 
     const handleCreate = async (data: CreateTimeEntryPayload) => {
         try {
-            await timeEntriesApi.create(data);
+            const created = await timeEntriesApi.create(data);
             setShowCreateModal(false);
             setToast({ message: 'Time entry logged', type: 'success' });
+            recordActivity({ eventType: 'people.time_entry.created', eventCategory: 'data', description: `Time entry of ${data.hours}h logged on ${data.entity_name || data.entity_id}`, resourceType: 'time_entry', resourceId: created?.id }).catch(() => {});
             loadEntries();
         } catch (error) {
             const msg = error instanceof Error ? error.message : 'Failed to log time';
@@ -75,6 +78,7 @@ const TimeEntriesPage: React.FC = () => {
         try {
             await timeEntriesApi.approve(id);
             setToast({ message: 'Time entry approved - cost attributed', type: 'success' });
+            recordActivity({ eventType: 'people.time_entry.updated', eventCategory: 'data', description: `Time entry ${id} was approved`, resourceType: 'time_entry', resourceId: id }).catch(() => {});
             loadEntries();
         } catch (error) {
             setToast({ message: 'Failed to approve entry', type: 'error' });

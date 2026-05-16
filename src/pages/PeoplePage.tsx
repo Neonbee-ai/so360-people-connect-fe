@@ -11,6 +11,7 @@ import type { Person, CreatePersonPayload, PersonStatus } from '../types/people'
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
+import { useActivity } from '@so360/shell-context';
 import { apiContext } from '../services/apiClient';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
@@ -18,6 +19,7 @@ const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 const PeoplePage: React.FC = () => {
     const navigate = useNavigate();
     const { orgId, tenantId } = usePeopleContext();
+    const { recordActivity } = useActivity();
     const [people, setPeople] = useState<Person[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -91,9 +93,10 @@ const PeoplePage: React.FC = () => {
 
     const handleCreate = async (data: CreatePersonPayload) => {
         try {
-            await peopleApi.create(data);
+            const created = await peopleApi.create(data);
             setShowCreateModal(false);
             setToast({ message: `${data.full_name} has been added`, type: 'success' });
+            recordActivity({ eventType: 'people.person.created', eventCategory: 'identity', description: `Person ${data.full_name} was created`, resourceType: 'person', resourceId: created?.id }).catch(() => {});
             loadPeople();
         } catch (error) {
             setToast({ message: 'Failed to create person', type: 'error' });

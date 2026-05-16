@@ -5,9 +5,11 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
 
 const GoalsPage: React.FC = () => {
+    const { recordActivity } = useActivity();
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -39,9 +41,10 @@ const GoalsPage: React.FC = () => {
 
     const handleCreate = async (data: CreateGoalPayload) => {
         try {
-            await goalsApi.create(data);
+            const created = await goalsApi.create(data);
             setShowCreateModal(false);
             setToast({ message: `Goal ${data.title} has been created`, type: 'success' });
+            recordActivity({ eventType: 'people.goal.created', eventCategory: 'data', description: `Goal "${data.title}" was created`, resourceType: 'goal', resourceId: created?.id }).catch(() => {});
             loadGoals();
         } catch (error) {
             setToast({ message: 'Failed to create goal', type: 'error' });
@@ -53,6 +56,7 @@ const GoalsPage: React.FC = () => {
             await goalsApi.update(id, data);
             setEditingGoal(null);
             setToast({ message: 'Goal updated successfully', type: 'success' });
+            recordActivity({ eventType: 'people.goal.updated', eventCategory: 'data', description: `Goal "${data.title || id}" was updated`, resourceType: 'goal', resourceId: id }).catch(() => {});
             loadGoals();
         } catch (error) {
             setToast({ message: 'Failed to update goal', type: 'error' });
@@ -78,6 +82,7 @@ const GoalsPage: React.FC = () => {
         try {
             await goalsApi.complete(goal.id);
             setToast({ message: 'Goal marked as completed', type: 'success' });
+            recordActivity({ eventType: 'people.goal.completed', eventCategory: 'data', description: `Goal "${goal.title}" was completed`, resourceType: 'goal', resourceId: goal.id }).catch(() => {});
             loadGoals();
         } catch (error) {
             setToast({ message: 'Failed to complete goal', type: 'error' });

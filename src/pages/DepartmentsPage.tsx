@@ -5,9 +5,11 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
 
 const DepartmentsPage: React.FC = () => {
+    const { recordActivity } = useActivity();
     const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -37,9 +39,10 @@ const DepartmentsPage: React.FC = () => {
 
     const handleCreate = async (data: CreateDepartmentPayload) => {
         try {
-            await departmentsApi.create(data);
+            const created = await departmentsApi.create(data);
             setShowCreateModal(false);
             setToast({ message: `Department ${data.name} has been created`, type: 'success' });
+            recordActivity({ eventType: 'people.department.created', eventCategory: 'identity', description: `Department ${data.name} was created`, resourceType: 'department', resourceId: created?.id }).catch(() => {});
             loadDepartments();
         } catch (error) {
             setToast({ message: 'Failed to create department', type: 'error' });
@@ -51,6 +54,7 @@ const DepartmentsPage: React.FC = () => {
             await departmentsApi.update(id, data);
             setEditingDepartment(null);
             setToast({ message: 'Department updated successfully', type: 'success' });
+            recordActivity({ eventType: 'people.department.updated', eventCategory: 'identity', description: `Department ${data.name || id} was updated`, resourceType: 'department', resourceId: id }).catch(() => {});
             loadDepartments();
         } catch (error) {
             setToast({ message: 'Failed to update department', type: 'error' });

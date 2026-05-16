@@ -5,9 +5,11 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { reviewTemplatesApi, ReviewTemplate, CreateReviewTemplatePayload } from '../services/reviewTemplatesService';
 
 const ReviewTemplatesPage: React.FC = () => {
+    const { recordActivity } = useActivity();
     const [templates, setTemplates] = useState<ReviewTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -33,9 +35,10 @@ const ReviewTemplatesPage: React.FC = () => {
 
     const handleCreate = async (data: CreateReviewTemplatePayload) => {
         try {
-            await reviewTemplatesApi.create(data);
+            const created = await reviewTemplatesApi.create(data);
             setShowCreateModal(false);
             setToast({ message: `Review template ${data.name} has been created`, type: 'success' });
+            recordActivity({ eventType: 'people.review_template.created', eventCategory: 'data', description: `Review template ${data.name} was created`, resourceType: 'review_template', resourceId: created?.id }).catch(() => {});
             loadTemplates();
         } catch (error) {
             setToast({ message: 'Failed to create review template', type: 'error' });
@@ -47,6 +50,7 @@ const ReviewTemplatesPage: React.FC = () => {
             await reviewTemplatesApi.update(id, data);
             setEditingTemplate(null);
             setToast({ message: 'Review template updated successfully', type: 'success' });
+            recordActivity({ eventType: 'people.review_template.updated', eventCategory: 'data', description: `Review template ${data.name || id} was updated`, resourceType: 'review_template', resourceId: id }).catch(() => {});
             loadTemplates();
         } catch (error) {
             setToast({ message: 'Failed to update review template', type: 'error' });
