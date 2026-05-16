@@ -5,9 +5,11 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { leaveTypesApi, LeaveType, CreateLeaveTypePayload } from '../services/leaveTypesService';
 
 const LeaveTypesPage: React.FC = () => {
+    const { recordActivity } = useActivity();
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -33,9 +35,10 @@ const LeaveTypesPage: React.FC = () => {
 
     const handleCreate = async (data: CreateLeaveTypePayload) => {
         try {
-            await leaveTypesApi.create(data);
+            const created = await leaveTypesApi.create(data);
             setShowCreateModal(false);
             setToast({ message: `Leave type ${data.name} has been created`, type: 'success' });
+            recordActivity({ eventType: 'people.leave_type.created', eventCategory: 'data', description: `Leave type ${data.name} was created`, resourceType: 'leave_type', resourceId: created?.id }).catch(() => {});
             loadLeaveTypes();
         } catch (error) {
             setToast({ message: 'Failed to create leave type', type: 'error' });
@@ -47,6 +50,7 @@ const LeaveTypesPage: React.FC = () => {
             await leaveTypesApi.update(id, data);
             setEditingLeaveType(null);
             setToast({ message: 'Leave type updated successfully', type: 'success' });
+            recordActivity({ eventType: 'people.leave_type.updated', eventCategory: 'data', description: `Leave type ${data.name || id} was updated`, resourceType: 'leave_type', resourceId: id }).catch(() => {});
             loadLeaveTypes();
         } catch (error) {
             setToast({ message: 'Failed to update leave type', type: 'error' });

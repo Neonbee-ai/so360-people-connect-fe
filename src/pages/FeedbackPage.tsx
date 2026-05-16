@@ -4,12 +4,14 @@ import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { feedbackApi, Feedback, CreateFeedbackPayload } from '../services/feedbackService';
 import { peopleApi } from '../services/peopleService';
 import { apiContext } from '../services/apiClient';
 import type { Person } from '../types/people';
 
 const FeedbackPage: React.FC = () => {
+    const { recordActivity } = useActivity();
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
     const [loading, setLoading] = useState(true);
     const [typeFilter, setTypeFilter] = useState<string>('');
@@ -37,9 +39,10 @@ const FeedbackPage: React.FC = () => {
 
     const handleCreate = async (data: CreateFeedbackPayload) => {
         try {
-            await feedbackApi.create(data);
+            const created = await feedbackApi.create(data);
             setToast({ message: 'Feedback submitted successfully', type: 'success' });
             setShowCreateModal(false);
+            recordActivity({ eventType: 'people.feedback.submitted', eventCategory: 'data', description: `${data.feedback_type} feedback was submitted`, resourceType: 'feedback', resourceId: created?.id }).catch(() => {});
             loadFeedback();
         } catch (error: any) {
             setToast({ message: error.message || 'Failed to submit feedback', type: 'error' });

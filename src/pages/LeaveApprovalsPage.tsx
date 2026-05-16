@@ -4,9 +4,11 @@ import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { leaveRequestsApi, LeaveRequest } from '../services/leaveRequestsService';
 
 const LeaveApprovalsPage: React.FC = () => {
+    const { recordActivity } = useActivity();
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [rejectingRequest, setRejectingRequest] = useState<LeaveRequest | null>(null);
@@ -36,6 +38,7 @@ const LeaveApprovalsPage: React.FC = () => {
         try {
             await leaveRequestsApi.approve(request.id);
             setToast({ message: 'Leave request approved', type: 'success' });
+            recordActivity({ eventType: 'people.leave.approved', eventCategory: 'data', description: `Leave request for ${request.person?.full_name || 'person'} was approved`, resourceType: 'leave_request', resourceId: request.id }).catch(() => {});
             loadPendingApprovals();
         } catch (error) {
             setToast({ message: 'Failed to approve request', type: 'error' });
@@ -48,6 +51,7 @@ const LeaveApprovalsPage: React.FC = () => {
         try {
             await leaveRequestsApi.reject(rejectingRequest.id, rejectionReason);
             setToast({ message: 'Leave request rejected', type: 'success' });
+            recordActivity({ eventType: 'people.leave.rejected', eventCategory: 'data', description: `Leave request for ${rejectingRequest.person?.full_name || 'person'} was rejected`, resourceType: 'leave_request', resourceId: rejectingRequest.id }).catch(() => {});
             setRejectingRequest(null);
             setRejectionReason('');
             loadPendingApprovals();

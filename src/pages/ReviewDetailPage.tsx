@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
 import { reviewTemplatesApi, ReviewTemplate, ReviewTemplateSection } from '../services/reviewTemplatesService';
 
@@ -120,6 +121,7 @@ const ReviewForm: React.FC<{
 const ReviewDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { recordActivity } = useActivity();
     const [review, setReview] = useState<PerformanceReview | null>(null);
     const [template, setTemplate] = useState<ReviewTemplate | null>(null);
     const [loading, setLoading] = useState(true);
@@ -200,6 +202,7 @@ const ReviewDetailPage: React.FC = () => {
         try {
             await performanceReviewsApi.submitSelfReview(review.id, selfFormData);
             setToast({ message: 'Self review submitted successfully', type: 'success' });
+            recordActivity({ eventType: 'people.review.submitted', eventCategory: 'data', description: `Self review submitted for ${review.person?.full_name || 'person'}`, resourceType: 'review', resourceId: review.id }).catch(() => {});
             if (id) loadReview(id);
         } catch (error: any) {
             setToast({ message: error.message || 'Failed to submit self review', type: 'error' });
@@ -215,6 +218,7 @@ const ReviewDetailPage: React.FC = () => {
             const calculatedRating = overallRating || calculateOverallFromForm(managerFormData, template.sections, template.rating_scale);
             await performanceReviewsApi.submitManagerReview(review.id, managerFormData, calculatedRating);
             setToast({ message: 'Manager review submitted successfully', type: 'success' });
+            recordActivity({ eventType: 'people.review.updated', eventCategory: 'data', description: `Manager review submitted for ${review.person?.full_name || 'person'}`, resourceType: 'review', resourceId: review.id }).catch(() => {});
             if (id) loadReview(id);
         } catch (error: any) {
             setToast({ message: error.message || 'Failed to submit manager review', type: 'error' });
@@ -229,6 +233,7 @@ const ReviewDetailPage: React.FC = () => {
         try {
             await performanceReviewsApi.complete(review.id);
             setToast({ message: 'Review completed successfully', type: 'success' });
+            recordActivity({ eventType: 'people.review.completed', eventCategory: 'data', description: `Performance review completed for ${review.person?.full_name || 'person'}`, resourceType: 'review', resourceId: review.id }).catch(() => {});
             if (id) loadReview(id);
         } catch (error: any) {
             setToast({ message: error.message || 'Failed to complete review', type: 'error' });

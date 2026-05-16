@@ -8,6 +8,7 @@ import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import EmptyState from '../components/EmptyState';
+import { useActivity } from '@so360/shell-context';
 import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
 import { goalsApi, Goal } from '../services/goalsService';
 import type { Person, Allocation, TimeEntry, PersonRole } from '../types/people';
@@ -15,6 +16,7 @@ import type { Person, Allocation, TimeEntry, PersonRole } from '../types/people'
 const PersonDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { recordActivity } = useActivity();
     const [person, setPerson] = useState<Person | null>(null);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
@@ -59,6 +61,12 @@ const PersonDetailPage: React.FC = () => {
             setPerson({ ...person, ...updated });
             setEditing(false);
             setToast({ message: 'Person updated', type: 'success' });
+            const statusChanged = editData.status && editData.status !== person.status;
+            if (statusChanged) {
+                recordActivity({ eventType: 'people.person.status_changed', eventCategory: 'identity', description: `Person ${person.full_name} status changed to ${editData.status}`, resourceType: 'person', resourceId: id }).catch(() => {});
+            } else {
+                recordActivity({ eventType: 'people.person.updated', eventCategory: 'identity', description: `Person ${person.full_name} was updated`, resourceType: 'person', resourceId: id }).catch(() => {});
+            }
         } catch (error) {
             setToast({ message: 'Failed to update', type: 'error' });
         }

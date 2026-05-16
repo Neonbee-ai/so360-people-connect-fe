@@ -9,11 +9,13 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
+import { useActivity } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
 import type { Allocation, CreateAllocationPayload, Person, AllocationStatus } from '../types/people';
 
 const AllocationsPage: React.FC = () => {
     const navigate = useNavigate();
+    const { recordActivity } = useActivity();
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -44,9 +46,10 @@ const AllocationsPage: React.FC = () => {
 
     const handleCreate = async (data: CreateAllocationPayload) => {
         try {
-            await allocationsApi.create(data);
+            const created = await allocationsApi.create(data);
             setShowCreateModal(false);
             setToast({ message: 'Allocation created successfully', type: 'success' });
+            recordActivity({ eventType: 'people.allocation.created', eventCategory: 'data', description: `Allocation created for ${data.entity_name || data.entity_id}`, resourceType: 'allocation', resourceId: created?.id }).catch(() => {});
             loadAllocations();
         } catch (error) {
             const msg = error instanceof Error ? error.message : 'Failed to create allocation';
@@ -59,6 +62,7 @@ const AllocationsPage: React.FC = () => {
             await allocationsApi.update(id, data);
             setEditingAllocation(null);
             setToast({ message: 'Allocation updated', type: 'success' });
+            recordActivity({ eventType: 'people.allocation.updated', eventCategory: 'data', description: `Allocation ${id} was updated`, resourceType: 'allocation', resourceId: id }).catch(() => {});
             loadAllocations();
         } catch (error) {
             setToast({ message: 'Failed to update allocation', type: 'error' });
