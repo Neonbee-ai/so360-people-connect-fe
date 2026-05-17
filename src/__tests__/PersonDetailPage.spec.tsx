@@ -13,6 +13,11 @@ vi.mock('../services/goalsService', () => ({
   Goal: {},
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import PersonDetailPage from '../pages/PersonDetailPage';
 import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
 import { goalsApi } from '../services/goalsService';

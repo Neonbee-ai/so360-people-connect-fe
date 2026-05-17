@@ -19,6 +19,11 @@ vi.mock('../services/goalsService', () => ({
   CreateGoalPayload: {},
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import GoalsPage from '../pages/GoalsPage';
 import { goalsApi } from '../services/goalsService';
 
@@ -87,8 +92,8 @@ describe('GoalsPage — extra scenarios', () => {
 
     it('When create throws / Then failure toast is shown', async () => {
       renderPage();
-      await waitFor(() => screen.getByText('Goals & Objectives'));
-      fireEvent.click(screen.getByText('New Goal'));
+      await waitFor(() => screen.getByText('Goals'));
+      fireEvent.click(screen.getByText('Create Goal'));
       // Submit form if modal is rendered
       const modal = screen.queryByTestId('modal') || document.querySelector('[role="dialog"]');
       if (modal) {
@@ -153,14 +158,14 @@ describe('GoalsPage — extra scenarios', () => {
       mockApi.getAll.mockResolvedValue({ data: [] });
     });
 
-    it('When rendered / Then Goals & Objectives header is visible', async () => {
+    it('When rendered / Then Goals header is visible', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Goals & Objectives')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Goals')).toBeInTheDocument());
     });
 
-    it('When rendered / Then New Goal button is present', async () => {
+    it('When rendered / Then Create Goal button is present', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('New Goal')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Create Goal')).toBeInTheDocument());
     });
   });
 });

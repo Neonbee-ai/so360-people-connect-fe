@@ -12,6 +12,11 @@ vi.mock('../services/reviewTemplatesService', () => ({
   ReviewTemplate: {},
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import ReviewDetailPage from '../pages/ReviewDetailPage';
 import { performanceReviewsApi } from '../services/performanceReviewsService';
 import { reviewTemplatesApi } from '../services/reviewTemplatesService';

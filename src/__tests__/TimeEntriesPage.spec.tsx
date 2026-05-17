@@ -8,6 +8,11 @@ vi.mock('../services/peopleService', () => ({
   allocationsApi: { getAll: vi.fn() },
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import TimeEntriesPage from '../pages/TimeEntriesPage';
 import { timeEntriesApi, peopleApi, allocationsApi } from '../services/peopleService';
 

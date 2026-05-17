@@ -12,6 +12,11 @@ vi.mock('../services/departmentsService', () => ({
   CreateDepartmentPayload: {},
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import DepartmentsPage from '../pages/DepartmentsPage';
 import { departmentsApi } from '../services/departmentsService';
 

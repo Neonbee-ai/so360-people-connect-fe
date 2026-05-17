@@ -7,6 +7,11 @@ vi.mock('../services/leaveRequestsService', () => ({
   LeaveRequest: {},
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import LeaveApprovalsPage from '../pages/LeaveApprovalsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 

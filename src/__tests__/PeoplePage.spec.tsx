@@ -24,6 +24,11 @@ vi.mock('../services/peopleService', () => ({
   },
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import PeoplePage from '../pages/PeoplePage';
 import { peopleApi } from '../services/peopleService';
 
