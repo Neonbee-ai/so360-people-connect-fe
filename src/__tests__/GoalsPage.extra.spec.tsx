@@ -3,8 +3,8 @@
  * create failure, update progress modal, complete goal confirmation,
  * API error on load, type filter, priority labels.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../services/goalsService', () => ({
@@ -44,6 +44,8 @@ const renderPage = () => render(<MemoryRouter><GoalsPage /></MemoryRouter>);
 beforeEach(() => vi.resetAllMocks());
 
 describe('GoalsPage — extra scenarios', () => {
+  afterEach(() => { cleanup(); });
+
   describe('Given API load fails', () => {
     it('When getAll rejects / Then shows error toast message', async () => {
       mockApi.getAll.mockRejectedValue(new Error('Network error'));
