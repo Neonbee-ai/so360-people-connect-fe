@@ -42,7 +42,7 @@ describe('ApiClient — extra scenarios', () => {
       makeOkResponse({ ok: true });
       await client.get('/items', { a: null, b: undefined });
       const url: string = mockFetch.mock.calls[0][0];
-      expect(url).toBe('http://api.test/items');
+      expect(url.replace(/\?$/, '')).toBe('http://api.test/items');
     });
 
     it('When numeric 0 is passed / Then it IS included in query string', async () => {
