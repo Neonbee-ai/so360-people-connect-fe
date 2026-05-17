@@ -93,14 +93,14 @@ describe('GoalsPage — extra scenarios', () => {
     it('When create throws / Then failure toast is shown', async () => {
       renderPage();
       await waitFor(() => screen.getByText('Goals'));
-      fireEvent.click(screen.getByText('Create Goal'));
+      fireEvent.click(screen.getAllByText('Create Goal')[0]);
       // Submit form if modal is rendered
       const modal = screen.queryByTestId('modal') || document.querySelector('[role="dialog"]');
       if (modal) {
         const titleInput = screen.queryByPlaceholderText(/goal title/i);
         if (titleInput) {
           fireEvent.change(titleInput, { target: { value: 'Test goal' } });
-          const submitBtn = screen.getByText('Create Goal');
+          const submitBtn = screen.getAllByText('Create Goal')[0];
           fireEvent.click(submitBtn);
           await waitFor(() => expect(screen.getByText('Failed to create goal')).toBeInTheDocument());
         }
@@ -165,7 +165,7 @@ describe('GoalsPage — extra scenarios', () => {
 
     it('When rendered / Then Create Goal button is present', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Create Goal')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getAllByText('Create Goal')[0]).toBeInTheDocument());
     });
   });
 });
