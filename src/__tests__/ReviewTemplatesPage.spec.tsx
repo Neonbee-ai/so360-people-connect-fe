@@ -8,6 +8,11 @@ vi.mock('../services/reviewTemplatesService', () => ({
   CreateReviewTemplatePayload: {},
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import ReviewTemplatesPage from '../pages/ReviewTemplatesPage';
 import { reviewTemplatesApi } from '../services/reviewTemplatesService';
 

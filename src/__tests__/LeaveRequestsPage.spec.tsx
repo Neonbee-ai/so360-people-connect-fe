@@ -18,6 +18,11 @@ vi.mock('../services/apiClient', () => ({
   apiContext: { getUserId: () => 'u1' },
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import LeaveRequestsPage from '../pages/LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 
@@ -59,7 +64,7 @@ describe('LeaveRequestsPage', () => {
     it('When Request Leave is clicked / Then the modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Request Leave'));
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
       await waitFor(() => expect(screen.getByText('Leave Type *')).toBeInTheDocument());
     });
   });

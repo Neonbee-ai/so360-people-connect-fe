@@ -25,6 +25,11 @@ vi.mock('../services/peopleService', () => ({
   peopleApi: { getAll: vi.fn().mockResolvedValue({ data: [] }) },
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import PerformanceReviewsPage from '../pages/PerformanceReviewsPage';
 import { performanceReviewsApi } from '../services/performanceReviewsService';
 

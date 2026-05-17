@@ -28,6 +28,11 @@ vi.mock('../services/apiClient', () => ({
   apiContext: { getUserId: () => 'u1' },
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import LeaveRequestsPage from '../pages/LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { leaveTypesApi } from '../services/leaveTypesService';
@@ -88,7 +93,7 @@ describe('LeaveRequestsPage — extra scenarios', () => {
 
     it('When page loads / Then Request Leave button is visible', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Request Leave')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getAllByText('Request Leave')[0]).toBeInTheDocument());
     });
   });
 
@@ -128,8 +133,8 @@ describe('LeaveRequestsPage — extra scenarios', () => {
 
     it('When Request Leave is clicked / Then create modal opens', async () => {
       renderPage();
-      await waitFor(() => screen.getByText('Request Leave'));
-      fireEvent.click(screen.getByText('Request Leave'));
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
       // Modal or form should appear
       await waitFor(() =>
         expect(
@@ -149,8 +154,8 @@ describe('LeaveRequestsPage — extra scenarios', () => {
 
     it('When create API fails / Then shows failure toast', async () => {
       renderPage();
-      await waitFor(() => screen.getByText('Request Leave'));
-      fireEvent.click(screen.getByText('Request Leave'));
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
       // If a modal appeared with a form, submit it; otherwise just verify modal opens
       const modal = document.querySelector('[data-testid="modal"]');
       if (modal) {

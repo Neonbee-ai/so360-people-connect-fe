@@ -8,6 +8,11 @@ vi.mock('../services/leaveTypesService', () => ({
   CreateLeaveTypePayload: {},
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import LeaveTypesPage from '../pages/LeaveTypesPage';
 import { leaveTypesApi } from '../services/leaveTypesService';
 

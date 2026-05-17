@@ -16,6 +16,11 @@ vi.mock('../services/apiClient', () => ({
   apiContext: { getUserId: () => 'u1' },
 }));
 
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+}));
+
 import FeedbackPage from '../pages/FeedbackPage';
 import { feedbackApi } from '../services/feedbackService';
 import { peopleApi } from '../services/peopleService';
