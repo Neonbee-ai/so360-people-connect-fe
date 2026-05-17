@@ -18,6 +18,8 @@ export declare const useShellBridge: () => any;
 export declare const useShell: () => ShellContextType;
 export declare const useModules: () => any;
 export declare const useFeatureFlags: () => any;
+export declare const useActivity: () => { recordActivity: (...args: any[]) => Promise<void> };
+export declare const useNotify: () => { emitNotification: (...args: any[]) => void };
 export declare const eventBus: any;
 declare const _: any;
 export default _;
