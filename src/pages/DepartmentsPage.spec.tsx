@@ -60,7 +60,7 @@ describe('Given DepartmentsPage with no departments', () => {
 
   it('When there are no departments / Then empty state is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('No departments')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/No departments found/i)).toBeInTheDocument());
   });
 });
 
@@ -85,7 +85,7 @@ describe('Given DepartmentsPage create interaction', () => {
   it('When Add Department button is clicked / Then create modal opens', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Add Department'));
+    fireEvent.click(screen.getByText('Create Department'));
     await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
   });
 });

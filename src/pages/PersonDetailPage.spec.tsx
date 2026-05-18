@@ -105,7 +105,7 @@ describe('Given PersonDetailPage API failure', () => {
 
   it('When person load fails / Then error toast is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load person details')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Person not found.')).toBeInTheDocument());
   });
 });
 

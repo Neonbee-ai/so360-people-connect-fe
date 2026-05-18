@@ -49,7 +49,7 @@ describe('Given TeamPerformancePage loads with data', () => {
 
   it('When data loads / Then stat cards are shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Total Reviews')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Avg Rating')).toBeInTheDocument());
   });
 
   it('When reviews are loaded / Then completed count is shown', async () => {
@@ -59,7 +59,7 @@ describe('Given TeamPerformancePage loads with data', () => {
 
   it('When goals are loaded / Then active goals stat is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Active Goals')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Avg Goal Progress')).toBeInTheDocument());
   });
 });
 

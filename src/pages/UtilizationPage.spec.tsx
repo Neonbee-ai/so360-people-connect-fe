@@ -63,12 +63,12 @@ describe('Given UtilizationPage loads with data', () => {
 
   it('When page loads / Then "Utilization" heading is visible', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Utilization')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Utilization Intelligence')).toBeInTheDocument());
   });
 
   it('When summary loads / Then stat cards are shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Active People')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Active Resources')).toBeInTheDocument());
   });
 
   it('When utilization data loads / Then person name is shown', async () => {

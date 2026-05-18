@@ -60,7 +60,7 @@ describe('Given ReviewTemplatesPage loads with templates', () => {
 
   it('When templates are fetched / Then review type is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText(/annual/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('annual')).toBeInTheDocument());
   });
 });
 
@@ -84,7 +84,7 @@ describe('Given ReviewTemplatesPage create interaction', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Annual 2024')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Create Template'));
-    await waitFor(() => expect(screen.getByText(/Template Name/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Name *')).toBeInTheDocument());
   });
 });
 

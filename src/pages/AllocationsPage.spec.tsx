@@ -111,6 +111,6 @@ describe('Given AllocationsPage create interaction', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Website Redesign')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New Allocation'));
-    await waitFor(() => expect(screen.getByText(/Person/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Person *')).toBeInTheDocument());
   });
 });

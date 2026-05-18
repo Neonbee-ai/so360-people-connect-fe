@@ -88,7 +88,7 @@ describe('Given LeaveTypesPage create interaction', () => {
   it('When Add Leave Type is clicked / Then the create modal opens', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Add Leave Type'));
+    fireEvent.click(screen.getByText('Create Leave Type'));
     await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
   });
 });

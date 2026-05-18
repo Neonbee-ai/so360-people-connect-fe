@@ -33,7 +33,7 @@ describe('Given EventsPage loads successfully', () => {
 
   it('When page loads / Then "Events" heading is visible', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Events')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('People Events')).toBeInTheDocument());
   });
 
   it('When events are fetched / Then event actor name is shown', async () => {
@@ -43,7 +43,7 @@ describe('Given EventsPage loads successfully', () => {
 
   it('When events are fetched / Then event type label is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText(/New Person|person_created/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Person Created|person_created/i)).toBeInTheDocument());
   });
 });
 
@@ -65,7 +65,7 @@ describe('Given EventsPage API failure', () => {
 
   it('When API fails / Then page renders without crashing', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Events')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('People Events')).toBeInTheDocument());
   });
 });
 

@@ -39,7 +39,7 @@ describe('Given ImportExportPage renders', () => {
 
   it('When page loads / Then the Export section is present', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText(/Export People/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Export People/i })).toBeInTheDocument());
   });
 
   it('When page loads / Then the Import section is present', async () => {

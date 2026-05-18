@@ -33,6 +33,7 @@ vi.mock('../services/apiClient', () => ({
 }));
 
 import PeoplePage from './PeoplePage';
+import { departmentsApi } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
 
 const mockApi = peopleApi as any;
@@ -58,6 +59,7 @@ const mockPerson = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  (departmentsApi as any).getTree.mockResolvedValue([]);
 });
 
 describe('Given PeoplePage loads with people', () => {
@@ -67,7 +69,7 @@ describe('Given PeoplePage loads with people', () => {
 
   it('When page loads / Then "People" heading is visible', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('People')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('People Registry')).toBeInTheDocument());
   });
 
   it('When people are fetched / Then person name is displayed', async () => {

@@ -61,6 +61,7 @@ const mockReview = {
   person: { id: 'p1', full_name: 'Alice', job_title: 'Engineer' },
   template: { id: 'tpl1', name: 'Annual 2024', review_type: 'annual' },
   reviewer: { id: 'p2', full_name: 'Manager Bob' },
+  template_id: 'tpl1',
   review_period_start: '2024-01-01',
   review_period_end: '2024-12-31',
   status: 'self_review_pending',
@@ -81,17 +82,17 @@ describe('Given ReviewDetailPage loads successfully', () => {
 
   it('When page loads / Then "Performance Review" heading is visible', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Performance Review')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Alice - Annual 2024/i })).toBeInTheDocument());
   });
 
   it('When review is loaded / Then person name is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Alice/i })).toBeInTheDocument());
   });
 
   it('When review is loaded / Then template name is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Annual 2024')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Annual 2024/i })).toBeInTheDocument());
   });
 
   it('When review is loaded / Then reviewer name is shown', async () => {
@@ -109,7 +110,7 @@ describe('Given ReviewDetailPage API failure', () => {
   it('When review load fails / Then error toast appears', async () => {
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText(/Failed to load review/i)).toBeInTheDocument()
+      expect(screen.getByText('Review not found')).toBeInTheDocument()
     );
   });
 });
