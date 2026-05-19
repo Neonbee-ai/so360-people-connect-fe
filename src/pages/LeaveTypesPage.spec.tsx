@@ -89,7 +89,7 @@ describe('Given LeaveTypesPage create interaction', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Create Leave Type'));
-    await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Code *')).toBeInTheDocument());
   });
 });
 

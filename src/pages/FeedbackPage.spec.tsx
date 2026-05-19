@@ -50,7 +50,7 @@ describe('Given FeedbackPage loads successfully', () => {
 
   it('When feedback is fetched / Then feedback recipient is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Manager Bob to Alice')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText((_, el) => el?.tagName === 'P' && (el?.textContent ?? '').replace(/\s+/g, ' ').trim() === 'Manager Bob to Alice')).toBeInTheDocument());
   });
 
   it('When feedback is fetched / Then feedback text is displayed', async () => {
@@ -88,7 +88,7 @@ describe('Given FeedbackPage create interaction', () => {
 
   it('When Give Feedback button is clicked / Then create modal opens', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Manager Bob to Alice')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Give Feedback')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Give Feedback'));
     await waitFor(() => expect(screen.getByText('Feedback Type *')).toBeInTheDocument());
   });
