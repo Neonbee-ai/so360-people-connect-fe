@@ -8,12 +8,14 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { timeEntriesApi, peopleApi, allocationsApi } from '../services/peopleService';
 import type { TimeEntry, CreateTimeEntryPayload, Person, Allocation, TimeEntryStatus } from '../types/people';
 
 const TimeEntriesPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreate = (shell?.isFeatureEnabled?.('action:people:time_entries:create') ?? true);
     const [entries, setEntries] = useState<TimeEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -163,7 +165,7 @@ const TimeEntriesPage: React.FC = () => {
                 subtitle="Controlled time capture linked to execution entities"
                 actions={
                     <div className="flex items-center gap-2">
-                        {selectedEntries.size > 0 && (
+                        {canCreate && selectedEntries.size > 0 && (
                             <button
                                 onClick={handleBulkApprove}
                                 className="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -172,13 +174,13 @@ const TimeEntriesPage: React.FC = () => {
                                 Approve ({selectedEntries.size})
                             </button>
                         )}
-                        <button
+                        {canCreate && <button
                             onClick={() => setShowCreateModal(true)}
                             className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                         >
                             <Plus size={16} />
                             Log Time
-                        </button>
+                        </button>}
                     </div>
                 }
             />
@@ -304,7 +306,7 @@ const TimeEntriesPage: React.FC = () => {
                                 </div>
                                 <div className="flex items-center justify-center gap-1">
                                     <StatusBadge status={entry.status} />
-                                    {entry.status === 'draft' && (
+                                    {canCreate && entry.status === 'draft' && (
                                         <>
                                             <button
                                                 onClick={() => handleSubmit(entry.id)}
@@ -322,7 +324,7 @@ const TimeEntriesPage: React.FC = () => {
                                             </button>
                                         </>
                                     )}
-                                    {entry.status === 'submitted' && (
+                                    {canCreate && entry.status === 'submitted' && (
                                         <>
                                             <button
                                                 onClick={() => handleApprove(entry.id)}

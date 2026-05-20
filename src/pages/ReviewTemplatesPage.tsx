@@ -5,11 +5,13 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { reviewTemplatesApi, ReviewTemplate, CreateReviewTemplatePayload } from '../services/reviewTemplatesService';
 
 const ReviewTemplatesPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreate = (shell?.isFeatureEnabled?.('action:people:review_templates:create') ?? true);
     const [templates, setTemplates] = useState<ReviewTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -76,7 +78,7 @@ const ReviewTemplatesPage: React.FC = () => {
                 title="Review Templates"
                 subtitle="Configure performance review structures"
                 actions={
-                    <button
+                    canCreate && <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
@@ -144,7 +146,7 @@ const ReviewTemplatesPage: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <button
+                                            {canCreate && <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleClone(template);
@@ -153,8 +155,8 @@ const ReviewTemplatesPage: React.FC = () => {
                                                 title="Clone template"
                                             >
                                                 <Copy size={14} />
-                                            </button>
-                                            <button
+                                            </button>}
+                                            {canCreate && <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setEditingTemplate(template);
@@ -162,7 +164,7 @@ const ReviewTemplatesPage: React.FC = () => {
                                                 className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
                                             >
                                                 Edit
-                                            </button>
+                                            </button>}
                                         </div>
                                     </td>
                                 </tr>

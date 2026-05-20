@@ -4,7 +4,7 @@ import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { feedbackApi, Feedback, CreateFeedbackPayload } from '../services/feedbackService';
 import { peopleApi } from '../services/peopleService';
 import { apiContext } from '../services/apiClient';
@@ -12,6 +12,8 @@ import type { Person } from '../types/people';
 
 const FeedbackPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreate = (shell?.isFeatureEnabled?.('action:people:feedback:create') ?? true);
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
     const [loading, setLoading] = useState(true);
     const [typeFilter, setTypeFilter] = useState<string>('');
@@ -72,7 +74,7 @@ const FeedbackPage: React.FC = () => {
                 title="Feedback"
                 subtitle="Give and receive feedback across the team"
                 actions={
-                    <button
+                    canCreate && <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >

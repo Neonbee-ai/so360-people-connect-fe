@@ -5,13 +5,15 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance } from '../services/leaveRequestsService';
 import { leaveTypesApi, LeaveType } from '../services/leaveTypesService';
 import { apiContext } from '../services/apiClient';
 
 const LeaveRequestsPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreate = (shell?.isFeatureEnabled?.('action:people:leave_requests:create') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'my' | 'team'>('my');
@@ -69,7 +71,7 @@ const LeaveRequestsPage: React.FC = () => {
                 title="Leave Requests"
                 subtitle="View and manage leave applications"
                 actions={
-                    <button
+                    canCreate && <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >

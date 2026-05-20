@@ -5,11 +5,13 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
 
 const DepartmentsPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreate = (shell?.isFeatureEnabled?.('action:people:departments:create') ?? true);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -118,12 +120,12 @@ const DepartmentsPage: React.FC = () => {
                         </div>
 
                         {/* Actions */}
-                        <button
+                        {canCreate && <button
                             onClick={() => setEditingDepartment(dept)}
                             className="px-3 py-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors"
                         >
                             Edit
-                        </button>
+                        </button>}
                     </div>
                 </div>
 
@@ -139,7 +141,7 @@ const DepartmentsPage: React.FC = () => {
                 title="Departments"
                 subtitle="Manage organizational structure"
                 actions={
-                    <button
+                    canCreate && <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
