@@ -23,3 +23,13 @@ export const ShellContext = React.createContext<any>({
   currentTenant: { id: 'tenant-1', name: 'Test Tenant' },
   accessToken: 'mock-token',
 });
+
+export const useQuota = () => ({
+  quotas: [],
+  isLoading: false,
+  error: null,
+  isExceeded: () => false,
+  getQuota: () => null,
+  getPercentage: () => 0,
+  refresh: async () => {},
+});
