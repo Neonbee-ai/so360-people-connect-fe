@@ -5,11 +5,13 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
 
 const GoalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreateGoal = (shell?.isFeatureEnabled?.('action:people:goals:create') ?? true);
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -118,7 +120,7 @@ const GoalsPage: React.FC = () => {
             <PageHeader
                 title="Goals"
                 subtitle="Track objectives and key results"
-                actions={
+                actions={canCreateGoal ? (
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -126,7 +128,7 @@ const GoalsPage: React.FC = () => {
                         <Target size={16} />
                         Create Goal
                     </button>
-                }
+                ) : undefined}
             />
 
             {/* Filters */}

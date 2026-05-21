@@ -9,13 +9,15 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
 import type { Allocation, CreateAllocationPayload, Person, AllocationStatus } from '../types/people';
 
 const AllocationsPage: React.FC = () => {
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreateAllocation = (shell?.isFeatureEnabled?.('action:people:allocations:create') ?? true);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -102,7 +104,7 @@ const AllocationsPage: React.FC = () => {
             <PageHeader
                 title="Allocations"
                 subtitle="Assign people to execution entities with capacity control"
-                actions={
+                actions={canCreateAllocation ? (
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -110,7 +112,7 @@ const AllocationsPage: React.FC = () => {
                         <Plus size={16} />
                         New Allocation
                     </button>
-                }
+                ) : undefined}
             />
 
             {/* Filters */}

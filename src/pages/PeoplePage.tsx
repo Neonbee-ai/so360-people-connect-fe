@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
@@ -11,7 +11,8 @@ import type { Person, CreatePersonPayload, PersonStatus } from '../types/people'
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge, useQuota } from '@so360/shell-context';
+import { QuotaBar, QuotaGate } from '@so360/design-system';
 import { apiContext } from '../services/apiClient';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
@@ -20,6 +21,13 @@ const PeoplePage: React.FC = () => {
     const navigate = useNavigate();
     const { orgId, tenantId } = usePeopleContext();
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canAddEmployee = (shell?.isFeatureEnabled?.('action:people:employees:create') ?? true);
+    const canImportEmployees = (shell?.isFeatureEnabled?.('action:people:employees:import') ?? true);
+    const canExportEmployees = (shell?.isFeatureEnabled?.('action:people:employees:export') ?? true);
+    const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_employees' }], []);
+    const { getQuota } = useQuota({ checks: quotaChecks, orgId });
+    const quotaData = getQuota('max_employees');
     const [people, setPeople] = useState<Person[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -133,6 +141,7 @@ const PeoplePage: React.FC = () => {
                 actions={
                     <div className="flex items-center gap-2">
                         {/* Import Button */}
+                        {canImportEmployees && (
                         <button
                             onClick={() => navigate('/import-export')}
                             className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -140,8 +149,10 @@ const PeoplePage: React.FC = () => {
                             <Upload size={16} />
                             Import
                         </button>
+                        )}
 
                         {/* Export Dropdown */}
+                        {canExportEmployees && (
                         <div className="relative">
                             <button
                                 onClick={() => setShowExportMenu(!showExportMenu)}
@@ -168,8 +179,18 @@ const PeoplePage: React.FC = () => {
                                 </div>
                             )}
                         </div>
+                        )}
 
                         {/* Add Person Button */}
+                        {canAddEmployee && (
+                        <QuotaGate
+                            quotaKey="max_employees"
+                            moduleCode="people"
+                            used={quotaData?.current_usage ?? 0}
+                            limit={quotaData?.limit ?? 0}
+                            isUnlimited={quotaData?.is_unlimited}
+                            disableOnExceeded
+                        >
                         <button
                             onClick={() => setShowCreateModal(true)}
                             className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -177,6 +198,8 @@ const PeoplePage: React.FC = () => {
                             <UserPlus size={16} />
                             Add Person
                         </button>
+                        </QuotaGate>
+                        )}
                     </div>
                 }
             />
@@ -258,6 +281,15 @@ const PeoplePage: React.FC = () => {
                     />
                 </div>
             </div>
+
+            {quotaData && (
+                <QuotaBar
+                    label="Employees"
+                    used={quotaData.current_usage}
+                    limit={quotaData.limit}
+                    isUnlimited={quotaData.is_unlimited}
+                />
+            )}
 
             {/* People List */}
             {loading ? (

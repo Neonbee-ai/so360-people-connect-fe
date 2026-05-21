@@ -4,11 +4,13 @@ import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { leaveRequestsApi, LeaveRequest } from '../services/leaveRequestsService';
 
 const LeaveApprovalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canApproveLeave = (shell?.isFeatureEnabled?.('action:people:leaves:approve') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [rejectingRequest, setRejectingRequest] = useState<LeaveRequest | null>(null);
@@ -137,6 +139,7 @@ const LeaveApprovalsPage: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            {canApproveLeave && (
                                             <button
                                                 onClick={() => handleApprove(request)}
                                                 className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-medium rounded-lg transition-colors"
@@ -144,6 +147,7 @@ const LeaveApprovalsPage: React.FC = () => {
                                                 <CheckCircle size={14} />
                                                 Approve
                                             </button>
+                                            )}
                                             <button
                                                 onClick={() => setRejectingRequest(request)}
                                                 className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg transition-colors"

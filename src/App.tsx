@@ -3,6 +3,22 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useShellBridge } from '@so360/shell-context';
 import { peopleService } from './services/peopleService';
 
+/** Feature-gated route wrapper for people-connect submodules (fail-open). */
+const FeatureGate = ({ flagKey, children }: { flagKey: string; children: React.ReactNode }) => {
+    const shell = useShellBridge();
+    const enabled = shell?.isFeatureEnabled?.(flagKey) ?? true;
+    if (!enabled) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-center px-4">
+                <div className="text-slate-600 text-4xl">&#128274;</div>
+                <h2 className="text-lg font-bold text-slate-300">Feature Not Available</h2>
+                <p className="text-slate-500 text-sm max-w-md">This feature is not included in your current plan. Contact your administrator to upgrade.</p>
+            </div>
+        );
+    }
+    return <>{children}</>;
+};
+
 // Shell Context Synchronizer
 const PeopleShellInitializer = ({ children }: { children: React.ReactNode }) => {
     const shell = useShellBridge();
@@ -103,9 +119,9 @@ const App = () => {
                     <Route path="departments" element={<DepartmentsPage />} />
 
                     {/* Allocations & Time */}
-                    <Route path="allocations" element={<AllocationsPage />} />
+                    <Route path="allocations" element={<FeatureGate flagKey="submodule:people:allocations"><AllocationsPage /></FeatureGate>} />
                     <Route path="time" element={<TimeEntriesPage />} />
-                    <Route path="utilization" element={<UtilizationPage />} />
+                    <Route path="utilization" element={<FeatureGate flagKey="submodule:people:utilization"><UtilizationPage /></FeatureGate>} />
 
                     {/* Leave Management */}
                     <Route path="leaves/types" element={<LeaveTypesPage />} />
@@ -114,9 +130,9 @@ const App = () => {
                     <Route path="leaves/approvals" element={<LeaveApprovalsPage />} />
 
                     {/* Performance Reviews */}
-                    <Route path="reviews/templates" element={<ReviewTemplatesPage />} />
-                    <Route path="reviews" element={<PerformanceReviewsPage />} />
-                    <Route path="reviews/:id" element={<ReviewDetailPage />} />
+                    <Route path="reviews/templates" element={<FeatureGate flagKey="submodule:people:reviews"><ReviewTemplatesPage /></FeatureGate>} />
+                    <Route path="reviews" element={<FeatureGate flagKey="submodule:people:reviews"><PerformanceReviewsPage /></FeatureGate>} />
+                    <Route path="reviews/:id" element={<FeatureGate flagKey="submodule:people:reviews"><ReviewDetailPage /></FeatureGate>} />
 
                     {/* Goals & Performance */}
                     <Route path="goals" element={<GoalsPage />} />

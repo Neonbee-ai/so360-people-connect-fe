@@ -6,7 +6,7 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { performanceReviewsApi, PerformanceReview, CreatePerformanceReviewPayload } from '../services/performanceReviewsService';
 import { reviewTemplatesApi, ReviewTemplate } from '../services/reviewTemplatesService';
 import { peopleApi } from '../services/peopleService';
@@ -15,6 +15,8 @@ import type { Person } from '../types/people';
 const PerformanceReviewsPage: React.FC = () => {
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreateReview = (shell?.isFeatureEnabled?.('action:people:reviews:create') ?? true);
     const [reviews, setReviews] = useState<PerformanceReview[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'all' | 'my' | 'team'>('all');
@@ -90,7 +92,7 @@ const PerformanceReviewsPage: React.FC = () => {
             <PageHeader
                 title="Performance Reviews"
                 subtitle="Track employee performance evaluations"
-                actions={
+                actions={canCreateReview ? (
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -98,7 +100,7 @@ const PerformanceReviewsPage: React.FC = () => {
                         <TrendingUp size={16} />
                         Create Review
                     </button>
-                }
+                ) : undefined}
             />
 
             {/* Tabs */}

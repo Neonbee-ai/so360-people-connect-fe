@@ -1,17 +1,21 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Building2, ChevronDown, ChevronRight, Users } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity, useShellBridge } from '@so360/shell-context';
+import { useActivity, useShellBridge, useQuota } from '@so360/shell-context';
+import { QuotaBar, QuotaGate } from '@so360/design-system';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
 
 const DepartmentsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
     const canCreate = (shell?.isFeatureEnabled?.('action:people:departments:create') ?? true);
+    const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_departments' }], []);
+    const { getQuota } = useQuota({ checks: quotaChecks, orgId: shell?.currentOrg?.id || '' });
+    const quotaData = getQuota('max_departments');
     const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -141,15 +145,33 @@ const DepartmentsPage: React.FC = () => {
                 title="Departments"
                 subtitle="Manage organizational structure"
                 actions={
-                    canCreate && <button
+                    canCreate && <QuotaGate
+                        quotaKey="max_departments"
+                        moduleCode="people"
+                        used={quotaData?.current_usage ?? 0}
+                        limit={quotaData?.limit ?? 0}
+                        isUnlimited={quotaData?.is_unlimited}
+                        disableOnExceeded
+                    >
+                    <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
                         <Building2 size={16} />
                         Create Department
                     </button>
+                    </QuotaGate>
                 }
             />
+
+            {quotaData && (
+                <QuotaBar
+                    label="Departments"
+                    used={quotaData.current_usage}
+                    limit={quotaData.limit}
+                    isUnlimited={quotaData.is_unlimited}
+                />
+            )}
 
             {/* Departments Tree */}
             {loading ? (

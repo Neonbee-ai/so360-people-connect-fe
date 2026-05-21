@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
+import { useShellBridge } from '@so360/shell-context';
 import {
     LayoutDashboard,
     Users,
@@ -22,6 +23,7 @@ interface NavItem {
     label: string;
     icon: React.FC<{ size?: number; className?: string }>;
     adminOnly?: boolean;
+    flagKey?: string;
 }
 
 interface NavSection {
@@ -46,9 +48,9 @@ const navigationItems: NavSection[] = [
     {
         section: 'Resource Management',
         items: [
-            { path: '/allocations', label: 'Allocations', icon: Calendar },
+            { path: '/allocations', label: 'Allocations', icon: Calendar, flagKey: 'submodule:people:allocations' },
             { path: '/time', label: 'Time Entries', icon: Clock },
-            { path: '/utilization', label: 'Utilization', icon: Activity },
+            { path: '/utilization', label: 'Utilization', icon: Activity, flagKey: 'submodule:people:utilization' },
         ]
     },
     {
@@ -63,10 +65,10 @@ const navigationItems: NavSection[] = [
     {
         section: 'Performance',
         items: [
-            { path: '/reviews', label: 'Reviews', icon: TrendingUp },
+            { path: '/reviews', label: 'Reviews', icon: TrendingUp, flagKey: 'submodule:people:reviews' },
             { path: '/goals', label: 'Goals', icon: Target },
             { path: '/team-performance', label: 'Team Performance', icon: Users },
-            { path: '/reviews/templates', label: 'Review Templates', icon: FileText, adminOnly: true },
+            { path: '/reviews/templates', label: 'Review Templates', icon: FileText, adminOnly: true, flagKey: 'submodule:people:reviews' },
         ]
     },
     {
@@ -80,6 +82,7 @@ const navigationItems: NavSection[] = [
 
 const ModuleNav: React.FC = () => {
     const location = useLocation();
+    const shell = useShellBridge();
 
     const isActive = (path: string) => {
         if (path === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
@@ -89,13 +92,18 @@ const ModuleNav: React.FC = () => {
     return (
         <nav className="h-full w-64 bg-slate-900 border-r border-slate-800 overflow-y-auto">
             <div className="p-6 space-y-6">
-                {navigationItems.map((section) => (
+                {navigationItems.map((section) => {
+                    const visibleItems = section.items.filter(
+                        (item) => !item.flagKey || (shell?.isFeatureEnabled?.(item.flagKey) ?? true)
+                    );
+                    if (visibleItems.length === 0) return null;
+                    return (
                     <div key={section.section}>
                         <h3 className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                             {section.section}
                         </h3>
                         <div className="space-y-1">
-                            {section.items.map((item) => {
+                            {visibleItems.map((item) => {
                                 const Icon = item.icon;
                                 const active = isActive(item.path);
                                 return (
@@ -117,7 +125,8 @@ const ModuleNav: React.FC = () => {
                             })}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         </nav>
     );
