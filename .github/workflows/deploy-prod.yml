@@ -21,6 +21,6 @@ jobs:
       vite_env: |
         VITE_BASE_URL=https://cdn.neonbee.app/people/
         VITE_SO360_CORE_API=https://api.neonbee.app/core
-        VITE_SO360_PEOPLE-CONNECT_API=https://api.neonbee.app/people
+        VITE_SO360_PEOPLE_CONNECT_API=https://api.neonbee.app/people
         VITE_ENVIRONMENT=cloud
     secrets: inherit
