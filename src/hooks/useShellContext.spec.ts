@@ -4,7 +4,8 @@ import React from 'react';
 
 vi.mock('@so360/shell-context', () => ({
   ShellContext: React.createContext(null),
-}));
+
+  useShellBridge: () => ({ isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),}));
 
 import { useShellContext, usePeopleContext } from './useShellContext';
 import { ShellContext } from '@so360/shell-context';

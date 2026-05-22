@@ -15,7 +15,8 @@ vi.mock('../services/peopleService', () => ({
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
-}));
+
+  useShellBridge: () => ({ isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),}));
 
 import AllocationsPage from './AllocationsPage';
 import { allocationsApi, peopleApi } from '../services/peopleService';
