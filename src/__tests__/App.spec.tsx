@@ -24,7 +24,8 @@ let mockShellData: any = {
 vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => mockShellData,
   ShellContext: { Provider: ({ children }: any) => children },
-}));
+
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),}));
 
 import App from '../App';
 import { peopleService } from '../services/peopleService';
