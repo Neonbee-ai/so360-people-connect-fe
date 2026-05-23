@@ -14,6 +14,7 @@ import { usePeopleContext } from '../hooks/useShellContext';
 import { useActivity, useShellBridge, useQuota } from '@so360/shell-context';
 import { QuotaBar, QuotaGate } from '@so360/design-system';
 import { apiContext } from '../services/apiClient';
+import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 
@@ -348,6 +349,12 @@ const PeoplePage: React.FC = () => {
                                         {person.department && (
                                             <span className="text-slate-600">{person.department}</span>
                                         )}
+                                        {person.work_location && (
+                                            <span className="flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                                {(person.work_location as any).name}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -406,6 +413,13 @@ interface CreatePersonModalProps {
 
 const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, onCreate, currencies = DEFAULT_CURRENCIES }) => {
     const { orgId, tenantId } = usePeopleContext();
+    const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        workLocationsApi.getAll().then(r => setWorkLocations(r.data)).catch(() => {});
+    }, [isOpen]);
+
     const [formData, setFormData] = useState<CreatePersonPayload & {
         userLinkageMode?: 'none' | 'link' | 'invite';
         existingUserId?: string;
@@ -517,6 +531,19 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
                                 placeholder="Senior Developer"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Work Location</label>
+                            <select
+                                value={(formData as any).work_location_id || ''}
+                                onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            >
+                                <option value="">None</option>
+                                {workLocations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                 </div>

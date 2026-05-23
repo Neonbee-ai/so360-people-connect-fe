@@ -84,6 +84,7 @@ const GoalsPage = lazy(() => import('./pages/GoalsPage'));
 const TeamPerformancePage = lazy(() => import('./pages/TeamPerformancePage'));
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
 const ImportExportPage = lazy(() => import('./pages/ImportExportPage'));
+const WorkLocationsPage = lazy(() => import('./pages/WorkLocationsPage'));
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -138,6 +139,9 @@ const App = () => {
                     <Route path="goals" element={<GoalsPage />} />
                     <Route path="team-performance" element={<TeamPerformancePage />} />
                     <Route path="feedback" element={<FeedbackPage />} />
+
+                    {/* Settings */}
+                    <Route path="settings/work-locations" element={<WorkLocationsPage />} />
 
                     {/* Import/Export */}
                     <Route path="import-export" element={<ImportExportPage />} />

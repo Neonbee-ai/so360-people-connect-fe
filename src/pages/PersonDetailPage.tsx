@@ -11,6 +11,7 @@ import EmptyState from '../components/EmptyState';
 import { useActivity } from '@so360/shell-context';
 import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
 import { goalsApi, Goal } from '../services/goalsService';
+import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import type { Person, Allocation, TimeEntry, PersonRole } from '../types/people';
 
 const PersonDetailPage: React.FC = () => {
@@ -31,19 +32,22 @@ const PersonDetailPage: React.FC = () => {
     const [showUpdateRateModal, setShowUpdateRateModal] = useState(false);
     const [activeTab, setActiveTab] = useState<string>('overview');
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
 
     useEffect(() => {
         if (!id) return;
         const loadData = async () => {
             try {
-                const [personData, allocData, timeData] = await Promise.all([
+                const [personData, allocData, timeData, locData] = await Promise.all([
                     peopleApi.getById(id),
                     allocationsApi.getAll({ person_id: id }),
                     timeEntriesApi.getAll({ person_id: id, limit: 10 }),
+                    workLocationsApi.getAll(),
                 ]);
                 setPerson(personData);
                 setAllocations(allocData.data);
                 setTimeEntries(timeData.data);
+                setWorkLocations(locData.data);
             } catch (error) {
                 console.error('Failed to load person:', error);
                 setToast({ message: 'Failed to load person details', type: 'error' });
@@ -206,6 +210,15 @@ const PersonDetailPage: React.FC = () => {
                             {person.job_title && <span>{person.job_title}</span>}
                             {person.department && <span className="text-slate-600">|</span>}
                             {person.department && <span>{person.department}</span>}
+                            {person.work_location && (
+                                <>
+                                    <span className="text-slate-600">|</span>
+                                    <span className="flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                        {person.work_location.name}
+                                    </span>
+                                </>
+                            )}
                         </div>
                         <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                             {person.email && <span className="flex items-center gap-1"><Mail size={12} />{person.email}</span>}
@@ -272,6 +285,19 @@ const PersonDetailPage: React.FC = () => {
                                 onChange={e => setEditData(d => ({ ...d, available_hours_per_day: parseFloat(e.target.value) }))}
                                 className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">Work Location</label>
+                            <select
+                                value={editData.work_location_id || ''}
+                                onChange={e => setEditData(d => ({ ...d, work_location_id: e.target.value || undefined }))}
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
+                            >
+                                <option value="">None</option>
+                                {workLocations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                 )}

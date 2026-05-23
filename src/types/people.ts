@@ -43,6 +43,10 @@ export interface Person {
   created_by?: string;
   updated_by?: string;
 
+  // Work Location
+  work_location_id?: string;
+  work_location?: { id: string; name: string; location_type: string } | null;
+
   // Relations
   people_roles?: PersonRole[];
 }
@@ -80,6 +84,7 @@ export interface CreatePersonPayload {
   end_date?: string;
   roles?: Omit<PersonRole, 'id' | 'person_id' | 'org_id' | 'tenant_id' | 'created_at'>[];
   meta?: Record<string, unknown>;
+  work_location_id?: string;
 }
 
 // Allocation
