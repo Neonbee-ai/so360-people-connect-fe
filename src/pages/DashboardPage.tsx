@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useBusinessSettings } from '@so360/shell-context';
+import { useFormatters } from '@so360/formatters';
 import {
     Users, Clock, Target, TrendingUp,
     DollarSign, AlertTriangle, ArrowRight,
@@ -13,6 +15,11 @@ import type { UtilizationSummary, TimeEntry, PeopleEvent } from '../types/people
 
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
+    const { settings } = useBusinessSettings();
+    const formatters = useFormatters({
+        currency: settings?.base_currency || 'USD',
+        locale: settings?.document_language || 'en-US',
+    });
     const [summary, setSummary] = useState<UtilizationSummary | null>(null);
     const [recentEntries, setRecentEntries] = useState<TimeEntry[]>([]);
     const [recentEvents, setRecentEvents] = useState<PeopleEvent[]>([]);
@@ -59,9 +66,7 @@ const DashboardPage: React.FC = () => {
         person_released: 'Released',
     };
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
-    };
+    const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
 
     return (
         <div className="p-6 space-y-6">

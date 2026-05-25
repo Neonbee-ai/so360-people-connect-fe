@@ -8,7 +8,8 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity, useShellBridge } from '@so360/shell-context';
+import { useActivity, useShellBridge, useBusinessSettings } from '@so360/shell-context';
+import { useFormatters } from '@so360/formatters';
 import { timeEntriesApi, peopleApi, allocationsApi } from '../services/peopleService';
 import type { TimeEntry, CreateTimeEntryPayload, Person, Allocation, TimeEntryStatus } from '../types/people';
 
@@ -16,6 +17,11 @@ const TimeEntriesPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
     const canCreate = (shell?.isFeatureEnabled?.('action:people:time_entries:create') ?? true);
+    const { settings } = useBusinessSettings();
+    const formatters = useFormatters({
+        currency: settings?.base_currency || 'USD',
+        locale: settings?.document_language || 'en-US',
+    });
     const [entries, setEntries] = useState<TimeEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -154,9 +160,7 @@ const TimeEntriesPage: React.FC = () => {
     const totalCost = entries.reduce((sum, e) => sum + (e.total_cost || 0), 0);
     const pendingCount = entries.filter(e => e.status === 'submitted').length;
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
-    };
+    const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
 
     return (
         <div className="p-6 space-y-5">
@@ -402,6 +406,11 @@ interface CreateTimeEntryModalProps {
 }
 
 const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onClose, onCreate }) => {
+    const { settings: modalSettings } = useBusinessSettings();
+    const modalFormatters = useFormatters({
+        currency: modalSettings?.base_currency || 'USD',
+        locale: modalSettings?.document_language || 'en-US',
+    });
     const [people, setPeople] = useState<Person[]>([]);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [loadingPeople, setLoadingPeople] = useState(false);
@@ -489,7 +498,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                             <option value="">Select person...</option>
                             {people.map(p => (
                                 <option key={p.id} value={p.id}>
-                                    {p.full_name} - ${p.cost_rate}/{p.cost_rate_unit}
+                                    {p.full_name} - {modalFormatters.getCurrencySymbol()}{p.cost_rate}/{p.cost_rate_unit}
                                 </option>
                             ))}
                         </select>
@@ -598,7 +607,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-slate-400">Estimated Cost</span>
                             <span className="font-medium text-white">
-                                {formData.hours}h x ${selectedPerson.cost_rate}/{selectedPerson.cost_rate_unit} = ${estimatedCost.toFixed(2)}
+                                {formData.hours}h x {modalFormatters.getCurrencySymbol()}{selectedPerson.cost_rate}/{selectedPerson.cost_rate_unit} = {modalFormatters.formatCurrency(estimatedCost)}
                             </span>
                         </div>
                         <div className="text-xs text-slate-500 mt-1">

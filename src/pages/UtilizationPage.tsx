@@ -4,6 +4,8 @@ import {
     Calendar, DollarSign, Clock, Target, Users,
     ChevronLeft, ChevronRight, RefreshCw,
 } from 'lucide-react';
+import { useBusinessSettings } from '@so360/shell-context';
+import { useFormatters } from '@so360/formatters';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
@@ -13,6 +15,11 @@ import { utilizationApi } from '../services/peopleService';
 import type { UtilizationData, UtilizationSummary } from '../types/people';
 
 const UtilizationPage: React.FC = () => {
+    const { settings } = useBusinessSettings();
+    const formatters = useFormatters({
+        currency: settings?.base_currency || 'USD',
+        locale: settings?.document_language || 'en-US',
+    });
     const [utilizationData, setUtilizationData] = useState<UtilizationData[]>([]);
     const [summary, setSummary] = useState<UtilizationSummary | null>(null);
     const [loading, setLoading] = useState(true);
@@ -89,9 +96,7 @@ const UtilizationPage: React.FC = () => {
         !d.utilization.is_idle && !d.utilization.is_overallocated && d.utilization.utilization_pct >= 30
     ).length;
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
-    };
+    const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
 
     const getUtilizationColor = (pct: number) => {
         if (pct >= 90) return 'text-amber-400';
@@ -346,6 +351,11 @@ const UtilizationPage: React.FC = () => {
 // =============================================================================
 
 const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
+    const { settings: cardSettings } = useBusinessSettings();
+    const cardFormatters = useFormatters({
+        currency: cardSettings?.base_currency || 'USD',
+        locale: cardSettings?.document_language || 'en-US',
+    });
     const { person, utilization } = data;
     const utilizationPct = utilization.utilization_pct || 0;
     const allocationPct = utilization.allocation_pct || 0;
@@ -435,7 +445,7 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                     <div>
                         <div className="text-xs text-slate-500">Cost</div>
                         <div className="text-sm font-medium text-white">
-                            ${Math.round(utilization.actual_cost || 0)}
+                            {cardFormatters.formatCurrency(Math.round(utilization.actual_cost || 0))}
                         </div>
                     </div>
                 </div>
@@ -450,7 +460,7 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                     </span>
                     <span className="text-slate-600">|</span>
                     <span className="text-slate-500">
-                        Rate: ${person.cost_rate}/{person.available_hours_per_day ? 'hour' : 'day'}
+                        Rate: {cardFormatters.formatCurrency(person.cost_rate)}/{person.available_hours_per_day ? 'hour' : 'day'}
                     </span>
                 </div>
             )}
@@ -463,9 +473,12 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
 // =============================================================================
 
 const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
-    };
+    const { settings } = useBusinessSettings();
+    const formatters = useFormatters({
+        currency: settings?.base_currency || 'USD',
+        locale: settings?.document_language || 'en-US',
+    });
+    const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
