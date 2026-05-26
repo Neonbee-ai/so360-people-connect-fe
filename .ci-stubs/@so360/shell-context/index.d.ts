@@ -23,3 +23,5 @@ export declare const useNotify: () => { emitNotification: (...args: any[]) => vo
 export declare const eventBus: any;
 declare const _: any;
 export default _;
+export const useSandboxLimit: any;
+export const useQuota: any;

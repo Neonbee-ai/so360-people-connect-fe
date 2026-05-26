@@ -12,3 +12,5 @@ export const useNotify = () => ({ emitNotification: () => {} });
 export const useActivity = () => ({ recordActivity: async () => {} });
 export const eventBus = { publish: () => {}, subscribe: () => () => {} };
 export default {};
+export const useSandboxLimit = () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items) => items, isLimited: () => false });
+export const useQuota = () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: () => {} });
