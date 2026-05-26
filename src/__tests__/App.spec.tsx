@@ -24,9 +24,11 @@ let mockShellData: any = {
 vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => mockShellData,
   ShellContext: { Provider: ({ children }: any) => children },
-
+  useActivity: () => ({ recordActivity: async () => {} }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
-  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+  useBusinessSettings: () => ({ settings: { currency: 'USD', timezone: 'UTC' } }),
+}));
 
 import App from '../App';
 import { peopleService } from '../services/peopleService';
