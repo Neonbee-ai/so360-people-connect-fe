@@ -5,7 +5,7 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
-import { useActivity, useShellBridge, useQuota } from '@so360/shell-context';
+import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import { QuotaBar, QuotaGate } from '@so360/design-system';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
 
@@ -16,6 +16,7 @@ const DepartmentsPage: React.FC = () => {
     const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_departments' }], []);
     const { getQuota } = useQuota({ checks: quotaChecks, orgId: shell?.currentOrg?.id || '' });
     const quotaData = getQuota('max_departments');
+    const { isSandboxMode, sandboxEntryLimit, limitItems, isLimited } = useSandboxLimit();
     const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -155,7 +156,9 @@ const DepartmentsPage: React.FC = () => {
                     >
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        disabled={isSandboxMode}
+                        title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
+                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                     >
                         <Building2 size={16} />
                         Create Department
@@ -171,6 +174,13 @@ const DepartmentsPage: React.FC = () => {
                     limit={quotaData.limit}
                     isUnlimited={quotaData.is_unlimited}
                 />
+            )}
+
+            {isSandboxMode && isLimited(departments.length) && (
+                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/25 rounded-lg text-amber-400 text-sm">
+                    <span className="font-semibold">Sandbox:</span>
+                    <span>Showing {sandboxEntryLimit} of {departments.length} records. Switch to Production to view all.</span>
+                </div>
             )}
 
             {/* Departments Tree */}
@@ -189,7 +199,7 @@ const DepartmentsPage: React.FC = () => {
                 />
             ) : (
                 <div className="space-y-2">
-                    {departments.map(dept => renderDepartment(dept))}
+                    {(isSandboxMode ? departments.slice(0, sandboxEntryLimit) : departments).map(dept => renderDepartment(dept))}
                 </div>
             )}
 

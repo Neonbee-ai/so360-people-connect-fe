@@ -11,7 +11,7 @@ import type { Person, CreatePersonPayload, PersonStatus } from '../types/people'
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
-import { useActivity, useShellBridge, useQuota } from '@so360/shell-context';
+import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import { QuotaBar, QuotaGate } from '@so360/design-system';
 import { apiContext } from '../services/apiClient';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
@@ -29,6 +29,7 @@ const PeoplePage: React.FC = () => {
     const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_employees' }], []);
     const { getQuota } = useQuota({ checks: quotaChecks, orgId });
     const quotaData = getQuota('max_employees');
+    const { isSandboxMode, sandboxEntryLimit, limitItems, isLimited } = useSandboxLimit();
     const [people, setPeople] = useState<Person[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -194,7 +195,9 @@ const PeoplePage: React.FC = () => {
                         >
                         <button
                             onClick={() => setShowCreateModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                            disabled={isSandboxMode}
+                            title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
+                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                         >
                             <UserPlus size={16} />
                             Add Person
@@ -292,6 +295,13 @@ const PeoplePage: React.FC = () => {
                 />
             )}
 
+            {isSandboxMode && isLimited(people.length) && (
+                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/25 rounded-lg text-amber-400 text-sm">
+                    <span className="font-semibold">Sandbox:</span>
+                    <span>Showing {sandboxEntryLimit} of {people.length} records. Switch to Production to view all.</span>
+                </div>
+            )}
+
             {/* People List */}
             {loading ? (
                 <div className="space-y-3">
@@ -308,7 +318,7 @@ const PeoplePage: React.FC = () => {
                 />
             ) : (
                 <div className="space-y-2">
-                    {people.map((person) => (
+                    {(isSandboxMode ? people.slice(0, sandboxEntryLimit) : people).map((person) => (
                         <div
                             key={person.id}
                             onClick={() => navigate(`/people/${person.id}`)}
