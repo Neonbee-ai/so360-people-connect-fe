@@ -6,6 +6,14 @@ vi.mock('../services/peopleService', () => ({
   utilizationApi: { getAll: vi.fn(), getSummary: vi.fn() },
 }));
 
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: async () => {} }),
+  useShellBridge: () => ({ isFeatureEnabled: () => true, isFeatureHidden: () => false }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+  useBusinessSettings: () => ({ settings: { currency: 'USD', timezone: 'UTC' } }),
+}));
+
 import UtilizationPage from '../pages/UtilizationPage';
 import { utilizationApi } from '../services/peopleService';
 
