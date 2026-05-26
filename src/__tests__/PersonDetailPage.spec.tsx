@@ -13,6 +13,10 @@ vi.mock('../services/goalsService', () => ({
   Goal: {},
 }));
 
+vi.mock('../services/workLocationsService', () => ({
+  workLocationsApi: { getAll: vi.fn().mockResolvedValue([]) },
+  WorkLocation: {},
+}));
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
