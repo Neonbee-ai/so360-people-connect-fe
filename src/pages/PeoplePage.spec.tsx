@@ -10,6 +10,7 @@ vi.mock('../services/peopleService', () => ({
     update: vi.fn(),
     delete: vi.fn(),
     export: vi.fn(),
+    getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
   },
   apiContext: {
     getBaseUrl: vi.fn(() => '/people-api'),

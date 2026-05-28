@@ -21,6 +21,7 @@ vi.mock('../services/peopleService', () => ({
     getAll: vi.fn(),
     create: vi.fn(),
     export: vi.fn(),
+    getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
   },
 }));
 
