@@ -25,6 +25,12 @@ vi.mock('../services/peopleService', () => ({
   },
 }));
 
+vi.mock('../services/workLocationsService', () => ({
+  workLocationsApi: {
+    getAll: vi.fn().mockResolvedValue({ data: [] }),
+  },
+}));
+
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),

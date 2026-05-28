@@ -3,6 +3,12 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
+vi.mock('../services/workLocationsService', () => ({
+  workLocationsApi: {
+    getAll: vi.fn().mockResolvedValue({ data: [] }),
+  },
+}));
+
 vi.mock('../services/peopleService', () => ({
   peopleApi: {
     getAll: vi.fn(),
