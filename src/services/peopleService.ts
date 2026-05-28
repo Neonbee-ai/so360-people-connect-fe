@@ -159,6 +159,10 @@ export const peopleApi = {
     return api.post<Person>(`/people/${personId}/link-user`, { user_id: userId });
   },
 
+  getOrgRoles: async (): Promise<{ data: Array<{ id: string; name: string; description: string }> }> => {
+    return api.get('/people/system/org-roles');
+  },
+
   inviteUser: async (personId: string, email: string, role: string): Promise<Person> => {
     return api.post<Person>(`/people/${personId}/invite-user`, { email, role });
   },

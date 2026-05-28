@@ -424,10 +424,12 @@ interface CreatePersonModalProps {
 const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, onCreate, currencies = DEFAULT_CURRENCIES }) => {
     const { orgId, tenantId } = usePeopleContext();
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
+    const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
 
     useEffect(() => {
         if (!isOpen) return;
         workLocationsApi.getAll().then(r => setWorkLocations(r.data)).catch(() => {});
+        peopleApi.getOrgRoles().then(r => setOrgRoles(r.data ?? [])).catch(() => {});
     }, [isOpen]);
 
     const [formData, setFormData] = useState<CreatePersonPayload & {
@@ -703,13 +705,15 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                             required={formData.userLinkageMode === 'invite'}
                                         />
                                         <select
-                                            value={formData.inviteRole || 'user'}
+                                            value={formData.inviteRole || ''}
                                             onChange={(e) => updateField('inviteRole', e.target.value)}
                                             className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                            required={formData.userLinkageMode === 'invite'}
                                         >
-                                            <option value="user">User</option>
-                                            <option value="manager">Manager</option>
-                                            <option value="admin">Admin</option>
+                                            <option value="">Select role...</option>
+                                            {orgRoles.map(role => (
+                                                <option key={role.id} value={role.id}>{role.name}</option>
+                                            ))}
                                         </select>
                                         <label className="flex items-center gap-2 text-xs text-slate-400">
                                             <input
