@@ -1,22 +1,53 @@
 import React, { Suspense, lazy, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useShellBridge } from '@so360/shell-context';
+import { FeatureRoute } from '@so360/design-system';
 import { peopleService } from './services/peopleService';
 
-/** Feature-gated route wrapper for people-connect submodules (fail-open). */
+/** Shown when a submodule is `locked` — a higher plan unlocks it. */
+const UpgradeLocked = () => {
+    const navigate = useNavigate();
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center px-4">
+            <h2 className="text-lg font-bold text-slate-300">This feature is part of a higher plan</h2>
+            <p className="text-slate-500 text-sm max-w-md">Upgrade your plan to unlock it.</p>
+            <button
+                type="button"
+                onClick={() => navigate('/org/billing')}
+                className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+            >
+                Upgrade plan
+            </button>
+        </div>
+    );
+};
+
+/** Shown when a submodule is `disabled`/`hidden` — turned off, no upgrade path. */
+const FeatureUnavailable = () => (
+    <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-center px-4">
+        <h2 className="text-lg font-bold text-slate-300">Feature Not Available</h2>
+        <p className="text-slate-500 text-sm max-w-md">This feature is not available for your organization. Contact your administrator.</p>
+    </div>
+);
+
+/**
+ * Feature-gated route wrapper on the resolved 5-state model via the shared FeatureRoute:
+ * enabled→render · read_only→inert · locked→upgrade prompt · disabled/hidden→unavailable.
+ * Fail-open to enabled while shell context is resolving.
+ */
 const FeatureGate = ({ flagKey, children }: { flagKey: string; children: React.ReactNode }) => {
     const shell = useShellBridge();
-    const enabled = shell?.isFeatureEnabled?.(flagKey) ?? true;
-    if (!enabled) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-center px-4">
-                <div className="text-slate-600 text-4xl">&#128274;</div>
-                <h2 className="text-lg font-bold text-slate-300">Feature Not Available</h2>
-                <p className="text-slate-500 text-sm max-w-md">This feature is not included in your current plan. Contact your administrator to upgrade.</p>
-            </div>
-        );
-    }
-    return <>{children}</>;
+    const state = shell?.getFeatureState ? shell.getFeatureState(flagKey) : 'enabled';
+    return (
+        <FeatureRoute
+            state={state}
+            hiddenFallback={<FeatureUnavailable />}
+            lockedFallback={<UpgradeLocked />}
+            disabledFallback={<FeatureUnavailable />}
+        >
+            {children}
+        </FeatureRoute>
+    );
 };
 
 // Shell Context Synchronizer

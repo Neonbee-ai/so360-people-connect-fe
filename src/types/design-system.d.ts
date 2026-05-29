@@ -25,4 +25,14 @@ declare module '@so360/design-system' {
         children: React.ReactNode;
     }
     export const QuotaGate: React.FC<QuotaGateProps>;
+
+    export type FeatureState = 'enabled' | 'read_only' | 'locked' | 'disabled' | 'hidden';
+    export interface FeatureRouteProps {
+        state: FeatureState;
+        children: React.ReactNode;
+        hiddenFallback?: React.ReactNode;
+        lockedFallback?: React.ReactNode;
+        disabledFallback?: React.ReactNode;
+    }
+    export const FeatureRoute: React.FC<FeatureRouteProps>;
 }

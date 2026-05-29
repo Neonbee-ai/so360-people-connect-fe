@@ -113,3 +113,44 @@ describe('Given App root redirect', () => {
     await waitFor(() => expect(screen.getByText('DashboardPage')).toBeInTheDocument());
   });
 });
+
+describe('Given the allocations FeatureGate on the 5-state model', () => {
+  const syncedBridge = (getFeatureState?: (k: string) => string) => ({
+    ...mockShell,
+    ...(getFeatureState ? { getFeatureState } : {}),
+  });
+
+  it('When submodule:people:allocations is enabled / Then AllocationsPage renders', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge(() => 'enabled'));
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText('AllocationsPage')).toBeInTheDocument());
+  });
+
+  it('When no getFeatureState on the bridge / Then it fails open and AllocationsPage renders', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge());
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText('AllocationsPage')).toBeInTheDocument());
+  });
+
+  it('When locked / Then the upgrade prompt is shown instead of the page', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge(() => 'locked'));
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText(/upgrade plan/i)).toBeInTheDocument());
+    expect(screen.queryByText('AllocationsPage')).not.toBeInTheDocument();
+  });
+
+  it('When disabled / Then the unavailable panel is shown and NO upgrade prompt', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge(() => 'disabled'));
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText(/feature not available/i)).toBeInTheDocument());
+    expect(screen.queryByText(/upgrade plan/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('AllocationsPage')).not.toBeInTheDocument();
+  });
+
+  it('When hidden / Then the unavailable panel is shown and the page is gone', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge(() => 'hidden'));
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText(/feature not available/i)).toBeInTheDocument());
+    expect(screen.queryByText('AllocationsPage')).not.toBeInTheDocument();
+  });
+});
