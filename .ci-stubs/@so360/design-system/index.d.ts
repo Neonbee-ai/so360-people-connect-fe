@@ -5,3 +5,4 @@ declare const _: any;
 export default _;
 export const QuotaGate: any;
 export const QuotaBar: any;
+export const FeatureRoute: any;

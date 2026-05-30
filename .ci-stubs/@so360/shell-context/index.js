@@ -10,6 +10,7 @@ export const useModules = () => ({ modules: [], isModuleEnabled: () => true });
 export const useFeatureFlags = () => ({ isFeatureEnabled: () => true });
 export const useNotify = () => ({ emitNotification: () => {} });
 export const useActivity = () => ({ recordActivity: async () => {} });
+export const useBusinessSettings = () => ({ settings: { currency: 'USD' }, isLoading: false, error: null });
 export const eventBus = { publish: () => {}, subscribe: () => () => {} };
 export default {};
 export const useSandboxLimit = () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items) => items, isLimited: () => false });

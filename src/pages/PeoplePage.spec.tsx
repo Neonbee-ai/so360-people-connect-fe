@@ -45,8 +45,10 @@ vi.mock('../services/apiClient', () => ({
 import PeoplePage from './PeoplePage';
 import { departmentsApi } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
+import { workLocationsApi } from '../services/workLocationsService';
 
 const mockApi = peopleApi as any;
+const mockWorkLocationsApi = workLocationsApi as any;
 
 const renderPage = () => render(<MemoryRouter><PeoplePage /></MemoryRouter>);
 
@@ -70,6 +72,8 @@ const mockPerson = {
 beforeEach(() => {
   vi.resetAllMocks();
   (departmentsApi as any).getTree.mockResolvedValue([]);
+  mockApi.getOrgRoles.mockResolvedValue({ data: [] });
+  mockWorkLocationsApi.getAll.mockResolvedValue({ data: [] });
 });
 
 describe('Given PeoplePage loads with people', () => {

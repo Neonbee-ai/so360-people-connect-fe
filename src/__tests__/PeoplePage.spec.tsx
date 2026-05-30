@@ -42,14 +42,18 @@ vi.mock('@so360/shell-context', () => ({
 
 import PeoplePage from '../pages/PeoplePage';
 import { peopleApi } from '../services/peopleService';
+import { workLocationsApi } from '../services/workLocationsService';
 
 const mockPeopleApi = peopleApi as any;
+const mockWorkLocationsApi = workLocationsApi as any;
 
 const renderPage = () =>
   render(<MemoryRouter><PeoplePage /></MemoryRouter>);
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockPeopleApi.getOrgRoles.mockResolvedValue({ data: [] });
+  mockWorkLocationsApi.getAll.mockResolvedValue({ data: [] });
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
 });
 
