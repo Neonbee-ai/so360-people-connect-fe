@@ -2,11 +2,19 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import federation from '@originjs/vite-plugin-federation';
+import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
     base: env.VITE_BASE_URL || process.env.VITE_BASE_URL || 'http://localhost:3014/',
+    resolve: {
+        alias: {
+            '@so360/shell-context': path.resolve(__dirname, '../../so360-shell-fe/packages/shell-context/src/index.ts'),
+            '@so360/design-system': path.resolve(__dirname, '../../so360-shell-fe/packages/design-system/src/index.ts'),
+            '@so360/event-bus': path.resolve(__dirname, '../../so360-shell-fe/packages/event-bus/src/index.ts'),
+        },
+    },
     plugins: [
         react({
             jsxRuntime: 'automatic',
