@@ -120,7 +120,7 @@ const AllocationsPage: React.FC = () => {
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Statuses</option>
                     <option value="planned">Planned</option>
@@ -131,7 +131,7 @@ const AllocationsPage: React.FC = () => {
                 <select
                     value={entityTypeFilter}
                     onChange={(e) => setEntityTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Entity Types</option>
                     <option value="project">Project</option>
@@ -235,7 +235,7 @@ const AllocationsPage: React.FC = () => {
                                             <>
                                                 <button
                                                     onClick={() => setEditingAllocation(alloc)}
-                                                    className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+                                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-50 hover:bg-slate-800 transition-colors"
                                                     title="Edit"
                                                 >
                                                     <Edit2 size={14} />
@@ -355,7 +355,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             required
                             value={formData.person_id}
                             onChange={(e) => updateField('person_id', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="">Select a person...</option>
                             {people.map(p => (
@@ -376,7 +376,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <select
                                 value={formData.entity_type}
                                 onChange={(e) => updateField('entity_type', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="project">Project</option>
                                 <option value="task">Task</option>
@@ -389,7 +389,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <input
                                 type="text" required value={formData.entity_id}
                                 onChange={(e) => updateField('entity_id', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="proj-001"
                             />
                         </div>
@@ -398,7 +398,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <input
                                 type="text" value={formData.entity_name || ''}
                                 onChange={(e) => updateField('entity_name', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="Website Redesign"
                             />
                         </div>
@@ -414,7 +414,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <input
                                 type="date" required value={formData.start_date}
                                 onChange={(e) => updateField('start_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -422,7 +422,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <input
                                 type="date" required value={formData.end_date}
                                 onChange={(e) => updateField('end_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                     </div>
@@ -437,7 +437,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <select
                                 value={formData.allocation_type}
                                 onChange={(e) => updateField('allocation_type', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="percentage">Percentage (%)</option>
                                 <option value="hours">Hours</option>
@@ -453,7 +453,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                                 step={formData.allocation_type === 'percentage' ? 5 : 0.5}
                                 value={formData.allocation_value}
                                 onChange={(e) => updateField('allocation_value', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -461,7 +461,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <select
                                 value={formData.allocation_period}
                                 onChange={(e) => updateField('allocation_period', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="daily">Daily</option>
                                 <option value="weekly">Weekly</option>
@@ -493,7 +493,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                         value={formData.notes || ''}
                         onChange={(e) => updateField('notes', e.target.value)}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 resize-none"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 resize-none"
                         placeholder="Additional context for this allocation..."
                     />
                 </div>
@@ -550,7 +550,7 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
                         <input
                             type="date" value={formData.start_date}
                             onChange={(e) => setFormData(d => ({ ...d, start_date: e.target.value }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                     <div>
@@ -558,7 +558,7 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
                         <input
                             type="date" value={formData.end_date}
                             onChange={(e) => setFormData(d => ({ ...d, end_date: e.target.value }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                 </div>
@@ -569,7 +569,7 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
                         <input
                             type="number" min="1" value={formData.allocation_value}
                             onChange={(e) => setFormData(d => ({ ...d, allocation_value: parseFloat(e.target.value) }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                     <div>
@@ -577,7 +577,7 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
                         <select
                             value={formData.status}
                             onChange={(e) => setFormData(d => ({ ...d, status: e.target.value as AllocationStatus }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="planned">Planned</option>
                             <option value="active">Active</option>
@@ -592,7 +592,7 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
                         value={formData.notes}
                         onChange={(e) => setFormData(d => ({ ...d, notes: e.target.value }))}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 resize-none"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 resize-none"
                     />
                 </div>
 

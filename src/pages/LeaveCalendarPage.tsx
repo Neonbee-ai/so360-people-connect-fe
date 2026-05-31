@@ -106,14 +106,14 @@ const LeaveCalendarPage: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigateMonth(-1)}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-800 rounded-lg transition-colors"
                     >
                         <ChevronLeft size={20} />
                     </button>
                     <h2 className="text-lg font-medium text-white min-w-[200px] text-center">{monthName}</h2>
                     <button
                         onClick={() => navigateMonth(1)}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-800 rounded-lg transition-colors"
                     >
                         <ChevronRight size={20} />
                     </button>
@@ -128,7 +128,7 @@ const LeaveCalendarPage: React.FC = () => {
                 <select
                     value={departmentFilter}
                     onChange={(e) => setDepartmentFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Departments</option>
                     {departments.map(dept => (

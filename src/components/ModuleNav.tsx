@@ -114,7 +114,7 @@ const ModuleNav: React.FC = () => {
                                             `flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors ${
                                                 navIsActive
                                                     ? 'bg-teal-500/10 text-teal-400 border-l-2 border-teal-500'
-                                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                                             }`
                                         }
                                     >

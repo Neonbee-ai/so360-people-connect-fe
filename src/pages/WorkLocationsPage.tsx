@@ -242,7 +242,7 @@ const WorkLocationModal: React.FC<WorkLocationModalProps> = ({ isOpen, onClose, 
             value={form.name}
             onChange={e => set('name', e.target.value)}
             placeholder="e.g. Main Factory, Head Office"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
           />
         </div>
         <div>
@@ -250,7 +250,7 @@ const WorkLocationModal: React.FC<WorkLocationModalProps> = ({ isOpen, onClose, 
           <select
             value={form.location_type}
             onChange={e => set('location_type', e.target.value as LocationType)}
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
           >
             <option value="factory">Factory</option>
             <option value="store">Store</option>
@@ -264,7 +264,7 @@ const WorkLocationModal: React.FC<WorkLocationModalProps> = ({ isOpen, onClose, 
             value={form.address}
             onChange={e => set('address', e.target.value)}
             placeholder="Optional address"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
           />
         </div>
         {location && (

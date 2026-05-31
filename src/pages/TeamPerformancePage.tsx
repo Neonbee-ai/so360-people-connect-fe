@@ -144,7 +144,7 @@ const TeamPerformancePage: React.FC = () => {
                             {topPerformers.map((review, i) => (
                                 <div key={review.id} className="flex items-center gap-3 px-3 py-2 bg-slate-800/50 rounded-lg">
                                     <span className="text-xs text-slate-500 w-5">#{i + 1}</span>
-                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-medium text-slate-50">
                                         {review.person?.full_name?.charAt(0) || '?'}
                                     </div>
                                     <div className="flex-1 min-w-0">

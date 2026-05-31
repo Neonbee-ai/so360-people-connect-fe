@@ -199,7 +199,7 @@ const PersonDetailPage: React.FC = () => {
                             {!person.user_id && (
                                 <button
                                     onClick={() => setShowLinkUserModal(true)}
-                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md text-xs text-slate-400 hover:text-white transition-colors"
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md text-xs text-slate-400 hover:text-slate-50 transition-colors"
                                 >
                                     <UserPlus size={12} />
                                     Link User
@@ -230,7 +230,7 @@ const PersonDetailPage: React.FC = () => {
                         {!editing ? (
                             <button
                                 onClick={() => { setEditing(true); setEditData(person); }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white hover:border-slate-600 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
                             >
                                 <Edit2 size={13} /> Edit
                             </button>
@@ -239,7 +239,7 @@ const PersonDetailPage: React.FC = () => {
                                 <button onClick={handleSave} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 rounded-lg text-xs text-white hover:bg-teal-500 transition-colors">
                                     <Save size={13} /> Save
                                 </button>
-                                <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white transition-colors">
+                                <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 transition-colors">
                                     <X size={13} /> Cancel
                                 </button>
                             </>
@@ -255,7 +255,7 @@ const PersonDetailPage: React.FC = () => {
                             <input
                                 type="number" value={editData.cost_rate || 0}
                                 onChange={e => setEditData(d => ({ ...d, cost_rate: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -263,7 +263,7 @@ const PersonDetailPage: React.FC = () => {
                             <input
                                 type="number" value={editData.billing_rate || 0}
                                 onChange={e => setEditData(d => ({ ...d, billing_rate: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -271,7 +271,7 @@ const PersonDetailPage: React.FC = () => {
                             <select
                                 value={editData.status || 'active'}
                                 onChange={e => setEditData(d => ({ ...d, status: e.target.value as Person['status'] }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
@@ -283,7 +283,7 @@ const PersonDetailPage: React.FC = () => {
                             <input
                                 type="number" value={editData.available_hours_per_day || 8}
                                 onChange={e => setEditData(d => ({ ...d, available_hours_per_day: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -291,7 +291,7 @@ const PersonDetailPage: React.FC = () => {
                             <select
                                 value={editData.work_location_id || ''}
                                 onChange={e => setEditData(d => ({ ...d, work_location_id: e.target.value || undefined }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="">None</option>
                                 {workLocations.map(loc => (
@@ -343,7 +343,7 @@ const PersonDetailPage: React.FC = () => {
                     </h3>
                     <button
                         onClick={() => setShowRoleModal(true)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white hover:border-slate-600 transition-colors"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
                     >
                         <Plus size={12} /> Add Role
                     </button>
@@ -378,7 +378,7 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'overview'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <User size={14} className="inline mr-1.5" />
@@ -389,7 +389,7 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'allocations'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <Target size={14} className="inline mr-1.5" />
@@ -400,7 +400,7 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'time'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <Clock size={14} className="inline mr-1.5" />
@@ -411,7 +411,7 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'employment-history'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <History size={14} className="inline mr-1.5" />
@@ -422,7 +422,7 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'rate-history'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <DollarSign size={14} className="inline mr-1.5" />
@@ -433,7 +433,7 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'goals'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <Target size={14} className="inline mr-1.5" />
@@ -602,7 +602,7 @@ const PersonDetailPage: React.FC = () => {
                             )}
                             <button
                                 onClick={() => setShowUpdateRateModal(true)}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm text-white transition-colors"
+                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm text-slate-50 transition-colors"
                             >
                                 <DollarSign size={16} />
                                 Update Rate
@@ -683,19 +683,19 @@ const AddRoleModal: React.FC<{
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Role Name *</label>
                     <input type="text" required value={roleName} onChange={e => setRoleName(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         placeholder="e.g., Full Stack Developer" />
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Skill Category</label>
                     <input type="text" value={category} onChange={e => setCategory(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         placeholder="e.g., Engineering, Design" />
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Proficiency</label>
                     <select value={proficiency} onChange={e => setProficiency(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500">
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500">
                         <option value="beginner">Beginner</option>
                         <option value="intermediate">Intermediate</option>
                         <option value="advanced">Advanced</option>

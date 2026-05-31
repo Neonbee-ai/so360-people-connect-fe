@@ -73,7 +73,7 @@ const ReviewForm: React.FC<{
                                         onChange={(e) => updateField(section.id, field.label, e.target.value)}
                                         disabled={readOnly}
                                         rows={3}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
                                 )}
 
@@ -83,7 +83,7 @@ const ReviewForm: React.FC<{
                                         value={(getFieldValue(section.id, field.label) as string) || ''}
                                         onChange={(e) => updateField(section.id, field.label, e.target.value)}
                                         disabled={readOnly}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
                                 )}
 
@@ -93,7 +93,7 @@ const ReviewForm: React.FC<{
                                         value={(getFieldValue(section.id, field.label) as number) || ''}
                                         onChange={(e) => updateField(section.id, field.label, parseFloat(e.target.value))}
                                         disabled={readOnly}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
                                 )}
 

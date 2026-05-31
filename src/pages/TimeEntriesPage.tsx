@@ -194,7 +194,7 @@ const TimeEntriesPage: React.FC = () => {
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Statuses</option>
                     <option value="draft">Draft</option>
@@ -206,7 +206,7 @@ const TimeEntriesPage: React.FC = () => {
                     type="date"
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 />
                 {dateFilter && (
                     <button
@@ -370,7 +370,7 @@ const TimeEntriesPage: React.FC = () => {
                             onChange={(e) => setRejectReason(e.target.value)}
                             rows={3}
                             placeholder="Reason for rejection..."
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 resize-none"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 resize-none"
                         />
                         <div className="flex justify-end gap-3">
                             <button
@@ -493,7 +493,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                             required
                             value={formData.person_id}
                             onChange={(e) => updateField('person_id', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="">Select person...</option>
                             {people.map(p => (
@@ -511,7 +511,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                             <select
                                 value={formData.allocation_id || ''}
                                 onChange={(e) => handleAllocationSelect(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="">Manual entry (no allocation)</option>
                                 {allocations.map(a => (
@@ -534,7 +534,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                                 value={formData.entity_type}
                                 onChange={(e) => updateField('entity_type', e.target.value)}
                                 disabled={!!formData.allocation_id}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 disabled:opacity-50"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-50"
                             >
                                 <option value="project">Project</option>
                                 <option value="task">Task</option>
@@ -548,7 +548,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                                 type="text" required value={formData.entity_id}
                                 onChange={(e) => updateField('entity_id', e.target.value)}
                                 disabled={!!formData.allocation_id}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 disabled:opacity-50"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-50"
                                 placeholder="proj-001"
                             />
                         </div>
@@ -558,7 +558,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                                 type="text" value={formData.entity_name || ''}
                                 onChange={(e) => updateField('entity_name', e.target.value)}
                                 disabled={!!formData.allocation_id}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 disabled:opacity-50"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-50"
                                 placeholder="Website Redesign"
                             />
                         </div>
@@ -574,7 +574,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                             <input
                                 type="date" required value={formData.work_date}
                                 onChange={(e) => updateField('work_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -583,7 +583,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                                 type="number" required min="0.25" max="24" step="0.25"
                                 value={formData.hours}
                                 onChange={(e) => updateField('hours', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                     </div>
@@ -596,7 +596,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                         value={formData.description || ''}
                         onChange={(e) => updateField('description', e.target.value)}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 resize-none"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 resize-none"
                         placeholder="Brief description of work performed..."
                     />
                 </div>

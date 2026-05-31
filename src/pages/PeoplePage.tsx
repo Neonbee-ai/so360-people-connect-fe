@@ -146,7 +146,7 @@ const PeoplePage: React.FC = () => {
                         {canImportEmployees && (
                         <button
                             onClick={() => navigate('/import-export')}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
                         >
                             <Upload size={16} />
                             Import
@@ -158,7 +158,7 @@ const PeoplePage: React.FC = () => {
                         <div className="relative">
                             <button
                                 onClick={() => setShowExportMenu(!showExportMenu)}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
                             >
                                 <Download size={16} />
                                 Export
@@ -168,13 +168,13 @@ const PeoplePage: React.FC = () => {
                                 <div className="absolute right-0 mt-2 w-40 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-10">
                                     <button
                                         onClick={() => handleExport('csv')}
-                                        className="w-full px-4 py-2 text-left text-sm text-white hover:bg-slate-700 rounded-t-lg"
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700 rounded-t-lg"
                                     >
                                         Export as CSV
                                     </button>
                                     <button
                                         onClick={() => handleExport('excel')}
-                                        className="w-full px-4 py-2 text-left text-sm text-white hover:bg-slate-700 rounded-b-lg"
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700 rounded-b-lg"
                                     >
                                         Export as Excel
                                     </button>
@@ -217,13 +217,13 @@ const PeoplePage: React.FC = () => {
                         placeholder="Search by name, email, or title..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                        className="w-full pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
                     />
                 </div>
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Statuses</option>
                     <option value="active">Active</option>
@@ -234,7 +234,7 @@ const PeoplePage: React.FC = () => {
                 <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Types</option>
                     <option value="employee">Employee</option>
@@ -256,7 +256,7 @@ const PeoplePage: React.FC = () => {
                 <select
                     value={employmentTypeFilter}
                     onChange={(e) => setEmploymentTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Employment Types</option>
                     <option value="full_time">Full Time</option>
@@ -272,7 +272,7 @@ const PeoplePage: React.FC = () => {
                         type="date"
                         value={joiningFromFilter}
                         onChange={(e) => setJoiningFromFilter(e.target.value)}
-                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         placeholder="From"
                     />
                     <span className="text-slate-600">-</span>
@@ -280,7 +280,7 @@ const PeoplePage: React.FC = () => {
                         type="date"
                         value={joiningToFilter}
                         onChange={(e) => setJoiningToFilter(e.target.value)}
-                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         placeholder="To"
                     />
                 </div>
@@ -486,7 +486,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="text" required value={formData.full_name}
                                 onChange={(e) => updateField('full_name', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="John Doe"
                             />
                         </div>
@@ -495,7 +495,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="email" value={formData.email || ''}
                                 onChange={(e) => updateField('email', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="john@company.com"
                             />
                         </div>
@@ -504,7 +504,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="text" value={formData.phone || ''}
                                 onChange={(e) => updateField('phone', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="+1-555-0100"
                             />
                         </div>
@@ -520,7 +520,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <select
                                 value={formData.type}
                                 onChange={(e) => updateField('type', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="employee">Employee</option>
                                 <option value="contractor">Contractor</option>
@@ -531,7 +531,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="text" value={formData.department || ''}
                                 onChange={(e) => updateField('department', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="Engineering"
                             />
                         </div>
@@ -540,7 +540,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="text" value={formData.job_title || ''}
                                 onChange={(e) => updateField('job_title', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="Senior Developer"
                             />
                         </div>
@@ -549,7 +549,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <select
                                 value={(formData as any).work_location_id || ''}
                                 onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="">None</option>
                                 {workLocations.map(loc => (
@@ -569,7 +569,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="number" min="0" step="0.01" value={formData.cost_rate}
                                 onChange={(e) => updateField('cost_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -577,7 +577,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <select
                                 value={formData.cost_rate_unit}
                                 onChange={(e) => updateField('cost_rate_unit', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="hour">Per Hour</option>
                                 <option value="day">Per Day</option>
@@ -588,7 +588,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="number" min="0" step="0.01" value={formData.billing_rate || 0}
                                 onChange={(e) => updateField('billing_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -596,7 +596,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <select
                                 value={formData.currency}
                                 onChange={(e) => updateField('currency', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 {currencies.map((c) => (
                                     <option key={c} value={c}>{c}</option>
@@ -615,7 +615,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="number" min="1" max="24" value={formData.available_hours_per_day}
                                 onChange={(e) => updateField('available_hours_per_day', parseFloat(e.target.value) || 8)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -623,7 +623,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="number" min="1" max="7" value={formData.available_days_per_week}
                                 onChange={(e) => updateField('available_days_per_week', parseInt(e.target.value) || 5)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -631,7 +631,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             <input
                                 type="date" value={formData.start_date || ''}
                                 onChange={(e) => updateField('start_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                     </div>
@@ -700,14 +700,14 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                             type="email"
                                             value={formData.inviteEmail || formData.email}
                                             onChange={(e) => updateField('inviteEmail', e.target.value)}
-                                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                             placeholder="Email for invitation"
                                             required={formData.userLinkageMode === 'invite'}
                                         />
                                         <select
                                             value={formData.inviteRole || ''}
                                             onChange={(e) => updateField('inviteRole', e.target.value)}
-                                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                             required={formData.userLinkageMode === 'invite'}
                                         >
                                             <option value="">Select role...</option>

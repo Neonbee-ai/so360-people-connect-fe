@@ -147,13 +147,13 @@ const UtilizationPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-                            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white transition-colors"
+                            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 transition-colors"
                         >
                             {viewMode === 'cards' ? 'Table View' : 'Card View'}
                         </button>
                         <button
                             onClick={loadData}
-                            className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors"
+                            className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-slate-50 transition-colors"
                             title="Refresh"
                         >
                             <RefreshCw size={14} />
@@ -166,7 +166,7 @@ const UtilizationPage: React.FC = () => {
             <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-5 py-3">
                 <button
                     onClick={() => setWeekOffset(prev => prev - 1)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
                 >
                     <ChevronLeft size={18} />
                 </button>
@@ -182,7 +182,7 @@ const UtilizationPage: React.FC = () => {
                 <button
                     onClick={() => setWeekOffset(prev => Math.min(prev + 1, 0))}
                     disabled={weekOffset >= 0}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-30"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors disabled:opacity-30"
                 >
                     <ChevronRight size={18} />
                 </button>

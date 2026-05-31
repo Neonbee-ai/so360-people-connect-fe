@@ -299,7 +299,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                             required
                             value={formData.code}
                             onChange={(e) => updateField('code', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             placeholder="ENG"
                         />
                     </div>
@@ -310,7 +310,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                             required
                             value={formData.name}
                             onChange={(e) => updateField('name', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             placeholder="Engineering"
                         />
                     </div>
@@ -321,7 +321,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                     <textarea
                         value={formData.description || ''}
                         onChange={(e) => updateField('description', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         rows={3}
                         placeholder="Department description..."
                     />
@@ -332,7 +332,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                     <select
                         value={formData.parent_id || ''}
                         onChange={(e) => updateField('parent_id', e.target.value || undefined)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     >
                         <option value="">None (Top Level)</option>
                         {departments.map(dept => (

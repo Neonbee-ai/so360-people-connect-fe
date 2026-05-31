@@ -90,7 +90,7 @@ export default function DepartmentSelector({
   return (
     <div ref={containerRef} className={`relative ${className || ''}`}>
       <div
-        className="flex items-center w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white cursor-pointer focus-within:border-teal-500"
+        className="flex items-center w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 cursor-pointer focus-within:border-teal-500"
         onClick={() => {
           setOpen(!open);
           if (!open) setTimeout(() => inputRef.current?.focus(), 0);
@@ -141,7 +141,7 @@ export default function DepartmentSelector({
                 type="button"
                 onClick={() => handleSelect(dept.id)}
                 className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700 flex items-center ${
-                  dept.id === value ? 'bg-slate-700/50 text-teal-400' : 'text-white'
+                  dept.id === value ? 'bg-slate-700/50 text-teal-400' : 'text-slate-50'
                 }`}
               >
                 {dept.depth > 0 && (

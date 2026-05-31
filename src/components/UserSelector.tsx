@@ -97,7 +97,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
   return (
     <div ref={containerRef} className="relative">
       <div
-        className="flex items-center w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white cursor-pointer focus-within:border-teal-500"
+        className="flex items-center w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-50 cursor-pointer focus-within:border-teal-500"
         onClick={() => {
           setOpen(!open);
           if (!open) setTimeout(() => inputRef.current?.focus(), 0);
@@ -148,7 +148,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
                 type="button"
                 onClick={() => handleSelect(user.id)}
                 className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700 flex items-center gap-2 ${
-                  user.id === value ? 'bg-slate-700/50 text-teal-400' : 'text-white'
+                  user.id === value ? 'bg-slate-700/50 text-teal-400' : 'text-slate-50'
                 }`}
               >
                 <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs shrink-0 overflow-hidden">

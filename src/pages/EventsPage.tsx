@@ -92,7 +92,7 @@ const EventsPage: React.FC = () => {
                 <select
                     value={eventTypeFilter}
                     onChange={(e) => { setEventTypeFilter(e.target.value); setPage(1); }}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Event Types</option>
                     <option value="person_created">Person Created</option>
@@ -179,7 +179,7 @@ const EventsPage: React.FC = () => {
                     <button
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page <= 1}
-                        className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white disabled:opacity-30 transition-colors"
+                        className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 disabled:opacity-30 transition-colors"
                     >
                         Previous
                     </button>
@@ -189,7 +189,7 @@ const EventsPage: React.FC = () => {
                     <button
                         onClick={() => setPage(p => p + 1)}
                         disabled={page * 30 >= totalEvents}
-                        className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white disabled:opacity-30 transition-colors"
+                        className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 disabled:opacity-30 transition-colors"
                     >
                         Next
                     </button>

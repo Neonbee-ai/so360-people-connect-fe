@@ -88,7 +88,7 @@ const FeedbackPage: React.FC = () => {
                 <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Types</option>
                     <option value="positive">Positive</option>
@@ -115,7 +115,7 @@ const FeedbackPage: React.FC = () => {
                         <div key={fb.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-medium text-slate-50">
                                         {fb.is_anonymous ? '?' : fb.provider?.full_name?.charAt(0) || '?'}
                                     </div>
                                     <div>
@@ -257,7 +257,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                                 placeholder="Search people..."
                                 value={personSearch}
                                 onChange={(e) => setPersonSearch(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                             {personSearch && (
                                 <div className="mt-1 max-h-32 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg">
@@ -266,7 +266,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                                             key={p.id}
                                             type="button"
                                             onClick={() => { updateField('person_id', p.id); setPersonSearch(''); }}
-                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white"
+                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-slate-50"
                                         >
                                             {p.full_name}
                                         </button>
@@ -283,7 +283,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         <select
                             value={formData.feedback_type}
                             onChange={(e) => updateField('feedback_type', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="positive">Positive</option>
                             <option value="constructive">Constructive</option>
@@ -296,7 +296,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         <select
                             value={formData.provider_relationship || ''}
                             onChange={(e) => updateField('provider_relationship', e.target.value || undefined)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="">Select...</option>
                             <option value="manager">Manager</option>
@@ -315,7 +315,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         value={formData.feedback_text}
                         onChange={(e) => updateField('feedback_text', e.target.value)}
                         placeholder="Share your feedback..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     />
                 </div>
 
@@ -326,7 +326,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         value={formData.strengths || ''}
                         onChange={(e) => updateField('strengths', e.target.value)}
                         placeholder="Highlight strengths..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     />
                 </div>
 
@@ -337,7 +337,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         value={formData.areas_for_improvement || ''}
                         onChange={(e) => updateField('areas_for_improvement', e.target.value)}
                         placeholder="Suggest improvements..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     />
                 </div>
 

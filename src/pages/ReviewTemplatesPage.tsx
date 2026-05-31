@@ -269,7 +269,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                             required
                             value={formData.name}
                             onChange={(e) => updateField('name', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             placeholder="Annual Performance Review"
                         />
                     </div>
@@ -278,7 +278,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                         <textarea
                             value={formData.description || ''}
                             onChange={(e) => updateField('description', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             rows={2}
                         />
                     </div>
@@ -287,7 +287,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                         <select
                             value={formData.review_type}
                             onChange={(e) => updateField('review_type', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="annual">Annual</option>
                             <option value="quarterly">Quarterly</option>
@@ -301,7 +301,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                         <select
                             value={formData.rating_scale}
                             onChange={(e) => updateField('rating_scale', parseInt(e.target.value))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="3">3 Point</option>
                             <option value="5">5 Point</option>

@@ -255,7 +255,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 required
                                 value={formData.code}
                                 onChange={(e) => updateField('code', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="AL"
                             />
                         </div>
@@ -266,7 +266,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 required
                                 value={formData.name}
                                 onChange={(e) => updateField('name', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="Annual Leave"
                             />
                         </div>
@@ -275,7 +275,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                             <textarea
                                 value={formData.description || ''}
                                 onChange={(e) => updateField('description', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 rows={2}
                             />
                         </div>
@@ -352,7 +352,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                             <select
                                 value={formData.accrual_type}
                                 onChange={(e) => updateField('accrual_type', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="annual">Annual</option>
                                 <option value="monthly">Monthly</option>
@@ -367,7 +367,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 step="0.5"
                                 value={formData.max_days_per_year || ''}
                                 onChange={(e) => updateField('max_days_per_year', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -378,7 +378,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 step="0.01"
                                 value={formData.accrual_rate || ''}
                                 onChange={(e) => updateField('accrual_rate', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -389,7 +389,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 step="0.5"
                                 value={formData.max_carry_forward_days || ''}
                                 onChange={(e) => updateField('max_carry_forward_days', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -399,7 +399,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 min="0"
                                 value={formData.notice_period_days || ''}
                                 onChange={(e) => updateField('notice_period_days', parseInt(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                     </div>
