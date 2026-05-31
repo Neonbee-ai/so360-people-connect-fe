@@ -131,7 +131,7 @@ const ImportExportPage: React.FC = () => {
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Download size={20} className="text-teal-400" />
-                    <h2 className="text-lg font-medium text-white">Export People</h2>
+                    <h2 className="text-lg font-medium text-slate-50">Export People</h2>
                 </div>
 
                 <div className="space-y-4">
@@ -212,7 +212,7 @@ const ImportExportPage: React.FC = () => {
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Upload size={20} className="text-teal-400" />
-                    <h2 className="text-lg font-medium text-white">Import People</h2>
+                    <h2 className="text-lg font-medium text-slate-50">Import People</h2>
                 </div>
 
                 <div className="space-y-4">

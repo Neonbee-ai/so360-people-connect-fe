@@ -107,7 +107,7 @@ const DepartmentsPage: React.FC = () => {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-sm font-medium text-white truncate">{dept.name}</span>
+                                <span className="text-sm font-medium text-slate-50 truncate">{dept.name}</span>
                                 <span className="text-xs text-slate-500">{dept.code}</span>
                                 <StatusBadge status={dept.is_active ? 'active' : 'inactive'} />
                             </div>
@@ -357,7 +357,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

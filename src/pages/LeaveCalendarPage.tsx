@@ -110,7 +110,7 @@ const LeaveCalendarPage: React.FC = () => {
                     >
                         <ChevronLeft size={20} />
                     </button>
-                    <h2 className="text-lg font-medium text-white min-w-[200px] text-center">{monthName}</h2>
+                    <h2 className="text-lg font-medium text-slate-50 min-w-[200px] text-center">{monthName}</h2>
                     <button
                         onClick={() => navigateMonth(1)}
                         className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-800 rounded-lg transition-colors"
@@ -119,7 +119,7 @@ const LeaveCalendarPage: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setCurrentDate(new Date())}
-                        className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white border border-slate-700 rounded-lg transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-50 border border-slate-700 rounded-lg transition-colors"
                     >
                         Today
                     </button>
@@ -189,7 +189,7 @@ const LeaveCalendarPage: React.FC = () => {
                                                 <button
                                                     key={leave.id}
                                                     onClick={() => setSelectedLeave(leave)}
-                                                    className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] text-white truncate ${
+                                                    className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] text-slate-50 truncate ${
                                                         statusColors[leave.status] || 'bg-slate-700'
                                                     } hover:opacity-80 transition-opacity`}
                                                     title={`${leave.person?.full_name} - ${leave.leave_type?.name}`}
@@ -225,23 +225,23 @@ const LeaveCalendarPage: React.FC = () => {
                     <div className="space-y-4">
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Person</label>
-                            <p className="text-sm text-white">{selectedLeave.person?.full_name || 'Unknown'}</p>
+                            <p className="text-sm text-slate-50">{selectedLeave.person?.full_name || 'Unknown'}</p>
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Leave Type</label>
-                            <p className="text-sm text-white">{selectedLeave.leave_type?.name || 'Unknown'}</p>
+                            <p className="text-sm text-slate-50">{selectedLeave.leave_type?.name || 'Unknown'}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Start Date</label>
-                                <p className="text-sm text-white">
+                                <p className="text-sm text-slate-50">
                                     {new Date(selectedLeave.start_date).toLocaleDateString()}
                                     {selectedLeave.is_half_day_start && <span className="text-xs text-slate-400 ml-1">(half day)</span>}
                                 </p>
                             </div>
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">End Date</label>
-                                <p className="text-sm text-white">
+                                <p className="text-sm text-slate-50">
                                     {new Date(selectedLeave.end_date).toLocaleDateString()}
                                     {selectedLeave.is_half_day_end && <span className="text-xs text-slate-400 ml-1">(half day)</span>}
                                 </p>
@@ -249,7 +249,7 @@ const LeaveCalendarPage: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Total Days</label>
-                            <p className="text-sm text-white">{selectedLeave.total_days}</p>
+                            <p className="text-sm text-slate-50">{selectedLeave.total_days}</p>
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Status</label>
@@ -264,7 +264,7 @@ const LeaveCalendarPage: React.FC = () => {
                         {selectedLeave.reason && (
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Reason</label>
-                                <p className="text-sm text-white">{selectedLeave.reason}</p>
+                                <p className="text-sm text-slate-50">{selectedLeave.reason}</p>
                             </div>
                         )}
                     </div>

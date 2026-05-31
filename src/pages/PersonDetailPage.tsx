@@ -172,7 +172,7 @@ const PersonDetailPage: React.FC = () => {
     return (
         <div className="p-6 space-y-6">
             {/* Back Navigation */}
-            <button onClick={() => navigate('/people')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
+            <button onClick={() => navigate('/people')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
                 <ArrowLeft size={16} />
                 Back to People
             </button>
@@ -187,7 +187,7 @@ const PersonDetailPage: React.FC = () => {
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
-                            <h2 className="text-xl font-bold text-white">{person.full_name}</h2>
+                            <h2 className="text-xl font-bold text-slate-50">{person.full_name}</h2>
                             <StatusBadge status={person.type} />
                             <StatusBadge status={person.status} />
                             {person.user_id && (
@@ -310,35 +310,35 @@ const PersonDetailPage: React.FC = () => {
                         <DollarSign size={14} className="text-emerald-400" />
                         <span className="text-xs text-slate-400">Cost Rate</span>
                     </div>
-                    <div className="text-lg font-bold text-white">${person.cost_rate}/{person.cost_rate_unit}</div>
+                    <div className="text-lg font-bold text-slate-50">${person.cost_rate}/{person.cost_rate_unit}</div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                         <Target size={14} className="text-blue-400" />
                         <span className="text-xs text-slate-400">Total Allocated</span>
                     </div>
-                    <div className="text-lg font-bold text-white">{totalAllocated}%</div>
+                    <div className="text-lg font-bold text-slate-50">{totalAllocated}%</div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                         <Clock size={14} className="text-amber-400" />
                         <span className="text-xs text-slate-400">Hours Logged</span>
                     </div>
-                    <div className="text-lg font-bold text-white">{totalHoursLogged}h</div>
+                    <div className="text-lg font-bold text-slate-50">{totalHoursLogged}h</div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                         <Clock size={14} className="text-teal-400" />
                         <span className="text-xs text-slate-400">Availability</span>
                     </div>
-                    <div className="text-lg font-bold text-white">{person.available_hours_per_day}h/day</div>
+                    <div className="text-lg font-bold text-slate-50">{person.available_hours_per_day}h/day</div>
                 </div>
             </div>
 
             {/* Roles & Skills */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl">
                 <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-slate-50 flex items-center gap-2">
                         <Tag size={14} /> Roles & Skills
                     </h3>
                     <button
@@ -355,7 +355,7 @@ const PersonDetailPage: React.FC = () => {
                         <div className="flex flex-wrap gap-2">
                             {person.people_roles.map(role => (
                                 <div key={role.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
-                                    <span className="text-sm text-white">{role.role_name}</span>
+                                    <span className="text-sm text-slate-50">{role.role_name}</span>
                                     {role.skill_category && <span className="text-xs text-slate-500">{role.skill_category}</span>}
                                     <StatusBadge status={role.proficiency} />
                                     {role.is_primary && <span className="text-xs text-teal-400 font-medium">Primary</span>}
@@ -467,13 +467,13 @@ const PersonDetailPage: React.FC = () => {
                                     <div key={alloc.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-sm text-white">{alloc.entity_name || alloc.entity_id}</div>
+                                                <div className="text-sm text-slate-50">{alloc.entity_name || alloc.entity_id}</div>
                                                 <div className="text-xs text-slate-500">
                                                     {alloc.start_date} to {alloc.end_date} | {alloc.entity_type}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-sm font-medium text-white">
+                                                <span className="text-sm font-medium text-slate-50">
                                                     {alloc.allocation_value}{alloc.allocation_type === 'percentage' ? '%' : 'h'}
                                                 </span>
                                                 <StatusBadge status={alloc.status} />
@@ -499,13 +499,13 @@ const PersonDetailPage: React.FC = () => {
                                     <div key={entry.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-sm text-white">{entry.entity_name || entry.entity_type}</div>
+                                                <div className="text-sm text-slate-50">{entry.entity_name || entry.entity_type}</div>
                                                 <div className="text-xs text-slate-500">
                                                     {entry.work_date} | {entry.description || 'No description'}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-sm font-medium text-white">{entry.hours}h</span>
+                                                <span className="text-sm font-medium text-slate-50">{entry.hours}h</span>
                                                 <span className="text-xs text-slate-400">${entry.total_cost}</span>
                                                 <StatusBadge status={entry.status} />
                                             </div>
@@ -524,7 +524,7 @@ const PersonDetailPage: React.FC = () => {
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-medium text-white capitalize">{event.event_type.replace('_', ' ')}</span>
+                                                <span className="text-sm font-medium text-slate-50 capitalize">{event.event_type.replace('_', ' ')}</span>
                                                 <StatusBadge status={event.event_type} />
                                             </div>
                                             <div className="text-xs text-slate-500">
@@ -570,7 +570,7 @@ const PersonDetailPage: React.FC = () => {
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div>
                                                     <div className="text-xs text-slate-500">Cost Rate</div>
-                                                    <div className="text-lg font-medium text-white">
+                                                    <div className="text-lg font-medium text-slate-50">
                                                         ${event.new_cost_rate}/{person.cost_rate_unit}
                                                     </div>
                                                 </div>
@@ -618,7 +618,7 @@ const PersonDetailPage: React.FC = () => {
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-medium text-white">{goal.title}</span>
+                                                <span className="text-sm font-medium text-slate-50">{goal.title}</span>
                                                 <StatusBadge status={goal.status} />
                                                 <StatusBadge status={goal.goal_type} />
                                             </div>
@@ -708,7 +708,7 @@ const AddRoleModal: React.FC<{
                     Primary role
                 </label>
                 <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-white">Cancel</button>
+                    <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
                     <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg">Add Role</button>
                 </div>
             </form>

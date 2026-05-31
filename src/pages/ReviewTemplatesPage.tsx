@@ -124,7 +124,7 @@ const ReviewTemplatesPage: React.FC = () => {
                                     onClick={() => setEditingTemplate(template)}
                                 >
                                     <td className="px-4 py-3">
-                                        <div className="text-sm font-medium text-white">{template.name}</div>
+                                        <div className="text-sm font-medium text-slate-50">{template.name}</div>
                                         {template.description && (
                                             <div className="text-xs text-slate-500">{template.description}</div>
                                         )}
@@ -352,7 +352,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

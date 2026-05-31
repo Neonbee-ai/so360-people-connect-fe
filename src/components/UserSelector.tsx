@@ -109,11 +109,11 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={selectedUser ? (selectedUser.full_name || selectedUser.email) : placeholder}
-            className="flex-1 bg-transparent outline-none text-sm text-white placeholder-slate-400"
+            className="flex-1 bg-transparent outline-none text-sm text-slate-50 placeholder-slate-400"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className={`flex-1 truncate ${selectedUser ? 'text-white' : 'text-slate-400'}`}>
+          <span className={`flex-1 truncate ${selectedUser ? 'text-slate-50' : 'text-slate-400'}`}>
             {selectedUser ? (selectedUser.full_name || selectedUser.email) : placeholder}
           </span>
         )}
@@ -124,7 +124,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
               e.stopPropagation();
               onChange(null);
             }}
-            className="ml-2 text-slate-400 hover:text-white"
+            className="ml-2 text-slate-400 hover:text-slate-50"
           >
             &times;
           </button>

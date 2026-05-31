@@ -119,14 +119,14 @@ const DashboardPage: React.FC = () => {
                         <span className="text-sm text-slate-400">Active Allocations</span>
                         <Target size={16} className="text-blue-400" />
                     </div>
-                    <div className="text-xl font-bold text-white">{summary?.active_allocations || 0}</div>
+                    <div className="text-xl font-bold text-slate-50">{summary?.active_allocations || 0}</div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-slate-400">Pending Approvals</span>
                         <CalendarClock size={16} className="text-amber-400" />
                     </div>
-                    <div className="text-xl font-bold text-white">{summary?.pending_approvals || 0}</div>
+                    <div className="text-xl font-bold text-slate-50">{summary?.pending_approvals || 0}</div>
                     {summary && summary.pending_approvals > 0 && (
                         <button
                             onClick={() => navigate('/time')}
@@ -141,7 +141,7 @@ const DashboardPage: React.FC = () => {
                         <span className="text-sm text-slate-400">Daily Burn Rate</span>
                         <TrendingUp size={16} className="text-rose-400" />
                     </div>
-                    <div className="text-xl font-bold text-white">{formatCurrency(summary?.burn_rate_daily || 0)}</div>
+                    <div className="text-xl font-bold text-slate-50">{formatCurrency(summary?.burn_rate_daily || 0)}</div>
                 </div>
             </div>
 
@@ -150,7 +150,7 @@ const DashboardPage: React.FC = () => {
                 {/* Recent Time Entries */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
                     <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-white">Recent Time Entries</h3>
+                        <h3 className="text-sm font-semibold text-slate-50">Recent Time Entries</h3>
                         <button
                             onClick={() => navigate('/time')}
                             className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1"
@@ -165,7 +165,7 @@ const DashboardPage: React.FC = () => {
                             recentEntries.map((entry) => (
                                 <div key={entry.id} className="px-5 py-3 flex items-center justify-between">
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-sm text-white truncate">{entry.person?.full_name || 'Unknown'}</div>
+                                        <div className="text-sm text-slate-50 truncate">{entry.person?.full_name || 'Unknown'}</div>
                                         <div className="text-xs text-slate-500 truncate">
                                             {entry.entity_name || entry.entity_type} - {entry.description || 'No description'}
                                         </div>
@@ -183,7 +183,7 @@ const DashboardPage: React.FC = () => {
                 {/* Activity Feed */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
                     <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-white">Activity Feed</h3>
+                        <h3 className="text-sm font-semibold text-slate-50">Activity Feed</h3>
                         <Activity size={16} className="text-slate-500" />
                     </div>
                     <div className="divide-y divide-slate-800">

@@ -5,9 +5,15 @@
 
 /**
  * Format a number as currency.
+ *
+ * @param amount   - Numeric value to format
+ * @param currency - ISO 4217 currency code (default: 'USD'). Pass the org's
+ *                   base_currency from business settings wherever available.
+ * @param locale   - BCP 47 locale string (default: 'en-US'). Pass the org's
+ *                   document_language from business settings wherever available.
  */
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
-    return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number, currency: string = 'USD', locale: string = 'en-US'): string {
+    return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency,
         minimumFractionDigits: 0,
@@ -17,9 +23,15 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
 
 /**
  * Format a currency with decimals for detailed display.
+ *
+ * @param amount   - Numeric value to format
+ * @param currency - ISO 4217 currency code (default: 'USD'). Pass the org's
+ *                   base_currency from business settings wherever available.
+ * @param locale   - BCP 47 locale string (default: 'en-US'). Pass the org's
+ *                   document_language from business settings wherever available.
  */
-export function formatCurrencyDetailed(amount: number, currency: string = 'USD'): string {
-    return new Intl.NumberFormat('en-US', {
+export function formatCurrencyDetailed(amount: number, currency: string = 'USD', locale: string = 'en-US'): string {
+    return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency,
         minimumFractionDigits: 2,

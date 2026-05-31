@@ -102,11 +102,11 @@ export default function DepartmentSelector({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={selectedDept ? selectedDept.name : placeholder}
-            className="flex-1 bg-transparent outline-none text-sm text-white placeholder-slate-400"
+            className="flex-1 bg-transparent outline-none text-sm text-slate-50 placeholder-slate-400"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className={`flex-1 truncate ${selectedDept ? 'text-white' : 'text-slate-400'}`}>
+          <span className={`flex-1 truncate ${selectedDept ? 'text-slate-50' : 'text-slate-400'}`}>
             {selectedDept ? selectedDept.name : placeholder}
           </span>
         )}
@@ -117,7 +117,7 @@ export default function DepartmentSelector({
               e.stopPropagation();
               onChange(null);
             }}
-            className="ml-2 text-slate-400 hover:text-white"
+            className="ml-2 text-slate-400 hover:text-slate-50"
           >
             &times;
           </button>

@@ -109,7 +109,7 @@ const TeamPerformancePage: React.FC = () => {
             <div className="grid grid-cols-2 gap-5">
                 {/* Rating Distribution */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                    <h3 className="text-sm font-medium text-white mb-4">Rating Distribution</h3>
+                    <h3 className="text-sm font-medium text-slate-50 mb-4">Rating Distribution</h3>
                     {completedReviews.length === 0 ? (
                         <p className="text-sm text-slate-400 text-center py-8">No completed reviews yet</p>
                     ) : (
@@ -136,7 +136,7 @@ const TeamPerformancePage: React.FC = () => {
 
                 {/* Top Performers */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                    <h3 className="text-sm font-medium text-white mb-4">Top Performers</h3>
+                    <h3 className="text-sm font-medium text-slate-50 mb-4">Top Performers</h3>
                     {topPerformers.length === 0 ? (
                         <p className="text-sm text-slate-400 text-center py-8">No top performers yet</p>
                     ) : (
@@ -148,12 +148,12 @@ const TeamPerformancePage: React.FC = () => {
                                         {review.person?.full_name?.charAt(0) || '?'}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-white truncate">{review.person?.full_name || 'Unknown'}</p>
+                                        <p className="text-sm text-slate-50 truncate">{review.person?.full_name || 'Unknown'}</p>
                                         <p className="text-xs text-slate-400">{review.person?.job_title || ''}</p>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Star size={14} className="fill-yellow-500 text-yellow-500" />
-                                        <span className="text-sm font-medium text-white">{review.overall_rating?.toFixed(1)}</span>
+                                        <span className="text-sm font-medium text-slate-50">{review.overall_rating?.toFixed(1)}</span>
                                     </div>
                                 </div>
                             ))}
@@ -164,10 +164,10 @@ const TeamPerformancePage: React.FC = () => {
 
             {/* Goals Overview */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                <h3 className="text-sm font-medium text-white mb-4">Goals Summary</h3>
+                <h3 className="text-sm font-medium text-slate-50 mb-4">Goals Summary</h3>
                 <div className="grid grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                        <p className="text-2xl font-bold text-white">{goals.length}</p>
+                        <p className="text-2xl font-bold text-slate-50">{goals.length}</p>
                         <p className="text-xs text-slate-400 mt-1">Total Goals</p>
                     </div>
                     <div className="text-center p-4 bg-slate-800/50 rounded-lg">
@@ -187,7 +187,7 @@ const TeamPerformancePage: React.FC = () => {
 
             {/* Review Status Breakdown */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                <h3 className="text-sm font-medium text-white mb-4">Review Pipeline</h3>
+                <h3 className="text-sm font-medium text-slate-50 mb-4">Review Pipeline</h3>
                 <div className="flex items-center gap-2 h-8">
                     {[
                         { status: 'draft', label: 'Draft', color: 'bg-slate-600', count: reviews.filter(r => r.status === 'draft').length },
@@ -200,7 +200,7 @@ const TeamPerformancePage: React.FC = () => {
                         return (
                             <div
                                 key={label}
-                                className={`${color} rounded-md h-full flex items-center justify-center text-xs text-white font-medium transition-all`}
+                                className={`${color} rounded-md h-full flex items-center justify-center text-xs text-slate-50 font-medium transition-all`}
                                 style={{ width: `${pct}%`, minWidth: count > 0 ? '60px' : 0 }}
                                 title={`${label}: ${count}`}
                             >

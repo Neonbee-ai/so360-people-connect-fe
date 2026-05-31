@@ -170,7 +170,7 @@ const GoalsPage: React.FC = () => {
                         >
                             {/* Header */}
                             <div className="flex items-start justify-between mb-3">
-                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-white ${getGoalTypeColor(goal.goal_type)}`}>
+                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getGoalTypeColor(goal.goal_type)}`}>
                                     {goal.goal_type}
                                 </span>
                                 <span className={`text-xs font-medium ${getPriorityColor(goal.priority)}`}>
@@ -179,7 +179,7 @@ const GoalsPage: React.FC = () => {
                             </div>
 
                             {/* Title */}
-                            <h3 className="text-sm font-medium text-white mb-2 line-clamp-2">{goal.title}</h3>
+                            <h3 className="text-sm font-medium text-slate-50 mb-2 line-clamp-2">{goal.title}</h3>
 
                             {/* Person */}
                             <div className="flex items-center gap-2 mb-3">
@@ -199,7 +199,7 @@ const GoalsPage: React.FC = () => {
                             <div className="mb-3">
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-xs text-slate-400">Progress</span>
-                                    <span className="text-xs font-medium text-white">{goal.progress_percentage}%</span>
+                                    <span className="text-xs font-medium text-slate-50">{goal.progress_percentage}%</span>
                                 </div>
                                 <div className="w-full bg-slate-800 rounded-full h-2">
                                     <div
@@ -293,7 +293,7 @@ const GoalsPage: React.FC = () => {
                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
                         <button
                             onClick={() => setUpdatingProgress(null)}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                         >
                             Cancel
                         </button>
@@ -486,7 +486,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

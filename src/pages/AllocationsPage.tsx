@@ -192,7 +192,7 @@ const AllocationsPage: React.FC = () => {
                                         <div className="flex items-center gap-2 mb-0.5">
                                             <span
                                                 onClick={() => navigate(`/people/${alloc.person_id}`)}
-                                                className="text-sm font-medium text-white hover:text-teal-400 cursor-pointer truncate"
+                                                className="text-sm font-medium text-slate-50 hover:text-teal-400 cursor-pointer truncate"
                                             >
                                                 {alloc.person?.full_name || 'Unknown Person'}
                                             </span>
@@ -213,7 +213,7 @@ const AllocationsPage: React.FC = () => {
 
                                     {/* Allocation Value */}
                                     <div className="text-right flex-shrink-0">
-                                        <div className="text-lg font-bold text-white">
+                                        <div className="text-lg font-bold text-slate-50">
                                             {alloc.allocation_value}
                                             <span className="text-sm text-slate-400 ml-0.5">
                                                 {alloc.allocation_type === 'percentage' ? '%' : `h/${alloc.allocation_period}`}
@@ -500,7 +500,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
                         Cancel
                     </button>
                     <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">
@@ -597,7 +597,7 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
                         Cancel
                     </button>
                     <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">

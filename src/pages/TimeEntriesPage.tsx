@@ -211,7 +211,7 @@ const TimeEntriesPage: React.FC = () => {
                 {dateFilter && (
                     <button
                         onClick={() => setDateFilter('')}
-                        className="text-xs text-slate-400 hover:text-white"
+                        className="text-xs text-slate-400 hover:text-slate-50"
                     >
                         Clear date
                     </button>
@@ -288,7 +288,7 @@ const TimeEntriesPage: React.FC = () => {
                                     />
                                 </div>
                                 <div className="min-w-0">
-                                    <div className="text-sm text-white truncate">
+                                    <div className="text-sm text-slate-50 truncate">
                                         {entry.person?.full_name || 'Unknown'}
                                     </div>
                                     <div className="text-xs text-slate-500 truncate flex items-center gap-1">
@@ -302,7 +302,7 @@ const TimeEntriesPage: React.FC = () => {
                                 <div className="text-right text-sm text-slate-300">
                                     {entry.work_date}
                                 </div>
-                                <div className="text-right text-sm font-medium text-white">
+                                <div className="text-right text-sm font-medium text-slate-50">
                                     {entry.hours}h
                                 </div>
                                 <div className="text-right text-sm text-slate-300">
@@ -375,7 +375,7 @@ const TimeEntriesPage: React.FC = () => {
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => { setShowRejectModal(null); setRejectReason(''); }}
-                                className="px-3 py-1.5 text-sm text-slate-400 hover:text-white"
+                                className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50"
                             >
                                 Cancel
                             </button>
@@ -606,7 +606,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                     <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-slate-400">Estimated Cost</span>
-                            <span className="font-medium text-white">
+                            <span className="font-medium text-slate-50">
                                 {formData.hours}h x {modalFormatters.getCurrencySymbol()}{selectedPerson.cost_rate}/{selectedPerson.cost_rate_unit} = {modalFormatters.formatCurrency(estimatedCost)}
                             </span>
                         </div>
@@ -618,7 +618,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
                         Cancel
                     </button>
                     <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">

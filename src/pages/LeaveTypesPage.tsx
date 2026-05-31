@@ -120,7 +120,7 @@ const LeaveTypesPage: React.FC = () => {
                                                     style={{ backgroundColor: leaveType.color }}
                                                 />
                                             )}
-                                            <span className="text-sm font-medium text-white">{leaveType.name}</span>
+                                            <span className="text-sm font-medium text-slate-50">{leaveType.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">{leaveType.code}</td>
@@ -410,7 +410,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

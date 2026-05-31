@@ -171,7 +171,7 @@ const UtilizationPage: React.FC = () => {
                     <ChevronLeft size={18} />
                 </button>
                 <div className="text-center">
-                    <div className="text-sm font-medium text-white flex items-center gap-2">
+                    <div className="text-sm font-medium text-slate-50 flex items-center gap-2">
                         <Calendar size={14} className="text-teal-400" />
                         Week of {period.start || 'Loading...'}
                     </div>
@@ -223,7 +223,7 @@ const UtilizationPage: React.FC = () => {
                         <span className="text-xs font-medium text-slate-400">Idle Resources</span>
                         <TrendingDown size={14} className="text-rose-400" />
                     </div>
-                    <div className={`text-2xl font-bold ${idlePeople.length > 0 ? 'text-rose-400' : 'text-white'}`}>
+                    <div className={`text-2xl font-bold ${idlePeople.length > 0 ? 'text-rose-400' : 'text-slate-50'}`}>
                         {idlePeople.length}
                     </div>
                     {idlePeople.length > 0 && (
@@ -237,7 +237,7 @@ const UtilizationPage: React.FC = () => {
                         <span className="text-xs font-medium text-slate-400">Overallocated</span>
                         <TrendingUp size={14} className="text-amber-400" />
                     </div>
-                    <div className={`text-2xl font-bold ${overallocated.length > 0 ? 'text-amber-400' : 'text-white'}`}>
+                    <div className={`text-2xl font-bold ${overallocated.length > 0 ? 'text-amber-400' : 'text-slate-50'}`}>
                         {overallocated.length}
                     </div>
                     {overallocated.length > 0 && (
@@ -269,7 +269,7 @@ const UtilizationPage: React.FC = () => {
                         className={`px-2.5 py-1 rounded text-xs transition-colors ${
                             sortBy === key
                                 ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30'
-                                : 'text-slate-400 hover:text-white'
+                                : 'text-slate-400 hover:text-slate-50'
                         }`}
                     >
                         {key.charAt(0).toUpperCase() + key.slice(1)}
@@ -328,13 +328,13 @@ const UtilizationPage: React.FC = () => {
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <div className="text-sm font-medium text-white">Burn Rate Signal</div>
+                            <div className="text-sm font-medium text-slate-50">Burn Rate Signal</div>
                             <div className="text-xs text-slate-500 mt-0.5">
                                 Based on approved time entries for the current period
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-lg font-bold text-white">{formatCurrency(summary.burn_rate_daily)}/day</div>
+                            <div className="text-lg font-bold text-slate-50">{formatCurrency(summary.burn_rate_daily)}/day</div>
                             <div className="text-xs text-slate-500">{formatCurrency(summary.burn_rate_daily * 5)}/week</div>
                         </div>
                     </div>
@@ -393,7 +393,7 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-white truncate">{person.full_name}</span>
+                        <span className="text-sm font-medium text-slate-50 truncate">{person.full_name}</span>
                         {person.job_title && <span className="text-xs text-slate-500">{person.job_title}</span>}
                         {utilization.is_idle && (
                             <span className="px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded text-xs">Idle</span>
@@ -436,15 +436,15 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                 <div className="flex-shrink-0 grid grid-cols-3 gap-4 text-center">
                     <div>
                         <div className="text-xs text-slate-500">Available</div>
-                        <div className="text-sm font-medium text-white">{utilization.available_hours}h</div>
+                        <div className="text-sm font-medium text-slate-50">{utilization.available_hours}h</div>
                     </div>
                     <div>
                         <div className="text-xs text-slate-500">Actual</div>
-                        <div className="text-sm font-medium text-white">{utilization.actual_hours}h</div>
+                        <div className="text-sm font-medium text-slate-50">{utilization.actual_hours}h</div>
                     </div>
                     <div>
                         <div className="text-xs text-slate-500">Cost</div>
-                        <div className="text-sm font-medium text-white">
+                        <div className="text-sm font-medium text-slate-50">
                             {cardFormatters.formatCurrency(Math.round(utilization.actual_cost || 0))}
                         </div>
                     </div>
@@ -508,13 +508,13 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
                                 </span>
                             </div>
                             <div className="min-w-0">
-                                <div className="text-sm text-white truncate">{item.person.full_name}</div>
+                                <div className="text-sm text-slate-50 truncate">{item.person.full_name}</div>
                                 <div className="text-xs text-slate-500 truncate">{item.person.job_title}</div>
                             </div>
                         </div>
                         <div className="text-right text-sm text-slate-300">{item.utilization.available_hours}h</div>
                         <div className="text-right text-sm text-slate-300">{item.utilization.planned_hours}h</div>
-                        <div className="text-right text-sm text-white font-medium">{item.utilization.actual_hours}h</div>
+                        <div className="text-right text-sm text-slate-50 font-medium">{item.utilization.actual_hours}h</div>
                         <div className={`text-right text-sm font-bold ${
                             item.utilization.utilization_pct >= 70 ? 'text-emerald-400' :
                             item.utilization.utilization_pct >= 50 ? 'text-teal-400' :
@@ -545,7 +545,7 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
                 <div className="text-right text-xs font-medium text-slate-300">
                     {data.reduce((sum, d) => sum + d.utilization.planned_hours, 0)}h
                 </div>
-                <div className="text-right text-xs font-medium text-white">
+                <div className="text-right text-xs font-medium text-slate-50">
                     {data.reduce((sum, d) => sum + d.utilization.actual_hours, 0)}h
                 </div>
                 <div className="text-right text-xs font-medium text-teal-400">
@@ -557,7 +557,7 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
                 <div className="text-right text-xs font-medium text-slate-400">
                     {data.reduce((sum, d) => sum + d.utilization.variance_hours, 0)}h
                 </div>
-                <div className="text-right text-xs font-medium text-white">
+                <div className="text-right text-xs font-medium text-slate-50">
                     {formatCurrency(data.reduce((sum, d) => sum + (d.utilization.actual_cost || 0), 0))}
                 </div>
             </div>

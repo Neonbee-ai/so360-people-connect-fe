@@ -163,7 +163,7 @@ const LeaveRequestsPage: React.FC = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className="text-sm text-white">{request.person?.full_name}</span>
+                                            <span className="text-sm text-slate-50">{request.person?.full_name}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
@@ -174,7 +174,7 @@ const LeaveRequestsPage: React.FC = () => {
                                                     style={{ backgroundColor: request.leave_type.color }}
                                                 />
                                             )}
-                                            <span className="text-sm text-white">{request.leave_type?.name}</span>
+                                            <span className="text-sm text-slate-50">{request.leave_type?.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
@@ -185,11 +185,11 @@ const LeaveRequestsPage: React.FC = () => {
                                         {new Date(request.end_date).toLocaleDateString()}
                                         {request.is_half_day_end && <span className="text-xs text-slate-500"> (Half)</span>}
                                     </td>
-                                    <td className="px-4 py-3 text-center text-sm font-medium text-white">
+                                    <td className="px-4 py-3 text-center text-sm font-medium text-slate-50">
                                         {request.total_days}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-white ${getStatusColor(request.status)}`}>
+                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(request.status)}`}>
                                             {request.status}
                                         </span>
                                     </td>
@@ -381,7 +381,7 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

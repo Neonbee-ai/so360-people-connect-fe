@@ -129,7 +129,7 @@ const WorkLocationsPage: React.FC = () => {
             <tbody className="divide-y divide-slate-800">
               {locations.map(loc => (
                 <tr key={loc.id} className="bg-slate-900 hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-white">{loc.name}</td>
+                  <td className="px-4 py-3 font-medium text-slate-50">{loc.name}</td>
                   <td className="px-4 py-3">
                     <LocationTypeBadge type={loc.location_type} />
                   </td>
@@ -283,7 +283,7 @@ const WorkLocationModal: React.FC<WorkLocationModalProps> = ({ isOpen, onClose, 
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
           >
             Cancel
           </button>

@@ -339,7 +339,7 @@ const PeoplePage: React.FC = () => {
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
-                                        <span className="text-sm font-medium text-white truncate">{person.full_name}</span>
+                                        <span className="text-sm font-medium text-slate-50 truncate">{person.full_name}</span>
                                         <StatusBadge status={person.type} />
                                         <StatusBadge status={person.status} />
                                     </div>
@@ -370,7 +370,7 @@ const PeoplePage: React.FC = () => {
 
                                 {/* Cost Info */}
                                 <div className="text-right flex-shrink-0">
-                                    <div className="text-sm font-medium text-white">
+                                    <div className="text-sm font-medium text-slate-50">
                                         ${person.cost_rate}/{person.cost_rate_unit}
                                     </div>
                                     {person.billing_rate && person.billing_rate > 0 && (
@@ -653,7 +653,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 className="text-teal-500 focus:ring-teal-500"
                             />
                             <div>
-                                <div className="text-sm font-medium text-white">Employee Only (No System Access)</div>
+                                <div className="text-sm font-medium text-slate-50">Employee Only (No System Access)</div>
                                 <div className="text-xs text-slate-500">Person will not have access to SO360 system</div>
                             </div>
                         </label>
@@ -668,7 +668,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 className="text-teal-500 focus:ring-teal-500"
                             />
                             <div className="flex-1">
-                                <div className="text-sm font-medium text-white">Link to Existing User</div>
+                                <div className="text-sm font-medium text-slate-50">Link to Existing User</div>
                                 <div className="text-xs text-slate-500 mb-2">Select an existing user account to link</div>
                                 {formData.userLinkageMode === 'link' && (
                                     <UserSelector
@@ -692,7 +692,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 className="text-teal-500 focus:ring-teal-500"
                             />
                             <div className="flex-1">
-                                <div className="text-sm font-medium text-white">Invite as New User (Recommended)</div>
+                                <div className="text-sm font-medium text-slate-50">Invite as New User (Recommended)</div>
                                 <div className="text-xs text-slate-500 mb-2">Send invitation email to create user account</div>
                                 {formData.userLinkageMode === 'invite' && (
                                     <div className="space-y-2">
@@ -735,7 +735,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
                     <button
                         type="button" onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

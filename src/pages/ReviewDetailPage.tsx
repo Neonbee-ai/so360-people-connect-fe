@@ -28,7 +28,7 @@ const ReviewForm: React.FC<{
         <div className="space-y-6">
             {sections.map((section) => (
                 <div key={section.id} className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
-                    <h4 className="text-sm font-medium text-white mb-1">{section.title}</h4>
+                    <h4 className="text-sm font-medium text-slate-50 mb-1">{section.title}</h4>
                     {section.description && <p className="text-xs text-slate-400 mb-4">{section.description}</p>}
                     {section.weight && <p className="text-xs text-teal-400 mb-3">Weight: {section.weight}%</p>}
 
@@ -60,7 +60,7 @@ const ReviewForm: React.FC<{
                                             </button>
                                         ))}
                                         {getFieldValue(section.id, field.label) != null ? (
-                                            <span className="text-sm text-white ml-2">
+                                            <span className="text-sm text-slate-50 ml-2">
                                                 {String(getFieldValue(section.id, field.label))} / {field.max || ratingScale}
                                             </span>
                                         ) : null}
@@ -295,17 +295,17 @@ const ReviewDetailPage: React.FC = () => {
                 <div className="grid grid-cols-4 gap-6">
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Reviewer</label>
-                        <p className="text-sm text-white">{review.reviewer?.full_name || '-'}</p>
+                        <p className="text-sm text-slate-50">{review.reviewer?.full_name || '-'}</p>
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Status</label>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-white ${getStatusColor(review.status)}`}>
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(review.status)}`}>
                             {review.status.replace(/_/g, ' ')}
                         </span>
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Self Review Deadline</label>
-                        <p className="text-sm text-white">
+                        <p className="text-sm text-slate-50">
                             {review.self_review_deadline
                                 ? new Date(review.self_review_deadline).toLocaleDateString()
                                 : '-'}
@@ -313,7 +313,7 @@ const ReviewDetailPage: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Manager Review Deadline</label>
-                        <p className="text-sm text-white">
+                        <p className="text-sm text-slate-50">
                             {review.manager_review_deadline
                                 ? new Date(review.manager_review_deadline).toLocaleDateString()
                                 : '-'}
@@ -332,7 +332,7 @@ const ReviewDetailPage: React.FC = () => {
                                     className={i < Math.round(review.overall_rating!) ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600'}
                                 />
                             ))}
-                            <span className="text-lg font-medium text-white ml-2">{review.overall_rating.toFixed(1)}</span>
+                            <span className="text-lg font-medium text-slate-50 ml-2">{review.overall_rating.toFixed(1)}</span>
                         </div>
                     </div>
                 )}
@@ -406,7 +406,7 @@ const ReviewDetailPage: React.FC = () => {
                                                 </button>
                                             ))}
                                             {overallRating > 0 && (
-                                                <span className="text-sm text-white ml-2">{overallRating} / 5</span>
+                                                <span className="text-sm text-slate-50 ml-2">{overallRating} / 5</span>
                                             )}
                                         </div>
                                     </div>
@@ -417,13 +417,13 @@ const ReviewDetailPage: React.FC = () => {
                             <div className="space-y-6">
                                 {selfSubmitted && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-white mb-3">Self Review (Submitted {new Date(review.self_review_submitted_at!).toLocaleDateString()})</h4>
+                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Self Review (Submitted {new Date(review.self_review_submitted_at!).toLocaleDateString()})</h4>
                                         <ReviewForm sections={sections} ratingScale={ratingScale} data={selfFormData} onChange={() => {}} readOnly />
                                     </div>
                                 )}
                                 {managerSubmitted && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-white mb-3">Manager Review (Submitted {new Date(review.manager_review_submitted_at!).toLocaleDateString()})</h4>
+                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Manager Review (Submitted {new Date(review.manager_review_submitted_at!).toLocaleDateString()})</h4>
                                         <ReviewForm sections={sections} ratingScale={ratingScale} data={managerFormData} onChange={() => {}} readOnly />
                                     </div>
                                 )}

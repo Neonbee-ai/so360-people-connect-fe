@@ -199,13 +199,13 @@ const PerformanceReviewsPage: React.FC = () => {
                                                 )}
                                             </div>
                                             <div>
-                                                <div className="text-sm font-medium text-white">{review.person?.full_name}</div>
+                                                <div className="text-sm font-medium text-slate-50">{review.person?.full_name}</div>
                                                 <div className="text-xs text-slate-500">{review.person?.job_title}</div>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="text-sm text-white">{review.template?.name}</div>
+                                        <div className="text-sm text-slate-50">{review.template?.name}</div>
                                         <div className="text-xs text-slate-500 capitalize">
                                             {review.template?.review_type.replace('_', ' ')}
                                         </div>
@@ -215,7 +215,7 @@ const PerformanceReviewsPage: React.FC = () => {
                                         {new Date(review.review_period_end).toLocaleDateString()}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-white ${getStatusColor(review.status)}`}>
+                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(review.status)}`}>
                                             {review.status.replace('_', ' ')}
                                         </span>
                                     </td>
@@ -336,7 +336,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                     <label className="block text-xs text-slate-400 mb-1">Person Being Reviewed *</label>
                     {selectedPerson ? (
                         <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
-                            <span className="text-sm text-white">{selectedPerson.full_name}</span>
+                            <span className="text-sm text-slate-50">{selectedPerson.full_name}</span>
                             <button type="button" onClick={() => updateField('person_id', '')} className="text-xs text-slate-400 hover:text-red-400">Clear</button>
                         </div>
                     ) : (
@@ -374,7 +374,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                     <label className="block text-xs text-slate-400 mb-1">Reviewer (Manager) *</label>
                     {selectedReviewer ? (
                         <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
-                            <span className="text-sm text-white">{selectedReviewer.full_name}</span>
+                            <span className="text-sm text-slate-50">{selectedReviewer.full_name}</span>
                             <button type="button" onClick={() => updateField('reviewer_id', '')} className="text-xs text-slate-400 hover:text-red-400">Clear</button>
                         </div>
                     ) : (
@@ -469,7 +469,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

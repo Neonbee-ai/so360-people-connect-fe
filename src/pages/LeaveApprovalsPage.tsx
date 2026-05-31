@@ -110,7 +110,7 @@ const LeaveApprovalsPage: React.FC = () => {
                                                 )}
                                             </div>
                                             <div>
-                                                <div className="text-sm font-medium text-white">{request.person?.full_name}</div>
+                                                <div className="text-sm font-medium text-slate-50">{request.person?.full_name}</div>
                                                 <div className="text-xs text-slate-500">{request.person?.email}</div>
                                             </div>
                                         </div>
@@ -123,13 +123,13 @@ const LeaveApprovalsPage: React.FC = () => {
                                                     style={{ backgroundColor: request.leave_type.color }}
                                                 />
                                             )}
-                                            <span className="text-sm text-white">{request.leave_type?.name}</span>
+                                            <span className="text-sm text-slate-50">{request.leave_type?.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
                                         {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
                                     </td>
-                                    <td className="px-4 py-3 text-center text-sm font-medium text-white">
+                                    <td className="px-4 py-3 text-center text-sm font-medium text-slate-50">
                                         {request.total_days}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
@@ -175,7 +175,7 @@ const LeaveApprovalsPage: React.FC = () => {
             >
                 <div className="space-y-4">
                     <p className="text-sm text-slate-300">
-                        Rejecting leave request for <span className="font-medium text-white">{rejectingRequest?.person?.full_name}</span>
+                        Rejecting leave request for <span className="font-medium text-slate-50">{rejectingRequest?.person?.full_name}</span>
                     </p>
 
                     <div>
@@ -195,7 +195,7 @@ const LeaveApprovalsPage: React.FC = () => {
                                 setRejectingRequest(null);
                                 setRejectionReason('');
                             }}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                         >
                             Cancel
                         </button>

@@ -39,8 +39,8 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 4000 }
     return (
         <div className={`fixed bottom-4 right-4 z-[100] flex items-center gap-3 px-4 py-3 rounded-lg border ${styleMap[type]} shadow-xl max-w-sm animate-in slide-in-from-right`}>
             <Icon size={18} className={iconStyleMap[type]} />
-            <span className="text-sm text-white flex-1">{message}</span>
-            <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <span className="text-sm text-slate-50 flex-1">{message}</span>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-50">
                 <X size={14} />
             </button>
         </div>
