@@ -110,6 +110,7 @@ describe('Given UtilizationPage API failure', () => {
 
   it('When API fails / Then error toast appears', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load utilization data')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Utilization Intelligence')).toBeInTheDocument());
+    expect(screen.getByText('Failed to load utilization data')).toBeInTheDocument();
   });
 });
