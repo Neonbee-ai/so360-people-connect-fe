@@ -135,7 +135,8 @@ describe('PeoplePage', () => {
 
     it('When the page loads / Then it shows an error toast', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Failed to load people')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('People Registry')).toBeInTheDocument());
+      expect(screen.getByText('Failed to load people')).toBeInTheDocument();
     });
   });
 });

@@ -58,7 +58,8 @@ describe('GoalsPage — extra scenarios', () => {
     it('When getAll rejects / Then shows error toast message', async () => {
       mockApi.getAll.mockRejectedValue(new Error('Network error'));
       renderPage();
-      await waitFor(() => expect(screen.getByText('Failed to load goals')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Goals')).toBeInTheDocument());
+      expect(screen.getByText('Failed to load goals')).toBeInTheDocument();
     });
   });
 
