@@ -28,7 +28,7 @@ beforeEach(() => {
 
 describe('Given EventsPage loads successfully', () => {
   beforeEach(() => {
-    mockApi.getAll.mockResolvedValue({ data: [mockEvent], total: 1 });
+    mockApi.getAll.mockResolvedValue({ data: [mockEvent], meta: { total: 1, page: 1, limit: 30 } });
   });
 
   it('When page loads / Then "Events" heading is visible', async () => {
@@ -49,7 +49,7 @@ describe('Given EventsPage loads successfully', () => {
 
 describe('Given EventsPage with no events', () => {
   beforeEach(() => {
-    mockApi.getAll.mockResolvedValue({ data: [], total: 0 });
+    mockApi.getAll.mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 30 } });
   });
 
   it('When no events exist / Then empty state is shown', async () => {
@@ -76,7 +76,7 @@ describe('Given EventsPage with multiple event types', () => {
         { ...mockEvent, id: 'ev2', event_type: 'time_logged', actor_name: 'Bob' },
         { ...mockEvent, id: 'ev3', event_type: 'person_released', actor_name: 'Carol' },
       ],
-      total: 2,
+      meta: { total: 2, page: 1, limit: 30 },
     });
   });
 

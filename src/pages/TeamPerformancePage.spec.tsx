@@ -86,6 +86,7 @@ describe('Given TeamPerformancePage API failure', () => {
 
   it('When APIs fail / Then error toast appears', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load performance data')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Team Performance')).toBeInTheDocument());
+    expect(screen.getByText('Failed to load performance data')).toBeInTheDocument();
   });
 });
