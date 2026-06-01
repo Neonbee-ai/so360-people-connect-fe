@@ -108,14 +108,21 @@ export function getWeekStart(offset: number = 0): string {
     const diff = now.getDate() - day + (day === 0 ? -6 : 1);
     const start = new Date(now);
     start.setDate(diff);
-    return start.toISOString().split('T')[0];
+    const y = start.getFullYear();
+    const mo = String(start.getMonth() + 1).padStart(2, '0');
+    const d = String(start.getDate()).padStart(2, '0');
+    return `${y}-${mo}-${d}`;
 }
 
 /**
  * Get the current week's end date (Friday).
  */
 export function getWeekEnd(offset: number = 0): string {
-    const start = new Date(getWeekStart(offset));
+    const [y, m, d] = getWeekStart(offset).split('-').map(Number);
+    const start = new Date(y, m - 1, d);
     start.setDate(start.getDate() + 4);
-    return start.toISOString().split('T')[0];
+    const ey = start.getFullYear();
+    const em = String(start.getMonth() + 1).padStart(2, '0');
+    const ed = String(start.getDate()).padStart(2, '0');
+    return `${ey}-${em}-${ed}`;
 }
