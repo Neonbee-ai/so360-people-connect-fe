@@ -25,7 +25,7 @@ const LocationTypeBadge: React.FC<{ type: LocationType }> = ({ type }) => {
 
 const WorkLocationsPage: React.FC = () => {
   const shell = useShellBridge();
-  const canManage = shell?.isFeatureEnabled?.('action:people:employees:create') ?? true;
+  const canManage = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:employees:create') ?? true);
 
   const [locations, setLocations] = useState<WorkLocation[]>([]);
   const [loading, setLoading] = useState(true);

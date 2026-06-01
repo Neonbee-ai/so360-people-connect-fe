@@ -17,7 +17,7 @@ const AllocationsPage: React.FC = () => {
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreateAllocation = (shell?.isFeatureEnabled?.('action:people:allocations:create') ?? true);
+    const canCreateAllocation = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:allocations:create') ?? true);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');

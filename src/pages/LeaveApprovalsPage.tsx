@@ -10,7 +10,7 @@ import { leaveRequestsApi, LeaveRequest } from '../services/leaveRequestsService
 const LeaveApprovalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canApproveLeave = (shell?.isFeatureEnabled?.('action:people:leaves:approve') ?? true);
+    const canApproveLeave = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:leaves:approve') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [rejectingRequest, setRejectingRequest] = useState<LeaveRequest | null>(null);

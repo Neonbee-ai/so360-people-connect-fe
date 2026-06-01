@@ -41,6 +41,7 @@ const FeatureGate = ({ flagKey, children }: { flagKey: string; children: React.R
     return (
         <FeatureRoute
             state={state}
+            loading={!(shell?.effectiveFlagsLoaded ?? false)}
             hiddenFallback={<FeatureUnavailable />}
             lockedFallback={<UpgradeLocked />}
             disabledFallback={<FeatureUnavailable />}

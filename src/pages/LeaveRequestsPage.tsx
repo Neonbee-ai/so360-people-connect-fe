@@ -13,7 +13,7 @@ import { apiContext } from '../services/apiClient';
 const LeaveRequestsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.isFeatureEnabled?.('action:people:leave_requests:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:leave_requests:create') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'my' | 'team'>('my');

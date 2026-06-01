@@ -15,12 +15,14 @@ vi.mock('../services/goalsService', () => ({
 }));
 
 
+let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
-
-  useShellBridge: () => ({ isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
-  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+}));
 
 import GoalsPage from '../pages/GoalsPage';
 import { goalsApi } from '../services/goalsService';
@@ -30,7 +32,10 @@ const mockApi = goalsApi as any;
 const renderPage = () =>
   render(<MemoryRouter><GoalsPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+});
 
 describe('GoalsPage', () => {
   describe('Given the API returns goals', () => {
@@ -89,5 +94,23 @@ describe('GoalsPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No goals found')).toBeInTheDocument());
     });
+  });
+});
+
+describe('GoalsPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Create Goal button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No goals found')).toBeInTheDocument());
+    expect(screen.queryByText('Create Goal')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Create Goal button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No goals found')).toBeInTheDocument());
+    expect(screen.getByText('Create Goal')).toBeInTheDocument();
   });
 });

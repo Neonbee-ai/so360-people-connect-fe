@@ -16,7 +16,7 @@ import type { TimeEntry, CreateTimeEntryPayload, Person, Allocation, TimeEntrySt
 const TimeEntriesPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.isFeatureEnabled?.('action:people:time_entries:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:time_entries:create') ?? true);
     const { settings } = useBusinessSettings();
     const formatters = useFormatters({
         currency: settings?.base_currency || 'USD',

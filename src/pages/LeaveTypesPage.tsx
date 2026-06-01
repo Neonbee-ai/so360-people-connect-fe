@@ -11,7 +11,7 @@ import { leaveTypesApi, LeaveType, CreateLeaveTypePayload } from '../services/le
 const LeaveTypesPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.isFeatureEnabled?.('action:people:leave_types:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:leave_types:create') ?? true);
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);

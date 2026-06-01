@@ -8,12 +8,14 @@ vi.mock('../services/leaveRequestsService', () => ({
 }));
 
 
+let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
-
-  useShellBridge: () => ({ isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
-  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+}));
 
 import LeaveApprovalsPage from '../pages/LeaveApprovalsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
@@ -22,7 +24,10 @@ const mockApi = leaveRequestsApi as any;
 
 const renderPage = () => render(<MemoryRouter><LeaveApprovalsPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+});
 
 describe('LeaveApprovalsPage', () => {
   describe('Given pending approvals exist', () => {
@@ -62,5 +67,35 @@ describe('LeaveApprovalsPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No pending approvals')).toBeInTheDocument());
     });
+  });
+});
+
+describe('LeaveApprovalsPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Approve button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockApi.getPendingApprovals.mockResolvedValue({
+      data: [{
+        id: 'lr1', start_date: '2025-06-01', end_date: '2025-06-05', total_days: 5, submitted_at: '2025-05-28',
+        person: { full_name: 'Alice Smith', email: 'alice@test.com', avatar_url: null },
+        leave_type: { name: 'Annual Leave', color: '#10b981' },
+      }],
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    expect(screen.queryByText('Approve')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Approve button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockApi.getPendingApprovals.mockResolvedValue({
+      data: [{
+        id: 'lr1', start_date: '2025-06-01', end_date: '2025-06-05', total_days: 5, submitted_at: '2025-05-28',
+        person: { full_name: 'Alice Smith', email: 'alice@test.com', avatar_url: null },
+        leave_type: { name: 'Annual Leave', color: '#10b981' },
+      }],
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    expect(screen.getByText('Approve')).toBeInTheDocument();
   });
 });

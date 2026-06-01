@@ -9,13 +9,15 @@ vi.mock('../services/peopleService', () => ({
 }));
 
 
+let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
-
-  useShellBridge: () => ({ isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
-  useBusinessSettings: () => ({ settings: { currency: 'USD', timezone: 'UTC' } }),}));
+  useBusinessSettings: () => ({ settings: { currency: 'USD', timezone: 'UTC' } }),
+}));
 
 import TimeEntriesPage from '../pages/TimeEntriesPage';
 import { timeEntriesApi, peopleApi, allocationsApi } from '../services/peopleService';
@@ -28,6 +30,7 @@ const renderPage = () => render(<MemoryRouter><TimeEntriesPage /></MemoryRouter>
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
   mockPeople.getAll.mockResolvedValue({ data: [{ id: 'p1', full_name: 'Alice' }] });
   mockAlloc.getAll.mockResolvedValue({ data: [] });
 });
@@ -136,5 +139,23 @@ describe('TimeEntriesPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No time entries')).toBeInTheDocument());
     });
+  });
+});
+
+describe('TimeEntriesPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Log Time button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No time entries')).toBeInTheDocument());
+    expect(screen.queryByText('Log Time')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Log Time button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No time entries')).toBeInTheDocument());
+    expect(screen.getByText('Log Time')).toBeInTheDocument();
   });
 });

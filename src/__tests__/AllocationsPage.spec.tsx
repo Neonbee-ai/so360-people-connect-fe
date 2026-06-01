@@ -12,13 +12,14 @@ vi.mock('../services/peopleService', () => ({
   peopleApi: { getAll: vi.fn() },
 }));
 
+let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
-
-  useShellBridge: () => ({ isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
-  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+}));
 
 import AllocationsPage from '../pages/AllocationsPage';
 import { allocationsApi, peopleApi } from '../services/peopleService';
@@ -31,6 +32,7 @@ const renderPage = () =>
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
   mockPeopleApi.getAll.mockResolvedValue({ data: [] });
 });
 
@@ -103,5 +105,23 @@ describe('AllocationsPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No allocations')).toBeInTheDocument());
     });
+  });
+});
+
+describe('AllocationsPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then New Allocation button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No allocations')).toBeInTheDocument());
+    expect(screen.queryByText('New Allocation')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then New Allocation button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No allocations')).toBeInTheDocument());
+    expect(screen.getByText('New Allocation')).toBeInTheDocument();
   });
 });

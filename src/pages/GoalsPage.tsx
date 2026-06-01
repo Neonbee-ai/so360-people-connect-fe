@@ -11,7 +11,7 @@ import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
 const GoalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreateGoal = (shell?.isFeatureEnabled?.('action:people:goals:create') ?? true);
+    const canCreateGoal = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:goals:create') ?? true);
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');

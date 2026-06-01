@@ -11,7 +11,7 @@ import { reviewTemplatesApi, ReviewTemplate, CreateReviewTemplatePayload } from 
 const ReviewTemplatesPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.isFeatureEnabled?.('action:people:review_templates:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:review_templates:create') ?? true);
     const [templates, setTemplates] = useState<ReviewTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);

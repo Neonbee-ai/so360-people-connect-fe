@@ -23,9 +23,9 @@ const PeoplePage: React.FC = () => {
     const { orgId, tenantId } = usePeopleContext();
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canAddEmployee = (shell?.isFeatureEnabled?.('action:people:employees:create') ?? true);
-    const canImportEmployees = (shell?.isFeatureEnabled?.('action:people:employees:import') ?? true);
-    const canExportEmployees = (shell?.isFeatureEnabled?.('action:people:employees:export') ?? true);
+    const canAddEmployee = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:employees:create') ?? true);
+    const canImportEmployees = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:employees:import') ?? true);
+    const canExportEmployees = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:employees:export') ?? true);
     const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_employees' }], []);
     const { getQuota } = useQuota({ checks: quotaChecks, orgId });
     const quotaData = getQuota('max_employees');

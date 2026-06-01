@@ -19,12 +19,14 @@ vi.mock('../services/apiClient', () => ({
 }));
 
 
+let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
-
-  useShellBridge: () => ({ isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
-  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+}));
 
 import LeaveRequestsPage from '../pages/LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
@@ -33,7 +35,10 @@ const mockApi = leaveRequestsApi as any;
 
 const renderPage = () => render(<MemoryRouter><LeaveRequestsPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+});
 
 describe('LeaveRequestsPage', () => {
   describe('Given leave requests exist', () => {
@@ -81,5 +86,23 @@ describe('LeaveRequestsPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No leave requests found')).toBeInTheDocument());
     });
+  });
+});
+
+describe('LeaveRequestsPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Request Leave button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No leave requests found')).toBeInTheDocument());
+    expect(screen.queryByText('Request Leave')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Request Leave button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No leave requests found')).toBeInTheDocument());
+    expect(screen.getByText('Request Leave')).toBeInTheDocument();
   });
 });

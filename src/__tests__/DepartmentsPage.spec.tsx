@@ -13,10 +13,11 @@ vi.mock('../services/departmentsService', () => ({
 }));
 
 
+let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
-
-  useShellBridge: () => ({ isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
 }));
@@ -29,7 +30,10 @@ const mockApi = departmentsApi as any;
 const renderPage = () =>
   render(<MemoryRouter><DepartmentsPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+});
 
 describe('DepartmentsPage', () => {
   describe('Given the API returns a department tree', () => {
@@ -87,5 +91,23 @@ describe('DepartmentsPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No departments found')).toBeInTheDocument());
     });
+  });
+});
+
+describe('DepartmentsPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Create Department button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockApi.getTree.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No departments found')).toBeInTheDocument());
+    expect(screen.queryByText('Create Department')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Create Department button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockApi.getTree.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No departments found')).toBeInTheDocument());
+    expect(screen.getByText('Create Department')).toBeInTheDocument();
   });
 });
