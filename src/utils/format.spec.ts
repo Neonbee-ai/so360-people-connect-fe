@@ -135,7 +135,8 @@ describe('Given getWeekStart and getWeekEnd', () => {
   it('When getWeekStart is called with no offset / Then it returns a Monday date string', () => {
     const result = getWeekStart();
     expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    const day = new Date(result).getDay();
+    const [y, m, d] = result.split('-').map(Number);
+    const day = new Date(y, m - 1, d).getDay();
     expect(day).toBe(1); // Monday
   });
 
