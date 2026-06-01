@@ -31,7 +31,7 @@ vi.mock('@so360/shell-context', () => ({
 }));
 
 import App from '../App';
-import { peopleService } from '../services/peopleService';
+import { peopleService, utilizationApi, timeEntriesApi, eventsApi } from '../services/peopleService';
 
 const mockService = peopleService as any;
 
@@ -43,6 +43,10 @@ beforeEach(() => {
     accessToken: null,
     user: null,
   };
+  // Re-set mocks wiped by vi.resetAllMocks() so DashboardPage doesn't crash
+  (utilizationApi as any).getSummary.mockResolvedValue({ total_people: 0, avg_utilization_pct: 0, total_hours_this_week: 0, total_cost_this_week: 0, active_allocations: 0, pending_approvals: 0, burn_rate_daily: 0 });
+  (timeEntriesApi as any).getAll.mockResolvedValue({ data: [] });
+  (eventsApi as any).getAll.mockResolvedValue({ data: [] });
 });
 
 describe('App', () => {
