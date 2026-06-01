@@ -13,7 +13,7 @@ import type { Person } from '../types/people';
 const FeedbackPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:feedback:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:feedback:create') ?? true);
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
     const [loading, setLoading] = useState(true);
     const [typeFilter, setTypeFilter] = useState<string>('');

@@ -92,6 +92,6 @@ describe('LeaveTypesPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No leave types found')).toBeInTheDocument());
-    expect(screen.getByText('Create Leave Type')).toBeInTheDocument();
+    expect(screen.queryAllByText('Create Leave Type').length).toBeGreaterThan(0);
   });
 });

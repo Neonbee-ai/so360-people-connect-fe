@@ -118,6 +118,6 @@ describe('PerformanceReviewsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No performance reviews found')).toBeInTheDocument());
-    expect(screen.getByText('Create Review')).toBeInTheDocument();
+    expect(screen.queryAllByText('Create Review').length).toBeGreaterThan(0);
   });
 });

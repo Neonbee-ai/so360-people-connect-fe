@@ -1,7 +1,9 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useShellBridge } from '@so360/shell-context';
-import { FeatureRoute } from '@so360/design-system';
+import { FeatureRoute as FeatureRouteBase } from '@so360/design-system';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const FeatureRoute = FeatureRouteBase as any;
 import { peopleService } from './services/peopleService';
 
 /** Shown when a submodule is `locked` — a higher plan unlocks it. */
@@ -41,7 +43,7 @@ const FeatureGate = ({ flagKey, children }: { flagKey: string; children: React.R
     return (
         <FeatureRoute
             state={state}
-            loading={!(shell?.effectiveFlagsLoaded ?? false)}
+            loading={(shell?.effectiveFlagsLoaded === false)}
             hiddenFallback={<FeatureUnavailable />}
             lockedFallback={<UpgradeLocked />}
             disabledFallback={<FeatureUnavailable />}

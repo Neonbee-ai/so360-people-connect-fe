@@ -94,7 +94,7 @@ const ModuleNav: React.FC = () => {
             <div className="p-6 space-y-6">
                 {navigationItems.map((section) => {
                     const visibleItems = section.items.filter(
-                        (item) => !item.flagKey || ((shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.(item.flagKey) ?? true))
+                        (item) => !item.flagKey || ((shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.(item.flagKey) ?? true))
                     );
                     if (visibleItems.length === 0) return null;
                     return (

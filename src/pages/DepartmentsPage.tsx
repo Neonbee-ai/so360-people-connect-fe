@@ -12,7 +12,7 @@ import { departmentsApi, Department, CreateDepartmentPayload } from '../services
 const DepartmentsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:departments:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:departments:create') ?? true);
     const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_departments' }], []);
     const { getQuota } = useQuota({ checks: quotaChecks, orgId: shell?.currentOrg?.id || '' });
     const quotaData = getQuota('max_departments');
@@ -195,7 +195,7 @@ const DepartmentsPage: React.FC = () => {
                     icon={Building2}
                     title="No departments found"
                     description="Create your first department to organize your team."
-                    action={{ label: 'Create Department', onClick: () => setShowCreateModal(true) }}
+                    action={canCreate ? { label: 'Create Department', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="space-y-2">

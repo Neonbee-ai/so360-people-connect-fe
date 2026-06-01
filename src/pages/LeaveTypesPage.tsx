@@ -11,7 +11,7 @@ import { leaveTypesApi, LeaveType, CreateLeaveTypePayload } from '../services/le
 const LeaveTypesPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:leave_types:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:leave_types:create') ?? true);
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -87,7 +87,7 @@ const LeaveTypesPage: React.FC = () => {
                     icon={CalendarClock}
                     title="No leave types found"
                     description="Create leave types to manage employee time off."
-                    action={{ label: 'Create Leave Type', onClick: () => setShowCreateModal(true) }}
+                    action={canCreate ? { label: 'Create Leave Type', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">

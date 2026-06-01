@@ -16,7 +16,7 @@ const PerformanceReviewsPage: React.FC = () => {
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreateReview = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:reviews:create') ?? true);
+    const canCreateReview = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:reviews:create') ?? true);
     const [reviews, setReviews] = useState<PerformanceReview[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'all' | 'my' | 'team'>('all');
@@ -165,7 +165,7 @@ const PerformanceReviewsPage: React.FC = () => {
                     icon={TrendingUp}
                     title="No performance reviews found"
                     description="Create performance reviews to track employee development."
-                    action={{ label: 'Create Review', onClick: () => setShowCreateModal(true) }}
+                    action={canCreateReview ? { label: 'Create Review', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">

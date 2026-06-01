@@ -13,7 +13,7 @@ import { apiContext } from '../services/apiClient';
 const LeaveRequestsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:leave_requests:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:leave_requests:create') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'my' | 'team'>('my');
@@ -133,7 +133,7 @@ const LeaveRequestsPage: React.FC = () => {
                     icon={Calendar}
                     title="No leave requests found"
                     description="Request time off to manage your work-life balance."
-                    action={{ label: 'Request Leave', onClick: () => setShowCreateModal(true) }}
+                    action={canCreate ? { label: 'Request Leave', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">

@@ -43,6 +43,7 @@ export const useBusinessSettings = () => ({ settings: { base_currency: 'USD', do
 export const useNotify = () => ({ emitNotification: async () => {} });
 export const useActivity = () => ({ recordActivity: async () => {} });
 export const useShellBridge = () => ({
+  effectiveFlagsLoaded: true,
   isFeatureEnabled: () => true,
   isFeatureHidden: () => false,
   currentOrg: { id: 'org-1', name: 'Test Org' },

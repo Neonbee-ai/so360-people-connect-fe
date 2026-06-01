@@ -78,6 +78,6 @@ describe('WorkLocationsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No work locations')).toBeInTheDocument());
-    expect(screen.getByText('Add Location')).toBeInTheDocument();
+    expect(screen.queryAllByText('Add Location').length).toBeGreaterThan(0);
   });
 });

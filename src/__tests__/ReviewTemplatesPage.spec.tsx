@@ -91,6 +91,6 @@ describe('ReviewTemplatesPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No review templates found')).toBeInTheDocument());
-    expect(screen.getByText('Create Template')).toBeInTheDocument();
+    expect(screen.queryAllByText('Create Template').length).toBeGreaterThan(0);
   });
 });

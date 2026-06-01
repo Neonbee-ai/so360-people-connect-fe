@@ -103,6 +103,6 @@ describe('LeaveRequestsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No leave requests found')).toBeInTheDocument());
-    expect(screen.getByText('Request Leave')).toBeInTheDocument();
+    expect(screen.queryAllByText('Request Leave').length).toBeGreaterThan(0);
   });
 });

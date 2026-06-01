@@ -111,6 +111,6 @@ describe('GoalsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No goals found')).toBeInTheDocument());
-    expect(screen.getByText('Create Goal')).toBeInTheDocument();
+    expect(screen.queryAllByText('Create Goal').length).toBeGreaterThan(0);
   });
 });

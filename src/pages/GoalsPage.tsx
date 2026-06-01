@@ -11,7 +11,7 @@ import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
 const GoalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreateGoal = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:goals:create') ?? true);
+    const canCreateGoal = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:goals:create') ?? true);
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -158,7 +158,7 @@ const GoalsPage: React.FC = () => {
                     icon={Target}
                     title="No goals found"
                     description="Create goals to track objectives and key results."
-                    action={{ label: 'Create Goal', onClick: () => setShowCreateModal(true) }}
+                    action={canCreateGoal ? { label: 'Create Goal', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

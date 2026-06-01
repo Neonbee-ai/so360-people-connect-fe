@@ -16,7 +16,7 @@ import type { TimeEntry, CreateTimeEntryPayload, Person, Allocation, TimeEntrySt
 const TimeEntriesPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:time_entries:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:time_entries:create') ?? true);
     const { settings } = useBusinessSettings();
     const formatters = useFormatters({
         currency: settings?.base_currency || 'USD',
@@ -248,7 +248,7 @@ const TimeEntriesPage: React.FC = () => {
                     icon={Clock}
                     title="No time entries"
                     description="Log time against execution entities to track effort and attribute costs."
-                    action={{ label: 'Log Time', onClick: () => setShowCreateModal(true) }}
+                    action={canCreate ? { label: 'Log Time', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">

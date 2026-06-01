@@ -156,6 +156,6 @@ describe('TimeEntriesPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No time entries')).toBeInTheDocument());
-    expect(screen.getByText('Log Time')).toBeInTheDocument();
+    expect(screen.queryAllByText('Log Time').length).toBeGreaterThan(0);
   });
 });

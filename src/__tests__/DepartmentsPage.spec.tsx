@@ -108,6 +108,6 @@ describe('DepartmentsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getTree.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No departments found')).toBeInTheDocument());
-    expect(screen.getByText('Create Department')).toBeInTheDocument();
+    expect(screen.queryAllByText('Create Department').length).toBeGreaterThan(0);
   });
 });

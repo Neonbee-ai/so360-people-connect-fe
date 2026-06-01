@@ -73,4 +73,5 @@ export const Send = createIcon('Send');
 export const History = createIcon('History');
 export const UserCheck = createIcon('UserCheck');
 export const UserMinus = createIcon('UserMinus');
+export const MapPin = createIcon('MapPin');
 export type LucideIcon = React.FC<any>;

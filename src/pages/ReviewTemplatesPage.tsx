@@ -11,7 +11,7 @@ import { reviewTemplatesApi, ReviewTemplate, CreateReviewTemplatePayload } from 
 const ReviewTemplatesPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.effectiveFlagsLoaded ?? false) && (shell?.isFeatureEnabled?.('action:people:review_templates:create') ?? true);
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:review_templates:create') ?? true);
     const [templates, setTemplates] = useState<ReviewTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -100,7 +100,7 @@ const ReviewTemplatesPage: React.FC = () => {
                     icon={FileText}
                     title="No review templates found"
                     description="Create templates to standardize performance reviews."
-                    action={{ label: 'Create Template', onClick: () => setShowCreateModal(true) }}
+                    action={canCreate ? { label: 'Create Template', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
