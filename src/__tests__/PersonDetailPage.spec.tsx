@@ -28,6 +28,7 @@ vi.mock('@so360/shell-context', () => ({
 import PersonDetailPage from '../pages/PersonDetailPage';
 import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
 import { goalsApi } from '../services/goalsService';
+import { workLocationsApi } from '../services/workLocationsService';
 
 const mockPeople = peopleApi as any;
 const mockAlloc = allocationsApi as any;
@@ -43,7 +44,10 @@ const renderPage = (id = 'p1') => render(
   </MemoryRouter>
 );
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  (workLocationsApi as any).getAll.mockResolvedValue({ data: [] });
+});
 
 describe('PersonDetailPage', () => {
   describe('Given a person exists', () => {

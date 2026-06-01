@@ -38,6 +38,7 @@ vi.mock('@so360/shell-context', () => ({
 import PersonDetailPage from './PersonDetailPage';
 import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
 import { goalsApi } from '../services/goalsService';
+import { workLocationsApi } from '../services/workLocationsService';
 
 const mockPeopleApi = peopleApi as any;
 const mockAllocApi = allocationsApi as any;
@@ -74,6 +75,7 @@ const mockPerson = {
 beforeEach(() => {
   vi.resetAllMocks();
   mockGoalsApi.getAll.mockResolvedValue({ data: [] });
+  (workLocationsApi as any).getAll.mockResolvedValue({ data: [] });
 });
 
 describe('Given PersonDetailPage loads successfully', () => {
