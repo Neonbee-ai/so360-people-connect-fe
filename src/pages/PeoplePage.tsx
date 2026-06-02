@@ -654,7 +654,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             />
                             <div>
                                 <div className="text-sm font-medium text-slate-50">Employee Only (No System Access)</div>
-                                <div className="text-xs text-slate-500">Person will not have access to SO360 system</div>
+                                <div className="text-xs text-slate-500">Person will not have access to Neonbee</div>
                             </div>
                         </label>
 
