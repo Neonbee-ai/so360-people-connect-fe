@@ -30,6 +30,18 @@ vi.mock('../hooks/useShellContext', () => ({
   usePeopleContext: () => ({ orgId: 'o1', tenantId: 't1', userId: 'u1' }),
 }));
 
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
+}));
+
 import LeaveRequestsPage from './LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { leaveTypesApi } from '../services/leaveTypesService';

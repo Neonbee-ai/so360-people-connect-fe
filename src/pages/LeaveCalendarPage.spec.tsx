@@ -13,6 +13,18 @@ vi.mock('../services/departmentsService', () => ({
   Department: {},
 }));
 
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
+}));
+
 import LeaveCalendarPage from './LeaveCalendarPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { departmentsApi } from '../services/departmentsService';
