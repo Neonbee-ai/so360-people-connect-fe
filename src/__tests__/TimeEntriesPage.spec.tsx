@@ -11,6 +11,16 @@ vi.mock('../services/peopleService', () => ({
 
 let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
 
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD', locale: 'en-US', timezone: 'UTC',
+  }),
+}));
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
   useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
