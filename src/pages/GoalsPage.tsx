@@ -6,11 +6,13 @@ import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
 
 const GoalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
+    const formatters = usePeopleFormatters();
     const canCreateGoal = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:goals:create') ?? true);
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
@@ -216,7 +218,7 @@ const GoalsPage: React.FC = () => {
                                         <AlertTriangle size={12} className="text-red-400" />
                                     )}
                                     <span className={isOverdue(goal) ? 'text-red-400' : 'text-slate-400'}>
-                                        Target: {new Date(goal.target_date).toLocaleDateString()}
+                                        Target: {formatters.formatDate(goal.target_date)}
                                     </span>
                                 </div>
                                 <StatusBadge status={goal.status} />

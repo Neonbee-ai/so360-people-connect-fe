@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { feedbackApi, Feedback, CreateFeedbackPayload } from '../services/feedbackService';
 import { peopleApi } from '../services/peopleService';
 import { apiContext } from '../services/apiClient';
@@ -13,6 +14,7 @@ import type { Person } from '../types/people';
 const FeedbackPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
+    const formatters = usePeopleFormatters();
     const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:feedback:create') ?? true);
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
     const [loading, setLoading] = useState(true);
@@ -132,7 +134,7 @@ const FeedbackPage: React.FC = () => {
                                                 <span className="text-[10px] text-slate-500 capitalize">{fb.provider_relationship.replace('_', ' ')}</span>
                                             )}
                                             <span className="text-[10px] text-slate-500">
-                                                {new Date(fb.created_at).toLocaleDateString()}
+                                                {formatters.formatDate(fb.created_at)}
                                             </span>
                                         </div>
                                     </div>
@@ -174,7 +176,7 @@ const FeedbackPage: React.FC = () => {
                             )}
                             {fb.acknowledged_at && (
                                 <p className="mt-2 text-[10px] text-slate-500">
-                                    Acknowledged on {new Date(fb.acknowledged_at).toLocaleDateString()}
+                                    Acknowledged on {formatters.formatDate(fb.acknowledged_at)}
                                 </p>
                             )}
                         </div>

@@ -5,11 +5,13 @@ import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { leaveRequestsApi, LeaveRequest } from '../services/leaveRequestsService';
 
 const LeaveApprovalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
+    const formatters = usePeopleFormatters();
     const canApproveLeave = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:leaves:approve') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -127,14 +129,14 @@ const LeaveApprovalsPage: React.FC = () => {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
-                                        {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
+                                        {formatters.formatDate(request.start_date)} - {formatters.formatDate(request.end_date)}
                                     </td>
                                     <td className="px-4 py-3 text-center text-sm font-medium text-slate-50">
                                         {request.total_days}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
                                         {request.submitted_at
-                                            ? new Date(request.submitted_at).toLocaleDateString()
+                                            ? formatters.formatDate(request.submitted_at)
                                             : '-'}
                                     </td>
                                     <td className="px-4 py-3 text-right">

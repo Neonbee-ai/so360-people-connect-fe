@@ -5,6 +5,7 @@ import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { leaveRequestsApi, LeaveRequest } from '../services/leaveRequestsService';
 import { departmentsApi, Department } from '../services/departmentsService';
+import { usePeopleFormatters } from '../utils/formatters';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -15,6 +16,7 @@ const statusColors: Record<string, string> = {
 };
 
 const LeaveCalendarPage: React.FC = () => {
+    const formatters = usePeopleFormatters();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [departmentFilter, setDepartmentFilter] = useState<string>('');
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -92,7 +94,7 @@ const LeaveCalendarPage: React.FC = () => {
         setCurrentDate(new Date(year, month + delta, 1));
     };
 
-    const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const monthName = new Intl.DateTimeFormat(formatters.locale, { month: 'long', year: 'numeric', timeZone: formatters.timezone }).format(currentDate);
 
     return (
         <div className="p-6 space-y-5">
@@ -235,14 +237,14 @@ const LeaveCalendarPage: React.FC = () => {
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Start Date</label>
                                 <p className="text-sm text-slate-50">
-                                    {new Date(selectedLeave.start_date).toLocaleDateString()}
+                                    {formatters.formatDate(selectedLeave.start_date)}
                                     {selectedLeave.is_half_day_start && <span className="text-xs text-slate-400 ml-1">(half day)</span>}
                                 </p>
                             </div>
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">End Date</label>
                                 <p className="text-sm text-slate-50">
-                                    {new Date(selectedLeave.end_date).toLocaleDateString()}
+                                    {formatters.formatDate(selectedLeave.end_date)}
                                     {selectedLeave.is_half_day_end && <span className="text-xs text-slate-400 ml-1">(half day)</span>}
                                 </p>
                             </div>

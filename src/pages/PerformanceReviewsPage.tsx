@@ -7,6 +7,7 @@ import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview, CreatePerformanceReviewPayload } from '../services/performanceReviewsService';
 import { reviewTemplatesApi, ReviewTemplate } from '../services/reviewTemplatesService';
 import { peopleApi } from '../services/peopleService';
@@ -16,6 +17,7 @@ const PerformanceReviewsPage: React.FC = () => {
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
+    const formatters = usePeopleFormatters();
     const canCreateReview = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:reviews:create') ?? true);
     const [reviews, setReviews] = useState<PerformanceReview[]>([]);
     const [loading, setLoading] = useState(true);
@@ -211,8 +213,8 @@ const PerformanceReviewsPage: React.FC = () => {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
-                                        {new Date(review.review_period_start).toLocaleDateString()} -{' '}
-                                        {new Date(review.review_period_end).toLocaleDateString()}
+                                        {formatters.formatDate(review.review_period_start)} -{' '}
+                                        {formatters.formatDate(review.review_period_end)}
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(review.status)}`}>

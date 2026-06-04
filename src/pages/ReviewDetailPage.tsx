@@ -4,6 +4,7 @@ import { ArrowLeft, Star } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Toast, { ToastType } from '../components/Toast';
 import { useActivity } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
 import { reviewTemplatesApi, ReviewTemplate, ReviewTemplateSection } from '../services/reviewTemplatesService';
 
@@ -122,6 +123,7 @@ const ReviewDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
+    const formatters = usePeopleFormatters();
     const [review, setReview] = useState<PerformanceReview | null>(null);
     const [template, setTemplate] = useState<ReviewTemplate | null>(null);
     const [loading, setLoading] = useState(true);
@@ -286,7 +288,7 @@ const ReviewDetailPage: React.FC = () => {
                 </button>
                 <PageHeader
                     title={`${review.person?.full_name || 'Unknown'} - ${review.template?.name || 'Review'}`}
-                    subtitle={`Review Period: ${new Date(review.review_period_start).toLocaleDateString()} - ${new Date(review.review_period_end).toLocaleDateString()}`}
+                    subtitle={`Review Period: ${formatters.formatDate(review.review_period_start)} - ${formatters.formatDate(review.review_period_end)}`}
                 />
             </div>
 
@@ -307,7 +309,7 @@ const ReviewDetailPage: React.FC = () => {
                         <label className="block text-xs text-slate-400 mb-1">Self Review Deadline</label>
                         <p className="text-sm text-slate-50">
                             {review.self_review_deadline
-                                ? new Date(review.self_review_deadline).toLocaleDateString()
+                                ? formatters.formatDate(review.self_review_deadline)
                                 : '-'}
                         </p>
                     </div>
@@ -315,7 +317,7 @@ const ReviewDetailPage: React.FC = () => {
                         <label className="block text-xs text-slate-400 mb-1">Manager Review Deadline</label>
                         <p className="text-sm text-slate-50">
                             {review.manager_review_deadline
-                                ? new Date(review.manager_review_deadline).toLocaleDateString()
+                                ? formatters.formatDate(review.manager_review_deadline)
                                 : '-'}
                         </p>
                     </div>
@@ -417,13 +419,13 @@ const ReviewDetailPage: React.FC = () => {
                             <div className="space-y-6">
                                 {selfSubmitted && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Self Review (Submitted {new Date(review.self_review_submitted_at!).toLocaleDateString()})</h4>
+                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Self Review (Submitted {formatters.formatDate(review.self_review_submitted_at!)})</h4>
                                         <ReviewForm sections={sections} ratingScale={ratingScale} data={selfFormData} onChange={() => {}} readOnly />
                                     </div>
                                 )}
                                 {managerSubmitted && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Manager Review (Submitted {new Date(review.manager_review_submitted_at!).toLocaleDateString()})</h4>
+                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Manager Review (Submitted {formatters.formatDate(review.manager_review_submitted_at!)})</h4>
                                         <ReviewForm sections={sections} ratingScale={ratingScale} data={managerFormData} onChange={() => {}} readOnly />
                                     </div>
                                 )}

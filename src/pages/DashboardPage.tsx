@@ -19,6 +19,7 @@ const DashboardPage: React.FC = () => {
     const formatters = useFormatters({
         currency: settings?.base_currency || 'USD',
         locale: settings?.document_language || 'en-US',
+        timezone: settings?.timezone || 'UTC',
     });
     const [summary, setSummary] = useState<UtilizationSummary | null>(null);
     const [recentEntries, setRecentEntries] = useState<TimeEntry[]>([]);
@@ -214,7 +215,7 @@ const DashboardPage: React.FC = () => {
                                             </>
                                         )}
                                         <span className="ml-2 text-slate-600">
-                                            {new Date(event.occurred_at).toLocaleDateString()}
+                                            {formatters.formatDate(event.occurred_at)}
                                         </span>
                                     </div>
                                 </div>

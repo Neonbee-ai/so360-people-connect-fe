@@ -9,6 +9,7 @@ import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import EmptyState from '../components/EmptyState';
 import { useActivity } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
 import { goalsApi, Goal } from '../services/goalsService';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
@@ -18,6 +19,7 @@ const PersonDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
+    const formatters = usePeopleFormatters();
     const [person, setPerson] = useState<Person | null>(null);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
@@ -528,7 +530,7 @@ const PersonDetailPage: React.FC = () => {
                                                 <StatusBadge status={event.event_type} />
                                             </div>
                                             <div className="text-xs text-slate-500">
-                                                {new Date(event.effective_date).toLocaleDateString()}
+                                                {formatters.formatDate(event.effective_date)}
                                             </div>
                                             {event.notes && (
                                                 <div className="mt-2 text-sm text-slate-400">{event.notes}</div>
@@ -545,7 +547,7 @@ const PersonDetailPage: React.FC = () => {
                                             )}
                                         </div>
                                         <div className="text-xs text-slate-600">
-                                            {new Date(event.created_at).toLocaleString()}
+                                            {formatters.formatDateTime(event.created_at)}
                                         </div>
                                     </div>
                                 </div>
@@ -584,7 +586,7 @@ const PersonDetailPage: React.FC = () => {
                                                 )}
                                             </div>
                                             <div className="text-xs text-slate-500">
-                                                Effective: {new Date(event.effective_date).toLocaleDateString()}
+                                                Effective: {formatters.formatDate(event.effective_date)}
                                             </div>
                                             {event.reason && (
                                                 <div className="mt-2 text-sm text-slate-400">{event.reason}</div>
@@ -627,7 +629,7 @@ const PersonDetailPage: React.FC = () => {
                                             )}
                                         </div>
                                         <div className="text-xs text-slate-600">
-                                            Due: {new Date(goal.target_date).toLocaleDateString()}
+                                            Due: {formatters.formatDate(goal.target_date)}
                                         </div>
                                     </div>
                                     <div className="w-full bg-slate-900 rounded-full h-2">

@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance } from '../services/leaveRequestsService';
 import { leaveTypesApi, LeaveType } from '../services/leaveTypesService';
 import { apiContext } from '../services/apiClient';
@@ -13,6 +14,7 @@ import { apiContext } from '../services/apiClient';
 const LeaveRequestsPage: React.FC = () => {
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
+    const formatters = usePeopleFormatters();
     const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:leave_requests:create') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -178,11 +180,11 @@ const LeaveRequestsPage: React.FC = () => {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
-                                        {new Date(request.start_date).toLocaleDateString()}
+                                        {formatters.formatDate(request.start_date)}
                                         {request.is_half_day_start && <span className="text-xs text-slate-500"> (Half)</span>}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
-                                        {new Date(request.end_date).toLocaleDateString()}
+                                        {formatters.formatDate(request.end_date)}
                                         {request.is_half_day_end && <span className="text-xs text-slate-500"> (Half)</span>}
                                     </td>
                                     <td className="px-4 py-3 text-center text-sm font-medium text-slate-50">

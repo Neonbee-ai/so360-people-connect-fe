@@ -50,14 +50,15 @@ export function formatHours(hours: number): string {
 
 /**
  * Format a date string to locale display.
+ * Uses Intl.DateTimeFormat with UTC timezone to avoid off-by-one day shifts
+ * caused by local timezone interpretation of date-only strings.
  */
 export function formatDate(dateStr: string): string {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
+    return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        timeZone: 'UTC',
+    }).format(new Date(dateStr));
 }
 
 /**

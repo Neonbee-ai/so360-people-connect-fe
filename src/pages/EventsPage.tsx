@@ -8,8 +8,10 @@ import EmptyState from '../components/EmptyState';
 import Toast, { ToastType } from '../components/Toast';
 import { eventsApi } from '../services/peopleService';
 import type { PeopleEvent } from '../types/people';
+import { usePeopleFormatters } from '../utils/formatters';
 
 const EventsPage: React.FC = () => {
+    const formatters = usePeopleFormatters();
     const [events, setEvents] = useState<PeopleEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [eventTypeFilter, setEventTypeFilter] = useState<string>('');
@@ -59,7 +61,7 @@ const EventsPage: React.FC = () => {
         if (diffMins < 60) return `${diffMins}m ago`;
         if (diffHours < 24) return `${diffHours}h ago`;
         if (diffDays < 7) return `${diffDays}d ago`;
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return formatters.formatDate(date, { month: 'short', day: 'numeric' });
     };
 
     const renderEventDescription = (event: PeopleEvent): string => {
