@@ -61,3 +61,14 @@ describe('Modal — viewport height cap', () => {
     });
   });
 });
+
+// Regression: overlay must paint above the shell NavBar (z-500); carries z-[600].
+describe('Modal — overlay stacking above the NavBar', () => {
+  it('When open / Then an overlay carries z-[600]', () => {
+    render(<Modal isOpen onClose={() => {}} title="Z"><p>C</p></Modal>);
+    const overlays = Array.from(document.querySelectorAll('div')).filter(
+      (el) => el.className.includes('fixed') && el.className.includes('inset-0'),
+    );
+    expect(overlays.some((el) => el.className.includes('z-[600]'))).toBe(true);
+  });
+});
