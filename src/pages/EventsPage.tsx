@@ -9,6 +9,7 @@ import Toast, { ToastType } from '../components/Toast';
 import { eventsApi } from '../services/peopleService';
 import type { PeopleEvent } from '../types/people';
 import { usePeopleFormatters } from '../utils/formatters';
+import { parseUtcDate } from '../utils/datetime';
 
 const EventsPage: React.FC = () => {
     const formatters = usePeopleFormatters();
@@ -51,7 +52,7 @@ const EventsPage: React.FC = () => {
 
     const formatRelativeTime = (dateStr: string): string => {
         const now = new Date();
-        const date = new Date(dateStr);
+        const date = parseUtcDate(dateStr);
         const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);

@@ -2,6 +2,7 @@
  * Utility functions for formatting values in the People Connect module.
  * These are presentation-only helpers - no business logic here.
  */
+import { parseUtcDate } from './datetime';
 
 /**
  * Format a number as currency.
@@ -58,7 +59,7 @@ export function formatDate(dateStr: string): string {
     return new Intl.DateTimeFormat('en-US', {
         year: 'numeric', month: 'short', day: 'numeric',
         timeZone: 'UTC',
-    }).format(new Date(dateStr));
+    }).format(parseUtcDate(dateStr));
 }
 
 /**
@@ -66,7 +67,7 @@ export function formatDate(dateStr: string): string {
  */
 export function formatRelativeTime(dateStr: string): string {
     const now = new Date();
-    const date = new Date(dateStr);
+    const date = parseUtcDate(dateStr);
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
