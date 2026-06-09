@@ -8,6 +8,7 @@ import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
+import { apiContext } from '../services/apiClient';
 
 const GoalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
@@ -328,7 +329,7 @@ interface GoalModalProps {
 
 const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpdate, goal }) => {
     const [formData, setFormData] = useState<CreateGoalPayload>({
-        person_id: '',
+        person_id: apiContext.getUserId() || '',
         title: '',
         description: '',
         goal_type: 'individual',

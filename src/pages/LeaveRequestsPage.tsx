@@ -21,6 +21,7 @@ const LeaveRequestsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'my' | 'team'>('my');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [viewingRequest, setViewingRequest] = useState<LeaveRequest | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadRequests = useCallback(async () => {
@@ -196,7 +197,10 @@ const LeaveRequestsPage: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <button className="text-xs text-teal-400 hover:text-teal-300 transition-colors">
+                                        <button
+                                            onClick={() => setViewingRequest(request)}
+                                            className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                                        >
                                             View
                                         </button>
                                     </td>
@@ -212,6 +216,13 @@ const LeaveRequestsPage: React.FC = () => {
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
                 onCreate={handleCreate}
+            />
+
+            {/* View Modal */}
+            <ViewLeaveRequestModal
+                request={viewingRequest}
+                onClose={() => setViewingRequest(null)}
+                formatters={formatters}
             />
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -395,6 +406,90 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                     </button>
                 </div>
             </form>
+        </Modal>
+    );
+};
+
+// =============================================================================
+// View Leave Request Modal
+// =============================================================================
+
+interface ViewLeaveRequestModalProps {
+    request: LeaveRequest | null;
+    onClose: () => void;
+    formatters: { formatDate: (d: string) => string };
+}
+
+const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, onClose, formatters }) => {
+    if (!request) return null;
+
+    const statusColors: Record<string, string> = {
+        draft: 'bg-slate-600',
+        pending: 'bg-yellow-600',
+        approved: 'bg-green-600',
+        rejected: 'bg-red-600',
+        cancelled: 'bg-slate-500',
+    };
+
+    return (
+        <Modal isOpen={!!request} onClose={onClose} title="Leave Request Details">
+            <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Employee</p>
+                        <p className="text-sm text-slate-50 font-medium">{request.person?.full_name || '—'}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Status</p>
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${statusColors[request.status] || 'bg-slate-600'}`}>
+                            {request.status}
+                        </span>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Leave Type</p>
+                        <div className="flex items-center gap-2">
+                            {request.leave_type?.color && (
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: request.leave_type.color }} />
+                            )}
+                            <p className="text-sm text-slate-50">{request.leave_type?.name || '—'}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Total Days</p>
+                        <p className="text-sm text-slate-50 font-medium">{request.total_days} day{request.total_days !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Start Date</p>
+                        <p className="text-sm text-slate-50">
+                            {formatters.formatDate(request.start_date)}
+                            {request.is_half_day_start && <span className="text-xs text-slate-500 ml-1">(Half Day)</span>}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">End Date</p>
+                        <p className="text-sm text-slate-50">
+                            {formatters.formatDate(request.end_date)}
+                            {request.is_half_day_end && <span className="text-xs text-slate-500 ml-1">(Half Day)</span>}
+                        </p>
+                    </div>
+                </div>
+
+                {request.reason && (
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Reason</p>
+                        <p className="text-sm text-slate-300 bg-slate-800/50 border border-slate-700 rounded-lg p-3">{request.reason}</p>
+                    </div>
+                )}
+
+                <div className="flex justify-end pt-4 border-t border-slate-800">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
         </Modal>
     );
 };

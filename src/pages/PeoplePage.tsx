@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
@@ -20,6 +20,7 @@ const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 
 const PeoplePage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { orgId, tenantId } = usePeopleContext();
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
@@ -68,6 +69,14 @@ const PeoplePage: React.FC = () => {
     useEffect(() => {
         loadPeople();
     }, [loadPeople]);
+
+    // Open create modal when navigated from dashboard "Add Person" button
+    useEffect(() => {
+        if ((location.state as { openCreate?: boolean } | null)?.openCreate) {
+            setShowCreateModal(true);
+            window.history.replaceState({}, '', location.pathname);
+        }
+    }, [location.state, location.pathname]);
 
     // Fetch supported currencies from org business_settings (Core API)
     useEffect(() => {
