@@ -252,16 +252,68 @@ describe('PersonDetailPage', () => {
     });
   });
 
-  describe('Given the person does not exist', () => {
+  describe('Given the employee record fetch fails', () => {
     beforeEach(() => {
-      mockPeople.getById.mockRejectedValue(new Error('Not found'));
+      mockPeople.getById.mockRejectedValue(new Error('Network error'));
       mockAlloc.getAll.mockResolvedValue({ data: [] });
       mockTime.getAll.mockResolvedValue({ data: [] });
     });
 
-    it('When loading fails / Then it shows person not found', async () => {
+    it('When the detail fetch rejects / Then it shows an error state instead of a blank page', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Unable to load employee details.')).toBeInTheDocument());
+      expect(screen.getByText('Back to list')).toBeInTheDocument();
+    });
+  });
+
+  describe('Given the employee id resolves to no record', () => {
+    beforeEach(() => {
+      mockPeople.getById.mockResolvedValue(null);
+      mockAlloc.getAll.mockResolvedValue({ data: [] });
+      mockTime.getAll.mockResolvedValue({ data: [] });
+    });
+
+    it('When the record is empty / Then it shows the not-found state', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Person not found.')).toBeInTheDocument());
+    });
+  });
+
+  describe('Given the person loads but secondary data fails', () => {
+    beforeEach(() => {
+      mockPeople.getById.mockResolvedValue({
+        id: 'p1', full_name: 'Bob Jones', type: 'employee', status: 'active',
+        cost_rate: 40, cost_rate_unit: 'hour', currency: 'USD', available_hours_per_day: 8,
+        people_roles: [],
+      });
+      mockAlloc.getAll.mockRejectedValue(new Error('allocations down'));
+      mockTime.getAll.mockRejectedValue(new Error('time entries down'));
+    });
+
+    it('When allocations and time entries reject / Then the profile still renders (no blank page)', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Bob Jones')).toBeInTheDocument());
+      // Allocations tab still works and shows its empty state rather than crashing.
+      fireEvent.click(screen.getByText('Allocations'));
+      await waitFor(() => expect(screen.getByText('No allocations')).toBeInTheDocument());
+    });
+  });
+
+  describe('Given the person record is missing optional fields', () => {
+    beforeEach(() => {
+      // full_name intentionally null — the previous code crashed on .split(' ') here.
+      mockPeople.getById.mockResolvedValue({
+        id: 'p1', full_name: null, type: 'employee', status: 'active',
+        cost_rate: 0, cost_rate_unit: 'hour', currency: 'USD', available_hours_per_day: 8,
+        people_roles: [],
+      });
+      mockAlloc.getAll.mockResolvedValue({ data: [] });
+      mockTime.getAll.mockResolvedValue({ data: [] });
+    });
+
+    it('When full_name is null / Then the page renders a fallback instead of crashing', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Unknown')).toBeInTheDocument());
     });
   });
 });

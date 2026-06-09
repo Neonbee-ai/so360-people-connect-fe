@@ -125,9 +125,9 @@ describe('Given PersonDetailPage API failure', () => {
     mockTimeApi.getAll.mockResolvedValue({ data: [] });
   });
 
-  it('When person load fails / Then error toast is shown', async () => {
+  it('When person load fails / Then the error state is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Person not found.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Unable to load employee details.')).toBeInTheDocument());
   });
 });
 

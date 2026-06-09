@@ -435,10 +435,10 @@ describe('PersonDetailPage — timezone date rendering', () => {
       locations.getAll.mockResolvedValue({ data: [] });
     });
 
-    it('When fetch fails / Then person-not-found state is shown', async () => {
+    it('When fetch fails / Then the load-error state is shown', async () => {
       renderWithId(<PersonDetailPage />, '/people', 'bad-id');
       await waitFor(() =>
-        expect(screen.getByText(/Person not found/i)).toBeInTheDocument(),
+        expect(screen.getByText(/Unable to load employee details/i)).toBeInTheDocument(),
       );
     });
   });

@@ -27,6 +27,7 @@ const PersonDetailPage: React.FC = () => {
     const [rateHistory, setRateHistory] = useState<any[]>([]);
     const [goals, setGoals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<'not_found' | 'load_failed' | null>(null);
     const [editing, setEditing] = useState(false);
     const [editData, setEditData] = useState<Partial<Person>>({});
     const [showRoleModal, setShowRoleModal] = useState(false);
@@ -38,26 +39,54 @@ const PersonDetailPage: React.FC = () => {
 
     useEffect(() => {
         if (!id) return;
+        let cancelled = false;
         const loadData = async () => {
+            setLoading(true);
+            setLoadError(null);
+
+            // 1. Critical fetch: the employee record itself. A failure here (or an
+            //    empty/invalid record) must surface a proper error/not-found state,
+            //    never a blank page.
+            let personData: Person | null = null;
             try {
-                const [personData, allocData, timeData, locData] = await Promise.all([
-                    peopleApi.getById(id),
-                    allocationsApi.getAll({ person_id: id }),
-                    timeEntriesApi.getAll({ person_id: id, limit: 10 }),
-                    workLocationsApi.getAll(),
-                ]);
-                setPerson(personData);
-                setAllocations(allocData.data);
-                setTimeEntries(timeData.data);
-                setWorkLocations(locData.data);
+                personData = await peopleApi.getById(id);
             } catch (error) {
                 console.error('Failed to load person:', error);
-                setToast({ message: 'Failed to load person details', type: 'error' });
-            } finally {
+                if (cancelled) return;
+                setPerson(null);
+                setLoadError('load_failed');
+                setToast({ message: 'Failed to load employee details', type: 'error' });
                 setLoading(false);
+                return;
             }
+            if (cancelled) return;
+            if (!personData || !personData.id) {
+                setPerson(null);
+                setLoadError('not_found');
+                setLoading(false);
+                return;
+            }
+            setPerson(personData);
+
+            // 2. Secondary data: allocations, time entries, work locations. A failure
+            //    in any of these must NOT blank the page — degrade gracefully to [].
+            const [allocRes, timeRes, locRes] = await Promise.allSettled([
+                allocationsApi.getAll({ person_id: id }),
+                timeEntriesApi.getAll({ person_id: id, limit: 10 }),
+                workLocationsApi.getAll(),
+            ]);
+            if (cancelled) return;
+            setAllocations(allocRes.status === 'fulfilled' ? (allocRes.value?.data ?? []) : []);
+            setTimeEntries(timeRes.status === 'fulfilled' ? (timeRes.value?.data ?? []) : []);
+            setWorkLocations(locRes.status === 'fulfilled' ? (locRes.value?.data ?? []) : []);
+            if (allocRes.status === 'rejected' || timeRes.status === 'rejected' || locRes.status === 'rejected') {
+                console.error('Some person details failed to load', { allocRes, timeRes, locRes });
+                setToast({ message: 'Some details could not be loaded', type: 'error' });
+            }
+            setLoading(false);
         };
         loadData();
+        return () => { cancelled = true; };
     }, [id]);
 
     const handleSave = async () => {
@@ -157,7 +186,7 @@ const PersonDetailPage: React.FC = () => {
     if (!person) {
         return (
             <div className="p-6 text-center text-slate-400">
-                Person not found.
+                {loadError === 'load_failed' ? 'Unable to load employee details.' : 'Person not found.'}
                 <button onClick={() => navigate('/people')} className="ml-2 text-teal-400 hover:text-teal-300">
                     Back to list
                 </button>
@@ -184,12 +213,12 @@ const PersonDetailPage: React.FC = () => {
                 <div className="flex items-start gap-4">
                     <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
                         <span className="text-lg font-bold text-teal-400">
-                            {person.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                            {(person.full_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </span>
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
-                            <h2 className="text-xl font-bold text-slate-50">{person.full_name}</h2>
+                            <h2 className="text-xl font-bold text-slate-50">{person.full_name || 'Unknown'}</h2>
                             <StatusBadge status={person.type} />
                             <StatusBadge status={person.status} />
                             {person.user_id && (
@@ -449,7 +478,7 @@ const PersonDetailPage: React.FC = () => {
                     {activeTab === 'overview' && (
                         <div className="space-y-4">
                             <div className="text-sm text-slate-400">
-                                <p className="mb-2">This is the overview of {person.full_name}'s profile.</p>
+                                <p className="mb-2">This is the overview of {person.full_name || 'this person'}'s profile.</p>
                                 <p>Use the tabs above to view allocations, time entries, employment history, rate changes, and goals.</p>
                             </div>
                         </div>
