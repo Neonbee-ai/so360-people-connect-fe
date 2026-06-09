@@ -22,7 +22,7 @@ describe('EventsPage', () => {
         data: [
           { id: 'e1', event_type: 'person_created', actor_name: 'Admin', occurred_at: new Date().toISOString(), entity_type: 'person', entity_id: 'p1', payload: { full_name: 'Alice', type: 'employee' } },
           { id: 'e2', event_type: 'time_logged', actor_name: 'Bob', occurred_at: new Date().toISOString(), entity_type: 'project', entity_id: 'pr1', payload: { hours: 4, entity_name: 'Project X' } },
-          { id: 'e3', event_type: 'person_allocated', actor_name: 'Admin', occurred_at: new Date().toISOString(), entity_type: 'project', entity_id: 'pr1', payload: { allocation_value: 50, allocation_type: 'percentage', entity_name: 'Project Y' } },
+          { id: 'e3', event_type: 'person_allocated', actor_name: 'Admin', occurred_at: new Date().toISOString(), entity_type: 'project', entity_id: 'pr1', payload: { allocation_pct: 50, entity_name: 'Project Y' } },
           { id: 'e4', event_type: 'timesheet_approved', actor_name: 'Manager', occurred_at: new Date().toISOString(), entity_type: 'project', entity_id: 'pr2', payload: { hours: 8, total_cost: 400, entity_name: 'Project Z' } },
           { id: 'e5', event_type: 'person_released', actor_name: 'System', occurred_at: new Date().toISOString(), entity_type: 'allocation', entity_id: 'a1', payload: { reason: 'contract ended' } },
         ],

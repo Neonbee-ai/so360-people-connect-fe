@@ -94,8 +94,8 @@ const AllocationsPage: React.FC = () => {
             };
         }
         acc[personId].allocations.push(alloc);
-        if (alloc.status === 'active' && alloc.allocation_type === 'percentage') {
-            acc[personId].totalPct += alloc.allocation_value;
+        if (alloc.status === 'active') {
+            acc[personId].totalPct += alloc.allocation_percentage ?? 0;
         }
         return acc;
     }, {});
@@ -215,10 +215,8 @@ const AllocationsPage: React.FC = () => {
                                     {/* Allocation Value */}
                                     <div className="text-right flex-shrink-0">
                                         <div className="text-lg font-bold text-slate-50">
-                                            {alloc.allocation_value}
-                                            <span className="text-sm text-slate-400 ml-0.5">
-                                                {alloc.allocation_type === 'percentage' ? '%' : `h/${alloc.allocation_period}`}
-                                            </span>
+                                            {alloc.allocation_percentage}
+                                            <span className="text-sm text-slate-400 ml-0.5">%</span>
                                         </div>
                                         {isOverallocated && alloc.status === 'active' && (
                                             <div className="text-xs text-amber-400">
@@ -254,14 +252,14 @@ const AllocationsPage: React.FC = () => {
                                 </div>
 
                                 {/* Allocation Bar */}
-                                {alloc.allocation_type === 'percentage' && alloc.status === 'active' && (
+                                {alloc.status === 'active' && (
                                     <div className="mt-3 pt-3 border-t border-slate-800/50">
                                         <div className="w-full bg-slate-800 rounded-full h-1.5">
                                             <div
                                                 className={`h-1.5 rounded-full transition-all ${
-                                                    alloc.allocation_value > 80 ? 'bg-amber-500' : 'bg-teal-500'
+                                                    (alloc.allocation_percentage ?? 0) > 80 ? 'bg-amber-500' : 'bg-teal-500'
                                                 }`}
-                                                style={{ width: `${Math.min(alloc.allocation_value, 100)}%` }}
+                                                style={{ width: `${Math.min(alloc.allocation_percentage ?? 0, 100)}%` }}
                                             />
                                         </div>
                                     </div>
@@ -527,17 +525,22 @@ interface EditAllocationModalProps {
 
 const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, onClose, onSave }) => {
     const [formData, setFormData] = useState({
-        allocation_value: allocation.allocation_value,
-        allocation_type: allocation.allocation_type,
+        allocation_percentage: allocation.allocation_percentage,
         start_date: allocation.start_date,
         end_date: allocation.end_date,
         status: allocation.status as AllocationStatus,
         notes: allocation.notes || '',
     });
+    const [error, setError] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        const pct = Number(formData.allocation_percentage);
+        if (!Number.isFinite(pct) || pct < 1 || pct > 100) {
+            setError('Allocation percentage must be between 1 and 100.');
+            return;
+        }
+        onSave({ ...formData, allocation_percentage: pct });
     };
 
     return (
@@ -568,12 +571,13 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Allocation Value</label>
+                        <label className="block text-xs text-slate-400 mb-1">Allocation Percentage (1-100%)</label>
                         <input
-                            type="number" min="1" value={formData.allocation_value}
-                            onChange={(e) => setFormData(d => ({ ...d, allocation_value: parseFloat(e.target.value) }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            type="number" min="1" max="100" value={formData.allocation_percentage}
+                            onChange={(e) => { setError(''); setFormData(d => ({ ...d, allocation_percentage: e.target.value === '' ? 0 : parseFloat(e.target.value) })); }}
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${error ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                         />
+                        {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Status</label>

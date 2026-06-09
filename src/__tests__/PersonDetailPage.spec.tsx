@@ -76,7 +76,7 @@ describe('PersonDetailPage', () => {
       });
       mockAlloc.getAll.mockResolvedValue({
         data: [
-          { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_type: 'percentage', allocation_value: 50, status: 'active' },
+          { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_percentage: 50, status: 'active' },
         ],
       });
       mockTime.getAll.mockResolvedValue({
@@ -153,7 +153,7 @@ describe('PersonDetailPage', () => {
       });
       mockAlloc.getAll.mockResolvedValue({
         data: [
-          { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_type: 'percentage', allocation_value: 50, status: 'active' },
+          { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_percentage: 50, status: 'active' },
         ],
       });
       mockTime.getAll.mockResolvedValue({

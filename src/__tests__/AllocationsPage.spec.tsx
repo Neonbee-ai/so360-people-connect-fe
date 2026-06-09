@@ -41,8 +41,8 @@ describe('AllocationsPage', () => {
     beforeEach(() => {
       mockAllocApi.getAll.mockResolvedValue({
         data: [
-          { id: 'a1', person_id: 'p1', person: { full_name: 'Alice' }, entity_type: 'project', entity_id: 'proj-1', entity_name: 'Website', start_date: '2026-01-01', end_date: '2026-06-30', allocation_type: 'percentage', allocation_value: 80, allocation_period: 'daily', status: 'active', notes: '' },
-          { id: 'a2', person_id: 'p1', person: { full_name: 'Alice' }, entity_type: 'project', entity_id: 'proj-2', entity_name: 'Mobile App', start_date: '2026-01-01', end_date: '2026-06-30', allocation_type: 'percentage', allocation_value: 40, allocation_period: 'daily', status: 'active', notes: '' },
+          { id: 'a1', person_id: 'p1', person: { full_name: 'Alice' }, entity_type: 'project', entity_id: 'proj-1', entity_name: 'Website', start_date: '2026-01-01', end_date: '2026-06-30', allocation_percentage: 80, status: 'active', notes: '' },
+          { id: 'a2', person_id: 'p1', person: { full_name: 'Alice' }, entity_type: 'project', entity_id: 'proj-2', entity_name: 'Mobile App', start_date: '2026-01-01', end_date: '2026-06-30', allocation_percentage: 40, status: 'active', notes: '' },
         ],
       });
     });
@@ -76,7 +76,7 @@ describe('AllocationsPage', () => {
     beforeEach(() => {
       mockAllocApi.getAll.mockResolvedValue({
         data: [
-          { id: 'a1', person_id: 'p1', person: { full_name: 'Alice' }, entity_type: 'project', entity_id: 'proj-1', entity_name: 'Website', start_date: '2026-01-01', end_date: '2026-06-30', allocation_type: 'percentage', allocation_value: 80, allocation_period: 'daily', status: 'active', notes: '' },
+          { id: 'a1', person_id: 'p1', person: { full_name: 'Alice' }, entity_type: 'project', entity_id: 'proj-1', entity_name: 'Website', start_date: '2026-01-01', end_date: '2026-06-30', allocation_percentage: 80, status: 'active', notes: '' },
         ],
       });
     });

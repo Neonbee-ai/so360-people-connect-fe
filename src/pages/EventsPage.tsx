@@ -71,7 +71,7 @@ const EventsPage: React.FC = () => {
             case 'person_created':
                 return `${payload.full_name || 'Unknown'} added as ${payload.type || 'resource'}`;
             case 'person_allocated':
-                return `Allocated ${payload.allocation_value || '?'}${payload.allocation_type === 'hours' ? 'h' : '%'} to ${payload.entity_name || payload.entity_type || 'entity'}`;
+                return `Allocated ${payload.allocation_pct ?? payload.allocation_percentage ?? payload.allocation_value ?? '?'}% to ${payload.entity_name || payload.entity_type || 'entity'}`;
             case 'time_logged':
                 return `${payload.hours || '?'}h logged on ${payload.entity_name || 'entity'}`;
             case 'timesheet_approved':

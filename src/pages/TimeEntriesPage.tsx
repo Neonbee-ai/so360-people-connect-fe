@@ -559,7 +559,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                                 <option value="">Manual entry (no allocation)</option>
                                 {allocations.map(a => (
                                     <option key={a.id} value={a.id}>
-                                        {a.entity_name || a.entity_id} ({a.allocation_value}{a.allocation_type === 'percentage' ? '%' : 'h'})
+                                        {a.entity_name || a.entity_id} ({a.allocation_percentage}%)
                                     </option>
                                 ))}
                             </select>

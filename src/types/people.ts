@@ -101,9 +101,9 @@ export interface Allocation {
   start_date: string;
   end_date: string;
 
-  allocation_type: 'percentage' | 'hours';
-  allocation_value: number;
-  allocation_period: 'daily' | 'weekly';
+  // Backend stores allocation as a percentage (1-100). Legacy
+  // allocation_type/value/period fields were never persisted by the API.
+  allocation_percentage: number;
 
   status: AllocationStatus;
   approved_by?: string;
