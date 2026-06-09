@@ -117,3 +117,72 @@ describe('Given AllocationsPage create interaction', () => {
     await waitFor(() => expect(screen.getByText('Person *')).toBeInTheDocument());
   });
 });
+
+describe('Given the create allocation form is submitted', () => {
+  const PERSON_UUID = '11111111-1111-4111-8111-111111111111';
+  const ENTITY_UUID = '550e8400-e29b-41d4-a716-446655440000';
+
+  beforeEach(() => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    mockPeopleApi.getAll.mockResolvedValue({
+      data: [{ id: PERSON_UUID, full_name: 'Alice', job_title: 'Dev', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }],
+    });
+    mockAllocApi.create.mockResolvedValue({ id: 'a-new' });
+  });
+
+  const openModal = async () => {
+    const view = renderPage();
+    await waitFor(() => expect(screen.getByText('No allocations')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Allocation'));
+    await waitFor(() => expect(screen.getByRole('option', { name: /Alice/ })).toBeInTheDocument());
+    return view;
+  };
+
+  const fillDates = (container: HTMLElement) => {
+    const dateInputs = container.querySelectorAll('input[type="date"]');
+    fireEvent.change(dateInputs[0], { target: { value: '2026-01-01' } });
+    fireEvent.change(dateInputs[1], { target: { value: '2026-06-30' } });
+  };
+
+  it('When entity_id is not a UUID / Then it shows a validation error and create is not called', async () => {
+    const { container } = await openModal();
+    fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
+    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: 'proj-001' } });
+    fillDates(container);
+    fireEvent.submit(container.querySelector("form")!);
+    await waitFor(() => expect(screen.getByText(/Entity ID must be a valid UUID/)).toBeInTheDocument());
+    expect(mockAllocApi.create).not.toHaveBeenCalled();
+  });
+
+  it('When percentage is out of range / Then it shows a validation error and create is not called', async () => {
+    const { container } = await openModal();
+    fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
+    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: ENTITY_UUID } });
+    fillDates(container);
+    const pctInput = container.querySelector('input[type="number"]') as HTMLInputElement;
+    fireEvent.change(pctInput, { target: { value: '150' } });
+    fireEvent.submit(container.querySelector("form")!);
+    await waitFor(() => expect(screen.getByText(/between 1 and 100/)).toBeInTheDocument());
+    expect(mockAllocApi.create).not.toHaveBeenCalled();
+  });
+
+  it('When a valid UUID and percentage are provided / Then create is called with numeric allocation_percentage', async () => {
+    const { container } = await openModal();
+    fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
+    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: ENTITY_UUID } });
+    fillDates(container);
+    const pctInput = container.querySelector('input[type="number"]') as HTMLInputElement;
+    fireEvent.change(pctInput, { target: { value: '60' } });
+    fireEvent.submit(container.querySelector("form")!);
+    await waitFor(() => expect(mockAllocApi.create).toHaveBeenCalledTimes(1));
+    const payload = mockAllocApi.create.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      person_id: PERSON_UUID,
+      entity_type: 'project',
+      entity_id: ENTITY_UUID,
+      allocation_percentage: 60,
+    });
+    expect(payload.allocation_percentage).toBe(60);
+    expect('allocation_value' in payload).toBe(false);
+  });
+});

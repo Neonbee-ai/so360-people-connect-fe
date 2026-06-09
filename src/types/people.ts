@@ -128,11 +128,12 @@ export interface CreateAllocationPayload {
   entity_id: string;
   entity_name?: string;
   start_date: string;
-  end_date: string;
-  allocation_type?: 'percentage' | 'hours';
-  allocation_value: number;
-  allocation_period?: 'daily' | 'weekly';
-  status?: AllocationStatus;
+  end_date?: string;
+  // Backend contract: percentage allocation, integer-ish number in [1, 100].
+  allocation_percentage: number;
+  role?: string;
+  budgeted_hours?: number;
+  rate_override?: number;
   notes?: string;
   meta?: Record<string, unknown>;
 }

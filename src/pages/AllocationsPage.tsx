@@ -11,6 +11,7 @@ import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
+import { isUuid } from '../utils/validation';
 import type { Allocation, CreateAllocationPayload, Person, AllocationStatus } from '../types/people';
 
 const AllocationsPage: React.FC = () => {
@@ -305,18 +306,18 @@ interface CreateAllocationModalProps {
 const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, onClose, onCreate }) => {
     const [people, setPeople] = useState<Person[]>([]);
     const [loadingPeople, setLoadingPeople] = useState(false);
-    const [formData, setFormData] = useState<CreateAllocationPayload>({
+    const emptyForm: CreateAllocationPayload = {
         person_id: '',
         entity_type: 'project',
         entity_id: '',
         entity_name: '',
         start_date: new Date().toISOString().split('T')[0],
         end_date: '',
-        allocation_type: 'percentage',
-        allocation_value: 50,
-        allocation_period: 'daily',
+        allocation_percentage: 50,
         notes: '',
-    });
+    };
+    const [formData, setFormData] = useState<CreateAllocationPayload>(emptyForm);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (isOpen) {
@@ -328,19 +329,50 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
         }
     }, [isOpen]);
 
+    const validate = (data: CreateAllocationPayload): Record<string, string> => {
+        const next: Record<string, string> = {};
+        if (!data.person_id) next.person_id = 'Select a person.';
+        // Backend requires a UUID entity_id — block display ids like "proj-001".
+        if (!data.entity_id.trim()) {
+            next.entity_id = 'Entity ID is required.';
+        } else if (!isUuid(data.entity_id)) {
+            next.entity_id = 'Entity ID must be a valid UUID (e.g. 550e8400-e29b-41d4-a716-446655440000).';
+        }
+        if (!data.start_date) next.start_date = 'Start date is required.';
+        if (!data.end_date) next.end_date = 'End date is required.';
+        const pct = Number(data.allocation_percentage);
+        if (!Number.isFinite(pct) || pct < 1 || pct > 100) {
+            next.allocation_percentage = 'Allocation percentage must be between 1 and 100.';
+        }
+        return next;
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.person_id || !formData.entity_id || !formData.start_date || !formData.end_date) return;
-        onCreate(formData);
-        setFormData({
-            person_id: '', entity_type: 'project', entity_id: '', entity_name: '',
-            start_date: new Date().toISOString().split('T')[0], end_date: '',
-            allocation_type: 'percentage', allocation_value: 50, allocation_period: 'daily', notes: '',
+        const validationErrors = validate(formData);
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+        }
+        // Build a payload that exactly matches the backend contract: numeric
+        // allocation_percentage + UUID entity_id, no UI-only fields.
+        onCreate({
+            person_id: formData.person_id,
+            entity_type: formData.entity_type,
+            entity_id: formData.entity_id.trim(),
+            entity_name: formData.entity_name?.trim() || undefined,
+            start_date: formData.start_date,
+            end_date: formData.end_date || undefined,
+            allocation_percentage: Number(formData.allocation_percentage),
+            notes: formData.notes?.trim() || undefined,
         });
+        setFormData(emptyForm);
+        setErrors({});
     };
 
     const updateField = (field: string, value: unknown) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        setErrors(prev => (prev[field] ? { ...prev, [field]: '' } : prev));
     };
 
     return (
@@ -380,18 +412,18 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             >
                                 <option value="project">Project</option>
                                 <option value="task">Task</option>
-                                <option value="work_order">Work Order</option>
-                                <option value="engagement">Engagement</option>
+                                <option value="deal">Deal</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Entity ID *</label>
+                            <label className="block text-xs text-slate-400 mb-1">Entity ID (UUID) *</label>
                             <input
                                 type="text" required value={formData.entity_id}
                                 onChange={(e) => updateField('entity_id', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                                placeholder="proj-001"
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.entity_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                placeholder="550e8400-e29b-41d4-a716-446655440000"
                             />
+                            {errors.entity_id && <p className="mt-1 text-xs text-rose-400">{errors.entity_id}</p>}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Entity Name</label>
@@ -431,59 +463,30 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                 {/* Allocation Amount */}
                 <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Allocation Amount</h4>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Type</label>
-                            <select
-                                value={formData.allocation_type}
-                                onChange={(e) => updateField('allocation_type', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="percentage">Percentage (%)</option>
-                                <option value="hours">Hours</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">
-                                Value * {formData.allocation_type === 'percentage' ? '(0-100%)' : '(hours)'}
-                            </label>
-                            <input
-                                type="number" required min="1"
-                                max={formData.allocation_type === 'percentage' ? 100 : 24}
-                                step={formData.allocation_type === 'percentage' ? 5 : 0.5}
-                                value={formData.allocation_value}
-                                onChange={(e) => updateField('allocation_value', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Period</label>
-                            <select
-                                value={formData.allocation_period}
-                                onChange={(e) => updateField('allocation_period', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="daily">Daily</option>
-                                <option value="weekly">Weekly</option>
-                            </select>
-                        </div>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">Allocation Percentage * (1-100%)</label>
+                        <input
+                            type="number" required min="1" max="100" step="5"
+                            value={formData.allocation_percentage}
+                            onChange={(e) => updateField('allocation_percentage', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.allocation_percentage ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                        />
+                        {errors.allocation_percentage && <p className="mt-1 text-xs text-rose-400">{errors.allocation_percentage}</p>}
                     </div>
 
                     {/* Visual Preview */}
-                    {formData.allocation_type === 'percentage' && (
-                        <div className="mt-3">
-                            <div className="w-full bg-slate-800 rounded-full h-2">
-                                <div
-                                    className={`h-2 rounded-full transition-all ${
-                                        formData.allocation_value > 80 ? 'bg-amber-500' :
-                                        formData.allocation_value > 50 ? 'bg-teal-500' : 'bg-blue-500'
-                                    }`}
-                                    style={{ width: `${Math.min(formData.allocation_value, 100)}%` }}
-                                />
-                            </div>
-                            <div className="text-xs text-slate-500 mt-1 text-right">{formData.allocation_value}% capacity</div>
+                    <div className="mt-3">
+                        <div className="w-full bg-slate-800 rounded-full h-2">
+                            <div
+                                className={`h-2 rounded-full transition-all ${
+                                    Number(formData.allocation_percentage) > 80 ? 'bg-amber-500' :
+                                    Number(formData.allocation_percentage) > 50 ? 'bg-teal-500' : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${Math.min(Number(formData.allocation_percentage) || 0, 100)}%` }}
+                            />
                         </div>
-                    )}
+                        <div className="text-xs text-slate-500 mt-1 text-right">{Number(formData.allocation_percentage) || 0}% capacity</div>
+                    </div>
                 </div>
 
                 {/* Notes */}
