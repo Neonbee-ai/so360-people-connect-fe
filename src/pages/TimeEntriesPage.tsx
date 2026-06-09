@@ -11,6 +11,7 @@ import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge, useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import { timeEntriesApi, peopleApi, allocationsApi } from '../services/peopleService';
+import { isUuid } from '../utils/validation';
 import type { TimeEntry, CreateTimeEntryPayload, Person, Allocation, TimeEntryStatus } from '../types/people';
 
 const TimeEntriesPage: React.FC = () => {
@@ -414,7 +415,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
     const [people, setPeople] = useState<Person[]>([]);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [loadingPeople, setLoadingPeople] = useState(false);
-    const [formData, setFormData] = useState<CreateTimeEntryPayload>({
+    const emptyForm: CreateTimeEntryPayload = {
         person_id: '',
         allocation_id: '',
         entity_type: 'project',
@@ -423,7 +424,9 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
         work_date: new Date().toISOString().split('T')[0],
         hours: 1,
         description: '',
-    });
+    };
+    const [formData, setFormData] = useState<CreateTimeEntryPayload>(emptyForm);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (isOpen) {
@@ -464,18 +467,58 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
         }
     };
 
+    // 'internal' time needs no execution entity; everything else references a
+    // concrete project/task/deal whose id the backend validates as a UUID.
+    const entityIdRequired = formData.entity_type !== 'internal';
+
+    const validate = (data: CreateTimeEntryPayload): Record<string, string> => {
+        const next: Record<string, string> = {};
+        if (!data.person_id) next.person_id = 'Select a person.';
+        const entityId = (data.entity_id ?? '').trim();
+        if (data.entity_type !== 'internal') {
+            if (!entityId) {
+                next.entity_id = 'Entity is required for this entity type.';
+            } else if (!isUuid(entityId)) {
+                next.entity_id = 'Entity ID must be a valid UUID (e.g. 550e8400-e29b-41d4-a716-446655440000).';
+            }
+        } else if (entityId && !isUuid(entityId)) {
+            next.entity_id = 'Entity ID must be a valid UUID when provided.';
+        }
+        if (!data.work_date) next.work_date = 'Work date is required.';
+        const hours = Number(data.hours);
+        if (!Number.isFinite(hours) || hours < 0.25) {
+            next.hours = 'Hours must be at least 0.25.';
+        }
+        return next;
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.person_id || !formData.entity_type || !formData.entity_id || !formData.work_date || !formData.hours) return;
-        onCreate(formData);
-        setFormData({
-            person_id: '', allocation_id: '', entity_type: 'project', entity_id: '',
-            entity_name: '', work_date: new Date().toISOString().split('T')[0], hours: 1, description: '',
+        const validationErrors = validate(formData);
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+        }
+        const entityId = (formData.entity_id ?? '').trim();
+        // Build a backend-shaped payload: UUID entity_id (or omitted for internal),
+        // numeric hours. allocation_id is FE-only metadata used to prefill.
+        onCreate({
+            person_id: formData.person_id,
+            allocation_id: formData.allocation_id || undefined,
+            entity_type: formData.entity_type,
+            entity_id: entityId || undefined,
+            entity_name: formData.entity_name?.trim() || undefined,
+            work_date: formData.work_date,
+            hours: Number(formData.hours),
+            description: formData.description?.trim() || undefined,
         });
+        setFormData(emptyForm);
+        setErrors({});
     };
 
     const updateField = (field: string, value: unknown) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        setErrors(prev => (prev[field] ? { ...prev, [field]: '' } : prev));
     };
 
     const selectedPerson = people.find(p => p.id === formData.person_id);
@@ -538,19 +581,22 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                             >
                                 <option value="project">Project</option>
                                 <option value="task">Task</option>
-                                <option value="work_order">Work Order</option>
-                                <option value="engagement">Engagement</option>
+                                <option value="deal">Deal</option>
+                                <option value="internal">Internal</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Entity ID *</label>
+                            <label className="block text-xs text-slate-400 mb-1">
+                                Entity ID (UUID){entityIdRequired ? ' *' : ''}
+                            </label>
                             <input
-                                type="text" required value={formData.entity_id}
+                                type="text" required={entityIdRequired} value={formData.entity_id || ''}
                                 onChange={(e) => updateField('entity_id', e.target.value)}
-                                disabled={!!formData.allocation_id}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-50"
-                                placeholder="proj-001"
+                                disabled={!!formData.allocation_id || formData.entity_type === 'internal'}
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none disabled:opacity-50 ${errors.entity_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                placeholder={formData.entity_type === 'internal' ? 'Not required for internal' : '550e8400-e29b-41d4-a716-446655440000'}
                             />
+                            {errors.entity_id && <p className="mt-1 text-xs text-rose-400">{errors.entity_id}</p>}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Entity Name</label>
@@ -582,9 +628,10 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                             <input
                                 type="number" required min="0.25" max="24" step="0.25"
                                 value={formData.hours}
-                                onChange={(e) => updateField('hours', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                onChange={(e) => updateField('hours', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.hours ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             />
+                            {errors.hours && <p className="mt-1 text-xs text-rose-400">{errors.hours}</p>}
                         </div>
                     </div>
                 </div>

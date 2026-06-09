@@ -115,3 +115,60 @@ describe('Given TimeEntriesPage API failure', () => {
     await waitFor(() => expect(screen.getByText('Failed to load time entries')).toBeInTheDocument());
   });
 });
+
+describe('Given the log-time form is submitted', () => {
+  const PERSON_UUID = '22222222-2222-4222-8222-222222222222';
+  const ENTITY_UUID = '550e8400-e29b-41d4-a716-446655440000';
+
+  beforeEach(() => {
+    mockTimeApi.getAll.mockResolvedValue({ data: [mockEntry], total: 1 });
+    mockPeopleApi.getAll.mockResolvedValue({
+      data: [{ id: PERSON_UUID, full_name: 'Alice', job_title: 'Engineer', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }],
+    });
+    mockTimeApi.create.mockResolvedValue({ id: 'te-new' });
+  });
+
+  const openModal = async () => {
+    const view = renderPage();
+    await waitFor(() => expect(screen.getByText('Project X')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Log Time'));
+    await waitFor(() => expect(screen.getByRole('option', { name: /Alice/ })).toBeInTheDocument());
+    return view;
+  };
+
+  it('When entity_id is not a UUID / Then it shows a validation error and create is not called', async () => {
+    const { container } = await openModal();
+    fireEvent.change(screen.getByDisplayValue('Select person...'), { target: { value: PERSON_UUID } });
+    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: 'proj-001' } });
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(screen.getByText(/Entity ID must be a valid UUID/)).toBeInTheDocument());
+    expect(mockTimeApi.create).not.toHaveBeenCalled();
+  });
+
+  it('When a valid UUID and hours are provided / Then create is called with a UUID entity_id', async () => {
+    const { container } = await openModal();
+    fireEvent.change(screen.getByDisplayValue('Select person...'), { target: { value: PERSON_UUID } });
+    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: ENTITY_UUID } });
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(mockTimeApi.create).toHaveBeenCalledTimes(1));
+    const payload = mockTimeApi.create.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      person_id: PERSON_UUID,
+      entity_type: 'project',
+      entity_id: ENTITY_UUID,
+      hours: 1,
+    });
+    expect(typeof payload.hours).toBe('number');
+  });
+
+  it('When entity type is internal / Then entity_id is optional and create is called without it', async () => {
+    const { container } = await openModal();
+    fireEvent.change(screen.getByDisplayValue('Select person...'), { target: { value: PERSON_UUID } });
+    fireEvent.change(screen.getByDisplayValue('Project'), { target: { value: 'internal' } });
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(mockTimeApi.create).toHaveBeenCalledTimes(1));
+    const payload = mockTimeApi.create.mock.calls[0][0];
+    expect(payload.entity_type).toBe('internal');
+    expect(payload.entity_id).toBeUndefined();
+  });
+});

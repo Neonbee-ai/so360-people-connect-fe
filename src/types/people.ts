@@ -180,7 +180,8 @@ export interface CreateTimeEntryPayload {
   person_id: string;
   allocation_id?: string;
   entity_type: string;
-  entity_id: string;
+  // Optional: omitted for 'internal' time; a UUID for project/task/deal.
+  entity_id?: string;
   entity_name?: string;
   work_date: string;
   hours: number;
