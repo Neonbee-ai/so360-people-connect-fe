@@ -6,6 +6,7 @@ beforeEach(() => {
   apiContext.setTenantId('');
   apiContext.setOrgId('');
   apiContext.setAccessToken('');
+  apiContext.setAccessTokenProvider(null);
 });
 
 describe('Given ApiClient with tenant context set', () => {
@@ -57,6 +58,46 @@ describe('Given ApiClient with tenant context set', () => {
     await client.get('/endpoint');
     const headers = fetchMock.mock.calls[0][1].headers;
     expect(headers['Authorization']).toBeUndefined();
+  });
+});
+
+describe('Given a live access-token provider (token rotation)', () => {
+  const callHeaders = async (method: 'get' | 'patch') => {
+    const client = new ApiClient('/test-api');
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve('{}') });
+    vi.stubGlobal('fetch', fetchMock);
+    if (method === 'get') await client.get('/endpoint');
+    else await client.patch('/endpoint/1', { a: 1 });
+    return fetchMock.mock.calls[0][1].headers;
+  };
+
+  it('When a provider is registered / Then each request resolves the freshest token', async () => {
+    let current = 'token-1';
+    apiContext.setAccessTokenProvider(() => current);
+
+    let headers = await callHeaders('get');
+    expect(headers['Authorization']).toBe('Bearer token-1');
+
+    // Shell rotates the JWT — the next request must pick up the new token
+    // without setAccessToken being called again.
+    current = 'token-2';
+    headers = await callHeaders('patch');
+    expect(headers['Authorization']).toBe('Bearer token-2');
+  });
+
+  it('When the provider returns the live token / Then it overrides a previously cached stale token', async () => {
+    // Simulate the original bug: a stale token was cached once.
+    apiContext.setAccessToken('stale-token');
+    apiContext.setAccessTokenProvider(() => 'fresh-token');
+    const headers = await callHeaders('patch');
+    expect(headers['Authorization']).toBe('Bearer fresh-token');
+  });
+
+  it('When the provider returns empty / Then it falls back to the cached token', async () => {
+    apiContext.setAccessToken('cached-token');
+    apiContext.setAccessTokenProvider(() => '');
+    const headers = await callHeaders('get');
+    expect(headers['Authorization']).toBe('Bearer cached-token');
   });
 });
 

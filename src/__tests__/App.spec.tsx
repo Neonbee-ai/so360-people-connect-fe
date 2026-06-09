@@ -7,6 +7,7 @@ vi.mock('../services/peopleService', () => ({
     setTenantId: vi.fn(),
     setOrgId: vi.fn(),
     setAccessToken: vi.fn(),
+    setAccessTokenProvider: vi.fn(),
     setUser: vi.fn(),
   },
   utilizationApi: { getSummary: vi.fn().mockResolvedValue({ total_people: 0, avg_utilization_pct: 0, total_hours_this_week: 0, total_cost_this_week: 0, active_allocations: 0, pending_approvals: 0, burn_rate_daily: 0 }) },

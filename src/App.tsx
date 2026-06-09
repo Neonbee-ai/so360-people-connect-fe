@@ -58,6 +58,19 @@ const PeopleShellInitializer = ({ children }: { children: React.ReactNode }) => 
     const shell = useShellBridge();
     const [isSynced, setIsSynced] = React.useState(false);
 
+    // Keep the freshest access token in a ref and resolve it live on every API
+    // request. The shell rotates short-lived Supabase JWTs; previously the token
+    // was cached once and never refreshed, so requests made after a rotation
+    // failed with 401 "Invalid or expired token" (e.g. editing a department or
+    // opening the Utilization page later in the session).
+    const tokenRef = React.useRef<string | undefined>(shell?.accessToken);
+    tokenRef.current = shell?.accessToken;
+
+    useEffect(() => {
+        peopleService.setAccessTokenProvider(() => tokenRef.current ?? '');
+        return () => peopleService.setAccessTokenProvider(null);
+    }, []);
+
     useEffect(() => {
         if (shell?.currentTenant?.id && shell?.currentOrg?.id) {
             console.log('People Connect MFE: Syncing context from shell:', {
@@ -82,7 +95,7 @@ const PeopleShellInitializer = ({ children }: { children: React.ReactNode }) => 
 
             setIsSynced(true);
         }
-    }, [shell?.currentTenant?.id, shell?.currentOrg?.id, shell?.user]);
+    }, [shell?.currentTenant?.id, shell?.currentOrg?.id, shell?.accessToken, shell?.user]);
 
     if (!isSynced) {
         return (

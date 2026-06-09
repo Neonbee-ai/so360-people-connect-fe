@@ -23,6 +23,7 @@ vi.mock('./services/peopleService', () => ({
     setTenantId: vi.fn(),
     setOrgId: vi.fn(),
     setAccessToken: vi.fn(),
+    setAccessTokenProvider: vi.fn(),
     setUser: vi.fn(),
   },
   utilizationApi: { getSummary: vi.fn() },

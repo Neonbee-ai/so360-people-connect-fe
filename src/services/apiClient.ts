@@ -10,6 +10,19 @@ let ORG_ID = '';
 let USER_ID = '';
 let USER_NAME = '';
 let ACCESS_TOKEN = '';
+// Optional live source for the access token. Supabase JWTs are short-lived and
+// rotated by the shell; caching a single token caused stale-token 401s
+// ("Invalid or expired token") on requests made after a refresh. When a
+// provider is registered we resolve the freshest token on every request.
+let ACCESS_TOKEN_PROVIDER: (() => string | undefined | null) | null = null;
+
+function resolveAccessToken(): string {
+  if (ACCESS_TOKEN_PROVIDER) {
+    const fresh = ACCESS_TOKEN_PROVIDER();
+    if (fresh) return fresh;
+  }
+  return ACCESS_TOKEN;
+}
 
 export class ApiClient {
   private baseURL: string;
@@ -19,22 +32,24 @@ export class ApiClient {
   }
 
   private getHeaders(): HeadersInit {
+    const token = resolveAccessToken();
     return {
       'Content-Type': 'application/json',
       'X-Tenant-Id': TENANT_ID,
       'X-Org-Id': ORG_ID,
       'X-User-Id': USER_ID,
       'X-User-Name': USER_NAME,
-      ...(ACCESS_TOKEN ? { Authorization: `Bearer ${ACCESS_TOKEN}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   }
 
   getHeadersRaw(): Record<string, string> {
+    const token = resolveAccessToken();
     return {
       'X-Tenant-Id': TENANT_ID,
       'X-Org-Id': ORG_ID,
       'X-User-Id': USER_ID,
-      ...(ACCESS_TOKEN ? { Authorization: `Bearer ${ACCESS_TOKEN}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   }
 
@@ -111,6 +126,10 @@ export const apiContext = {
   setUserId: (id: string) => { USER_ID = id; },
   setUserName: (name: string) => { USER_NAME = name; },
   setAccessToken: (token: string) => { ACCESS_TOKEN = token; },
+
+  // Register a live token source so every request uses the freshest JWT even
+  // after the shell rotates it. Pass null to clear.
+  setAccessTokenProvider: (provider: (() => string | undefined | null) | null) => { ACCESS_TOKEN_PROVIDER = provider; },
 
   setUser: (user: { id: string; email: string; full_name?: string; name?: string }) => {
     USER_ID = user.id;
