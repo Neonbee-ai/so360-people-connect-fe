@@ -14,6 +14,13 @@ import type {
   LookupEntityType,
 } from '../types/people';
 import { api, apiContext } from './apiClient';
+import { createRequestCache } from './requestCache';
+
+// Utilization summary is org-static for short windows but is requested by both
+// the Dashboard and the Utilization page (and on every revisit). Coalesce
+// concurrent calls and serve a brief TTL so navigating between those pages does
+// not re-hit /utilization/summary each time.
+export const utilizationCache = createRequestCache({ defaultTtlMs: 15_000, maxEntries: 10 });
 
 // =============================================================================
 // PEOPLE API
@@ -252,7 +259,10 @@ export const utilizationApi = {
   },
 
   getSummary: async (): Promise<UtilizationSummary> => {
-    return api.get<UtilizationSummary>('/utilization/summary');
+    return utilizationCache.run(
+      `utilization-summary|${apiContext.getOrgId()}`,
+      () => api.get<UtilizationSummary>('/utilization/summary'),
+    );
   },
 };
 

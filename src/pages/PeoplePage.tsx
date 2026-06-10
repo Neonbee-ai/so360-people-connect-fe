@@ -13,7 +13,6 @@ import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import { QuotaBar, QuotaGate } from '@so360/design-system';
-import { apiContext } from '../services/apiClient';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
@@ -78,37 +77,23 @@ const PeoplePage: React.FC = () => {
         }
     }, [location.state, location.pathname]);
 
-    // Fetch supported currencies from org business_settings (Core API)
+    // Derive supported currencies from org business_settings, which the shell
+    // loads once and shares across all MFEs — no per-page Core API fetch.
     useEffect(() => {
-        const fetchCurrencies = async () => {
-            try {
-                const token = apiContext.getAccessToken();
-                const effectiveOrgId = orgId || apiContext.getOrgId();
-                const effectiveTenantId = tenantId || apiContext.getTenantId();
-                const res = await fetch(`/v1/business-settings/${effectiveOrgId}`, {
-                    headers: {
-                        'X-Tenant-Id': effectiveTenantId,
-                        'X-Org-Id': effectiveOrgId,
-                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    },
-                });
-                if (res.ok) {
-                    const settings = await res.json();
-                    const baseCurrency = settings?.currency || settings?.base_currency;
-                    if (baseCurrency && !DEFAULT_CURRENCIES.includes(baseCurrency)) {
-                        setCurrencies([baseCurrency, ...DEFAULT_CURRENCIES]);
-                    }
-                    // If settings include a currencies array, use it
-                    if (Array.isArray(settings?.supported_currencies) && settings.supported_currencies.length > 0) {
-                        setCurrencies(settings.supported_currencies);
-                    }
-                }
-            } catch {
-                // Silently fall back to defaults
-            }
-        };
-        fetchCurrencies();
-    }, [orgId, tenantId]);
+        const settings = shell?.businessSettings as
+            | { currency?: string; base_currency?: string; supported_currencies?: string[] }
+            | null
+            | undefined;
+        if (!settings) return;
+        if (Array.isArray(settings.supported_currencies) && settings.supported_currencies.length > 0) {
+            setCurrencies(settings.supported_currencies);
+            return;
+        }
+        const baseCurrency = settings.currency || settings.base_currency;
+        if (baseCurrency && !DEFAULT_CURRENCIES.includes(baseCurrency)) {
+            setCurrencies([baseCurrency, ...DEFAULT_CURRENCIES]);
+        }
+    }, [shell?.businessSettings]);
 
     const handleCreate = async (data: CreatePersonPayload) => {
         try {
