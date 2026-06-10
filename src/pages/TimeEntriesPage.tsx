@@ -594,7 +594,10 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                             >
                                 <option value="project">Project</option>
                                 <option value="task">Task</option>
-                                <option value="deal">Deal</option>
+                                <option value="lead">Lead</option>
+                                <option value="customer">Customer</option>
+                                <option value="opportunity">Opportunity</option>
+                                <option value="department">Department</option>
                                 <option value="internal">Internal</option>
                             </select>
                         </div>

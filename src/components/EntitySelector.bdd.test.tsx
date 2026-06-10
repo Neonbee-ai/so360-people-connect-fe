@@ -68,6 +68,26 @@ describe('EntitySelector', () => {
         });
     });
 
+    describe.each(['lead', 'customer', 'opportunity', 'department'] as const)(
+        'Given a %s selector',
+        (entityType) => {
+            it('When it mounts / Then it loads options for that entity type', async () => {
+                render(<EntitySelector entityType={entityType} value="" onChange={() => {}} />);
+                await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: entityType, project_id: undefined }));
+            });
+        },
+    );
+
+    describe('Given an opportunity selector with no matching records', () => {
+        it('When opened / Then it shows a correctly pluralised empty state', async () => {
+            render(<EntitySelector entityType="opportunity" value="" onChange={() => {}} />);
+
+            fireEvent.click(screen.getByText('Select opportunity...'));
+
+            await waitFor(() => expect(screen.getByText('No opportunities found')).toBeInTheDocument());
+        });
+    });
+
     describe('Given a task selector with no project chosen yet', () => {
         it('When rendered / Then the task dropdown is disabled and tasks are not queried', async () => {
             render(<EntitySelector entityType="task" value="" onChange={() => {}} />);

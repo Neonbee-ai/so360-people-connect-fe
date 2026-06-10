@@ -3,6 +3,18 @@ import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { entitiesApi } from '../services/peopleService';
 import type { EntityOption, LookupEntityType } from '../types/people';
 
+// Plural display labels for the empty state (so "opportunity" doesn't render
+// as "opportunitys").
+const ENTITY_PLURALS: Record<LookupEntityType, string> = {
+    project: 'projects',
+    task: 'tasks',
+    deal: 'deals',
+    opportunity: 'opportunities',
+    lead: 'leads',
+    customer: 'customers',
+    department: 'departments',
+};
+
 // =============================================================================
 // EntitySelector — UUID-safe execution entity picker
 //
@@ -132,7 +144,7 @@ const EntityCombo: React.FC<EntityComboProps> = ({
                             Couldn't load — tap to retry
                         </button>
                     ) : filtered.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-slate-400">No {type}s found</div>
+                        <div className="px-3 py-2 text-sm text-slate-400">No {ENTITY_PLURALS[type]} found</div>
                     ) : (
                         filtered.map((option) => (
                             <button

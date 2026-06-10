@@ -138,8 +138,10 @@ const AllocationsPage: React.FC = () => {
                     <option value="">All Entity Types</option>
                     <option value="project">Project</option>
                     <option value="task">Task</option>
-                    <option value="work_order">Work Order</option>
-                    <option value="engagement">Engagement</option>
+                    <option value="lead">Lead</option>
+                    <option value="customer">Customer</option>
+                    <option value="opportunity">Opportunity</option>
+                    <option value="department">Department</option>
                 </select>
 
                 {/* Summary Stats */}
@@ -424,7 +426,10 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             >
                                 <option value="project">Project</option>
                                 <option value="task">Task</option>
-                                <option value="deal">Deal</option>
+                                <option value="lead">Lead</option>
+                                <option value="customer">Customer</option>
+                                <option value="opportunity">Opportunity</option>
+                                <option value="department">Department</option>
                             </select>
                         </div>
                         <div className="col-span-2">

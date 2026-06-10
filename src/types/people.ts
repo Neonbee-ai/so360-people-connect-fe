@@ -192,7 +192,14 @@ export interface CreateTimeEntryPayload {
 // Entity Lookup (execution entities resolved from sibling services)
 // `id` is always a real UUID — these populate the entity dropdowns so users
 // never type a UUID by hand.
-export type LookupEntityType = 'project' | 'task' | 'deal';
+export type LookupEntityType =
+  | 'project'
+  | 'task'
+  | 'deal'
+  | 'opportunity'
+  | 'lead'
+  | 'customer'
+  | 'department';
 
 export interface EntityOption {
   id: string;
