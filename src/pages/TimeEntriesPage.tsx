@@ -12,7 +12,8 @@ import { useActivity, useShellBridge, useBusinessSettings } from '@so360/shell-c
 import { useFormatters } from '@so360/formatters';
 import { timeEntriesApi, peopleApi, allocationsApi } from '../services/peopleService';
 import { isUuid } from '../utils/validation';
-import type { TimeEntry, CreateTimeEntryPayload, Person, Allocation, TimeEntryStatus } from '../types/people';
+import EntitySelector from '../components/EntitySelector';
+import type { TimeEntry, CreateTimeEntryPayload, Person, Allocation, TimeEntryStatus, EntityOption, LookupEntityType } from '../types/people';
 
 const TimeEntriesPage: React.FC = () => {
     const { recordActivity } = useActivity();
@@ -521,6 +522,18 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
         setErrors(prev => (prev[field] ? { ...prev, [field]: '' } : prev));
     };
 
+    const handleEntityTypeChange = (entityType: string) => {
+        // Switching type invalidates any previously selected entity.
+        setFormData(prev => ({ ...prev, entity_type: entityType, entity_id: '', entity_name: '' }));
+        setErrors(prev => (prev.entity_id ? { ...prev, entity_id: '' } : prev));
+    };
+
+    const handleEntitySelect = (option: EntityOption | null) => {
+        // Store the picked entity's real UUID + display name internally.
+        setFormData(prev => ({ ...prev, entity_id: option?.id || '', entity_name: option?.name || '' }));
+        setErrors(prev => (prev.entity_id ? { ...prev, entity_id: '' } : prev));
+    };
+
     const selectedPerson = people.find(p => p.id === formData.person_id);
     const estimatedCost = selectedPerson ? formData.hours * selectedPerson.cost_rate : 0;
 
@@ -575,7 +588,7 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                             <label className="block text-xs text-slate-400 mb-1">Entity Type *</label>
                             <select
                                 value={formData.entity_type}
-                                onChange={(e) => updateField('entity_type', e.target.value)}
+                                onChange={(e) => handleEntityTypeChange(e.target.value)}
                                 disabled={!!formData.allocation_id}
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-50"
                             >
@@ -585,28 +598,29 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
                                 <option value="internal">Internal</option>
                             </select>
                         </div>
-                        <div>
+                        <div className="col-span-2">
                             <label className="block text-xs text-slate-400 mb-1">
-                                Entity ID (UUID){entityIdRequired ? ' *' : ''}
+                                {formData.entity_type === 'task' ? 'Project & Task' : 'Entity'}{entityIdRequired ? ' *' : ''}
                             </label>
-                            <input
-                                type="text" required={entityIdRequired} value={formData.entity_id || ''}
-                                onChange={(e) => updateField('entity_id', e.target.value)}
-                                disabled={!!formData.allocation_id || formData.entity_type === 'internal'}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none disabled:opacity-50 ${errors.entity_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                                placeholder={formData.entity_type === 'internal' ? 'Not required for internal' : '550e8400-e29b-41d4-a716-446655440000'}
-                            />
+                            {formData.allocation_id ? (
+                                // Locked to the linked allocation's entity.
+                                <div className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 opacity-70 truncate">
+                                    {formData.entity_name || formData.entity_id}
+                                </div>
+                            ) : formData.entity_type === 'internal' ? (
+                                <div className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-slate-400 italic">
+                                    No entity required for internal time.
+                                </div>
+                            ) : (
+                                <EntitySelector
+                                    entityType={formData.entity_type as LookupEntityType}
+                                    value={formData.entity_id || ''}
+                                    displayName={formData.entity_name}
+                                    onChange={handleEntitySelect}
+                                    error={!!errors.entity_id}
+                                />
+                            )}
                             {errors.entity_id && <p className="mt-1 text-xs text-rose-400">{errors.entity_id}</p>}
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Entity Name</label>
-                            <input
-                                type="text" value={formData.entity_name || ''}
-                                onChange={(e) => updateField('entity_name', e.target.value)}
-                                disabled={!!formData.allocation_id}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-50"
-                                placeholder="Website Redesign"
-                            />
                         </div>
                     </div>
                 </div>

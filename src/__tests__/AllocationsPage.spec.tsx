@@ -10,6 +10,7 @@ vi.mock('../services/peopleService', () => ({
     cancel: vi.fn(),
   },
   peopleApi: { getAll: vi.fn() },
+  entitiesApi: { list: vi.fn() },
 }));
 
 let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
@@ -22,10 +23,11 @@ vi.mock('@so360/shell-context', () => ({
 }));
 
 import AllocationsPage from '../pages/AllocationsPage';
-import { allocationsApi, peopleApi } from '../services/peopleService';
+import { allocationsApi, peopleApi, entitiesApi } from '../services/peopleService';
 
 const mockAllocApi = allocationsApi as any;
 const mockPeopleApi = peopleApi as any;
+const mockEntitiesApi = entitiesApi as any;
 
 const renderPage = () =>
   render(<MemoryRouter><AllocationsPage /></MemoryRouter>);
@@ -34,6 +36,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
   mockPeopleApi.getAll.mockResolvedValue({ data: [] });
+  mockEntitiesApi.list.mockResolvedValue({ data: [] });
 });
 
 describe('AllocationsPage', () => {

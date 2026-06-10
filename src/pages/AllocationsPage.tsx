@@ -12,7 +12,8 @@ import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
 import { isUuid } from '../utils/validation';
-import type { Allocation, CreateAllocationPayload, Person, AllocationStatus } from '../types/people';
+import EntitySelector from '../components/EntitySelector';
+import type { Allocation, CreateAllocationPayload, Person, AllocationStatus, EntityOption, LookupEntityType } from '../types/people';
 
 const AllocationsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -330,9 +331,10 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
     const validate = (data: CreateAllocationPayload): Record<string, string> => {
         const next: Record<string, string> = {};
         if (!data.person_id) next.person_id = 'Select a person.';
-        // Backend requires a UUID entity_id — block display ids like "proj-001".
+        // Entity is chosen from a dropdown that yields real UUIDs; the isUuid
+        // guard stays as a backend-contract safety net.
         if (!data.entity_id.trim()) {
-            next.entity_id = 'Entity ID is required.';
+            next.entity_id = 'Select an entity.';
         } else if (!isUuid(data.entity_id)) {
             next.entity_id = 'Entity ID must be a valid UUID (e.g. 550e8400-e29b-41d4-a716-446655440000).';
         }
@@ -373,6 +375,18 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
         setErrors(prev => (prev[field] ? { ...prev, [field]: '' } : prev));
     };
 
+    const handleEntityTypeChange = (entityType: string) => {
+        // Switching type invalidates any previously selected entity.
+        setFormData(prev => ({ ...prev, entity_type: entityType, entity_id: '', entity_name: '' }));
+        setErrors(prev => (prev.entity_id ? { ...prev, entity_id: '' } : prev));
+    };
+
+    const handleEntitySelect = (option: EntityOption | null) => {
+        // Store the picked entity's real UUID + display name internally.
+        setFormData(prev => ({ ...prev, entity_id: option?.id || '', entity_name: option?.name || '' }));
+        setErrors(prev => (prev.entity_id ? { ...prev, entity_id: '' } : prev));
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Create Allocation" size="lg">
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -405,7 +419,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <label className="block text-xs text-slate-400 mb-1">Entity Type *</label>
                             <select
                                 value={formData.entity_type}
-                                onChange={(e) => updateField('entity_type', e.target.value)}
+                                onChange={(e) => handleEntityTypeChange(e.target.value)}
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="project">Project</option>
@@ -413,24 +427,18 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                                 <option value="deal">Deal</option>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Entity ID (UUID) *</label>
-                            <input
-                                type="text" required value={formData.entity_id}
-                                onChange={(e) => updateField('entity_id', e.target.value)}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.entity_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                                placeholder="550e8400-e29b-41d4-a716-446655440000"
+                        <div className="col-span-2">
+                            <label className="block text-xs text-slate-400 mb-1">
+                                {formData.entity_type === 'task' ? 'Project & Task *' : 'Entity *'}
+                            </label>
+                            <EntitySelector
+                                entityType={formData.entity_type as LookupEntityType}
+                                value={formData.entity_id}
+                                displayName={formData.entity_name}
+                                onChange={handleEntitySelect}
+                                error={!!errors.entity_id}
                             />
                             {errors.entity_id && <p className="mt-1 text-xs text-rose-400">{errors.entity_id}</p>}
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Entity Name</label>
-                            <input
-                                type="text" value={formData.entity_name || ''}
-                                onChange={(e) => updateField('entity_name', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                                placeholder="Website Redesign"
-                            />
                         </div>
                     </div>
                 </div>

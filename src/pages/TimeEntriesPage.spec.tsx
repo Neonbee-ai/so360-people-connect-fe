@@ -15,6 +15,7 @@ vi.mock('../services/peopleService', () => ({
   },
   peopleApi: { getAll: vi.fn() },
   allocationsApi: { getAll: vi.fn() },
+  entitiesApi: { list: vi.fn() },
 }));
 
 vi.mock('@so360/shell-context', () => ({
@@ -26,11 +27,12 @@ vi.mock('@so360/shell-context', () => ({
   useBusinessSettings: () => ({ settings: { currency: "USD", timezone: "UTC" } }),}));
 
 import TimeEntriesPage from './TimeEntriesPage';
-import { timeEntriesApi, peopleApi, allocationsApi } from '../services/peopleService';
+import { timeEntriesApi, peopleApi, allocationsApi, entitiesApi } from '../services/peopleService';
 
 const mockTimeApi = timeEntriesApi as any;
 const mockPeopleApi = peopleApi as any;
 const mockAllocApi = allocationsApi as any;
+const mockEntitiesApi = entitiesApi as any;
 
 const renderPage = () => render(<MemoryRouter><TimeEntriesPage /></MemoryRouter>);
 
@@ -51,6 +53,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockPeopleApi.getAll.mockResolvedValue({ data: [] });
   mockAllocApi.getAll.mockResolvedValue({ data: [] });
+  mockEntitiesApi.list.mockResolvedValue({ data: [] });
 });
 
 describe('Given TimeEntriesPage loads with entries', () => {
@@ -125,6 +128,7 @@ describe('Given the log-time form is submitted', () => {
     mockPeopleApi.getAll.mockResolvedValue({
       data: [{ id: PERSON_UUID, full_name: 'Alice', job_title: 'Engineer', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }],
     });
+    mockEntitiesApi.list.mockResolvedValue({ data: [{ id: ENTITY_UUID, name: 'Website Redesign' }] });
     mockTimeApi.create.mockResolvedValue({ id: 'te-new' });
   });
 
@@ -136,19 +140,21 @@ describe('Given the log-time form is submitted', () => {
     return view;
   };
 
-  it('When entity_id is not a UUID / Then it shows a validation error and create is not called', async () => {
+  it('When no entity is selected / Then it shows a validation error and create is not called', async () => {
     const { container } = await openModal();
     fireEvent.change(screen.getByDisplayValue('Select person...'), { target: { value: PERSON_UUID } });
-    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: 'proj-001' } });
     fireEvent.submit(container.querySelector('form')!);
-    await waitFor(() => expect(screen.getByText(/Entity ID must be a valid UUID/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Entity is required/)).toBeInTheDocument());
     expect(mockTimeApi.create).not.toHaveBeenCalled();
   });
 
-  it('When a valid UUID and hours are provided / Then create is called with a UUID entity_id', async () => {
+  it('When an entity is picked from the dropdown / Then create is called with its UUID', async () => {
     const { container } = await openModal();
     fireEvent.change(screen.getByDisplayValue('Select person...'), { target: { value: PERSON_UUID } });
-    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: ENTITY_UUID } });
+    // Open the entity dropdown and choose the loaded option (stores its UUID).
+    fireEvent.click(screen.getByText('Select project...'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
     fireEvent.submit(container.querySelector('form')!);
     await waitFor(() => expect(mockTimeApi.create).toHaveBeenCalledTimes(1));
     const payload = mockTimeApi.create.mock.calls[0][0];
@@ -156,6 +162,7 @@ describe('Given the log-time form is submitted', () => {
       person_id: PERSON_UUID,
       entity_type: 'project',
       entity_id: ENTITY_UUID,
+      entity_name: 'Website Redesign',
       hours: 1,
     });
     expect(typeof payload.hours).toBe('number');

@@ -11,6 +11,7 @@ vi.mock('../services/peopleService', () => ({
     cancel: vi.fn(),
   },
   peopleApi: { getAll: vi.fn() },
+  entitiesApi: { list: vi.fn() },
 }));
 
 vi.mock('@so360/shell-context', () => ({
@@ -21,10 +22,11 @@ vi.mock('@so360/shell-context', () => ({
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
 
 import AllocationsPage from './AllocationsPage';
-import { allocationsApi, peopleApi } from '../services/peopleService';
+import { allocationsApi, peopleApi, entitiesApi } from '../services/peopleService';
 
 const mockAllocApi = allocationsApi as any;
 const mockPeopleApi = peopleApi as any;
+const mockEntitiesApi = entitiesApi as any;
 
 const renderPage = () => render(<MemoryRouter><AllocationsPage /></MemoryRouter>);
 
@@ -45,6 +47,7 @@ const mockAllocation = {
 beforeEach(() => {
   vi.resetAllMocks();
   mockPeopleApi.getAll.mockResolvedValue({ data: [] });
+  mockEntitiesApi.list.mockResolvedValue({ data: [] });
 });
 
 describe('Given AllocationsPage loads successfully', () => {
@@ -125,6 +128,7 @@ describe('Given the create allocation form is submitted', () => {
     mockPeopleApi.getAll.mockResolvedValue({
       data: [{ id: PERSON_UUID, full_name: 'Alice', job_title: 'Dev', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }],
     });
+    mockEntitiesApi.list.mockResolvedValue({ data: [{ id: ENTITY_UUID, name: 'Website Redesign' }] });
     mockAllocApi.create.mockResolvedValue({ id: 'a-new' });
   });
 
@@ -142,20 +146,26 @@ describe('Given the create allocation form is submitted', () => {
     fireEvent.change(dateInputs[1], { target: { value: '2026-06-30' } });
   };
 
-  it('When entity_id is not a UUID / Then it shows a validation error and create is not called', async () => {
+  // Open the entity dropdown and pick the loaded option (stores its real UUID).
+  const pickEntity = async () => {
+    fireEvent.click(screen.getByText('Select project...'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+  };
+
+  it('When no entity is selected / Then it shows a validation error and create is not called', async () => {
     const { container } = await openModal();
     fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
-    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: 'proj-001' } });
     fillDates(container);
     fireEvent.submit(container.querySelector("form")!);
-    await waitFor(() => expect(screen.getByText(/Entity ID must be a valid UUID/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Select an entity/)).toBeInTheDocument());
     expect(mockAllocApi.create).not.toHaveBeenCalled();
   });
 
   it('When percentage is out of range / Then it shows a validation error and create is not called', async () => {
     const { container } = await openModal();
     fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
-    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: ENTITY_UUID } });
+    await pickEntity();
     fillDates(container);
     const pctInput = container.querySelector('input[type="number"]') as HTMLInputElement;
     fireEvent.change(pctInput, { target: { value: '150' } });
@@ -164,10 +174,10 @@ describe('Given the create allocation form is submitted', () => {
     expect(mockAllocApi.create).not.toHaveBeenCalled();
   });
 
-  it('When a valid UUID and percentage are provided / Then create is called with numeric allocation_percentage', async () => {
+  it('When an entity is picked and percentage is valid / Then create is called with its UUID and numeric percentage', async () => {
     const { container } = await openModal();
     fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
-    fireEvent.change(screen.getByPlaceholderText(/550e8400/), { target: { value: ENTITY_UUID } });
+    await pickEntity();
     fillDates(container);
     const pctInput = container.querySelector('input[type="number"]') as HTMLInputElement;
     fireEvent.change(pctInput, { target: { value: '60' } });
@@ -178,6 +188,7 @@ describe('Given the create allocation form is submitted', () => {
       person_id: PERSON_UUID,
       entity_type: 'project',
       entity_id: ENTITY_UUID,
+      entity_name: 'Website Redesign',
       allocation_percentage: 60,
     });
     expect(payload.allocation_percentage).toBe(60);

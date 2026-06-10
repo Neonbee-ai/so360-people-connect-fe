@@ -10,6 +10,8 @@ import type {
   UtilizationSummary,
   PeopleEvent,
   PaginatedResponse,
+  EntityOption,
+  LookupEntityType,
 } from '../types/people';
 import { api, apiContext } from './apiClient';
 
@@ -225,6 +227,18 @@ export const timeEntriesApi = {
 
   reject: async (id: string, reason: string): Promise<TimeEntry> => {
     return api.post<TimeEntry>(`/time-entries/${id}/reject`, { reason });
+  },
+};
+
+// =============================================================================
+// ENTITIES API (cross-service execution entity lookup)
+// =============================================================================
+
+export const entitiesApi = {
+  // Returns UUID-keyed options for the requested entity type. For `task`,
+  // project_id is required (tasks are listed per project).
+  list: async (params: { type: LookupEntityType; search?: string; project_id?: string }): Promise<{ data: EntityOption[] }> => {
+    return api.get<{ data: EntityOption[] }>('/entities', params as Record<string, unknown>);
   },
 };
 

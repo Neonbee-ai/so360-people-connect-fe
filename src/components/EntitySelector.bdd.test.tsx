@@ -1,0 +1,121 @@
+/**
+ * BDD specs for <EntitySelector>.
+ *
+ * The selector replaces free-text "Entity ID (UUID)" entry across Time Entries
+ * and Allocations. It loads UUID-keyed options from the entity lookup proxy and
+ * emits the chosen option (real UUID + display name) so the user never types a
+ * UUID. For `task` it cascades project → task.
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import React from 'react';
+
+vi.mock('../services/peopleService', () => ({
+    entitiesApi: { list: vi.fn() },
+}));
+
+import EntitySelector from './EntitySelector';
+import { entitiesApi } from '../services/peopleService';
+
+const mockList = (entitiesApi as any).list as ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+    vi.resetAllMocks();
+    mockList.mockResolvedValue({ data: [] });
+});
+
+describe('EntitySelector', () => {
+    describe('Given a project selector', () => {
+        beforeEach(() => {
+            mockList.mockResolvedValue({ data: [{ id: 'p-uuid', name: 'Website Redesign' }] });
+        });
+
+        it('When it mounts / Then it loads options for the project type', async () => {
+            render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
+            await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: 'project', project_id: undefined }));
+        });
+
+        it('When an option is picked / Then onChange receives that option (UUID + name)', async () => {
+            const onChange = vi.fn();
+            render(<EntitySelector entityType="project" value="" onChange={onChange} />);
+
+            fireEvent.click(screen.getByText('Select project...'));
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
+            fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+
+            expect(onChange).toHaveBeenCalledWith({ id: 'p-uuid', name: 'Website Redesign' });
+        });
+
+        it('When a search term is typed / Then the option list is filtered', async () => {
+            mockList.mockResolvedValue({
+                data: [{ id: 'p1', name: 'Website Redesign' }, { id: 'p2', name: 'Mobile App' }],
+            });
+            render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
+
+            fireEvent.click(screen.getByText('Select project...'));
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Mobile App' })).toBeInTheDocument());
+            fireEvent.change(screen.getByPlaceholderText('Select project...'), { target: { value: 'mobile' } });
+
+            expect(screen.queryByRole('button', { name: 'Website Redesign' })).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Mobile App' })).toBeInTheDocument();
+        });
+    });
+
+    describe('Given a deal selector', () => {
+        it('When it mounts / Then it loads options for the deal type', async () => {
+            render(<EntitySelector entityType="deal" value="" onChange={() => {}} />);
+            await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: 'deal', project_id: undefined }));
+        });
+    });
+
+    describe('Given a task selector with no project chosen yet', () => {
+        it('When rendered / Then the task dropdown is disabled and tasks are not queried', async () => {
+            render(<EntitySelector entityType="task" value="" onChange={() => {}} />);
+            // Only the project sub-select loads; the task lookup is skipped.
+            await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: 'project', project_id: undefined }));
+            expect(mockList).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'task' }));
+
+            // The task row is gated until a project is selected.
+            const taskRow = screen.getByText('Select task...').closest('div')!;
+            expect(taskRow.className).toContain('cursor-not-allowed');
+        });
+    });
+
+    describe('Given a task selector after a project is chosen', () => {
+        it('When the project is picked / Then tasks are loaded scoped to that project', async () => {
+            mockList.mockImplementation(({ type }: { type: string }) => {
+                if (type === 'project') return Promise.resolve({ data: [{ id: 'proj-uuid', name: 'Website Redesign' }] });
+                if (type === 'task') return Promise.resolve({ data: [{ id: 'task-uuid', name: 'Design header' }] });
+                return Promise.resolve({ data: [] });
+            });
+            const onChange = vi.fn();
+            render(<EntitySelector entityType="task" value="" onChange={onChange} />);
+
+            // Pick the project in the first (cascading) dropdown.
+            fireEvent.click(screen.getByText('Select project...'));
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
+            fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+
+            // Picking a project clears any prior task selection.
+            expect(onChange).toHaveBeenCalledWith(null);
+
+            // The task dropdown now loads tasks for that project.
+            await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: 'task', project_id: 'proj-uuid' }));
+            fireEvent.click(screen.getByText('Select task...'));
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Design header' })).toBeInTheDocument());
+            fireEvent.click(screen.getByRole('button', { name: 'Design header' }));
+
+            expect(onChange).toHaveBeenLastCalledWith({ id: 'task-uuid', name: 'Design header' });
+        });
+    });
+
+    describe('Given the option lookup fails', () => {
+        it('When opened / Then a retry affordance is shown', async () => {
+            mockList.mockRejectedValue(new Error('network'));
+            render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
+
+            fireEvent.click(screen.getByText('Select project...'));
+            await waitFor(() => expect(screen.getByText(/tap to retry/i)).toBeInTheDocument());
+        });
+    });
+});

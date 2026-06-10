@@ -189,6 +189,16 @@ export interface CreateTimeEntryPayload {
   meta?: Record<string, unknown>;
 }
 
+// Entity Lookup (execution entities resolved from sibling services)
+// `id` is always a real UUID — these populate the entity dropdowns so users
+// never type a UUID by hand.
+export type LookupEntityType = 'project' | 'task' | 'deal';
+
+export interface EntityOption {
+  id: string;
+  name: string;
+}
+
 // Utilization
 export interface UtilizationData {
   person: Pick<Person, 'id' | 'full_name' | 'email' | 'avatar_url' | 'job_title' | 'cost_rate' | 'available_hours_per_day' | 'status'>;
