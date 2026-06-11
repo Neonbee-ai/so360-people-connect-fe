@@ -43,19 +43,24 @@ const LeaveCalendarPage: React.FC = () => {
         try {
             const firstDay = new Date(year, month, 1).toISOString().split('T')[0];
             const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0];
-            const result = await leaveRequestsApi.getAll({
-                from_date: firstDay,
-                to_date: lastDay,
-                status: 'approved',
-                limit: 200,
-            });
-            // Also fetch pending
-            const pendingResult = await leaveRequestsApi.getAll({
-                from_date: firstDay,
-                to_date: lastDay,
-                status: 'pending',
-                limit: 200,
-            });
+            // Approved and pending are independent queries — run them in
+            // parallel instead of awaiting one before the other. Merge order is
+            // preserved (approved first, then pending) so the rendered data is
+            // identical to the previous sequential version.
+            const [result, pendingResult] = await Promise.all([
+                leaveRequestsApi.getAll({
+                    from_date: firstDay,
+                    to_date: lastDay,
+                    status: 'approved',
+                    limit: 200,
+                }),
+                leaveRequestsApi.getAll({
+                    from_date: firstDay,
+                    to_date: lastDay,
+                    status: 'pending',
+                    limit: 200,
+                }),
+            ]);
             setLeaveRequests([...(result.data || []), ...(pendingResult.data || [])]);
         } catch (error) {
             console.error('Failed to load leave requests:', error);

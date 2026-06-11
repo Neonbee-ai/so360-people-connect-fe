@@ -122,6 +122,76 @@ describe('Given PeoplePage search interaction', () => {
   });
 });
 
+describe('Given PeoplePage search debounce', () => {
+  // Timer approach: PeoplePage has NO setInterval, so vi.useFakeTimers() is
+  // safe. We drive input with fireEvent.change (NOT userEvent) and advance the
+  // clock manually so the 300ms debounce can be asserted deterministically.
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  it('When several keystrokes arrive in quick succession / Then the list query fires once after the 300ms pause (input stays instant)', async () => {
+    renderPage();
+    // Initial load (debouncedSearch === '') happens on mount.
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    const callsAfterMount = mockApi.getAll.mock.calls.length;
+
+    const searchInput = screen.getByPlaceholderText(/Search/i);
+
+    vi.useFakeTimers();
+    try {
+      // Three rapid keystrokes — the input value updates instantly each time.
+      fireEvent.change(searchInput, { target: { value: 'A' } });
+      fireEvent.change(searchInput, { target: { value: 'Al' } });
+      fireEvent.change(searchInput, { target: { value: 'Ali' } });
+      expect(searchInput).toHaveValue('Ali');
+
+      // Before the debounce window elapses, no new fetch is issued.
+      vi.advanceTimersByTime(299);
+      expect(mockApi.getAll.mock.calls.length).toBe(callsAfterMount);
+
+      // Crossing 300ms triggers exactly one debounced fetch with the final term.
+      vi.advanceTimersByTime(1);
+    } finally {
+      vi.useRealTimers();
+    }
+
+    await waitFor(() =>
+      expect(mockApi.getAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: 'Ali' }),
+      ),
+    );
+    // Only one additional call beyond mount despite three keystrokes.
+    expect(mockApi.getAll.mock.calls.length).toBe(callsAfterMount + 1);
+  });
+
+  it('When typing pauses before completing / Then no intermediate term is ever queried', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    const searchInput = screen.getByPlaceholderText(/Search/i);
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.change(searchInput, { target: { value: 'Bob' } });
+      // Advance only partway — timer still pending, restart on next keystroke.
+      vi.advanceTimersByTime(200);
+      fireEvent.change(searchInput, { target: { value: 'Bobby' } });
+      vi.advanceTimersByTime(300);
+    } finally {
+      vi.useRealTimers();
+    }
+
+    await waitFor(() =>
+      expect(mockApi.getAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: 'Bobby' }),
+      ),
+    );
+    // The intermediate 'Bob' term must never have been sent to the backend.
+    const searchedTerms = mockApi.getAll.mock.calls.map((c: any[]) => c[0]?.search);
+    expect(searchedTerms).not.toContain('Bob');
+  });
+});
+
 describe('Given PeoplePage create modal', () => {
   beforeEach(() => {
     mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });

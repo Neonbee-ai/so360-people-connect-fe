@@ -33,6 +33,12 @@ const PeoplePage: React.FC = () => {
     const [people, setPeople] = useState<Person[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    // Debounced copy of `search` that actually drives the list query. The input
+    // stays bound to raw `search` (instant typing); only the fetch waits for a
+    // 300ms pause so we fire one request per typing burst instead of one per
+    // keystroke. Same results — `search` and `debouncedSearch` converge once
+    // typing stops.
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [typeFilter, setTypeFilter] = useState<string>('');
     const [departmentFilter, setDepartmentFilter] = useState<string>('');
@@ -44,11 +50,19 @@ const PeoplePage: React.FC = () => {
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [currencies, setCurrencies] = useState<string[]>(DEFAULT_CURRENCIES);
 
+    // Debounce the search term: only update `debouncedSearch` 300ms after the
+    // last keystroke. Cleanup cancels the pending timer on each change so a
+    // burst of keystrokes collapses into a single query.
+    useEffect(() => {
+        const handle = setTimeout(() => setDebouncedSearch(search), 300);
+        return () => clearTimeout(handle);
+    }, [search]);
+
     const loadPeople = useCallback(async () => {
         try {
             setLoading(true);
             const result = await peopleApi.getAll({
-                search: search || undefined,
+                search: debouncedSearch || undefined,
                 status: statusFilter || undefined,
                 type: typeFilter || undefined,
                 department_id: departmentFilter || undefined,
@@ -63,7 +77,7 @@ const PeoplePage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [search, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter]);
+    }, [debouncedSearch, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter]);
 
     useEffect(() => {
         loadPeople();
