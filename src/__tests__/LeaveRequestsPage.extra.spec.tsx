@@ -19,6 +19,10 @@ vi.mock('../services/leaveRequestsService', () => ({
   LeaveBalance: {},
 }));
 
+vi.mock('../services/peopleService', () => ({
+  peopleApi: { getMe: vi.fn() },
+}));
+
 vi.mock('../services/leaveTypesService', () => ({
   leaveTypesApi: { getAll: vi.fn() },
   LeaveType: {},
@@ -51,9 +55,11 @@ vi.mock('../utils/formatters', () => ({
 import LeaveRequestsPage from '../pages/LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { leaveTypesApi } from '../services/leaveTypesService';
+import { peopleApi } from '../services/peopleService';
 
 const mockApi = leaveRequestsApi as any;
 const mockLeaveTypes = leaveTypesApi as any;
+const mockPeopleApi = peopleApi as any;
 
 const sampleRequests = [
   {
@@ -80,6 +86,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockLeaveTypes.getAll.mockResolvedValue({ data: [] });
   mockApi.getBalances.mockResolvedValue({ data: [] });
+  mockPeopleApi.getMe.mockResolvedValue({ id: 'person-1', full_name: 'Alice' });
 });
 
 describe('LeaveRequestsPage — extra scenarios', () => {
@@ -191,6 +198,71 @@ describe('LeaveRequestsPage — extra scenarios', () => {
       await waitFor(() =>
         expect(screen.getByText('No leave requests found')).toBeInTheDocument(),
       );
+    });
+  });
+});
+
+// ============================================================================
+//   Person Resolution in Create Modal
+// ============================================================================
+describe('LeaveRequestsPage — person resolution on modal open', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [] });
+  });
+
+  describe('Given getMe resolves successfully', () => {
+    beforeEach(() => {
+      mockPeopleApi.getMe.mockResolvedValue({ id: 'person-1', full_name: 'Alice' });
+    });
+
+    it('When modal opens / Then getMe is called to resolve person', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() => expect(mockPeopleApi.getMe).toHaveBeenCalled());
+    });
+
+    it('When modal opens / Then getBalances is called with the resolved person_id (not auth userId)', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() =>
+        expect(mockApi.getBalances).toHaveBeenCalledWith('person-1'),
+      );
+    });
+
+    it('When modal opens / Then no employee error message is shown', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() => expect(mockPeopleApi.getMe).toHaveBeenCalled());
+      expect(screen.queryByText(/No employee profile found/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Given getMe fails (no people profile linked)', () => {
+    beforeEach(() => {
+      mockPeopleApi.getMe.mockRejectedValue(new Error('No employee profile found for your account.'));
+    });
+
+    it('When modal opens / Then shows employee profile error message', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() =>
+        expect(screen.getByText(/No employee profile found/)).toBeInTheDocument(),
+      );
+    });
+
+    it('When modal opens and getMe fails / Then Submit Request button is disabled', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() =>
+        expect(screen.getByText(/No employee profile found/)).toBeInTheDocument(),
+      );
+      const submitBtn = screen.getByRole('button', { name: 'Submit Request' });
+      expect(submitBtn).toBeDisabled();
     });
   });
 });

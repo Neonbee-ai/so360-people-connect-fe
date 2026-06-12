@@ -45,6 +45,10 @@ export const peopleApi = {
     return api.get<Person>(`/people/${id}`);
   },
 
+  getMe: async (): Promise<Person> => {
+    return api.get<Person>('/people/me');
+  },
+
   create: async (data: CreatePersonPayload): Promise<Person> => {
     return api.post<Person>('/people', data);
   },

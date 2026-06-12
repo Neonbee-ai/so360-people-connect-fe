@@ -96,6 +96,6 @@ export const leaveRequestsApi = {
   },
 
   getBalances: async (personId: string): Promise<{ data: LeaveBalance[] }> => {
-    return api.get<{ data: LeaveBalance[] }>(`/leave-balances/${personId}`);
+    return api.get<{ data: LeaveBalance[] }>('/leave-balances', { person_id: personId });
   },
 };

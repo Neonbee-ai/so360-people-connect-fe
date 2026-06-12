@@ -18,6 +18,10 @@ vi.mock('../services/apiClient', () => ({
   apiContext: { getUserId: () => 'u1' },
 }));
 
+vi.mock('../services/peopleService', () => ({
+  peopleApi: { getMe: vi.fn().mockResolvedValue({ id: 'person-1', full_name: 'Alice' }) },
+}));
+
 
 let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
 

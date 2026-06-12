@@ -10,6 +10,7 @@ import { usePeopleFormatters } from '../utils/formatters';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance } from '../services/leaveRequestsService';
 import { leaveTypesApi, LeaveType } from '../services/leaveTypesService';
 import { apiContext } from '../services/apiClient';
+import { peopleApi } from '../services/peopleService';
 
 const LeaveRequestsPage: React.FC = () => {
     const { recordActivity } = useActivity();
@@ -243,8 +244,9 @@ interface CreateLeaveRequestModalProps {
 const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpen, onClose, onCreate }) => {
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
     const [balances, setBalances] = useState<LeaveBalance[]>([]);
+    const [personError, setPersonError] = useState<string | null>(null);
     const [formData, setFormData] = useState<CreateLeaveRequestPayload>({
-        person_id: apiContext.getUserId() || '',
+        person_id: '',
         leave_type_id: '',
         start_date: new Date().toISOString().split('T')[0],
         end_date: new Date().toISOString().split('T')[0],
@@ -255,10 +257,21 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
 
     useEffect(() => {
         if (isOpen) {
+            resolveCurrentPerson();
             loadLeaveTypes();
-            loadBalances();
         }
     }, [isOpen]);
+
+    const resolveCurrentPerson = async () => {
+        try {
+            setPersonError(null);
+            const person = await peopleApi.getMe();
+            setFormData(prev => ({ ...prev, person_id: person.id }));
+            loadBalances(person.id);
+        } catch {
+            setPersonError('No employee profile found for your account. Please contact your administrator.');
+        }
+    };
 
     const loadLeaveTypes = async () => {
         try {
@@ -269,13 +282,10 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
         }
     };
 
-    const loadBalances = async () => {
+    const loadBalances = async (personId: string) => {
         try {
-            const userId = apiContext.getUserId();
-            if (userId) {
-                const result = await leaveRequestsApi.getBalances(userId);
-                setBalances(result.data || []);
-            }
+            const result = await leaveRequestsApi.getBalances(personId);
+            setBalances(result.data || []);
         } catch (error) {
             console.error('Failed to load leave balances:', error);
         }
@@ -296,7 +306,7 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.leave_type_id || !formData.reason) return;
+        if (!formData.leave_type_id || !formData.reason || !formData.person_id) return;
 
         onCreate(formData);
     };
@@ -310,6 +320,11 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Request Leave">
             <form onSubmit={handleSubmit} className="space-y-5">
+                {personError && (
+                    <div className="p-3 rounded-lg bg-red-900/30 border border-red-700/50 text-sm text-red-300">
+                        {personError}
+                    </div>
+                )}
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Leave Type *</label>
                     <select
@@ -400,7 +415,8 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                     </button>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        disabled={!!personError || !formData.person_id}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Submit Request
                     </button>
