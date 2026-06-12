@@ -329,7 +329,7 @@ const PeoplePage: React.FC = () => {
                     {(isSandboxMode ? people.slice(0, sandboxEntryLimit) : people).map((person) => (
                         <div
                             key={person.id}
-                            onClick={() => navigate(`/people/${person.id}`)}
+                            onClick={() => navigate(`/people/people/${person.id}`)}
                             className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 hover:bg-slate-800/50 cursor-pointer transition-all"
                         >
                             <div className="flex items-center gap-4">

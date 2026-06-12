@@ -184,14 +184,12 @@ describe('PersonDetailPage — extra scenarios', () => {
       mockPeople.getById.mockResolvedValue(alicePerson);
     });
 
-    it('When back arrow / Back button is clicked / Then navigates to people list', async () => {
+    it('When back arrow / Back button is clicked / Then navigates to the shell-scoped list path', async () => {
       renderPage();
       await waitFor(() => screen.getByText('Alice Smith'));
-      const backBtn = screen.queryByRole('button', { name: /back/i });
-      if (backBtn) {
-        fireEvent.click(backBtn);
-        expect(mockNavigate).toHaveBeenCalledWith('/people');
-      }
+      // The shell mounts People Connect at /people/*; the list lives at /people/people.
+      fireEvent.click(screen.getByText('Back to People'));
+      expect(mockNavigate).toHaveBeenCalledWith('/people/people');
     });
   });
 

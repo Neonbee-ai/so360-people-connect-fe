@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../services/peopleService', () => ({
   peopleApi: { getById: vi.fn(), update: vi.fn(), addRole: vi.fn(), removeRole: vi.fn(), getEmploymentHistory: vi.fn(), getRateHistory: vi.fn(), linkUser: vi.fn(), inviteUser: vi.fn() },
   allocationsApi: { getAll: vi.fn() },
@@ -58,6 +64,7 @@ const renderPage = (id = 'p1') => render(
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockNavigate.mockReset();
   (workLocationsApi as any).getAll.mockResolvedValue({ data: [] });
 });
 
@@ -136,6 +143,15 @@ describe('PersonDetailPage', () => {
     it('When Link User is shown for unlinked person / Then it is visible', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Link User')).toBeInTheDocument());
+    });
+
+    it('When the Back arrow button is clicked / Then it navigates to the shell-scoped list path', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+      // The shell mounts People Connect at /people/*; the list is at /people/people
+      // not /people — otherwise the router strips the MFE prefix and shows the dashboard.
+      fireEvent.click(screen.getByText('Back to People'));
+      expect(mockNavigate).toHaveBeenCalledWith('/people/people');
     });
   });
 
@@ -264,6 +280,13 @@ describe('PersonDetailPage', () => {
       await waitFor(() => expect(screen.getByText('Unable to load employee details.')).toBeInTheDocument());
       expect(screen.getByText('Back to list')).toBeInTheDocument();
     });
+
+    it('When Back to list is clicked in the error state / Then it navigates to the shell-scoped list path', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Back to list')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Back to list'));
+      expect(mockNavigate).toHaveBeenCalledWith('/people/people');
+    });
   });
 
   describe('Given the employee id resolves to no record', () => {
@@ -276,6 +299,13 @@ describe('PersonDetailPage', () => {
     it('When the record is empty / Then it shows the not-found state', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Person not found.')).toBeInTheDocument());
+    });
+
+    it('When Back to list is clicked in the not-found state / Then it navigates to the shell-scoped list path', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Back to list')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Back to list'));
+      expect(mockNavigate).toHaveBeenCalledWith('/people/people');
     });
   });
 

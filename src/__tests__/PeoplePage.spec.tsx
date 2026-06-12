@@ -104,11 +104,13 @@ describe('PeoplePage', () => {
       await waitFor(() => expect(screen.getByText('Identity')).toBeInTheDocument());
     });
 
-    it('When a person row is clicked / Then it navigates to the person detail', async () => {
+    it('When a person row is clicked / Then it navigates to the person detail using the shell-scoped path', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
       fireEvent.click(screen.getByText('Alice Johnson'));
-      expect(mockNavigate).toHaveBeenCalledWith('/people/1');
+      // The shell mounts People Connect at /people/*; the People Registry list is at
+      // /people/people, so the detail page must be at /people/people/:id — not /people/:id.
+      expect(mockNavigate).toHaveBeenCalledWith('/people/people/1');
     });
   });
 

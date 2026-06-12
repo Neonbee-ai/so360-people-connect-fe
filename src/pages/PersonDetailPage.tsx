@@ -187,7 +187,7 @@ const PersonDetailPage: React.FC = () => {
         return (
             <div className="p-6 text-center text-slate-400">
                 {loadError === 'load_failed' ? 'Unable to load employee details.' : 'Person not found.'}
-                <button onClick={() => navigate('/people')} className="ml-2 text-teal-400 hover:text-teal-300">
+                <button onClick={() => navigate('/people/people')} className="ml-2 text-teal-400 hover:text-teal-300">
                     Back to list
                 </button>
             </div>
@@ -203,7 +203,7 @@ const PersonDetailPage: React.FC = () => {
     return (
         <div className="p-6 space-y-6">
             {/* Back Navigation */}
-            <button onClick={() => navigate('/people')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+            <button onClick={() => navigate('/people/people')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
                 <ArrowLeft size={16} />
                 Back to People
             </button>
