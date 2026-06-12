@@ -74,9 +74,9 @@ describe('Given leaveRequestsApi.getPendingApprovals', () => {
 });
 
 describe('Given leaveRequestsApi.getBalances', () => {
-  it('When called with personId / Then it calls GET /leave-balances/:personId', async () => {
+  it('When called with personId / Then it calls GET /leave-balances?person_id=', async () => {
     mockApi.get.mockResolvedValue({ data: [] });
     await leaveRequestsApi.getBalances('p1');
-    expect(mockApi.get).toHaveBeenCalledWith('/leave-balances/p1');
+    expect(mockApi.get).toHaveBeenCalledWith('/leave-balances', { person_id: 'p1' });
   });
 });

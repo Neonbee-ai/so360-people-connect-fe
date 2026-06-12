@@ -179,7 +179,7 @@ describe('leaveRequestsApi', () => {
     it('When getBalances is called / Then it calls the balances endpoint', async () => {
       mockApi.get.mockResolvedValue({ data: [] });
       await leaveRequestsApi.getBalances('p1');
-      expect(mockApi.get).toHaveBeenCalledWith('/leave-balances/p1');
+      expect(mockApi.get).toHaveBeenCalledWith('/leave-balances', { person_id: 'p1' });
     });
   });
 });
