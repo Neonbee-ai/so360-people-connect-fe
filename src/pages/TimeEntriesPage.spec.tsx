@@ -144,7 +144,7 @@ describe('Given the log-time form is submitted', () => {
     const { container } = await openModal();
     fireEvent.change(screen.getByDisplayValue('Select person...'), { target: { value: PERSON_UUID } });
     fireEvent.submit(container.querySelector('form')!);
-    await waitFor(() => expect(screen.getByText(/Entity is required/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Please select an entity/)).toBeInTheDocument());
     expect(mockTimeApi.create).not.toHaveBeenCalled();
   });
 
