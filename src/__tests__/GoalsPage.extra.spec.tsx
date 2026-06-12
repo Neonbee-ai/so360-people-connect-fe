@@ -139,7 +139,7 @@ describe('GoalsPage — extra scenarios', () => {
       const updateBtn = screen.queryByText('Update');
       if (updateBtn) {
         fireEvent.click(updateBtn);
-        await waitFor(() => expect(mockApi.updateProgress).toHaveBeenCalledWith('g1', expect.any(Number)));
+        await waitFor(() => expect(mockApi.updateProgress).toHaveBeenCalledWith('g1', expect.any(Number), expect.any(Number)));
       }
     });
   });

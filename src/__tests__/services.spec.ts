@@ -106,10 +106,10 @@ describe('goalsApi', () => {
       expect(mockApi.delete).toHaveBeenCalledWith('/goals/g1');
     });
 
-    it('When updateProgress is called / Then it posts to /goals/:id/update-progress', async () => {
-      mockApi.post.mockResolvedValue({ id: 'g1' });
-      await goalsApi.updateProgress('g1', 75);
-      expect(mockApi.post).toHaveBeenCalledWith('/goals/g1/update-progress', { current_value: 75 });
+    it('When updateProgress is called / Then it PATCHes /goals/:id/progress with computed percentage', async () => {
+      mockApi.patch.mockResolvedValue({ id: 'g1' });
+      await goalsApi.updateProgress('g1', 75, 100);
+      expect(mockApi.patch).toHaveBeenCalledWith('/goals/g1/progress', { current_value: 75, progress_percentage: 75 });
     });
 
     it('When complete is called / Then it posts to /goals/:id/complete', async () => {
