@@ -240,6 +240,23 @@ describe('LeaveRequestsPage — person resolution on modal open', () => {
     });
   });
 
+  describe('Given getMe resolves undefined (no people profile linked, backend returns null)', () => {
+    beforeEach(() => {
+      mockPeopleApi.getMe.mockResolvedValue(undefined);
+    });
+
+    it('When modal opens / Then shows the employee profile error without throwing', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() =>
+        expect(screen.getByText(/No employee profile found/)).toBeInTheDocument(),
+      );
+      // getBalances must NOT be called when no person resolved
+      expect(mockApi.getBalances).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Given getMe fails (no people profile linked)', () => {
     beforeEach(() => {
       mockPeopleApi.getMe.mockRejectedValue(new Error('No employee profile found for your account.'));

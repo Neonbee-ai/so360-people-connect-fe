@@ -266,8 +266,17 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
         try {
             setPersonError(null);
             const person = await peopleApi.getMe();
-            setFormData(prev => ({ ...prev, person_id: person.id }));
-            loadBalances(person.id);
+            // Read the id eagerly: when no People profile is linked the backend
+            // can resolve `undefined` (instead of rejecting). Reading `person.id`
+            // inside the setFormData updater would defer the access into React's
+            // reducer — outside this try — surfacing as an unhandled error.
+            const personId = person?.id;
+            if (!personId) {
+                setPersonError('No employee profile found for your account. Please contact your administrator.');
+                return;
+            }
+            setFormData(prev => ({ ...prev, person_id: personId }));
+            loadBalances(personId);
         } catch {
             setPersonError('No employee profile found for your account. Please contact your administrator.');
         }
