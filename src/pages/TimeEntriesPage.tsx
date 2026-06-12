@@ -478,12 +478,10 @@ const CreateTimeEntryModal: React.FC<CreateTimeEntryModalProps> = ({ isOpen, onC
         const entityId = (data.entity_id ?? '').trim();
         if (data.entity_type !== 'internal') {
             if (!entityId) {
-                next.entity_id = 'Entity is required for this entity type.';
+                next.entity_id = 'Please select an entity.';
             } else if (!isUuid(entityId)) {
-                next.entity_id = 'Entity ID must be a valid UUID (e.g. 550e8400-e29b-41d4-a716-446655440000).';
+                next.entity_id = 'Please select a valid entity from the dropdown.';
             }
-        } else if (entityId && !isUuid(entityId)) {
-            next.entity_id = 'Entity ID must be a valid UUID when provided.';
         }
         if (!data.work_date) next.work_date = 'Work date is required.';
         const hours = Number(data.hours);
