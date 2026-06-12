@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
+
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 vi.mock('../services/peopleService', () => ({
   utilizationApi: { getSummary: vi.fn() },
@@ -26,7 +33,10 @@ const mockEvents = eventsApi as any;
 
 const renderPage = () => render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockNavigate.mockReset();
+});
 
 describe('Given DashboardPage with full data', () => {
   beforeEach(() => {
@@ -114,5 +124,59 @@ describe('Given DashboardPage API failure', () => {
   it('When all APIs fail / Then the page still renders without crashing', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('People Connect')).toBeInTheDocument());
+  });
+});
+
+/**
+ * BDD specs: "Add Person" button on the Dashboard navigates to the correct
+ * People Registry path (/people/people) so the Create Person modal can open.
+ *
+ * Regression: the button previously called navigate('/people', ...) which
+ * resolved to the MFE root route, triggered its <Navigate to="dashboard">
+ * redirect, and discarded the { openCreate: true } state — leaving the modal
+ * permanently closed. The fix targets /people/people (the full shell path for
+ * the People Registry page).
+ */
+describe('Given the Add Person button on the Dashboard', () => {
+  beforeEach(() => {
+    mockUtil.getSummary.mockResolvedValue({
+      total_people: 3,
+      avg_utilization_pct: 60,
+      total_hours_this_week: 80,
+      total_cost_this_week: 4000,
+      active_allocations: 2,
+      pending_approvals: 0,
+      burn_rate_daily: 800,
+    });
+    mockTime.getAll.mockResolvedValue({ data: [] });
+    mockEvents.getAll.mockResolvedValue({ data: [] });
+  });
+
+  it('When the page loads / Then the Add Person button is visible', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /add person/i })).toBeInTheDocument(),
+    );
+  });
+
+  it('When clicked / Then it navigates to /people/people with openCreate:true in state', async () => {
+    renderPage();
+    await waitFor(() => screen.getByRole('button', { name: /add person/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add person/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/people', { state: { openCreate: true } });
+  });
+
+  it('When clicked / Then it does NOT navigate to bare /people (regression guard: was routing to MFE root, discarding openCreate state)', async () => {
+    renderPage();
+    await waitFor(() => screen.getByRole('button', { name: /add person/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add person/i }));
+    expect(mockNavigate).not.toHaveBeenCalledWith('/people', expect.anything());
+  });
+
+  it('When clicked / Then exactly one navigation call is made', async () => {
+    renderPage();
+    await waitFor(() => screen.getByRole('button', { name: /add person/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add person/i }));
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
   });
 });

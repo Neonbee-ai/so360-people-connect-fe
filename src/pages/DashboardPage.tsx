@@ -76,7 +76,7 @@ const DashboardPage: React.FC = () => {
                 subtitle="Resource control, allocation, and utilization intelligence"
                 actions={
                     <button
-                        onClick={() => navigate('/people', { state: { openCreate: true } })}
+                        onClick={() => navigate('/people/people', { state: { openCreate: true } })}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
                         <UserPlus size={16} />
