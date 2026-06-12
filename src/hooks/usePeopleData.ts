@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { peopleApi, allocationsApi, timeEntriesApi, utilizationApi, eventsApi } from '../services/peopleService';
+import { peopleApi, allocationsApi, utilizationApi, eventsApi } from '../services/peopleService';
 import type {
-    Person, Allocation, TimeEntry, UtilizationData,
+    Person, Allocation, UtilizationData,
     UtilizationSummary, PeopleEvent, PaginatedResponse,
 } from '../types/people';
 
@@ -71,15 +71,8 @@ export function useAllocations(params?: { person_id?: string; entity_id?: string
     );
 }
 
-/**
- * Hook for loading time entries with filters.
- */
-export function useTimeEntries(params?: { person_id?: string; entity_id?: string; status?: string; from_date?: string; to_date?: string; page?: number; limit?: number }) {
-    return useAsyncData<PaginatedResponse<TimeEntry>>(
-        () => timeEntriesApi.getAll(params),
-        [params?.person_id, params?.entity_id, params?.status, params?.from_date, params?.to_date, params?.page, params?.limit]
-    );
-}
+// useTimeEntries removed — time logging is consolidated into the Timesheets
+// module; consume read-only data via src/services/timesheetApi.ts instead.
 
 /**
  * Hook for loading utilization data.

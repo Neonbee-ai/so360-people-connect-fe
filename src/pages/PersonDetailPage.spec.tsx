@@ -15,7 +15,10 @@ vi.mock('../services/peopleService', () => ({
     inviteUser: vi.fn(),
   },
   allocationsApi: { getAll: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
+}));
+
+vi.mock('../services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn() },
 }));
 
 vi.mock('../services/goalsService', () => ({
@@ -48,13 +51,14 @@ vi.mock('../utils/formatters', () => ({
 }));
 
 import PersonDetailPage from './PersonDetailPage';
-import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
+import { peopleApi, allocationsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
 import { goalsApi } from '../services/goalsService';
 import { workLocationsApi } from '../services/workLocationsService';
 
 const mockPeopleApi = peopleApi as any;
 const mockAllocApi = allocationsApi as any;
-const mockTimeApi = timeEntriesApi as any;
+const mockTimeApi = timesheetApi as any;
 const mockGoalsApi = goalsApi as any;
 
 const renderPage = (id = 'p1') =>
@@ -94,7 +98,7 @@ describe('Given PersonDetailPage loads successfully', () => {
   beforeEach(() => {
     mockPeopleApi.getById.mockResolvedValue(mockPerson);
     mockAllocApi.getAll.mockResolvedValue({ data: [] });
-    mockTimeApi.getAll.mockResolvedValue({ data: [] });
+    mockTimeApi.getEntries.mockResolvedValue({ data: [] });
   });
 
   it('When page loads / Then person full name is shown', async () => {
@@ -122,7 +126,7 @@ describe('Given PersonDetailPage API failure', () => {
   beforeEach(() => {
     mockPeopleApi.getById.mockRejectedValue(new Error('Not found'));
     mockAllocApi.getAll.mockResolvedValue({ data: [] });
-    mockTimeApi.getAll.mockResolvedValue({ data: [] });
+    mockTimeApi.getEntries.mockResolvedValue({ data: [] });
   });
 
   it('When person load fails / Then the error state is shown', async () => {
@@ -135,7 +139,7 @@ describe('Given PersonDetailPage tab navigation', () => {
   beforeEach(() => {
     mockPeopleApi.getById.mockResolvedValue(mockPerson);
     mockAllocApi.getAll.mockResolvedValue({ data: [] });
-    mockTimeApi.getAll.mockResolvedValue({ data: [] });
+    mockTimeApi.getEntries.mockResolvedValue({ data: [] });
   });
 
   it('When page loads / Then the overview tab is active by default', async () => {

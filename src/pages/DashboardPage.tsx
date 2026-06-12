@@ -10,8 +10,10 @@ import {
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
-import { utilizationApi, timeEntriesApi, eventsApi } from '../services/peopleService';
-import type { UtilizationSummary, TimeEntry, PeopleEvent } from '../types/people';
+import { utilizationApi, eventsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
+import type { TimesheetEntry } from '../services/timesheetApi';
+import type { UtilizationSummary, PeopleEvent } from '../types/people';
 
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
@@ -22,7 +24,7 @@ const DashboardPage: React.FC = () => {
         timezone: settings?.timezone || 'UTC',
     });
     const [summary, setSummary] = useState<UtilizationSummary | null>(null);
-    const [recentEntries, setRecentEntries] = useState<TimeEntry[]>([]);
+    const [recentEntries, setRecentEntries] = useState<TimesheetEntry[]>([]);
     const [recentEvents, setRecentEvents] = useState<PeopleEvent[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -31,7 +33,8 @@ const DashboardPage: React.FC = () => {
             try {
                 const [summaryData, entriesData, eventsData] = await Promise.all([
                     utilizationApi.getSummary(),
-                    timeEntriesApi.getAll({ limit: 5 }),
+                    // Read-only: recent entries come from the Timesheets module
+                    timesheetApi.getEntries({ limit: 5 }),
                     eventsApi.getAll({ limit: 8 }),
                 ]);
                 setSummary(summaryData);
@@ -151,7 +154,7 @@ const DashboardPage: React.FC = () => {
                 {/* Recent Time Entries */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
                     <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-slate-50">Recent Time Entries</h3>
+                        <h3 className="text-sm font-semibold text-slate-50">Recent Timesheet Entries</h3>
                         <button
                             onClick={() => navigate('/time')}
                             className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1"
@@ -166,9 +169,9 @@ const DashboardPage: React.FC = () => {
                             recentEntries.map((entry) => (
                                 <div key={entry.id} className="px-5 py-3 flex items-center justify-between">
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-sm text-slate-50 truncate">{entry.person?.full_name || 'Unknown'}</div>
+                                        <div className="text-sm text-slate-50 truncate">{entry.entity_name || entry.entity_type || 'Time entry'}</div>
                                         <div className="text-xs text-slate-500 truncate">
-                                            {entry.entity_name || entry.entity_type} - {entry.description || 'No description'}
+                                            {entry.entry_date} - {entry.description || 'No description'}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 ml-3">

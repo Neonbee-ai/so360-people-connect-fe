@@ -4,8 +4,6 @@ import type {
   PersonRole,
   Allocation,
   CreateAllocationPayload,
-  TimeEntry,
-  CreateTimeEntryPayload,
   UtilizationData,
   UtilizationSummary,
   PeopleEvent,
@@ -208,38 +206,10 @@ export const allocationsApi = {
 };
 
 // =============================================================================
-// TIME ENTRIES API
+// TIME ENTRIES — REMOVED
+// All time logging is consolidated into the Timesheets module. People Connect
+// only consumes timesheet data read-only via `timesheetApi` (./timesheetApi).
 // =============================================================================
-
-export const timeEntriesApi = {
-  getAll: async (params?: { person_id?: string; entity_id?: string; status?: string; from_date?: string; to_date?: string; page?: number; limit?: number }): Promise<PaginatedResponse<TimeEntry>> => {
-    return api.get<PaginatedResponse<TimeEntry>>('/time-entries', params);
-  },
-
-  create: async (data: CreateTimeEntryPayload): Promise<TimeEntry> => {
-    return api.post<TimeEntry>('/time-entries', data);
-  },
-
-  update: async (id: string, data: Partial<TimeEntry>): Promise<TimeEntry> => {
-    return api.patch<TimeEntry>(`/time-entries/${id}`, data);
-  },
-
-  delete: async (id: string): Promise<{ message: string }> => {
-    return api.delete<{ message: string }>(`/time-entries/${id}`);
-  },
-
-  submit: async (id: string): Promise<TimeEntry> => {
-    return api.post<TimeEntry>(`/time-entries/${id}/submit`, {});
-  },
-
-  approve: async (id: string): Promise<TimeEntry> => {
-    return api.post<TimeEntry>(`/time-entries/${id}/approve`, {});
-  },
-
-  reject: async (id: string, reason: string): Promise<TimeEntry> => {
-    return api.post<TimeEntry>(`/time-entries/${id}/reject`, { reason });
-  },
-};
 
 // =============================================================================
 // ENTITIES API (cross-service execution entity lookup)

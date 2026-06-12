@@ -114,7 +114,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const PeoplePage = lazy(() => import('./pages/PeoplePage'));
 const PersonDetailPage = lazy(() => import('./pages/PersonDetailPage'));
 const AllocationsPage = lazy(() => import('./pages/AllocationsPage'));
-const TimeEntriesPage = lazy(() => import('./pages/TimeEntriesPage'));
+const EmployeeTimesheetsPage = lazy(() => import('./pages/EmployeeTimesheetsPage'));
 const UtilizationPage = lazy(() => import('./pages/UtilizationPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
 
@@ -168,7 +168,8 @@ const App = () => {
 
                     {/* Allocations & Time */}
                     <Route path="allocations" element={<FeatureGate flagKey="submodule:people:allocations"><AllocationsPage /></FeatureGate>} />
-                    <Route path="time" element={<TimeEntriesPage />} />
+                    {/* Read-only Employee Timesheets (time logging lives in the Timesheets module) */}
+                    <Route path="time" element={<EmployeeTimesheetsPage />} />
                     <Route path="utilization" element={<FeatureGate flagKey="submodule:people:utilization"><UtilizationPage /></FeatureGate>} />
 
                     {/* Leave Management */}

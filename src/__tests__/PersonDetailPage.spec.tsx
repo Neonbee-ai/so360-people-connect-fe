@@ -11,7 +11,10 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../services/peopleService', () => ({
   peopleApi: { getById: vi.fn(), update: vi.fn(), addRole: vi.fn(), removeRole: vi.fn(), getEmploymentHistory: vi.fn(), getRateHistory: vi.fn(), linkUser: vi.fn(), inviteUser: vi.fn() },
   allocationsApi: { getAll: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
+}));
+
+vi.mock('../services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn() },
 }));
 
 vi.mock('../services/goalsService', () => ({
@@ -44,13 +47,14 @@ vi.mock('../utils/formatters', () => ({
 }));
 
 import PersonDetailPage from '../pages/PersonDetailPage';
-import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
+import { peopleApi, allocationsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
 import { goalsApi } from '../services/goalsService';
 import { workLocationsApi } from '../services/workLocationsService';
 
 const mockPeople = peopleApi as any;
 const mockAlloc = allocationsApi as any;
-const mockTime = timeEntriesApi as any;
+const mockTime = timesheetApi as any;
 const mockGoals = goalsApi as any;
 
 const renderPage = (id = 'p1') => render(
@@ -86,9 +90,9 @@ describe('PersonDetailPage', () => {
           { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_percentage: 50, status: 'active' },
         ],
       });
-      mockTime.getAll.mockResolvedValue({
+      mockTime.getEntries.mockResolvedValue({
         data: [
-          { id: 'te1', entity_name: 'Website', entity_type: 'project', work_date: '2025-06-01', hours: 8, total_cost: 400, status: 'approved', description: 'Dev work' },
+          { id: 'te1', entity_name: 'Website', entity_type: 'project', entry_date: '2025-06-01', hours: 8, calculated_cost: 400, status: 'approved', description: 'Dev work' },
         ],
       });
     });
@@ -172,9 +176,9 @@ describe('PersonDetailPage', () => {
           { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_percentage: 50, status: 'active' },
         ],
       });
-      mockTime.getAll.mockResolvedValue({
+      mockTime.getEntries.mockResolvedValue({
         data: [
-          { id: 'te1', entity_name: 'Website', entity_type: 'project', work_date: '2025-06-01', hours: 8, total_cost: 400, status: 'approved', description: 'Dev work' },
+          { id: 'te1', entity_name: 'Website', entity_type: 'project', entry_date: '2025-06-01', hours: 8, calculated_cost: 400, status: 'approved', description: 'Dev work' },
         ],
       });
     });
@@ -272,7 +276,7 @@ describe('PersonDetailPage', () => {
     beforeEach(() => {
       mockPeople.getById.mockRejectedValue(new Error('Network error'));
       mockAlloc.getAll.mockResolvedValue({ data: [] });
-      mockTime.getAll.mockResolvedValue({ data: [] });
+      mockTime.getEntries.mockResolvedValue({ data: [] });
     });
 
     it('When the detail fetch rejects / Then it shows an error state instead of a blank page', async () => {
@@ -293,7 +297,7 @@ describe('PersonDetailPage', () => {
     beforeEach(() => {
       mockPeople.getById.mockResolvedValue(null);
       mockAlloc.getAll.mockResolvedValue({ data: [] });
-      mockTime.getAll.mockResolvedValue({ data: [] });
+      mockTime.getEntries.mockResolvedValue({ data: [] });
     });
 
     it('When the record is empty / Then it shows the not-found state', async () => {
@@ -317,7 +321,7 @@ describe('PersonDetailPage', () => {
         people_roles: [],
       });
       mockAlloc.getAll.mockRejectedValue(new Error('allocations down'));
-      mockTime.getAll.mockRejectedValue(new Error('time entries down'));
+      mockTime.getEntries.mockRejectedValue(new Error('time entries down'));
     });
 
     it('When allocations and time entries reject / Then the profile still renders (no blank page)', async () => {
@@ -338,7 +342,7 @@ describe('PersonDetailPage', () => {
         people_roles: [],
       });
       mockAlloc.getAll.mockResolvedValue({ data: [] });
-      mockTime.getAll.mockResolvedValue({ data: [] });
+      mockTime.getEntries.mockResolvedValue({ data: [] });
     });
 
     it('When full_name is null / Then the page renders a fallback instead of crashing', async () => {

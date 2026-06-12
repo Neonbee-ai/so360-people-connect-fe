@@ -11,8 +11,11 @@ vi.mock('../services/peopleService', () => ({
     setUser: vi.fn(),
   },
   utilizationApi: { getSummary: vi.fn().mockResolvedValue({ total_people: 0, avg_utilization_pct: 0, total_hours_this_week: 0, total_cost_this_week: 0, active_allocations: 0, pending_approvals: 0, burn_rate_daily: 0 }) },
-  timeEntriesApi: { getAll: vi.fn().mockResolvedValue({ data: [] }) },
   eventsApi: { getAll: vi.fn().mockResolvedValue({ data: [] }) },
+}));
+
+vi.mock('../services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn().mockResolvedValue({ data: [] }), getUtilization: vi.fn().mockResolvedValue({ people: [] }) },
 }));
 
 let mockShellData: any = {
@@ -32,7 +35,8 @@ vi.mock('@so360/shell-context', () => ({
 }));
 
 import App from '../App';
-import { peopleService, utilizationApi, timeEntriesApi, eventsApi } from '../services/peopleService';
+import { peopleService, utilizationApi, eventsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
 
 const mockService = peopleService as any;
 
@@ -46,7 +50,8 @@ beforeEach(() => {
   };
   // Re-set mocks wiped by vi.resetAllMocks() so DashboardPage doesn't crash
   (utilizationApi as any).getSummary.mockResolvedValue({ total_people: 0, avg_utilization_pct: 0, total_hours_this_week: 0, total_cost_this_week: 0, active_allocations: 0, pending_approvals: 0, burn_rate_daily: 0 });
-  (timeEntriesApi as any).getAll.mockResolvedValue({ data: [] });
+  (timesheetApi as any).getEntries.mockResolvedValue({ data: [] });
+  (timesheetApi as any).getUtilization.mockResolvedValue({ people: [] });
   (eventsApi as any).getAll.mockResolvedValue({ data: [] });
 });
 

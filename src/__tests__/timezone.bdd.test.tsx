@@ -73,9 +73,10 @@ vi.mock('../services/peopleService', () => ({
   allocationsApi: {
     getAll: vi.fn(),
   },
-  timeEntriesApi: {
-    getAll: vi.fn(),
-  },
+}));
+
+vi.mock('../services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn() },
 }));
 
 vi.mock('../services/goalsService', () => ({
@@ -124,7 +125,8 @@ import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { leaveTypesApi } from '../services/leaveTypesService';
 import { performanceReviewsApi } from '../services/performanceReviewsService';
 import { reviewTemplatesApi } from '../services/reviewTemplatesService';
-import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
+import { peopleApi, allocationsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
 import { workLocationsApi } from '../services/workLocationsService';
 import { feedbackApi } from '../services/feedbackService';
 
@@ -134,7 +136,7 @@ const reviewsApi = performanceReviewsApi as any;
 const templatesApi = reviewTemplatesApi as any;
 const people = peopleApi as any;
 const allocs = allocationsApi as any;
-const time = timeEntriesApi as any;
+const time = timesheetApi as any;
 const locations = workLocationsApi as any;
 const feedback = feedbackApi as any;
 
@@ -390,7 +392,7 @@ describe('PersonDetailPage — timezone date rendering', () => {
     beforeEach(() => {
       people.getById.mockResolvedValue(mockPerson);
       allocs.getAll.mockResolvedValue({ data: [] });
-      time.getAll.mockResolvedValue({ data: [] });
+      time.getEntries.mockResolvedValue({ data: [] });
       locations.getAll.mockResolvedValue({ data: [] });
       people.getEmploymentHistory.mockResolvedValue([mockEmploymentEvent]);
       people.getRateHistory.mockResolvedValue([]);
@@ -431,7 +433,7 @@ describe('PersonDetailPage — timezone date rendering', () => {
     beforeEach(() => {
       people.getById.mockRejectedValue(new Error('Person not found'));
       allocs.getAll.mockResolvedValue({ data: [] });
-      time.getAll.mockResolvedValue({ data: [] });
+      time.getEntries.mockResolvedValue({ data: [] });
       locations.getAll.mockResolvedValue({ data: [] });
     });
 

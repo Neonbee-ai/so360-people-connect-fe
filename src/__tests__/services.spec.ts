@@ -37,7 +37,6 @@ import { reviewTemplatesApi } from '../services/reviewTemplatesService';
 import {
   peopleApi,
   allocationsApi,
-  timeEntriesApi,
   utilizationApi,
   eventsApi,
 } from '../services/peopleService';
@@ -503,51 +502,8 @@ describe('allocationsApi', () => {
   });
 });
 
-describe('timeEntriesApi', () => {
-  describe('Given the time entries API', () => {
-    it('When getAll is called / Then it calls api.get', async () => {
-      mockApi.get.mockResolvedValue({ data: [] });
-      await timeEntriesApi.getAll({ status: 'draft' });
-      expect(mockApi.get).toHaveBeenCalledWith('/time-entries', { status: 'draft' });
-    });
-
-    it('When create is called / Then it posts', async () => {
-      mockApi.post.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.create({} as any);
-      expect(mockApi.post).toHaveBeenCalled();
-    });
-
-    it('When update is called / Then it patches', async () => {
-      mockApi.patch.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.update('te1', {} as any);
-      expect(mockApi.patch).toHaveBeenCalled();
-    });
-
-    it('When delete is called / Then it deletes', async () => {
-      mockApi.delete.mockResolvedValue({ message: 'ok' });
-      await timeEntriesApi.delete('te1');
-      expect(mockApi.delete).toHaveBeenCalledWith('/time-entries/te1');
-    });
-
-    it('When submit is called / Then it posts', async () => {
-      mockApi.post.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.submit('te1');
-      expect(mockApi.post).toHaveBeenCalledWith('/time-entries/te1/submit', {});
-    });
-
-    it('When approve is called / Then it posts', async () => {
-      mockApi.post.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.approve('te1');
-      expect(mockApi.post).toHaveBeenCalledWith('/time-entries/te1/approve', {});
-    });
-
-    it('When reject is called / Then it posts with reason', async () => {
-      mockApi.post.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.reject('te1', 'Bad entry');
-      expect(mockApi.post).toHaveBeenCalledWith('/time-entries/te1/reject', { reason: 'Bad entry' });
-    });
-  });
-});
+// timeEntriesApi specs removed — time logging is consolidated into the
+// Timesheets module; see src/services/timesheetApi.spec.ts for the read-only client.
 
 describe('utilizationApi', () => {
   describe('Given the utilization API', () => {

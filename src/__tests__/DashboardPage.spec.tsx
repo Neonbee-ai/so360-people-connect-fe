@@ -4,8 +4,11 @@ import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../services/peopleService', () => ({
   utilizationApi: { getSummary: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
   eventsApi: { getAll: vi.fn() },
+}));
+
+vi.mock('../services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn(), getUtilization: vi.fn() },
 }));
 
 vi.mock('@so360/shell-context', () => ({
@@ -17,10 +20,11 @@ vi.mock('@so360/shell-context', () => ({
 }));
 
 import DashboardPage from '../pages/DashboardPage';
-import { utilizationApi, timeEntriesApi, eventsApi } from '../services/peopleService';
+import { utilizationApi, eventsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
 
 const mockUtil = utilizationApi as any;
-const mockTime = timeEntriesApi as any;
+const mockTimesheet = timesheetApi as any;
 const mockEvents = eventsApi as any;
 
 const renderPage = () => render(<MemoryRouter><DashboardPage /></MemoryRouter>);
@@ -39,9 +43,9 @@ describe('DashboardPage', () => {
         pending_approvals: 2,
         burn_rate_daily: 3400,
       });
-      mockTime.getAll.mockResolvedValue({
+      mockTimesheet.getEntries.mockResolvedValue({
         data: [
-          { id: 'te1', person: { full_name: 'Alice' }, entity_name: 'Project X', entity_type: 'project', hours: 8, status: 'approved', description: 'Dev work' },
+          { id: 'te1', entity_name: 'Project X', entity_type: 'project', entry_date: '2026-06-08', hours: 8, status: 'approved', description: 'Dev work' },
         ],
       });
       mockEvents.getAll.mockResolvedValue({
@@ -58,9 +62,9 @@ describe('DashboardPage', () => {
       expect(screen.getByText('72%')).toBeInTheDocument();
     });
 
-    it('When the page loads / Then it shows recent time entries', async () => {
+    it('When the page loads / Then it shows recent timesheet entries', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Project X')).toBeInTheDocument());
       expect(screen.getByText('8h')).toBeInTheDocument();
     });
 
@@ -81,7 +85,7 @@ describe('DashboardPage', () => {
         pending_approvals: 5,
         burn_rate_daily: 1000,
       });
-      mockTime.getAll.mockResolvedValue({ data: [] });
+      mockTimesheet.getEntries.mockResolvedValue({ data: [] });
       mockEvents.getAll.mockResolvedValue({ data: [] });
     });
 
@@ -104,7 +108,7 @@ describe('DashboardPage', () => {
   describe('Given API calls fail', () => {
     beforeEach(() => {
       mockUtil.getSummary.mockRejectedValue(new Error('fail'));
-      mockTime.getAll.mockRejectedValue(new Error('fail'));
+      mockTimesheet.getEntries.mockRejectedValue(new Error('fail'));
       mockEvents.getAll.mockRejectedValue(new Error('fail'));
     });
 

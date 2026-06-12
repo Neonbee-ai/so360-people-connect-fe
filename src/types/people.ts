@@ -138,56 +138,8 @@ export interface CreateAllocationPayload {
   meta?: Record<string, unknown>;
 }
 
-// Time Entry
-export interface TimeEntry {
-  id: string;
-  org_id: string;
-  tenant_id: string;
-  person_id: string;
-  allocation_id?: string;
-
-  entity_type: string;
-  entity_id: string;
-  entity_name?: string;
-
-  work_date: string;
-  hours: number;
-  description?: string;
-
-  cost_rate: number;
-  cost_rate_unit: string;
-  total_cost: number;
-  currency: string;
-
-  status: TimeEntryStatus;
-  submitted_at?: string;
-  approved_by?: string;
-  approved_at?: string;
-  rejection_reason?: string;
-
-  meta?: Record<string, unknown>;
-  created_at: string;
-  updated_at?: string;
-  created_by?: string;
-
-  // Joined
-  person?: Pick<Person, 'id' | 'full_name' | 'email' | 'avatar_url' | 'job_title' | 'cost_rate'>;
-}
-
-export type TimeEntryStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
-
-export interface CreateTimeEntryPayload {
-  person_id: string;
-  allocation_id?: string;
-  entity_type: string;
-  // Optional: omitted for 'internal' time; a UUID for project/task/deal.
-  entity_id?: string;
-  entity_name?: string;
-  work_date: string;
-  hours: number;
-  description?: string;
-  meta?: Record<string, unknown>;
-}
+// Time Entry types removed — time logging is consolidated into the Timesheets
+// module. See src/services/timesheetApi.ts for the read-only consumer types.
 
 // Entity Lookup (execution entities resolved from sibling services)
 // `id` is always a real UUID — these populate the entity dropdowns so users

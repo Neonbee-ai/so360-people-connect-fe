@@ -10,10 +10,12 @@ import Toast, { ToastType } from '../components/Toast';
 import EmptyState from '../components/EmptyState';
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
-import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
+import { peopleApi, allocationsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
+import type { TimesheetEntry } from '../services/timesheetApi';
 import { goalsApi, Goal } from '../services/goalsService';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
-import type { Person, Allocation, TimeEntry, PersonRole } from '../types/people';
+import type { Person, Allocation, PersonRole } from '../types/people';
 
 const PersonDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -22,7 +24,7 @@ const PersonDetailPage: React.FC = () => {
     const formatters = usePeopleFormatters();
     const [person, setPerson] = useState<Person | null>(null);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
-    const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+    const [timeEntries, setTimeEntries] = useState<TimesheetEntry[]>([]);
     const [employmentHistory, setEmploymentHistory] = useState<any[]>([]);
     const [rateHistory, setRateHistory] = useState<any[]>([]);
     const [goals, setGoals] = useState<any[]>([]);
@@ -72,7 +74,8 @@ const PersonDetailPage: React.FC = () => {
             //    in any of these must NOT blank the page — degrade gracefully to [].
             const [allocRes, timeRes, locRes] = await Promise.allSettled([
                 allocationsApi.getAll({ person_id: id }),
-                timeEntriesApi.getAll({ person_id: id, limit: 10 }),
+                // Read-only: time entries come from the Timesheets module
+                timesheetApi.getEntries({ person_id: id, limit: 10 }),
                 workLocationsApi.getAll(),
             ]);
             if (cancelled) return;
@@ -530,14 +533,14 @@ const PersonDetailPage: React.FC = () => {
                                     <div key={entry.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-sm text-slate-50">{entry.entity_name || entry.entity_type}</div>
+                                                <div className="text-sm text-slate-50">{entry.entity_name || entry.entity_type || 'Time entry'}</div>
                                                 <div className="text-xs text-slate-500">
-                                                    {entry.work_date} | {entry.description || 'No description'}
+                                                    {entry.entry_date} | {entry.description || 'No description'}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-sm font-medium text-slate-50">{entry.hours}h</span>
-                                                <span className="text-xs text-slate-400">${entry.total_cost}</span>
+                                                <span className="text-xs text-slate-400">${entry.calculated_cost || 0}</span>
                                                 <StatusBadge status={entry.status} />
                                             </div>
                                         </div>

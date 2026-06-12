@@ -49,7 +49,7 @@ const navigationItems: NavSection[] = [
         section: 'Resource Management',
         items: [
             { path: '/allocations', label: 'Allocations', icon: Calendar, flagKey: 'submodule:people:allocations' },
-            { path: '/time', label: 'Time Entries', icon: Clock },
+            { path: '/time', label: 'Employee Timesheets', icon: Clock },
             { path: '/utilization', label: 'Utilization', icon: Activity, flagKey: 'submodule:people:utilization' },
         ]
     },

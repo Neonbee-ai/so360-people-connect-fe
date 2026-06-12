@@ -27,8 +27,11 @@ vi.mock('./services/peopleService', () => ({
     setUser: vi.fn(),
   },
   utilizationApi: { getSummary: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
   eventsApi: { getAll: vi.fn() },
+}));
+
+vi.mock('./services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn(), getUtilization: vi.fn() },
 }));
 
 // Mock all lazy-loaded pages to avoid rendering their service calls
@@ -36,7 +39,7 @@ vi.mock('./pages/DashboardPage', () => ({ default: () => React.createElement('di
 vi.mock('./pages/PeoplePage', () => ({ default: () => React.createElement('div', null, 'PeoplePage') }));
 vi.mock('./pages/PersonDetailPage', () => ({ default: () => React.createElement('div', null, 'PersonDetailPage') }));
 vi.mock('./pages/AllocationsPage', () => ({ default: () => React.createElement('div', null, 'AllocationsPage') }));
-vi.mock('./pages/TimeEntriesPage', () => ({ default: () => React.createElement('div', null, 'TimeEntriesPage') }));
+vi.mock('./pages/EmployeeTimesheetsPage', () => ({ default: () => React.createElement('div', null, 'EmployeeTimesheetsPage') }));
 vi.mock('./pages/UtilizationPage', () => ({ default: () => React.createElement('div', null, 'UtilizationPage') }));
 vi.mock('./pages/EventsPage', () => ({ default: () => React.createElement('div', null, 'EventsPage') }));
 vi.mock('./pages/DepartmentsPage', () => ({ default: () => React.createElement('div', null, 'DepartmentsPage') }));
@@ -100,6 +103,11 @@ describe('Given App with valid shell context', () => {
   it('When navigating to /goals / Then GoalsPage is rendered', async () => {
     renderApp('/goals');
     await waitFor(() => expect(screen.getByText('GoalsPage')).toBeInTheDocument());
+  });
+
+  it('When navigating to /time / Then the read-only EmployeeTimesheetsPage is rendered (time entry CRUD removed)', async () => {
+    renderApp('/time');
+    await waitFor(() => expect(screen.getByText('EmployeeTimesheetsPage')).toBeInTheDocument());
   });
 });
 

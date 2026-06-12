@@ -7,7 +7,6 @@ vi.mock('../services/peopleService', () => ({
     getById: vi.fn(),
   },
   allocationsApi: { getAll: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
   utilizationApi: {
     getAll: vi.fn(),
     getSummary: vi.fn(),
@@ -19,16 +18,14 @@ import {
   usePeopleList,
   usePersonDetail,
   useAllocations,
-  useTimeEntries,
   useUtilization,
   useUtilizationSummary,
   usePeopleEvents,
 } from './usePeopleData';
-import { peopleApi, allocationsApi, timeEntriesApi, utilizationApi, eventsApi } from '../services/peopleService';
+import { peopleApi, allocationsApi, utilizationApi, eventsApi } from '../services/peopleService';
 
 const mockPeopleApi = peopleApi as any;
 const mockAllocsApi = allocationsApi as any;
-const mockTimeApi = timeEntriesApi as any;
 const mockUtilApi = utilizationApi as any;
 const mockEventsApi = eventsApi as any;
 
@@ -87,15 +84,8 @@ describe('Given useAllocations hook', () => {
   });
 });
 
-describe('Given useTimeEntries hook', () => {
-  it('When API resolves / Then time entry data is returned', async () => {
-    const mockData = { data: [{ id: 'te1', hours: 8 }], total: 1 };
-    mockTimeApi.getAll.mockResolvedValue(mockData);
-    const { result } = renderHook(() => useTimeEntries());
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.data).toEqual(mockData);
-  });
-});
+// useTimeEntries hook removed — time logging is consolidated into the
+// Timesheets module (see src/services/timesheetApi.spec.ts).
 
 describe('Given useUtilizationSummary hook', () => {
   it('When API resolves / Then summary data is returned', async () => {

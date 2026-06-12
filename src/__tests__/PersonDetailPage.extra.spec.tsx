@@ -25,7 +25,10 @@ vi.mock('../services/peopleService', () => ({
     inviteUser: vi.fn(),
   },
   allocationsApi: { getAll: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
+}));
+
+vi.mock('../services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn() },
 }));
 
 vi.mock('../services/goalsService', () => ({
@@ -58,13 +61,14 @@ vi.mock('../utils/formatters', () => ({
 }));
 
 import PersonDetailPage from '../pages/PersonDetailPage';
-import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
+import { peopleApi, allocationsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
 import { goalsApi } from '../services/goalsService';
 import { workLocationsApi } from '../services/workLocationsService';
 
 const mockPeople = peopleApi as any;
 const mockAlloc = allocationsApi as any;
-const mockTime = timeEntriesApi as any;
+const mockTime = timesheetApi as any;
 const mockGoals = goalsApi as any;
 
 const alicePerson = {
@@ -90,7 +94,7 @@ const renderPage = (id = 'p1') => render(
 beforeEach(() => {
   vi.resetAllMocks();
   mockAlloc.getAll.mockResolvedValue({ data: [] });
-  mockTime.getAll.mockResolvedValue({ data: [] });
+  mockTime.getEntries.mockResolvedValue({ data: [] });
   mockGoals.getAll.mockResolvedValue({ data: [] });
   mockPeople.getEmploymentHistory.mockResolvedValue([]);
   mockPeople.getRateHistory.mockResolvedValue([]);

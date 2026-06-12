@@ -23,7 +23,7 @@ vi.mock('./apiClient', () => ({
   },
 }));
 
-import { peopleApi, allocationsApi, timeEntriesApi, utilizationApi, eventsApi } from './peopleService';
+import { peopleApi, allocationsApi, utilizationApi, eventsApi } from './peopleService';
 import { api } from './apiClient';
 
 const mockApi = api as any;
@@ -84,14 +84,6 @@ describe('Given allocationsApi.getAll', () => {
     mockApi.get.mockResolvedValue({ data: [], total: 0 });
     await allocationsApi.getAll();
     expect(mockApi.get).toHaveBeenCalledWith('/allocations', undefined);
-  });
-});
-
-describe('Given timeEntriesApi.submit', () => {
-  it('When called with id / Then it calls POST /time-entries/:id/submit', async () => {
-    mockApi.post.mockResolvedValue({ id: 'te1', status: 'submitted' });
-    await timeEntriesApi.submit('te1');
-    expect(mockApi.post).toHaveBeenCalledWith('/time-entries/te1/submit', {});
   });
 });
 

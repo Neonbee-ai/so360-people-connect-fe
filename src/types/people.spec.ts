@@ -10,7 +10,6 @@ import type {
   PersonStatus,
   PersonRole,
   Allocation,
-  TimeEntry,
   PaginatedResponse,
   PeopleEvent,
 } from './people';

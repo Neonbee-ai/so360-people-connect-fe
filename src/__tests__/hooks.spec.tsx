@@ -5,17 +5,15 @@ import React from 'react';
 vi.mock('../services/peopleService', () => ({
   peopleApi: { getAll: vi.fn(), getById: vi.fn() },
   allocationsApi: { getAll: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
   utilizationApi: { getAll: vi.fn(), getSummary: vi.fn() },
   eventsApi: { getAll: vi.fn() },
 }));
 
-import { usePeopleList, usePersonDetail, useAllocations, useTimeEntries, useUtilization, useUtilizationSummary, usePeopleEvents } from '../hooks/usePeopleData';
-import { peopleApi, allocationsApi, timeEntriesApi, utilizationApi, eventsApi } from '../services/peopleService';
+import { usePeopleList, usePersonDetail, useAllocations, useUtilization, useUtilizationSummary, usePeopleEvents } from '../hooks/usePeopleData';
+import { peopleApi, allocationsApi, utilizationApi, eventsApi } from '../services/peopleService';
 
 const mockPeople = peopleApi as any;
 const mockAlloc = allocationsApi as any;
-const mockTime = timeEntriesApi as any;
 const mockUtil = utilizationApi as any;
 const mockEvents = eventsApi as any;
 
@@ -69,14 +67,7 @@ describe('useAllocations', () => {
   });
 });
 
-describe('useTimeEntries', () => {
-  it('Given the API returns data / When rendered / Then it returns time entries', async () => {
-    mockTime.getAll.mockResolvedValue({ data: [{ id: 'te1' }], meta: { total: 1 } });
-    const { result } = renderHook(() => useTimeEntries({ person_id: 'p1' }));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.data?.data).toHaveLength(1);
-  });
-});
+// useTimeEntries specs removed — hook deleted with the Timesheets consolidation.
 
 describe('useUtilization', () => {
   it('Given the API returns data / When rendered / Then it returns utilization', async () => {
