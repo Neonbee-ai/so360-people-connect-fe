@@ -72,8 +72,11 @@ export const goalsApi = {
     return api.delete<{ message: string }>(`/goals/${id}`);
   },
 
-  updateProgress: async (id: string, currentValue: number): Promise<Goal> => {
-    return api.post<Goal>(`/goals/${id}/update-progress`, { current_value: currentValue });
+  updateProgress: async (id: string, currentValue: number, targetValue?: number): Promise<Goal> => {
+    const progress_percentage = targetValue && targetValue > 0
+      ? Math.min(100, Math.round((currentValue / targetValue) * 100))
+      : 0;
+    return api.patch<Goal>(`/goals/${id}/progress`, { current_value: currentValue, progress_percentage });
   },
 
   complete: async (id: string): Promise<Goal> => {

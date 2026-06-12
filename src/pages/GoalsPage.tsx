@@ -70,14 +70,18 @@ const GoalsPage: React.FC = () => {
 
     const handleUpdateProgress = async () => {
         if (!updatingProgress) return;
+        if (isNaN(progressValue) || progressValue < 0) {
+            setToast({ message: 'Please enter a valid progress value (0 or above)', type: 'error' });
+            return;
+        }
 
         try {
-            await goalsApi.updateProgress(updatingProgress.id, progressValue);
+            await goalsApi.updateProgress(updatingProgress.id, progressValue, updatingProgress.target_value);
             setUpdatingProgress(null);
             setToast({ message: 'Progress updated successfully', type: 'success' });
             loadGoals();
         } catch (error) {
-            setToast({ message: 'Failed to update progress', type: 'error' });
+            setToast({ message: 'Unable to update progress. Please try again.', type: 'error' });
         }
     };
 

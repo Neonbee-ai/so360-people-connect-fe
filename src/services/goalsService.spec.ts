@@ -56,10 +56,28 @@ describe('Given goalsApi.update', () => {
 });
 
 describe('Given goalsApi.updateProgress', () => {
-  it('When called with id and currentValue / Then it calls POST /goals/:id/update-progress', async () => {
-    mockApi.post.mockResolvedValue({ id: 'g1', current_value: 50, progress_percentage: 50 });
-    await goalsApi.updateProgress('g1', 50);
-    expect(mockApi.post).toHaveBeenCalledWith('/goals/g1/update-progress', { current_value: 50 });
+  it('When called with currentValue and targetValue / Then it PATCHes /goals/:id/progress with computed percentage', async () => {
+    mockApi.patch.mockResolvedValue({ id: 'g1', current_value: 750, progress_percentage: 75 });
+    await goalsApi.updateProgress('g1', 750, 1000);
+    expect(mockApi.patch).toHaveBeenCalledWith('/goals/g1/progress', { current_value: 750, progress_percentage: 75 });
+  });
+
+  it('When currentValue exceeds targetValue / Then progress_percentage is capped at 100', async () => {
+    mockApi.patch.mockResolvedValue({ id: 'g1', current_value: 1200, progress_percentage: 100 });
+    await goalsApi.updateProgress('g1', 1200, 1000);
+    expect(mockApi.patch).toHaveBeenCalledWith('/goals/g1/progress', { current_value: 1200, progress_percentage: 100 });
+  });
+
+  it('When targetValue is undefined / Then progress_percentage defaults to 0', async () => {
+    mockApi.patch.mockResolvedValue({ id: 'g1', current_value: 50, progress_percentage: 0 });
+    await goalsApi.updateProgress('g1', 50, undefined);
+    expect(mockApi.patch).toHaveBeenCalledWith('/goals/g1/progress', { current_value: 50, progress_percentage: 0 });
+  });
+
+  it('When targetValue is 0 / Then progress_percentage defaults to 0', async () => {
+    mockApi.patch.mockResolvedValue({ id: 'g1', current_value: 50, progress_percentage: 0 });
+    await goalsApi.updateProgress('g1', 50, 0);
+    expect(mockApi.patch).toHaveBeenCalledWith('/goals/g1/progress', { current_value: 50, progress_percentage: 0 });
   });
 });
 
