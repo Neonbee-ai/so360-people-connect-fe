@@ -44,11 +44,22 @@ const EntityCombo: React.FC<EntityComboProps> = ({
     const [loadError, setLoadError] = useState(false);
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
+    // Debounced search term sent to the backend (300 ms lag after user input).
+    const [serverSearch, setServerSearch] = useState('');
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Tasks can only be listed once a project is chosen.
     const ready = type !== 'task' || !!projectId;
+
+    // Propagate local search → serverSearch after a short debounce so we don't
+    // fire a backend request on every keystroke.
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => setServerSearch(search), 300);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [search]);
 
     const load = useCallback(() => {
         if (!ready) {
@@ -57,13 +68,17 @@ const EntityCombo: React.FC<EntityComboProps> = ({
         }
         setLoading(true);
         setLoadError(false);
-        entitiesApi.list({ type, project_id: projectId })
+        entitiesApi.list({
+            type,
+            project_id: projectId,
+            ...(serverSearch ? { search: serverSearch } : {}),
+        })
             .then((res) => setOptions(res.data || []))
             .catch(() => { setOptions([]); setLoadError(true); })
             .finally(() => setLoading(false));
-    }, [type, projectId, ready]);
+    }, [type, projectId, ready, serverSearch]);
 
-    // (Re)load whenever the lookup key changes.
+    // (Re)load whenever the lookup key or debounced search changes.
     useEffect(() => { load(); }, [load]);
 
     const selected = useMemo(
@@ -73,6 +88,8 @@ const EntityCombo: React.FC<EntityComboProps> = ({
     // Fall back to the stored display name if options haven't loaded yet.
     const selectedLabel = selected?.name || (value ? displayName : '') || '';
 
+    // Client-side filter provides immediate feedback while the debounce is
+    // pending; once the server returns, options itself is already filtered.
     const filtered = useMemo(() => {
         if (!search) return options;
         const lower = search.toLowerCase();
