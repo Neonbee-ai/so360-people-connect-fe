@@ -232,7 +232,7 @@ describe('Given non-billable entries', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Website Redesign')).toBeInTheDocument());
     expect(screen.queryByText('Billable', { selector: 'span' })).not.toBeInTheDocument();
-    expect(screen.getByText('Draft')).toBeInTheDocument();
+    expect(screen.getByText('Draft', { selector: 'span' })).toBeInTheDocument();
     expect(screen.getByText('$0.00')).toBeInTheDocument();
   });
 });
