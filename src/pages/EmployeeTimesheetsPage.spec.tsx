@@ -96,7 +96,7 @@ describe('Given the Employee Timesheets page loads', () => {
 
   it('When an entry is billable / Then the Billable marker is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Billable')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Billable', { selector: 'span' })).toBeInTheDocument());
   });
 
   it('When entries load / Then the batch status badge is rendered', async () => {
@@ -231,7 +231,7 @@ describe('Given non-billable entries', () => {
   it('When an entry is not billable / Then no Billable marker is rendered and cost falls back to zero', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Website Redesign')).toBeInTheDocument());
-    expect(screen.queryByText('Billable')).not.toBeInTheDocument();
+    expect(screen.queryByText('Billable', { selector: 'span' })).not.toBeInTheDocument();
     expect(screen.getByText('Draft')).toBeInTheDocument();
     expect(screen.getByText('$0.00')).toBeInTheDocument();
   });
