@@ -54,7 +54,8 @@ const LeaveRequestsPage: React.FC = () => {
             recordActivity({ eventType: 'people.leave.requested', eventCategory: 'data', description: `Leave request submitted from ${data.start_date} to ${data.end_date}`, resourceType: 'leave_request', resourceId: created.id }).catch(() => {});
             loadRequests();
         } catch (error) {
-            setToast({ message: 'Failed to create leave request', type: 'error' });
+            const msg = error instanceof Error ? error.message : 'Failed to create leave request';
+            setToast({ message: msg, type: 'error' });
         }
     };
 

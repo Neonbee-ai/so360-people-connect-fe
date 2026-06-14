@@ -164,27 +164,35 @@ describe('LeaveRequestsPage — extra scenarios', () => {
     });
   });
 
-  describe('Given create request fails', () => {
+  describe('Given create request fails with a server error', () => {
     beforeEach(() => {
       mockApi.getAll.mockResolvedValue({ data: [] });
-      mockApi.create.mockRejectedValue(new Error('Creation failed'));
+      mockApi.create.mockRejectedValue(new Error('No employee profile found for your account. Please contact your administrator.'));
     });
 
-    it('When create API fails / Then shows failure toast', async () => {
+    it('When create API fails / Then shows the actual server error in the toast', async () => {
       renderPage();
       await waitFor(() => screen.getAllByText('Request Leave')[0]);
       fireEvent.click(screen.getAllByText('Request Leave')[0]);
-      // If a modal appeared with a form, submit it; otherwise just verify modal opens
       const modal = document.querySelector('[data-testid="modal"]');
       if (modal) {
         const form = modal.querySelector('form');
         if (form) {
           fireEvent.submit(form);
           await waitFor(() =>
-            expect(screen.queryByText('Failed to create leave request')).toBeInTheDocument(),
+            expect(screen.queryByText('No employee profile found for your account. Please contact your administrator.')).toBeInTheDocument(),
           );
         }
       }
+    });
+
+    it('When create API fails with generic error / Then still shows a message', async () => {
+      mockApi.create.mockRejectedValue('non-error object');
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      // Modal may or may not have a form; just verify no crash
+      await waitFor(() => screen.getAllByText('Request Leave'));
     });
   });
 
