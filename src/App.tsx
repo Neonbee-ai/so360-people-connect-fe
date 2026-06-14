@@ -120,6 +120,7 @@ const EventsPage = lazy(() => import('./pages/EventsPage'));
 
 // New page imports
 const DepartmentsPage = lazy(() => import('./pages/DepartmentsPage'));
+const DepartmentDetailPage = lazy(() => import('./pages/DepartmentDetailPage'));
 const LeaveTypesPage = lazy(() => import('./pages/LeaveTypesPage'));
 const LeaveRequestsPage = lazy(() => import('./pages/LeaveRequestsPage'));
 const LeaveCalendarPage = lazy(() => import('./pages/LeaveCalendarPage'));
@@ -165,6 +166,7 @@ const App = () => {
 
                     {/* Departments */}
                     <Route path="departments" element={<DepartmentsPage />} />
+                    <Route path="departments/:id" element={<DepartmentDetailPage />} />
 
                     {/* Allocations & Time */}
                     <Route path="allocations" element={<FeatureGate flagKey="submodule:people:allocations"><AllocationsPage /></FeatureGate>} />

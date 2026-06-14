@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Building2, ChevronDown, ChevronRight, Users } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
@@ -10,6 +11,7 @@ import { QuotaBar, QuotaGate } from '@so360/design-system';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
 
 const DepartmentsPage: React.FC = () => {
+    const navigate = useNavigate();
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
     const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:departments:create') ?? true);
@@ -104,10 +106,13 @@ const DepartmentsPage: React.FC = () => {
                             )}
                         </button>
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
+                        {/* Info — clickable area navigates to department detail */}
+                        <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => navigate(`/departments/${dept.id}`)}
+                        >
                             <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-sm font-medium text-slate-50 truncate">{dept.name}</span>
+                                <span className="text-sm font-medium text-slate-50 truncate hover:text-teal-300 transition-colors">{dept.name}</span>
                                 <span className="text-xs text-slate-500">{dept.code}</span>
                                 <StatusBadge status={dept.is_active ? 'active' : 'inactive'} />
                             </div>

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
 
 vi.mock('../services/departmentsService', () => ({
@@ -25,7 +25,14 @@ import { departmentsApi } from '../services/departmentsService';
 
 const mockApi = departmentsApi as any;
 
-const renderPage = () => render(<MemoryRouter><DepartmentsPage /></MemoryRouter>);
+const renderPage = () => render(
+    <MemoryRouter initialEntries={['/departments']}>
+        <Routes>
+            <Route path="/departments" element={<DepartmentsPage />} />
+            <Route path="/departments/:id" element={<div>Department Detail</div>} />
+        </Routes>
+    </MemoryRouter>
+);
 
 const mockDept = { id: 'd1', name: 'Engineering', code: 'ENG', is_active: true, employee_count: 5, children: [] };
 
@@ -90,5 +97,19 @@ describe('Given DepartmentsPage create interaction', () => {
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Create Department'));
     await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
+  });
+});
+
+describe('Given DepartmentsPage department card click navigation', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockDept], total: 1 });
+    mockApi.getTree.mockResolvedValue({ data: [mockDept] });
+  });
+
+  it('When department name area is clicked / Then navigation to department detail page occurs', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Engineering'));
+    await waitFor(() => expect(screen.getByText('Department Detail')).toBeInTheDocument());
   });
 });

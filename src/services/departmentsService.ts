@@ -37,6 +37,26 @@ export interface CreateDepartmentPayload {
   is_active?: boolean;
 }
 
+export interface DepartmentEmployee {
+  id: string;
+  full_name: string;
+  email?: string;
+  phone?: string;
+  job_title?: string;
+  type?: string;
+  status?: string;
+  cost_rate?: number;
+  billing_rate?: number;
+}
+
+export interface DepartmentEmployeesResponse {
+  data: DepartmentEmployee[];
+  total: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+}
+
 // =============================================================================
 // DEPARTMENTS API
 // =============================================================================
@@ -52,6 +72,10 @@ export const departmentsApi = {
 
   getById: async (id: string): Promise<Department> => {
     return api.get<Department>(`/departments/${id}`);
+  },
+
+  getEmployees: async (id: string, params?: { page?: number; limit?: number }): Promise<DepartmentEmployeesResponse> => {
+    return api.get<DepartmentEmployeesResponse>(`/departments/${id}/employees`, params);
   },
 
   create: async (data: CreateDepartmentPayload): Promise<Department> => {
