@@ -158,6 +158,33 @@ describe('EntitySelector', () => {
             fireEvent.click(screen.getByText('Select project...'));
             await waitFor(() => expect(screen.getByText(/Unable to load records\. Please try again\./i)).toBeInTheDocument());
         });
+
+        it('When the retry affordance is clicked / Then the list is re-fetched and options appear', async () => {
+            mockList
+                .mockRejectedValueOnce(new Error('network'))
+                .mockResolvedValue({ data: [{ id: 'p1', name: 'Website Redesign' }] });
+
+            render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
+
+            fireEvent.click(screen.getByText('Select project...'));
+            await waitFor(() => expect(screen.getByText(/Unable to load records/i)).toBeInTheDocument());
+
+            // Clicking the error message triggers load() again.
+            fireEvent.click(screen.getByText(/Unable to load records/i));
+
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
+        });
+    });
+
+    describe('Given the API returns null for the data field', () => {
+        it('When opened / Then the empty state is shown without throwing', async () => {
+            mockList.mockResolvedValue({ data: null });
+            render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
+
+            fireEvent.click(screen.getByText('Select project...'));
+
+            await waitFor(() => expect(screen.getByText('No projects found')).toBeInTheDocument());
+        });
     });
 
     describe('Given a search term is typed into an open selector', () => {
