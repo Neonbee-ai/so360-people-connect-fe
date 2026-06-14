@@ -40,7 +40,11 @@ const EntityCombo: React.FC<EntityComboProps> = ({
     type, projectId, value, displayName, onSelect, disabled, error, placeholder,
 }) => {
     const [options, setOptions] = useState<EntityOption[]>([]);
-    const [loading, setLoading] = useState(false);
+    // Tasks can only be listed once a project is chosen.
+    const ready = type !== 'task' || !!projectId;
+    // Start in loading state when ready so the dropdown shows "Loading..." instead
+    // of "No records found" on the first render before the first fetch completes.
+    const [loading, setLoading] = useState(ready);
     const [loadError, setLoadError] = useState(false);
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -49,9 +53,6 @@ const EntityCombo: React.FC<EntityComboProps> = ({
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-
-    // Tasks can only be listed once a project is chosen.
-    const ready = type !== 'task' || !!projectId;
 
     // Propagate local search → serverSearch after a short debounce so we don't
     // fire a backend request on every keystroke.
@@ -64,6 +65,7 @@ const EntityCombo: React.FC<EntityComboProps> = ({
     const load = useCallback(() => {
         if (!ready) {
             setOptions([]);
+            setLoading(false);
             return;
         }
         setLoading(true);
@@ -158,7 +160,7 @@ const EntityCombo: React.FC<EntityComboProps> = ({
                         <div className="px-3 py-2 text-sm text-slate-400">Loading...</div>
                     ) : loadError ? (
                         <button type="button" onClick={load} className="w-full text-left px-3 py-2 text-sm text-rose-400 hover:bg-slate-700">
-                            Couldn't load — tap to retry
+                            Unable to load records. Please try again.
                         </button>
                     ) : filtered.length === 0 ? (
                         <div className="px-3 py-2 text-sm text-slate-400">No {ENTITY_PLURALS[type]} found</div>

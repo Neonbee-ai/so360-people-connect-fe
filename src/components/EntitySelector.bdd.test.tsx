@@ -130,12 +130,12 @@ describe('EntitySelector', () => {
     });
 
     describe('Given the option lookup fails', () => {
-        it('When opened / Then a retry affordance is shown', async () => {
+        it('When opened / Then a retry affordance is shown with the correct error message', async () => {
             mockList.mockRejectedValue(new Error('network'));
             render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
 
             fireEvent.click(screen.getByText('Select project...'));
-            await waitFor(() => expect(screen.getByText(/tap to retry/i)).toBeInTheDocument());
+            await waitFor(() => expect(screen.getByText(/Unable to load records\. Please try again\./i)).toBeInTheDocument());
         });
     });
 
