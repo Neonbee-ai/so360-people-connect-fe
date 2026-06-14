@@ -364,8 +364,8 @@ const PeoplePage: React.FC = () => {
                                                 {person.email}
                                             </span>
                                         )}
-                                        {person.department && (
-                                            <span className="text-slate-600">{person.department}</span>
+                                        {(person.department_info?.name || person.department) && (
+                                            <span className="text-slate-600">{person.department_info?.name || person.department}</span>
                                         )}
                                         {person.work_location && (
                                             <span className="flex items-center gap-1">
@@ -451,7 +451,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         email: '',
         phone: '',
         type: 'employee',
-        department: '',
+        department_id: '',
         job_title: '',
         cost_rate: 0,
         cost_rate_unit: 'hour',
@@ -467,11 +467,15 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.full_name || !formData.type) return;
-        onCreate(formData);
+        // Omit an unselected department so the backend @IsUUID validation is not
+        // triggered by an empty string.
+        const payload = { ...formData };
+        payload.department_id = payload.department_id || undefined;
+        onCreate(payload);
         // Reset form
         setFormData({
             full_name: '', email: '', phone: '', type: 'employee',
-            department: '', job_title: '', cost_rate: 0, cost_rate_unit: 'hour',
+            department_id: '', job_title: '', cost_rate: 0, cost_rate_unit: 'hour',
             currency: 'USD', billing_rate: 0, available_hours_per_day: 8,
             available_days_per_week: 5, start_date: new Date().toISOString().split('T')[0],
             userLinkageMode: 'invite', sendInviteEmail: true,
@@ -536,11 +540,11 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Department</label>
-                            <input
-                                type="text" value={formData.department || ''}
-                                onChange={(e) => updateField('department', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                                placeholder="Engineering"
+                            <DepartmentSelector
+                                value={formData.department_id || ''}
+                                onChange={(id) => updateField('department_id', id || undefined)}
+                                placeholder="Select department..."
+                                allowClear
                             />
                         </div>
                         <div>

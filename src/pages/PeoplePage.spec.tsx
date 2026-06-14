@@ -204,3 +204,65 @@ describe('Given PeoplePage create modal', () => {
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
   });
 });
+
+describe('Given the Department field in the create modal', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+    (departmentsApi as any).getTree.mockResolvedValue([
+      { id: 'dep-eng', name: 'Engineering', code: 'ENG', children: [] },
+      { id: 'dep-sales', name: 'Sales', code: 'SALES', children: [] },
+    ]);
+  });
+
+  const openModal = async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Add Person'));
+    await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
+  };
+
+  it('When the modal opens / Then Department is a searchable dropdown, not a free-text input', async () => {
+    await openModal();
+    // The old free-text input used placeholder "Engineering" — it must be gone.
+    expect(screen.queryByPlaceholderText('Engineering')).not.toBeInTheDocument();
+    // The DepartmentSelector dropdown placeholder is present instead.
+    expect(screen.getByText('Select department...')).toBeInTheDocument();
+  });
+
+  it('When a department is searched and selected / Then the create payload stores department_id (relational ref, no free text)', async () => {
+    await openModal();
+
+    fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'New Hire' } });
+
+    // Open the dropdown and load active departments.
+    fireEvent.click(screen.getByText('Select department...'));
+    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+
+    // Search narrows the list.
+    const searchBox = screen.getByPlaceholderText('Select department...');
+    fireEvent.change(searchBox, { target: { value: 'eng' } });
+    await waitFor(() => expect(screen.queryByText('Sales')).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('Engineering'));
+
+    // Submit (second "Add Person" is the form submit button).
+    const submitButtons = screen.getAllByText('Add Person');
+    fireEvent.click(submitButtons[submitButtons.length - 1]);
+
+    await waitFor(() => expect(mockApi.create).toHaveBeenCalled());
+    const payload = mockApi.create.mock.calls[0][0];
+    expect(payload).toEqual(expect.objectContaining({ department_id: 'dep-eng' }));
+    expect(payload).not.toHaveProperty('department');
+  });
+
+  it('When no department is selected / Then department_id is omitted (not an empty string)', async () => {
+    await openModal();
+    fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'No Dept' } });
+
+    const submitButtons = screen.getAllByText('Add Person');
+    fireEvent.click(submitButtons[submitButtons.length - 1]);
+
+    await waitFor(() => expect(mockApi.create).toHaveBeenCalled());
+    expect(mockApi.create.mock.calls[0][0].department_id).toBeUndefined();
+  });
+});

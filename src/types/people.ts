@@ -18,7 +18,11 @@ export interface Person {
 
   // Classification
   type: 'employee' | 'contractor';
+  /** @deprecated free-text department; use department_id + department_info */
   department?: string;
+  department_id?: string | null;
+  /** Hydrated department master record (resolves name even when archived) */
+  department_info?: { id: string; name: string; code: string; is_active: boolean } | null;
   job_title?: string;
 
   // Cost
@@ -71,7 +75,9 @@ export interface CreatePersonPayload {
   phone?: string;
   avatar_url?: string;
   type: 'employee' | 'contractor';
+  /** @deprecated free-text department; use department_id */
   department?: string;
+  department_id?: string | null;
   job_title?: string;
   cost_rate: number;
   cost_rate_unit?: 'hour' | 'day';

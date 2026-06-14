@@ -46,6 +46,10 @@ vi.mock('../services/workLocationsService', () => ({
   WorkLocation: {},
 }));
 
+vi.mock('../services/departmentsService', () => ({
+  departmentsApi: { getTree: vi.fn().mockResolvedValue([]) },
+}));
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: mockRecordActivity }),
   useShellBridge: () => ({
@@ -78,8 +82,10 @@ import { peopleApi, allocationsApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';
 import { goalsApi } from '../services/goalsService';
 import { workLocationsApi } from '../services/workLocationsService';
+import { departmentsApi } from '../services/departmentsService';
 
 const mockPeople = peopleApi as any;
+const mockDepartments = departmentsApi as any;
 const mockAlloc = allocationsApi as any;
 const mockTime = timesheetApi as any;
 const mockGoals = goalsApi as any;
@@ -124,7 +130,57 @@ beforeEach(() => {
   mockPeople.getEmploymentHistory.mockResolvedValue([]);
   mockPeople.getRateHistory.mockResolvedValue([]);
   mockLoc.getAll.mockResolvedValue({ data: [] });
+  mockDepartments.getTree.mockResolvedValue([]);
   mockRecordActivity.mockResolvedValue(undefined);
+});
+
+// ---------------------------------------------------------------------------
+// Department display + edit (relational department_id)
+// ---------------------------------------------------------------------------
+
+describe('Given a person linked to a department', () => {
+  it('When the header renders / Then the hydrated department name is shown (even if archived)', async () => {
+    mockPeople.getById.mockResolvedValue({
+      ...basePerson,
+      department: null,
+      department_id: 'dep-old',
+      department_info: { id: 'dep-old', name: 'Legacy Ops', code: 'OPS', is_active: false },
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Legacy Ops')).toBeInTheDocument());
+  });
+
+  it('When editing and selecting a new department / Then update is called with the relational department_id', async () => {
+    // Person is on an archived department: the header shows the historical name,
+    // while the active-only dropdown shows the placeholder until reassigned.
+    mockPeople.getById.mockResolvedValue({
+      ...basePerson,
+      department: null,
+      department_id: 'dep-old',
+      department_info: { id: 'dep-old', name: 'Legacy Ops', code: 'OPS', is_active: false },
+    });
+    mockPeople.update.mockResolvedValue({ ...basePerson, department_id: 'dep-sales' });
+    mockDepartments.getTree.mockResolvedValue([
+      { id: 'dep-eng', name: 'Engineering', code: 'ENG', children: [] },
+      { id: 'dep-sales', name: 'Sales', code: 'SALES', children: [] },
+    ]);
+
+    renderPage();
+    await waitFor(() => screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit'));
+
+    // The active-only dropdown cannot resolve the archived dept → placeholder.
+    const deptTrigger = await screen.findByText('Select department...');
+    fireEvent.click(deptTrigger);
+    fireEvent.click(await screen.findByText('Sales'));
+
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => expect(mockPeople.update).toHaveBeenCalled());
+    expect(mockPeople.update.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ department_id: 'dep-sales' }),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

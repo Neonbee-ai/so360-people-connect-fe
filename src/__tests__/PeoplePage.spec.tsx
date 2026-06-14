@@ -31,6 +31,10 @@ vi.mock('../services/workLocationsService', () => ({
   },
 }));
 
+vi.mock('../services/departmentsService', () => ({
+  departmentsApi: { getTree: vi.fn().mockResolvedValue([]) },
+}));
+
 
 let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
 

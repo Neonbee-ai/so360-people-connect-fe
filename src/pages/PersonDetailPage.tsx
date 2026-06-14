@@ -15,6 +15,7 @@ import { timesheetApi } from '../services/timesheetApi';
 import type { TimesheetEntry } from '../services/timesheetApi';
 import { goalsApi, Goal } from '../services/goalsService';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
+import DepartmentSelector from '../components/DepartmentSelector';
 import type { Person, Allocation, PersonRole } from '../types/people';
 
 const PersonDetailPage: React.FC = () => {
@@ -242,8 +243,8 @@ const PersonDetailPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-4 text-sm text-slate-400">
                             {person.job_title && <span>{person.job_title}</span>}
-                            {person.department && <span className="text-slate-600">|</span>}
-                            {person.department && <span>{person.department}</span>}
+                            {(person.department_info?.name || person.department) && <span className="text-slate-600">|</span>}
+                            {(person.department_info?.name || person.department) && <span>{person.department_info?.name || person.department}</span>}
                             {person.work_location && (
                                 <>
                                     <span className="text-slate-600">|</span>
@@ -284,6 +285,15 @@ const PersonDetailPage: React.FC = () => {
                 {/* Inline Edit Fields */}
                 {editing && (
                     <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-4 gap-4">
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">Department</label>
+                            <DepartmentSelector
+                                value={editData.department_id || ''}
+                                onChange={(id) => setEditData(d => ({ ...d, department_id: id }))}
+                                placeholder="Select department..."
+                                allowClear
+                            />
+                        </div>
                         <div>
                             <label className="block text-xs text-slate-500 mb-1">Cost Rate</label>
                             <input
