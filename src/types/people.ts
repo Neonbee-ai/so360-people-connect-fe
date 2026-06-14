@@ -174,6 +174,11 @@ export interface UtilizationData {
   };
 }
 
+export interface DepartmentHeadcountEntry {
+  name: string;
+  count: number;
+}
+
 export interface UtilizationSummary {
   total_people: number;
   active_allocations: number;
@@ -182,7 +187,13 @@ export interface UtilizationSummary {
   total_cost_this_week: number;
   pending_approvals: number;
   burn_rate_daily: number;
-  period: { start: string; end: string };
+  available_resources: number;
+  fully_allocated_resources: number;
+  overallocated_resources: number;
+  pending_leave_count: number;
+  approved_leave_count: number;
+  on_leave_today_count: number;
+  department_headcount: DepartmentHeadcountEntry[];
 }
 
 // People Event

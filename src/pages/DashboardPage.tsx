@@ -6,6 +6,7 @@ import {
     Users, Clock, Target, TrendingUp,
     DollarSign, AlertTriangle, ArrowRight,
     UserPlus, CalendarClock, Activity,
+    Building2, Calendar, UserCheck, UserMinus,
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
@@ -13,7 +14,7 @@ import StatusBadge from '../components/StatusBadge';
 import { utilizationApi, eventsApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';
 import type { TimesheetEntry } from '../services/timesheetApi';
-import type { UtilizationSummary, PeopleEvent } from '../types/people';
+import type { UtilizationSummary, PeopleEvent, DepartmentHeadcountEntry } from '../types/people';
 
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
@@ -30,21 +31,18 @@ const DashboardPage: React.FC = () => {
 
     useEffect(() => {
         const loadData = async () => {
-            try {
-                const [summaryData, entriesData, eventsData] = await Promise.all([
-                    utilizationApi.getSummary(),
-                    // Read-only: recent entries come from the Timesheets module
-                    timesheetApi.getEntries({ limit: 5 }),
-                    eventsApi.getAll({ limit: 8 }),
-                ]);
-                setSummary(summaryData);
-                setRecentEntries(entriesData.data);
-                setRecentEvents(eventsData.data);
-            } catch (error) {
-                console.error('Dashboard load error:', error);
-            } finally {
-                setLoading(false);
-            }
+            // Promise.allSettled so that a down Timesheet service (port 3012) does
+            // not block the summary KPIs — each call fails independently.
+            const [summaryResult, entriesResult, eventsResult] = await Promise.allSettled([
+                utilizationApi.getSummary(),
+                timesheetApi.getEntries({ limit: 5 }),
+                eventsApi.getAll({ limit: 8 }),
+            ]);
+            if (summaryResult.status === 'fulfilled') setSummary(summaryResult.value);
+            else console.error('Dashboard summary error:', summaryResult.reason);
+            if (entriesResult.status === 'fulfilled') setRecentEntries(entriesResult.value.data);
+            if (eventsResult.status === 'fulfilled') setRecentEvents(eventsResult.value.data);
+            setLoading(false);
         };
         loadData();
     }, []);
@@ -146,6 +144,96 @@ const DashboardPage: React.FC = () => {
                         <TrendingUp size={16} className="text-rose-400" />
                     </div>
                     <div className="text-xl font-bold text-slate-50">{formatCurrency(summary?.burn_rate_daily || 0)}</div>
+                </div>
+            </div>
+
+            {/* Department Summary / Leave Overview / Resource Availability */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Department Summary */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl">
+                    <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-slate-50">Department Headcount</h3>
+                        <Building2 size={16} className="text-teal-400" />
+                    </div>
+                    <div className="divide-y divide-slate-800">
+                        {!summary?.department_headcount?.length ? (
+                            <div className="p-6 text-center text-sm text-slate-500">No departments yet</div>
+                        ) : (
+                            summary.department_headcount.map((dept: DepartmentHeadcountEntry) => (
+                                <div key={dept.name} className="px-5 py-2.5 flex items-center justify-between">
+                                    <span className="text-sm text-slate-300 truncate">{dept.name}</span>
+                                    <span className="text-sm font-semibold text-slate-50 ml-2">{dept.count}</span>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Leave Overview */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-slate-50">Leave Overview</h3>
+                        <Calendar size={16} className="text-blue-400" />
+                    </div>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-400">On Leave Today</span>
+                            <span className="text-sm font-bold text-rose-400">{summary?.on_leave_today_count ?? 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-400">Pending Requests</span>
+                            <span className="text-sm font-bold text-amber-400">{summary?.pending_leave_count ?? 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-400">Approved (Upcoming)</span>
+                            <span className="text-sm font-bold text-emerald-400">{summary?.approved_leave_count ?? 0}</span>
+                        </div>
+                    </div>
+                    {summary && summary.pending_leave_count > 0 && (
+                        <button
+                            onClick={() => navigate('/people/leaves')}
+                            className="w-full text-xs text-amber-400 hover:text-amber-300 flex items-center justify-center gap-1 pt-1"
+                        >
+                            Review pending <ArrowRight size={12} />
+                        </button>
+                    )}
+                </div>
+
+                {/* Resource Availability */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-slate-50">Resource Availability</h3>
+                        <UserCheck size={16} className="text-emerald-400" />
+                    </div>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                <span className="text-sm text-slate-400">Available</span>
+                            </div>
+                            <span className="text-sm font-bold text-emerald-400">{summary?.available_resources ?? 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-400" />
+                                <span className="text-sm text-slate-400">Allocated</span>
+                            </div>
+                            <span className="text-sm font-bold text-blue-400">{summary?.fully_allocated_resources ?? 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-rose-400" />
+                                <span className="text-sm text-slate-400">Overallocated</span>
+                            </div>
+                            <span className="text-sm font-bold text-rose-400">{summary?.overallocated_resources ?? 0}</span>
+                        </div>
+                    </div>
+                    {summary && summary.overallocated_resources > 0 && (
+                        <div className="flex items-center gap-2 pt-1">
+                            <UserMinus size={12} className="text-rose-400" />
+                            <span className="text-xs text-rose-400">{summary.overallocated_resources} resource{summary.overallocated_resources > 1 ? 's' : ''} over capacity</span>
+                        </div>
+                    )}
                 </div>
             </div>
 
