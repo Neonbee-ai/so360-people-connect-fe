@@ -53,6 +53,12 @@ const EntityCombo: React.FC<EntityComboProps> = ({
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    // Prevents state updates on an unmounted component (e.g. modal closed while loading).
+    const isMounted = useRef(true);
+    useEffect(() => {
+        isMounted.current = true;
+        return () => { isMounted.current = false; };
+    }, []);
 
     // Propagate local search → serverSearch after a short debounce so we don't
     // fire a backend request on every keystroke.
@@ -68,6 +74,9 @@ const EntityCombo: React.FC<EntityComboProps> = ({
             setLoading(false);
             return;
         }
+        // Clear stale options from a previous type immediately so the dropdown
+        // never shows e.g. project names while leads are loading.
+        setOptions([]);
         setLoading(true);
         setLoadError(false);
         entitiesApi.list({
@@ -75,9 +84,9 @@ const EntityCombo: React.FC<EntityComboProps> = ({
             project_id: projectId,
             ...(serverSearch ? { search: serverSearch } : {}),
         })
-            .then((res) => setOptions(res.data || []))
-            .catch(() => { setOptions([]); setLoadError(true); })
-            .finally(() => setLoading(false));
+            .then((res) => { if (isMounted.current) setOptions(res.data || []); })
+            .catch(() => { if (isMounted.current) { setOptions([]); setLoadError(true); } })
+            .finally(() => { if (isMounted.current) setLoading(false); });
     }, [type, projectId, ready, serverSearch]);
 
     // (Re)load whenever the lookup key or debounced search changes.

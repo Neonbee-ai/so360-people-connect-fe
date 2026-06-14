@@ -88,6 +88,27 @@ describe('EntitySelector', () => {
         });
     });
 
+    describe('Given a selector that switches entity type', () => {
+        it('When type changes / Then stale options from the previous type are cleared before the new load starts', async () => {
+            const { rerender } = render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
+
+            // Let the initial project load settle.
+            await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: 'project', project_id: undefined }));
+            mockList.mockClear();
+
+            // Simulate the parent updating the entity type to 'lead'.
+            mockList.mockResolvedValue({ data: [{ id: 'l1', name: 'Orange Inc' }] });
+            rerender(<EntitySelector entityType="lead" value="" onChange={() => {}} />);
+
+            // The lead lookup must fire and the selector must not momentarily show
+            // project-type options (stale data) during the transition.
+            await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: 'lead', project_id: undefined }));
+
+            fireEvent.click(screen.getByText('Select lead...'));
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Orange Inc' })).toBeInTheDocument());
+        });
+    });
+
     describe('Given a task selector with no project chosen yet', () => {
         it('When rendered / Then the task dropdown is disabled and tasks are not queried', async () => {
             render(<EntitySelector entityType="task" value="" onChange={() => {}} />);
