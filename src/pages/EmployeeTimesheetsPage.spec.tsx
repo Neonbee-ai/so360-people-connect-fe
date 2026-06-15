@@ -218,6 +218,25 @@ describe('Given the Timesheet module is unavailable', () => {
   });
 });
 
+describe('Given the Timesheet module returns a 403 authorization error', () => {
+  beforeEach(() => {
+    mockTimesheet.getEntries.mockRejectedValue(new Error('Unable to verify Timesheet V2 access. Please try again later.'));
+    mockTimesheet.getUtilization.mockRejectedValue(new Error('Unable to verify Timesheet V2 access. Please try again later.'));
+  });
+
+  it('When a 403-type error is returned / Then a graceful error toast is shown without exposing backend internals', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Failed to load employee timesheets')).toBeInTheDocument());
+    expect(screen.getByText('Employee Timesheets')).toBeInTheDocument();
+  });
+
+  it('When a 403-type error is returned / Then the page does not crash or expose the raw backend message to the user', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Employee Timesheets')).toBeInTheDocument());
+    expect(screen.queryByText('Unable to verify Timesheet V2 access. Please try again later.')).not.toBeInTheDocument();
+  });
+});
+
 describe('Given non-billable entries', () => {
   beforeEach(() => {
     mockTimesheet.getEntries.mockResolvedValue({
