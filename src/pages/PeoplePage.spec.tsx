@@ -232,7 +232,10 @@ describe('Given the Department field in the create modal', () => {
   it('When a department is searched and selected / Then the create payload stores department_id (relational ref, no free text)', async () => {
     await openModal();
 
-    fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'New Hire' } });
+    const nameInput = screen.getByPlaceholderText('John Doe');
+    fireEvent.change(nameInput, { target: { value: 'New Hire' } });
+    // Wait for React 18 batched state to commit before proceeding
+    await waitFor(() => expect(nameInput).toHaveValue('New Hire'));
 
     // Open the dropdown and load active departments.
     fireEvent.click(screen.getByText('Select department...'));
@@ -246,10 +249,12 @@ describe('Given the Department field in the create modal', () => {
     // Click the dropdown option (last 'Engineering' in DOM is the dropdown span)
     const engItems = screen.getAllByText('Engineering');
     fireEvent.click(engItems[engItems.length - 1]);
+    // Wait for dropdown to close — ensures department_id state is committed in same React batch
+    await waitFor(() => expect(screen.queryByPlaceholderText('Select department...')).not.toBeInTheDocument());
 
-    // Submit – find only button elements named 'Add Person' to skip the modal <h2> title
-    const submitButtons = screen.getAllByRole('button', { name: /Add Person/i });
-    fireEvent.click(submitButtons[submitButtons.length - 1]);
+    // Submit via form element to avoid jsdom click→submit edge cases
+    const form = nameInput.closest('form')!;
+    fireEvent.submit(form);
 
     await waitFor(() => expect(mockApi.create).toHaveBeenCalled());
     const payload = mockApi.create.mock.calls[0][0];
@@ -259,11 +264,14 @@ describe('Given the Department field in the create modal', () => {
 
   it('When no department is selected / Then department_id is omitted (not an empty string)', async () => {
     await openModal();
-    fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'No Dept' } });
+    const nameInput = screen.getByPlaceholderText('John Doe');
+    fireEvent.change(nameInput, { target: { value: 'No Dept' } });
+    // Wait for React 18 batched state to commit before submitting
+    await waitFor(() => expect(nameInput).toHaveValue('No Dept'));
 
-    // Use role query to target only <button> elements, skipping the modal <h2> title
-    const submitButtons = screen.getAllByRole('button', { name: /Add Person/i });
-    fireEvent.click(submitButtons[submitButtons.length - 1]);
+    // Submit via form element to avoid jsdom click→submit edge cases
+    const form = nameInput.closest('form')!;
+    fireEvent.submit(form);
 
     await waitFor(() => expect(mockApi.create).toHaveBeenCalled());
     expect(mockApi.create.mock.calls[0][0].department_id).toBeUndefined();
