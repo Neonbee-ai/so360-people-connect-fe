@@ -236,17 +236,19 @@ describe('Given the Department field in the create modal', () => {
 
     // Open the dropdown and load active departments.
     fireEvent.click(screen.getByText('Select department...'));
-    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('Engineering').length).toBeGreaterThan(0));
 
     // Search narrows the list.
     const searchBox = screen.getByPlaceholderText('Select department...');
     fireEvent.change(searchBox, { target: { value: 'eng' } });
     await waitFor(() => expect(screen.queryByText('Sales')).not.toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('Engineering'));
+    // Click the dropdown option (last 'Engineering' in DOM is the dropdown span)
+    const engItems = screen.getAllByText('Engineering');
+    fireEvent.click(engItems[engItems.length - 1]);
 
-    // Submit (second "Add Person" is the form submit button).
-    const submitButtons = screen.getAllByText('Add Person');
+    // Submit – find only button elements named 'Add Person' to skip the modal <h2> title
+    const submitButtons = screen.getAllByRole('button', { name: /Add Person/i });
     fireEvent.click(submitButtons[submitButtons.length - 1]);
 
     await waitFor(() => expect(mockApi.create).toHaveBeenCalled());
@@ -259,7 +261,8 @@ describe('Given the Department field in the create modal', () => {
     await openModal();
     fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'No Dept' } });
 
-    const submitButtons = screen.getAllByText('Add Person');
+    // Use role query to target only <button> elements, skipping the modal <h2> title
+    const submitButtons = screen.getAllByRole('button', { name: /Add Person/i });
     fireEvent.click(submitButtons[submitButtons.length - 1]);
 
     await waitFor(() => expect(mockApi.create).toHaveBeenCalled());

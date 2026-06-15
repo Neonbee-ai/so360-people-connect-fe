@@ -340,18 +340,6 @@ const DepartmentDetailPage: React.FC = () => {
         );
     }
 
-    // ---------- Not found ----------
-    if (loadError === 'not_found' || !department) {
-        return (
-            <div className="p-6">
-                <button onClick={() => navigate('/departments')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-6 transition-colors">
-                    <ArrowLeft size={16} /> Back to Departments
-                </button>
-                <EmptyState icon={Building2} title="Department not found" description="This department does not exist or has been removed." action={{ label: 'Back to Departments', onClick: () => navigate('/departments') }} />
-            </div>
-        );
-    }
-
     // ---------- Load failed ----------
     if (loadError === 'load_failed') {
         return (
@@ -360,6 +348,18 @@ const DepartmentDetailPage: React.FC = () => {
                     <ArrowLeft size={16} /> Back to Departments
                 </button>
                 <EmptyState icon={Building2} title="Failed to load department" description="Could not load department details. Please try again." action={{ label: 'Retry', onClick: () => loadData() }} />
+            </div>
+        );
+    }
+
+    // ---------- Not found ----------
+    if (loadError === 'not_found' || !department) {
+        return (
+            <div className="p-6">
+                <button onClick={() => navigate('/departments')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-6 transition-colors">
+                    <ArrowLeft size={16} /> Back to Departments
+                </button>
+                <EmptyState icon={Building2} title="Department not found" description="This department does not exist or has been removed." action={{ label: 'Back to Departments', onClick: () => navigate('/departments') }} />
             </div>
         );
     }

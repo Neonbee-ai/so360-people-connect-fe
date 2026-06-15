@@ -48,6 +48,7 @@ vi.mock('@so360/shell-context', () => ({
 import PeoplePage from '../pages/PeoplePage';
 import { peopleApi } from '../services/peopleService';
 import { workLocationsApi } from '../services/workLocationsService';
+import { departmentsApi } from '../services/departmentsService';
 
 const mockPeopleApi = peopleApi as any;
 const mockWorkLocationsApi = workLocationsApi as any;
@@ -60,6 +61,7 @@ beforeEach(() => {
   mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
   mockPeopleApi.getOrgRoles.mockResolvedValue({ data: [] });
   mockWorkLocationsApi.getAll.mockResolvedValue({ data: [] });
+  (departmentsApi as any).getTree.mockResolvedValue([]);
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
 });
 

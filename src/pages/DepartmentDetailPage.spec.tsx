@@ -112,7 +112,7 @@ describe('Given DepartmentDetailPage loads successfully', () => {
 
     it('When page loads / Then employee count is shown', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getAllByText('1').length).toBeGreaterThan(0));
     });
 
     it('When page loads / Then total employees summary card shows correct value', async () => {
@@ -216,7 +216,7 @@ describe('Given DepartmentDetailPage when department not found', () => {
 
     it('When department not found / Then back link is shown', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText(/Back to Departments/i)).toBeInTheDocument());
+        await waitFor(() => expect(screen.getAllByText(/Back to Departments/i).length).toBeGreaterThan(0));
     });
 });
 

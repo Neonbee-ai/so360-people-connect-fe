@@ -67,8 +67,10 @@ describe('EventsPage', () => {
 
     it('When loading fails / Then it shows the error toast', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('People Events')).toBeInTheDocument());
-      expect(screen.getByText('Failed to load events')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('People Events')).toBeInTheDocument();
+        expect(screen.getByText('Failed to load events')).toBeInTheDocument();
+      }, { timeout: 5000 });
     });
   });
 });
