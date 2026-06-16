@@ -59,6 +59,12 @@ const EntityCombo: React.FC<EntityComboProps> = ({
         isMounted.current = true;
         return () => { isMounted.current = false; };
     }, []);
+    // Monotonically increasing counter — each load() call captures the current
+    // value before going async. The .then() only commits results if the counter
+    // hasn't advanced (i.e. no newer load() was started since this one began).
+    // This prevents stale responses from a previous entity type overwriting fresh
+    // results when the user changes the type while a request is still in-flight.
+    const requestIdRef = useRef(0);
 
     // Propagate local search → serverSearch after a short debounce so we don't
     // fire a backend request on every keystroke.
@@ -79,14 +85,29 @@ const EntityCombo: React.FC<EntityComboProps> = ({
         setOptions([]);
         setLoading(true);
         setLoadError(false);
+        // Stamp this request so we can discard results from superseded calls.
+        const reqId = ++requestIdRef.current;
         entitiesApi.list({
             type,
             project_id: projectId,
             ...(serverSearch ? { search: serverSearch } : {}),
         })
-            .then((res) => { if (isMounted.current) setOptions(res.data || []); })
-            .catch(() => { if (isMounted.current) { setOptions([]); setLoadError(true); } })
-            .finally(() => { if (isMounted.current) setLoading(false); });
+            .then((res) => {
+                if (isMounted.current && requestIdRef.current === reqId) {
+                    setOptions(res.data || []);
+                }
+            })
+            .catch(() => {
+                if (isMounted.current && requestIdRef.current === reqId) {
+                    setOptions([]);
+                    setLoadError(true);
+                }
+            })
+            .finally(() => {
+                if (isMounted.current && requestIdRef.current === reqId) {
+                    setLoading(false);
+                }
+            });
     }, [type, projectId, ready, serverSearch]);
 
     // (Re)load whenever the lookup key or debounced search changes.

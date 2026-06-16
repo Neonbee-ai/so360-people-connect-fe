@@ -107,6 +107,36 @@ describe('EntitySelector', () => {
             fireEvent.click(screen.getByText('Select lead...'));
             await waitFor(() => expect(screen.getByRole('button', { name: 'Orange Inc' })).toBeInTheDocument());
         });
+
+        it('When the stale response resolves AFTER the fresh one / Then only fresh data is shown (race condition fix)', async () => {
+            // Simulate: project request is slow, lead request is fast.
+            // If the stale (project) response resolves last, it must NOT overwrite the lead data.
+            let resolveProjectRequest!: (v: any) => void;
+            const projectPromise = new Promise<{ data: { id: string; name: string }[] }>((res) => {
+                resolveProjectRequest = res;
+            });
+
+            mockList
+                .mockImplementationOnce(() => projectPromise)                               // first call: project (slow)
+                .mockResolvedValueOnce({ data: [{ id: 'l1', name: 'Orange Inc' }] });       // second call: lead (fast)
+
+            const { rerender } = render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
+
+            // The project request is in-flight but hasn't resolved yet.
+            // Switch to 'lead' — the lead request fires and resolves quickly.
+            rerender(<EntitySelector entityType="lead" value="" onChange={() => {}} />);
+            await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: 'lead', project_id: undefined }));
+
+            // Now let the slow (stale) project request resolve with project data.
+            await act(async () => {
+                resolveProjectRequest({ data: [{ id: 'p1', name: 'Website Redesign' }] });
+            });
+
+            // The dropdown must show lead data, NOT the stale project data.
+            fireEvent.click(screen.getByText('Select lead...'));
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Orange Inc' })).toBeInTheDocument());
+            expect(screen.queryByRole('button', { name: 'Website Redesign' })).not.toBeInTheDocument();
+        });
     });
 
     describe('Given a task selector with no project chosen yet', () => {
