@@ -56,7 +56,7 @@ export interface CreateReviewTemplatePayload {
 // =============================================================================
 
 export const reviewTemplatesApi = {
-  getAll: async (params?: { is_active?: boolean; review_type?: string; page?: number; limit?: number }): Promise<PaginatedResponse<ReviewTemplate>> => {
+  getAll: async (params?: { status?: string; review_type?: string; page?: number; limit?: number }): Promise<PaginatedResponse<ReviewTemplate>> => {
     return api.get<PaginatedResponse<ReviewTemplate>>('/review-templates', params);
   },
 

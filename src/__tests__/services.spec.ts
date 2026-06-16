@@ -285,8 +285,8 @@ describe('reviewTemplatesApi', () => {
   describe('Given the review templates API', () => {
     it('When getAll is called / Then it calls api.get', async () => {
       mockApi.get.mockResolvedValue({ data: [] });
-      await reviewTemplatesApi.getAll({ is_active: true });
-      expect(mockApi.get).toHaveBeenCalledWith('/review-templates', { is_active: true });
+      await reviewTemplatesApi.getAll({ status: 'active' });
+      expect(mockApi.get).toHaveBeenCalledWith('/review-templates', { status: 'active' });
     });
 
     it('When getById is called / Then it returns the template', async () => {

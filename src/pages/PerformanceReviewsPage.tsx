@@ -293,7 +293,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
 
     const loadTemplates = async () => {
         try {
-            const result = await reviewTemplatesApi.getAll({ is_active: true });
+            const result = await reviewTemplatesApi.getAll({ status: 'active' });
             setTemplates(result.data);
         } catch (error) {
             console.error('Failed to load templates:', error);

@@ -125,3 +125,66 @@ describe('Given PerformanceReviewsPage status filter', () => {
     );
   });
 });
+
+// Root-cause fix for "Review Template dropdown is empty":
+// The Create Review modal called reviewTemplatesApi.getAll({ is_active: true }) but the
+// backend only recognises ?status=active. The fix sends { status: 'active' } instead.
+
+describe('Given PerformanceReviewsPage — Create Review modal template loading', () => {
+  beforeEach(() => {
+    mockReviewsApi.getAll.mockResolvedValue({ data: [], total: 0 });
+  });
+
+  it('When the Create Review button is clicked / Then reviewTemplatesApi.getAll is called with { status: "active" }', async () => {
+    mockTemplatesApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    // Wait for empty state with Create Review action button
+    await waitFor(() => screen.getByText('Create Review'));
+    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() =>
+      expect(mockTemplatesApi.getAll).toHaveBeenCalledWith({ status: 'active' })
+    );
+  });
+
+  it('When the Create Review button is clicked / Then reviewTemplatesApi.getAll is NOT called with { is_active: true }', async () => {
+    mockTemplatesApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => screen.getByText('Create Review'));
+    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => expect(mockTemplatesApi.getAll).toHaveBeenCalled());
+    expect(mockTemplatesApi.getAll).not.toHaveBeenCalledWith({ is_active: true });
+  });
+
+  it('When templates are returned / Then template names appear in the dropdown', async () => {
+    mockTemplatesApi.getAll.mockResolvedValue({
+      data: [
+        { id: 'tpl1', name: 'Annual Review 2025', review_type: 'annual', is_active: true },
+        { id: 'tpl2', name: 'Probation Review',   review_type: 'probation', is_active: true },
+      ],
+    });
+    renderPage();
+    await waitFor(() => screen.getByText('Create Review'));
+    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => expect(screen.getByText('Annual Review 2025 (annual)')).toBeInTheDocument());
+    expect(screen.getByText('Probation Review (probation)')).toBeInTheDocument();
+  });
+
+  it('When templates API returns empty / Then only the placeholder option exists in the dropdown', async () => {
+    mockTemplatesApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => screen.getByText('Create Review'));
+    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => expect(mockTemplatesApi.getAll).toHaveBeenCalled());
+    expect(screen.getByText('Select template')).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Annual|Quarterly|Probation/i })).not.toBeInTheDocument();
+  });
+
+  it('When templates API rejects / Then the page does not crash', async () => {
+    mockTemplatesApi.getAll.mockRejectedValue(new Error('Network error'));
+    renderPage();
+    await waitFor(() => screen.getByText('Create Review'));
+    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => expect(mockTemplatesApi.getAll).toHaveBeenCalled());
+    expect(screen.getByText('Performance Reviews')).toBeInTheDocument();
+  });
+});

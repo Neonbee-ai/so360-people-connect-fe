@@ -30,6 +30,36 @@ describe('Given reviewTemplatesApi.getAll', () => {
     await reviewTemplatesApi.getAll({ review_type: 'annual' });
     expect(mockApi.get).toHaveBeenCalledWith('/review-templates', { review_type: 'annual' });
   });
+
+  // Root-cause fix: the API contract uses ?status=active, NOT ?is_active=true.
+  // The backend controller reads @Query('status') and maps 'active'→true / 'inactive'→false.
+  // Sending is_active:true was silently ignored — templates were never filtered.
+
+  it('When called with status: active / Then sends { status: "active" } — not { is_active: true }', async () => {
+    mockApi.get.mockResolvedValue({ data: [], total: 0 });
+    await reviewTemplatesApi.getAll({ status: 'active' });
+    expect(mockApi.get).toHaveBeenCalledWith('/review-templates', { status: 'active' });
+  });
+
+  it('When called with status: inactive / Then sends { status: "inactive" }', async () => {
+    mockApi.get.mockResolvedValue({ data: [], total: 0 });
+    await reviewTemplatesApi.getAll({ status: 'inactive' });
+    expect(mockApi.get).toHaveBeenCalledWith('/review-templates', { status: 'inactive' });
+  });
+
+  it('When called with status and review_type combined / Then both params are passed', async () => {
+    mockApi.get.mockResolvedValue({ data: [], total: 0 });
+    await reviewTemplatesApi.getAll({ status: 'active', review_type: 'quarterly' });
+    expect(mockApi.get).toHaveBeenCalledWith('/review-templates', { status: 'active', review_type: 'quarterly' });
+  });
+
+  it('When the API resolves / Then the returned data array is exposed', async () => {
+    const templates = [{ id: 'tpl1', name: 'Annual Review', review_type: 'annual', is_active: true }];
+    mockApi.get.mockResolvedValue({ data: templates, total: 1 });
+    const result = await reviewTemplatesApi.getAll({ status: 'active' });
+    expect(result.data).toEqual(templates);
+    expect(result.total).toBe(1);
+  });
 });
 
 describe('Given reviewTemplatesApi.getById', () => {
