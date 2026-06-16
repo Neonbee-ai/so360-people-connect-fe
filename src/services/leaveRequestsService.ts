@@ -28,7 +28,7 @@ export interface LeaveRequest {
   updated_by?: string;
 
   // Relations
-  person?: { id: string; full_name: string; avatar_url?: string; email?: string };
+  person?: { id: string; full_name: string; avatar_url?: string; email?: string; department_id?: string };
   leave_type?: { id: string; name: string; code: string; color?: string };
   reviewer?: { id: string; full_name: string };
 }
@@ -59,7 +59,7 @@ export interface LeaveBalance {
 // =============================================================================
 
 export const leaveRequestsApi = {
-  getAll: async (params?: { person_id?: string; status?: string; from_date?: string; to_date?: string; page?: number; limit?: number }): Promise<PaginatedResponse<LeaveRequest>> => {
+  getAll: async (params?: { person_id?: string; status?: string; start_date?: string; end_date?: string; from_date?: string; to_date?: string; page?: number; limit?: number }): Promise<PaginatedResponse<LeaveRequest>> => {
     return api.get<PaginatedResponse<LeaveRequest>>('/leave-requests', params);
   },
 

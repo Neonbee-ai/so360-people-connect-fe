@@ -23,6 +23,7 @@ const LeaveCalendarPage: React.FC = () => {
     const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
+    const [loadError, setLoadError] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const year = currentDate.getFullYear();
@@ -40,23 +41,20 @@ const LeaveCalendarPage: React.FC = () => {
 
     const loadLeaveRequests = async () => {
         setLoading(true);
+        setLoadError(false);
         try {
             const firstDay = new Date(year, month, 1).toISOString().split('T')[0];
             const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0];
-            // Approved and pending are independent queries — run them in
-            // parallel instead of awaiting one before the other. Merge order is
-            // preserved (approved first, then pending) so the rendered data is
-            // identical to the previous sequential version.
             const [result, pendingResult] = await Promise.all([
                 leaveRequestsApi.getAll({
-                    from_date: firstDay,
-                    to_date: lastDay,
+                    start_date: firstDay,
+                    end_date: lastDay,
                     status: 'approved',
                     limit: 200,
                 }),
                 leaveRequestsApi.getAll({
-                    from_date: firstDay,
-                    to_date: lastDay,
+                    start_date: firstDay,
+                    end_date: lastDay,
                     status: 'pending',
                     limit: 200,
                 }),
@@ -64,6 +62,8 @@ const LeaveCalendarPage: React.FC = () => {
             setLeaveRequests([...(result.data || []), ...(pendingResult.data || [])]);
         } catch (error) {
             console.error('Failed to load leave requests:', error);
+            setLoadError(true);
+            setLeaveRequests([]);
         } finally {
             setLoading(false);
         }
@@ -156,6 +156,19 @@ const LeaveCalendarPage: React.FC = () => {
                 </div>
             </div>
 
+            {/* Error Banner */}
+            {loadError && (
+                <div className="flex items-center justify-between px-4 py-3 bg-rose-900/20 border border-rose-700/40 rounded-lg text-sm text-rose-400">
+                    <span>Unable to load leave data. Please try again.</span>
+                    <button
+                        onClick={loadLeaveRequests}
+                        className="ml-4 px-3 py-1 text-xs bg-rose-800/40 hover:bg-rose-700/40 border border-rose-700/40 rounded transition-colors"
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
+
             {/* Calendar Grid */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                 {/* Day headers */}
@@ -172,7 +185,7 @@ const LeaveCalendarPage: React.FC = () => {
                     {calendarDays.map((day, i) => {
                         const isToday = day.date === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
                         const filteredLeaves = departmentFilter
-                            ? day.leaves.filter(l => l.person?.full_name) // Filter would need department data
+                            ? day.leaves.filter(l => l.person?.department_id === departmentFilter)
                             : day.leaves;
 
                         return (

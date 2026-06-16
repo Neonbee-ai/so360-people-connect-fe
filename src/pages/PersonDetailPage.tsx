@@ -83,9 +83,17 @@ const PersonDetailPage: React.FC = () => {
             setAllocations(allocRes.status === 'fulfilled' ? (allocRes.value?.data ?? []) : []);
             setTimeEntries(timeRes.status === 'fulfilled' ? (timeRes.value?.data ?? []) : []);
             setWorkLocations(locRes.status === 'fulfilled' ? (locRes.value?.data ?? []) : []);
-            if (allocRes.status === 'rejected' || timeRes.status === 'rejected' || locRes.status === 'rejected') {
-                console.error('Some person details failed to load', { allocRes, timeRes, locRes });
-                setToast({ message: 'Some details could not be loaded', type: 'error' });
+            // Log secondary failures but do not surface a page-level error toast.
+            // Timesheet 403 is expected for users without timesheet access; work
+            // location failures are non-critical. Each tab shows its own empty state.
+            if (timeRes.status === 'rejected') {
+                console.warn('[PersonDetail] Timesheet data unavailable (user may lack timesheet permissions):', (timeRes as PromiseRejectedResult).reason);
+            }
+            if (locRes.status === 'rejected') {
+                console.warn('[PersonDetail] Work locations unavailable:', (locRes as PromiseRejectedResult).reason);
+            }
+            if (allocRes.status === 'rejected') {
+                console.warn('[PersonDetail] Allocations unavailable:', (allocRes as PromiseRejectedResult).reason);
             }
             setLoading(false);
         };

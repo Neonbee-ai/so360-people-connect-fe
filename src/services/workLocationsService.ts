@@ -23,18 +23,18 @@ export interface CreateWorkLocationPayload {
 
 export const workLocationsApi = {
   getAll: async (): Promise<{ data: WorkLocation[] }> => {
-    return api.get<{ data: WorkLocation[] }>('/people/locations');
+    return api.get<{ data: WorkLocation[] }>('/locations');
   },
 
   create: async (data: CreateWorkLocationPayload): Promise<WorkLocation> => {
-    return api.post<WorkLocation>('/people/locations', data);
+    return api.post<WorkLocation>('/locations', data);
   },
 
   update: async (id: string, data: Partial<CreateWorkLocationPayload>): Promise<WorkLocation> => {
-    return api.patch<WorkLocation>(`/people/locations/${id}`, data);
+    return api.patch<WorkLocation>(`/locations/${id}`, data);
   },
 
   delete: async (id: string): Promise<{ message: string }> => {
-    return api.delete<{ message: string }>(`/people/locations/${id}`);
+    return api.delete<{ message: string }>(`/locations/${id}`);
   },
 };
