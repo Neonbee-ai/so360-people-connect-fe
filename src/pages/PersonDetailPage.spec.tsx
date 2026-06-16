@@ -148,3 +148,74 @@ describe('Given PersonDetailPage tab navigation', () => {
     expect(screen.getByText('Overview')).toBeInTheDocument();
   });
 });
+
+// Secondary data failures must NOT block the page or show a page-level error
+// banner. Timesheet 403 is expected for users without timesheet permissions;
+// work-locations failure is non-critical. Each tab shows its own empty state.
+describe('Given PersonDetailPage with timesheet 403', () => {
+  beforeEach(() => {
+    mockPeopleApi.getById.mockResolvedValue(mockPerson);
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    // Timesheet returns 403 — expected for users without timesheet permissions
+    mockTimeApi.getEntries.mockRejectedValue(new Error('403 Forbidden'));
+    (workLocationsApi as any).getAll.mockResolvedValue({ data: [] });
+  });
+
+  it('When timesheet returns 403 / Then the person profile still renders', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+  });
+
+  it('When timesheet returns 403 / Then NO page-level "Some details could not be loaded" toast appears', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    // The old code showed this toast for any secondary failure — must not appear now
+    expect(screen.queryByText(/some details could not be loaded/i)).not.toBeInTheDocument();
+  });
+
+  it('When timesheet returns 403 / Then the job title and email are still displayed', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Engineer')).toBeInTheDocument());
+    expect(screen.getByText('alice@test.com')).toBeInTheDocument();
+  });
+});
+
+describe('Given PersonDetailPage with work locations failure', () => {
+  beforeEach(() => {
+    mockPeopleApi.getById.mockResolvedValue(mockPerson);
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    mockTimeApi.getEntries.mockResolvedValue({ data: [] });
+    (workLocationsApi as any).getAll.mockRejectedValue(new Error('Network error'));
+  });
+
+  it('When work locations fail / Then the person profile still renders', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+  });
+
+  it('When work locations fail / Then NO page-level error toast appears', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    expect(screen.queryByText(/some details could not be loaded/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('Given PersonDetailPage with all secondary APIs failing', () => {
+  beforeEach(() => {
+    mockPeopleApi.getById.mockResolvedValue(mockPerson);
+    mockAllocApi.getAll.mockRejectedValue(new Error('Allocations error'));
+    mockTimeApi.getEntries.mockRejectedValue(new Error('Timesheet error'));
+    (workLocationsApi as any).getAll.mockRejectedValue(new Error('Locations error'));
+  });
+
+  it('When all secondary data fails / Then person name is still shown', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+  });
+
+  it('When all secondary data fails / Then no page-level toast for secondary failures', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    expect(screen.queryByText(/some details could not be loaded/i)).not.toBeInTheDocument();
+  });
+});

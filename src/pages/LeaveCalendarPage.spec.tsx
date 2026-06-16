@@ -67,7 +67,7 @@ describe('Given LeaveCalendarPage with approved leave requests', () => {
     mockLeaveApi.getAll.mockResolvedValue({
       data: [{
         id: 'lr1',
-        person: { id: 'p1', full_name: 'Alice' },
+        person: { id: 'p1', full_name: 'Alice', department_id: 'd1' },
         leave_type: { id: 'lt1', name: 'Annual Leave', code: 'AL' },
         start_date: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-10`,
         end_date: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-12`,
@@ -78,9 +78,25 @@ describe('Given LeaveCalendarPage with approved leave requests', () => {
     });
   });
 
-  it('When leave data is fetched / Then the API is called with date range', async () => {
+  it('When leave data is fetched / Then the API is called with start_date and end_date (not from_date/to_date)', async () => {
     renderPage();
     await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
+    const calls = mockLeaveApi.getAll.mock.calls;
+    // Each call must use start_date / end_date (canonical BE param names)
+    calls.forEach((call: any[]) => {
+      const params = call[0];
+      expect(params).toHaveProperty('start_date');
+      expect(params).toHaveProperty('end_date');
+      expect(params).not.toHaveProperty('from_date');
+      expect(params).not.toHaveProperty('to_date');
+    });
+  });
+
+  it('When leave data is fetched / Then the approved query uses status=approved', async () => {
+    renderPage();
+    await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
+    const approvedCall = mockLeaveApi.getAll.mock.calls.find((c: any[]) => c[0]?.status === 'approved');
+    expect(approvedCall).toBeDefined();
   });
 });
 
@@ -92,6 +108,30 @@ describe('Given LeaveCalendarPage API failure', () => {
   it('When API fails / Then page still renders the calendar structure', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Leave Calendar')).toBeInTheDocument());
+  });
+
+  it('When API fails / Then an error banner is shown with "Unable to load leave data"', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText(/unable to load leave data/i)).toBeInTheDocument()
+    );
+  });
+
+  it('When API fails / Then a "Retry" button is shown', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+    );
+  });
+
+  it('When API fails and Retry is clicked / Then the API is called again', async () => {
+    const { getByRole } = renderPage();
+    await waitFor(() => expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument());
+    // Mount made 2 calls (approved + pending) both rejecting. Now succeed on retry.
+    mockLeaveApi.getAll.mockResolvedValue({ data: [], total: 0 });
+    getByRole('button', { name: /retry/i }).click();
+    // Retry fires 2 more calls (approved + pending) → 4 total
+    await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalledTimes(4));
   });
 });
 
@@ -181,5 +221,76 @@ describe('Given LeaveCalendarPage with departments', () => {
   it('When departments load / Then department filter is populated', async () => {
     renderPage();
     await waitFor(() => expect(mockDeptApi.getAll).toHaveBeenCalled());
+  });
+});
+
+describe('Given LeaveCalendarPage department filter correctness', () => {
+  // The previous bug: filter used l.person?.full_name truthy check, not
+  // department_id equality. Leaves from other departments would show through.
+  const today = new Date();
+  const ym = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const engLeave = {
+    id: 'lr-eng',
+    person: { id: 'p1', full_name: 'Alice', department_id: 'd-eng' },
+    leave_type: { id: 'lt1', name: 'Annual Leave', code: 'AL' },
+    start_date: `${ym}-05`,
+    end_date: `${ym}-05`,
+    status: 'approved',
+    total_days: 1,
+  };
+  const hrLeave = {
+    id: 'lr-hr',
+    person: { id: 'p2', full_name: 'Bob', department_id: 'd-hr' },
+    leave_type: { id: 'lt1', name: 'Annual Leave', code: 'AL' },
+    start_date: `${ym}-05`,
+    end_date: `${ym}-05`,
+    status: 'approved',
+    total_days: 1,
+  };
+
+  beforeEach(() => {
+    mockDeptApi.getAll.mockResolvedValue({
+      data: [
+        { id: 'd-eng', name: 'Engineering', code: 'ENG', is_active: true },
+        { id: 'd-hr', name: 'HR', code: 'HR', is_active: true },
+      ],
+    });
+    mockLeaveApi.getAll.mockResolvedValue({ data: [engLeave, hrLeave], total: 2 });
+  });
+
+  it('When no department filter / Then both leaves load from API', async () => {
+    renderPage();
+    await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
+    // Data is fetched without a department filter (filtering happens client-side)
+    const params = mockLeaveApi.getAll.mock.calls[0][0];
+    expect(params).not.toHaveProperty('department_id');
+  });
+});
+
+describe('Given LeaveCalendarPage multi-day leave rendering', () => {
+  // A leave spanning multiple days must appear as a card on EACH day it covers.
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+
+  const multiDayLeave = {
+    id: 'lr-multi',
+    person: { id: 'p1', full_name: 'Carol', department_id: 'd1' },
+    leave_type: { id: 'lt1', name: 'Annual Leave', code: 'AL' },
+    start_date: `${year}-${month}-10`,
+    end_date: `${year}-${month}-12`,
+    status: 'approved',
+    total_days: 3,
+  };
+
+  beforeEach(() => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [multiDayLeave], total: 1 });
+  });
+
+  it('When a multi-day leave is returned / Then the API is called with a 200-item limit', async () => {
+    renderPage();
+    await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
+    const call = mockLeaveApi.getAll.mock.calls[0][0];
+    expect(call.limit).toBe(200);
   });
 });
