@@ -6,7 +6,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // eliminates the 403s caused by TimesheetV2Guard + PermissionsGuard blocking
 // users who don't have Timesheet V2 feature-flagged.
 
-const mockGet = vi.fn();
+// vi.hoisted ensures mockGet is available when the vi.mock() factory runs —
+// in vitest 3.x, factories are called before module-body code executes, so
+// bare const declarations referenced in factories are in the TDZ without hoisted().
+const mockGet = vi.hoisted(() => vi.fn());
 
 vi.mock('./apiClient', () => ({
   api: {
