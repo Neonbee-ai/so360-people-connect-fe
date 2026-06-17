@@ -199,7 +199,9 @@ describe('ReviewDetailPage', () => {
 
   describe('Given the review is not found', () => {
     beforeEach(() => {
-      mockReviews.getById.mockRejectedValue(new Error('Not found'));
+      // Use mockImplementation instead of mockRejectedValue to avoid a momentarily
+      // unhandled Promise.reject() during beforeEach setup in vitest 3.x.
+      mockReviews.getById.mockImplementation(async () => { throw new Error('Not found'); });
     });
 
     it('When loading fails / Then it shows review not found', async () => {
