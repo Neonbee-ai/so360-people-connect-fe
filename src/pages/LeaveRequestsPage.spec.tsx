@@ -3,6 +3,10 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
+vi.mock('../services/peopleService', () => ({
+  peopleApi: { getMe: vi.fn().mockResolvedValue({ id: 'p1', full_name: 'Test User' }), getAll: vi.fn().mockResolvedValue({ data: [], total: 0 }) },
+}));
+
 vi.mock('../services/leaveRequestsService', () => ({
   leaveRequestsApi: {
     getAll: vi.fn(),
