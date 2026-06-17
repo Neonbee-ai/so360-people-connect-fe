@@ -46,14 +46,23 @@ vi.mock('../utils/formatters', () => ({
 
 import LeaveRequestsPage from '../pages/LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
+import { leaveTypesApi } from '../services/leaveTypesService';
+import { peopleApi } from '../services/peopleService';
 
 const mockApi = leaveRequestsApi as any;
+const mockLeaveTypesApi = leaveTypesApi as any;
+const mockPeopleApi = peopleApi as any;
 
 const renderPage = () => render(<MemoryRouter><LeaveRequestsPage /></MemoryRouter>);
 
 beforeEach(() => {
   vi.resetAllMocks();
   mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  // Re-initialize leave types and people mocks after vi.resetAllMocks() so the
+  // modal doesn't get undefined.data when it calls leaveTypesApi.getAll().
+  mockLeaveTypesApi.getAll.mockResolvedValue({ data: [] });
+  mockApi.getBalances.mockResolvedValue({ data: [] });
+  mockPeopleApi.getMe.mockResolvedValue({ id: 'person-1', full_name: 'Alice' });
 });
 
 describe('LeaveRequestsPage', () => {
