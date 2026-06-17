@@ -36,8 +36,10 @@ vi.mock('../utils/formatters', () => ({
 
 import FeedbackPage from './FeedbackPage';
 import { feedbackApi } from '../services/feedbackService';
+import { peopleApi } from '../services/peopleService';
 
 const mockApi = feedbackApi as any;
+const mockPeopleApi = peopleApi as any;
 
 const renderPage = () => render(<MemoryRouter><FeedbackPage /></MemoryRouter>);
 
@@ -55,6 +57,9 @@ const mockFeedback = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  // Re-initialize after resetAllMocks so the modal's people selector doesn't
+  // get undefined.data when FeedbackPage calls peopleApi.getAll().
+  mockPeopleApi.getAll.mockResolvedValue({ data: [], total: 0 });
 });
 
 describe('Given FeedbackPage loads successfully', () => {
