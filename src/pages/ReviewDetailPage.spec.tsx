@@ -118,7 +118,7 @@ describe('Given ReviewDetailPage loads successfully', () => {
 
 describe('Given ReviewDetailPage API failure', () => {
   beforeEach(() => {
-    mockReviewsApi.getById.mockRejectedValue(new Error('Not found'));
+    mockReviewsApi.getById.mockImplementation(async () => { throw new Error('Not found'); });
     mockTemplatesApi.getById.mockResolvedValue(mockTemplate);
   });
 

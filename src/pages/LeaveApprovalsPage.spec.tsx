@@ -98,7 +98,7 @@ describe('Given LeaveApprovalsPage with no pending requests', () => {
 
 describe('Given LeaveApprovalsPage API failure', () => {
   beforeEach(() => {
-    mockApi.getPendingApprovals.mockRejectedValue(new Error('Failed'));
+    mockApi.getPendingApprovals.mockImplementation(async () => { throw new Error('Failed'); });
   });
 
   it('When API fails / Then error toast is shown', async () => {

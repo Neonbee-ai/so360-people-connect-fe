@@ -62,7 +62,7 @@ describe('EventsPage', () => {
 
   describe('Given API fails', () => {
     beforeEach(() => {
-      mockApi.getAll.mockRejectedValue(new Error('fail'));
+      mockApi.getAll.mockImplementation(async () => { throw new Error('fail'); });
     });
 
     it('When loading fails / Then it shows the error toast', async () => {

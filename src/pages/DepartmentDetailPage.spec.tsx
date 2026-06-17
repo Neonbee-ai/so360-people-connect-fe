@@ -226,7 +226,7 @@ describe('Given DepartmentDetailPage when department not found', () => {
 
 describe('Given DepartmentDetailPage when API throws', () => {
     beforeEach(() => {
-        mockDeptApi.getById.mockRejectedValue(new Error('Network error'));
+        mockDeptApi.getById.mockImplementation(async () => { throw new Error('Network error'); });
         mockDeptApi.getEmployees.mockResolvedValue({ data: [], total: 0 });
     });
 

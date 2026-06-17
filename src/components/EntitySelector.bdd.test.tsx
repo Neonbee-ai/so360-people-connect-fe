@@ -182,7 +182,7 @@ describe('EntitySelector', () => {
 
     describe('Given the option lookup fails', () => {
         it('When opened / Then a retry affordance is shown with the correct error message', async () => {
-            mockList.mockRejectedValue(new Error('network'));
+            mockList.mockImplementation(async () => { throw new Error('network'); });
             render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
 
             fireEvent.click(screen.getByText('Select project...'));

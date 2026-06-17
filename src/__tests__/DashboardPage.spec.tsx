@@ -107,9 +107,9 @@ describe('DashboardPage', () => {
 
   describe('Given API calls fail', () => {
     beforeEach(() => {
-      mockUtil.getSummary.mockRejectedValue(new Error('fail'));
-      mockTimesheet.getEntries.mockRejectedValue(new Error('fail'));
-      mockEvents.getAll.mockRejectedValue(new Error('fail'));
+      mockUtil.getSummary.mockImplementation(async () => { throw new Error('fail'); });
+      mockTimesheet.getEntries.mockImplementation(async () => { throw new Error('fail'); });
+      mockEvents.getAll.mockImplementation(async () => { throw new Error('fail'); });
     });
 
     it('When all APIs fail / Then it still renders without crashing', async () => {

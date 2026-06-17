@@ -122,7 +122,7 @@ describe('Given LeaveRequestsPage status filter', () => {
 
 describe('Given LeaveRequestsPage API failure', () => {
   beforeEach(() => {
-    mockLeaveApi.getAll.mockRejectedValue(new Error('Server error'));
+    mockLeaveApi.getAll.mockImplementation(async () => { throw new Error('Server error'); });
   });
 
   it('When API fails / Then error toast is shown', async () => {

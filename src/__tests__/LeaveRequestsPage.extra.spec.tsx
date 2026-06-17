@@ -138,7 +138,7 @@ describe('LeaveRequestsPage — extra scenarios', () => {
 
   describe('Given API load fails', () => {
     it('When getAll rejects / Then page still renders without crash', async () => {
-      mockApi.getAll.mockRejectedValue(new Error('Server down'));
+      mockApi.getAll.mockImplementation(async () => { throw new Error('Server down'); });
       renderPage();
       await waitFor(() => expect(mockApi.getAll).toHaveBeenCalled());
       // Page header should still render
@@ -167,7 +167,7 @@ describe('LeaveRequestsPage — extra scenarios', () => {
   describe('Given create request fails with a server error', () => {
     beforeEach(() => {
       mockApi.getAll.mockResolvedValue({ data: [] });
-      mockApi.create.mockRejectedValue(new Error('No employee profile found for your account. Please contact your administrator.'));
+      mockApi.create.mockImplementation(async () => { throw new Error('No employee profile found for your account. Please contact your administrator.'); });
     });
 
     it('When create API fails / Then shows the actual server error in the toast', async () => {
@@ -267,7 +267,7 @@ describe('LeaveRequestsPage — person resolution on modal open', () => {
 
   describe('Given getMe fails (no people profile linked)', () => {
     beforeEach(() => {
-      mockPeopleApi.getMe.mockRejectedValue(new Error('No employee profile found for your account.'));
+      mockPeopleApi.getMe.mockImplementation(async () => { throw new Error('No employee profile found for your account.'); });
     });
 
     it('When modal opens / Then shows employee profile error message', async () => {

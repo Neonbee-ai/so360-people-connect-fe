@@ -220,7 +220,7 @@ describe('Given a person exists — handleAddRole', () => {
   });
 
   it('When Add Role modal submit fails / Then shows failure toast', async () => {
-    mockPeople.addRole.mockRejectedValue(new Error('Role creation failed'));
+    mockPeople.addRole.mockImplementation(async () => { throw new Error('Role creation failed'); });
 
     renderPage();
     await waitFor(() => screen.getByText('Alice Smith'));
@@ -245,7 +245,7 @@ describe('Given a person exists — handleAddRole', () => {
 describe('Given a person exists — handleRemoveRole failure', () => {
   beforeEach(() => {
     mockPeople.getById.mockResolvedValue({ ...basePerson });
-    mockPeople.removeRole.mockRejectedValue(new Error('Remove failed'));
+    mockPeople.removeRole.mockImplementation(async () => { throw new Error('Remove failed'); });
   });
 
   it('When removeRole fails / Then shows failure toast', async () => {
@@ -269,7 +269,7 @@ describe('Given a person exists — secondary tab load errors', () => {
   });
 
   it('When loadEmploymentHistory fails / Then employment history tab shows empty state without crashing', async () => {
-    mockPeople.getEmploymentHistory.mockRejectedValue(new Error('History unavailable'));
+    mockPeople.getEmploymentHistory.mockImplementation(async () => { throw new Error('History unavailable'); });
 
     renderPage();
     await waitFor(() => screen.getByText('Alice Smith'));
@@ -279,7 +279,7 @@ describe('Given a person exists — secondary tab load errors', () => {
   });
 
   it('When loadRateHistory fails / Then rate history tab shows empty state without crashing', async () => {
-    mockPeople.getRateHistory.mockRejectedValue(new Error('Rates unavailable'));
+    mockPeople.getRateHistory.mockImplementation(async () => { throw new Error('Rates unavailable'); });
 
     renderPage();
     await waitFor(() => screen.getByText('Alice Smith'));
@@ -289,7 +289,7 @@ describe('Given a person exists — secondary tab load errors', () => {
   });
 
   it('When loadGoals fails / Then goals tab shows empty state without crashing', async () => {
-    mockGoals.getAll.mockRejectedValue(new Error('Goals unavailable'));
+    mockGoals.getAll.mockImplementation(async () => { throw new Error('Goals unavailable'); });
 
     renderPage();
     await waitFor(() => screen.getByText('Alice Smith'));
@@ -392,7 +392,7 @@ describe('Given a person exists — handleSave with status change', () => {
 describe('Given a person exists and workLocations API fails', () => {
   beforeEach(() => {
     mockPeople.getById.mockResolvedValue({ ...basePerson });
-    mockLoc.getAll.mockRejectedValue(new Error('Locations down'));
+    mockLoc.getAll.mockImplementation(async () => { throw new Error('Locations down'); });
   });
 
   it('When workLocations fetch rejects / Then the profile still renders without blanking', async () => {

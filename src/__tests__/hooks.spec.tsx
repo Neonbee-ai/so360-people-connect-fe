@@ -31,7 +31,7 @@ describe('usePeopleList', () => {
 
   describe('Given the API fails', () => {
     it('When the hook is rendered / Then it returns an error', async () => {
-      mockPeople.getAll.mockRejectedValue(new Error('fail'));
+      mockPeople.getAll.mockImplementation(async () => { throw new Error('fail'); });
       const { result } = renderHook(() => usePeopleList());
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.error).toBe('fail');

@@ -91,7 +91,7 @@ describe('Given FeedbackPage with no feedback', () => {
 
 describe('Given FeedbackPage API failure', () => {
   beforeEach(() => {
-    mockApi.getAll.mockRejectedValue(new Error('Network failure'));
+    mockApi.getAll.mockImplementation(async () => { throw new Error('Network failure'); });
   });
 
   it('When API fails / Then page renders without crashing', async () => {

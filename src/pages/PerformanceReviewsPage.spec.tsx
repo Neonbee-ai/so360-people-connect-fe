@@ -102,7 +102,7 @@ describe('Given PerformanceReviewsPage with no reviews', () => {
 
 describe('Given PerformanceReviewsPage API failure', () => {
   beforeEach(() => {
-    mockReviewsApi.getAll.mockRejectedValue(new Error('Server error'));
+    mockReviewsApi.getAll.mockImplementation(async () => { throw new Error('Server error'); });
   });
 
   it('When API fails / Then page renders without crashing', async () => {
@@ -180,7 +180,7 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
   });
 
   it('When templates API rejects / Then the page does not crash', async () => {
-    mockTemplatesApi.getAll.mockRejectedValue(new Error('Network error'));
+    mockTemplatesApi.getAll.mockImplementation(async () => { throw new Error('Network error'); });
     renderPage();
     await waitFor(() => screen.getByText('Create Review'));
     fireEvent.click(screen.getAllByText('Create Review')[0]);

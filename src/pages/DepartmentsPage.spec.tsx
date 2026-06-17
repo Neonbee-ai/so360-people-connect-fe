@@ -76,8 +76,8 @@ describe('Given DepartmentsPage with no departments', () => {
 
 describe('Given DepartmentsPage API failure', () => {
   beforeEach(() => {
-    mockApi.getAll.mockRejectedValue(new Error('Server error'));
-    mockApi.getTree.mockRejectedValue(new Error('Server error'));
+    mockApi.getAll.mockImplementation(async () => { throw new Error('Server error'); });
+    mockApi.getTree.mockImplementation(async () => { throw new Error('Server error'); });
   });
 
   it('When API fails / Then page renders without crashing', async () => {

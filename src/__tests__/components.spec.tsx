@@ -157,7 +157,7 @@ describe('UserSelector', () => {
   });
 
   it('Given fetch fails / When rendered / Then it shows empty list', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('fail')));
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => { throw new Error('fail'); }));
     const { default: UserSelector } = await import('../components/UserSelector');
     render(<UserSelector value={null} onChange={() => {}} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());

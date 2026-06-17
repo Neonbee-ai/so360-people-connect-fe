@@ -75,7 +75,7 @@ describe('UserSelector', () => {
 
   describe('Given the fetch fails', () => {
     it('When the API returns an error / Then the list is empty', async () => {
-      (fetch as any).mockRejectedValue(new Error('fail'));
+      (fetch as any).mockImplementation(async () => { throw new Error('fail'); });
       render(<UserSelector value={null} onChange={() => {}} />);
       await waitFor(() => expect(fetch).toHaveBeenCalled());
       fireEvent.click(screen.getByText('Select user...'));

@@ -60,7 +60,7 @@ describe('Given EventsPage with no events', () => {
 
 describe('Given EventsPage API failure', () => {
   beforeEach(() => {
-    mockApi.getAll.mockRejectedValue(new Error('Failed to load'));
+    mockApi.getAll.mockImplementation(async () => { throw new Error('Failed to load'); });
   });
 
   it('When API fails / Then page renders without crashing', async () => {

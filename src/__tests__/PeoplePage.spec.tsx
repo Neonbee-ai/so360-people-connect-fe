@@ -138,7 +138,7 @@ describe('PeoplePage', () => {
 
   describe('Given the API call fails', () => {
     beforeEach(() => {
-      mockPeopleApi.getAll.mockRejectedValue(new Error('Network error'));
+      mockPeopleApi.getAll.mockImplementation(async () => { throw new Error('Network error'); });
     });
 
     it('When the page loads / Then it shows an error toast', async () => {

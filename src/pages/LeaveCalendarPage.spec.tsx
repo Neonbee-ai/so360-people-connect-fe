@@ -106,7 +106,7 @@ describe('Given LeaveCalendarPage with approved leave requests', () => {
 
 describe('Given LeaveCalendarPage API failure', () => {
   beforeEach(() => {
-    mockLeaveApi.getAll.mockRejectedValue(new Error('Failed'));
+    mockLeaveApi.getAll.mockImplementation(async () => { throw new Error('Failed'); });
   });
 
   it('When API fails / Then page still renders the calendar structure', async () => {

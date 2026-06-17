@@ -332,7 +332,7 @@ describe('ReviewDetailPage — timezone date rendering', () => {
 
   describe('Given getById rejects', () => {
     beforeEach(() => {
-      reviewsApi.getById.mockRejectedValue(new Error('Review not found'));
+      reviewsApi.getById.mockImplementation(async () => { throw new Error('Review not found'); });
       templatesApi.getById.mockResolvedValue(mockTemplate);
     });
 
@@ -431,7 +431,7 @@ describe('PersonDetailPage — timezone date rendering', () => {
 
   describe('Given getById fails', () => {
     beforeEach(() => {
-      people.getById.mockRejectedValue(new Error('Person not found'));
+      people.getById.mockImplementation(async () => { throw new Error('Person not found'); });
       allocs.getAll.mockResolvedValue({ data: [] });
       time.getEntries.mockResolvedValue({ data: [] });
       locations.getAll.mockResolvedValue({ data: [] });

@@ -80,8 +80,8 @@ describe('Given TeamPerformancePage with no data', () => {
 
 describe('Given TeamPerformancePage API failure', () => {
   beforeEach(() => {
-    mockReviewsApi.getAll.mockRejectedValue(new Error('Failed'));
-    mockGoalsApi.getAll.mockRejectedValue(new Error('Failed'));
+    mockReviewsApi.getAll.mockImplementation(async () => { throw new Error('Failed'); });
+    mockGoalsApi.getAll.mockImplementation(async () => { throw new Error('Failed'); });
   });
 
   it('When APIs fail / Then error toast appears', async () => {

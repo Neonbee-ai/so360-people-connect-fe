@@ -68,7 +68,7 @@ describe('GoalsPage — extra scenarios', () => {
 
   describe('Given API load fails', () => {
     it('When getAll rejects / Then shows error toast message', async () => {
-      mockApi.getAll.mockRejectedValue(new Error('Network error'));
+      mockApi.getAll.mockImplementation(async () => { throw new Error('Network error'); });
       renderPage();
       await waitFor(() => expect(screen.getByText('Goals')).toBeInTheDocument());
       expect(screen.getByText('Failed to load goals')).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe('GoalsPage — extra scenarios', () => {
   describe('Given goal creation fails', () => {
     beforeEach(() => {
       mockApi.getAll.mockResolvedValue({ data: [] });
-      mockApi.create.mockRejectedValue(new Error('Create failed'));
+      mockApi.create.mockImplementation(async () => { throw new Error('Create failed'); });
     });
 
     it('When create throws / Then failure toast is shown', async () => {

@@ -207,8 +207,8 @@ describe('Given the Timesheet module returns no entries', () => {
 
 describe('Given the Timesheet module is unavailable', () => {
   beforeEach(() => {
-    mockTimesheet.getEntries.mockRejectedValue(new Error('boom'));
-    mockTimesheet.getUtilization.mockRejectedValue(new Error('boom'));
+    mockTimesheet.getEntries.mockImplementation(async () => { throw new Error('boom'); });
+    mockTimesheet.getUtilization.mockImplementation(async () => { throw new Error('boom'); });
   });
 
   it('When loading fails / Then an error toast is shown and the page does not crash', async () => {
@@ -220,8 +220,8 @@ describe('Given the Timesheet module is unavailable', () => {
 
 describe('Given the Timesheet module returns a 403 authorization error', () => {
   beforeEach(() => {
-    mockTimesheet.getEntries.mockRejectedValue(new Error('Unable to verify Timesheet V2 access. Please try again later.'));
-    mockTimesheet.getUtilization.mockRejectedValue(new Error('Unable to verify Timesheet V2 access. Please try again later.'));
+    mockTimesheet.getEntries.mockImplementation(async () => { throw new Error('Unable to verify Timesheet V2 access. Please try again later.'); });
+    mockTimesheet.getUtilization.mockImplementation(async () => { throw new Error('Unable to verify Timesheet V2 access. Please try again later.'); });
   });
 
   it('When a 403-type error is returned / Then a graceful error toast is shown without exposing backend internals', async () => {

@@ -69,7 +69,7 @@ describe('Given ImportExportPage with departments loaded', () => {
 
 describe('Given ImportExportPage department API failure', () => {
   beforeEach(() => {
-    mockDeptApi.getAll.mockRejectedValue(new Error('Dept load failed'));
+    mockDeptApi.getAll.mockImplementation(async () => { throw new Error('Dept load failed'); });
   });
 
   it('When departments fail to load / Then page still renders without crashing', async () => {

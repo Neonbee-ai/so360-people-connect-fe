@@ -44,7 +44,7 @@ describe('Given usePeopleList hook', () => {
   });
 
   it('When API rejects / Then error is set and loading becomes false', async () => {
-    mockPeopleApi.getAll.mockRejectedValue(new Error('Network error'));
+    mockPeopleApi.getAll.mockImplementation(async () => { throw new Error('Network error'); });
     const { result } = renderHook(() => usePeopleList());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBe('Network error');

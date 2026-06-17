@@ -274,7 +274,7 @@ describe('PersonDetailPage', () => {
 
   describe('Given the employee record fetch fails', () => {
     beforeEach(() => {
-      mockPeople.getById.mockRejectedValue(new Error('Network error'));
+      mockPeople.getById.mockImplementation(async () => { throw new Error('Network error'); });
       mockAlloc.getAll.mockResolvedValue({ data: [] });
       mockTime.getEntries.mockResolvedValue({ data: [] });
     });
@@ -320,8 +320,8 @@ describe('PersonDetailPage', () => {
         cost_rate: 40, cost_rate_unit: 'hour', currency: 'USD', available_hours_per_day: 8,
         people_roles: [],
       });
-      mockAlloc.getAll.mockRejectedValue(new Error('allocations down'));
-      mockTime.getEntries.mockRejectedValue(new Error('time entries down'));
+      mockAlloc.getAll.mockImplementation(async () => { throw new Error('allocations down'); });
+      mockTime.getEntries.mockImplementation(async () => { throw new Error('time entries down'); });
     });
 
     it('When allocations and time entries reject / Then the profile still renders (no blank page)', async () => {

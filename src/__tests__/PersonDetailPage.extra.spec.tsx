@@ -105,7 +105,7 @@ describe('PersonDetailPage — extra scenarios', () => {
   describe('Given save edit fails', () => {
     beforeEach(() => {
       mockPeople.getById.mockResolvedValue(alicePerson);
-      mockPeople.update.mockRejectedValue(new Error('Update failed'));
+      mockPeople.update.mockImplementation(async () => { throw new Error('Update failed'); });
     });
 
     it('When save is clicked and update fails / Then shows failure toast', async () => {

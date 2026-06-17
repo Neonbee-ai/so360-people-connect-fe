@@ -125,9 +125,9 @@ describe('Given DashboardPage with empty data', () => {
 
 describe('Given DashboardPage API failure', () => {
   beforeEach(() => {
-    mockUtil.getSummary.mockRejectedValue(new Error('Network error'));
-    mockTimesheet.getEntries.mockRejectedValue(new Error('Network error'));
-    mockEvents.getAll.mockRejectedValue(new Error('Network error'));
+    mockUtil.getSummary.mockImplementation(async () => { throw new Error('Network error'); });
+    mockTimesheet.getEntries.mockImplementation(async () => { throw new Error('Network error'); });
+    mockEvents.getAll.mockImplementation(async () => { throw new Error('Network error'); });
   });
 
   it('When all APIs fail / Then the page still renders without crashing', async () => {

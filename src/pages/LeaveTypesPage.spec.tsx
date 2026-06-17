@@ -98,7 +98,7 @@ describe('Given LeaveTypesPage create interaction', () => {
 
 describe('Given LeaveTypesPage API failure', () => {
   beforeEach(() => {
-    mockApi.getAll.mockRejectedValue(new Error('Failed'));
+    mockApi.getAll.mockImplementation(async () => { throw new Error('Failed'); });
   });
 
   it('When API fails / Then error toast is shown', async () => {

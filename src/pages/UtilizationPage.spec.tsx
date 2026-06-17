@@ -104,8 +104,8 @@ describe('Given UtilizationPage with no utilization data', () => {
 
 describe('Given UtilizationPage API failure', () => {
   beforeEach(() => {
-    mockApi.getAll.mockRejectedValue(new Error('Failed'));
-    mockApi.getSummary.mockRejectedValue(new Error('Failed'));
+    mockApi.getAll.mockImplementation(async () => { throw new Error('Failed'); });
+    mockApi.getSummary.mockImplementation(async () => { throw new Error('Failed'); });
   });
 
   it('When API fails / Then error toast appears', async () => {

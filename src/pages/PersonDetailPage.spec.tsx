@@ -124,7 +124,7 @@ describe('Given PersonDetailPage loads successfully', () => {
 
 describe('Given PersonDetailPage API failure', () => {
   beforeEach(() => {
-    mockPeopleApi.getById.mockRejectedValue(new Error('Not found'));
+    mockPeopleApi.getById.mockImplementation(async () => { throw new Error('Not found'); });
     mockAllocApi.getAll.mockResolvedValue({ data: [] });
     mockTimeApi.getEntries.mockResolvedValue({ data: [] });
   });
@@ -157,7 +157,7 @@ describe('Given PersonDetailPage with timesheet 403', () => {
     mockPeopleApi.getById.mockResolvedValue(mockPerson);
     mockAllocApi.getAll.mockResolvedValue({ data: [] });
     // Timesheet returns 403 — expected for users without timesheet permissions
-    mockTimeApi.getEntries.mockRejectedValue(new Error('403 Forbidden'));
+    mockTimeApi.getEntries.mockImplementation(async () => { throw new Error('403 Forbidden'); });
     (workLocationsApi as any).getAll.mockResolvedValue({ data: [] });
   });
 
@@ -185,7 +185,7 @@ describe('Given PersonDetailPage with work locations failure', () => {
     mockPeopleApi.getById.mockResolvedValue(mockPerson);
     mockAllocApi.getAll.mockResolvedValue({ data: [] });
     mockTimeApi.getEntries.mockResolvedValue({ data: [] });
-    (workLocationsApi as any).getAll.mockRejectedValue(new Error('Network error'));
+    (workLocationsApi as any).getAll.mockImplementation(async () => { throw new Error('Network error'); });
   });
 
   it('When work locations fail / Then the person profile still renders', async () => {
@@ -203,9 +203,9 @@ describe('Given PersonDetailPage with work locations failure', () => {
 describe('Given PersonDetailPage with all secondary APIs failing', () => {
   beforeEach(() => {
     mockPeopleApi.getById.mockResolvedValue(mockPerson);
-    mockAllocApi.getAll.mockRejectedValue(new Error('Allocations error'));
-    mockTimeApi.getEntries.mockRejectedValue(new Error('Timesheet error'));
-    (workLocationsApi as any).getAll.mockRejectedValue(new Error('Locations error'));
+    mockAllocApi.getAll.mockImplementation(async () => { throw new Error('Allocations error'); });
+    mockTimeApi.getEntries.mockImplementation(async () => { throw new Error('Timesheet error'); });
+    (workLocationsApi as any).getAll.mockImplementation(async () => { throw new Error('Locations error'); });
   });
 
   it('When all secondary data fails / Then person name is still shown', async () => {

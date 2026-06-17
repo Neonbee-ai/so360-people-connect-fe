@@ -111,7 +111,7 @@ describe('Given GoalsPage status filter', () => {
 
 describe('Given GoalsPage API failure', () => {
   beforeEach(() => {
-    mockApi.getAll.mockRejectedValue(new Error('Failed'));
+    mockApi.getAll.mockImplementation(async () => { throw new Error('Failed'); });
   });
 
   it('When API fails / Then error toast is shown', async () => {

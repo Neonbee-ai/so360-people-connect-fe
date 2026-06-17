@@ -93,7 +93,7 @@ describe('Given ReviewTemplatesPage create interaction', () => {
 
 describe('Given ReviewTemplatesPage API failure', () => {
   beforeEach(() => {
-    mockApi.getAll.mockRejectedValue(new Error('Server error'));
+    mockApi.getAll.mockImplementation(async () => { throw new Error('Server error'); });
   });
 
   it('When API fails / Then error toast appears', async () => {
