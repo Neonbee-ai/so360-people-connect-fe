@@ -192,7 +192,9 @@ describe('AllocationsPage — edit allocation', () => {
     await waitFor(() => expect(screen.getByDisplayValue('80')).toBeInTheDocument());
 
     fireEvent.change(screen.getByDisplayValue('80'), { target: { value: '200' } });
-    fireEvent.click(screen.getByText('Save Changes'));
+    // Use fireEvent.submit on the form directly — same pattern as create validation tests
+    const form = document.querySelector('form.space-y-4') as HTMLFormElement;
+    fireEvent.submit(form);
 
     await waitFor(() => expect(screen.getByText(/between 1 and 100/)).toBeInTheDocument());
     expect(mockAllocApi.update).not.toHaveBeenCalled();
