@@ -13,7 +13,7 @@ import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
 import { isUuid } from '../utils/validation';
 import EntitySelector from '../components/EntitySelector';
-import type { Allocation, CreateAllocationPayload, Person, AllocationStatus, EntityOption, LookupEntityType } from '../types/people';
+import type { Allocation, CreateAllocationPayload, UpdateAllocationPayload, Person, AllocationStatus, EntityOption, LookupEntityType } from '../types/people';
 
 const AllocationsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -61,7 +61,7 @@ const AllocationsPage: React.FC = () => {
         }
     };
 
-    const handleUpdate = async (id: string, data: Partial<Allocation>) => {
+    const handleUpdate = async (id: string, data: UpdateAllocationPayload) => {
         try {
             await allocationsApi.update(id, data);
             setEditingAllocation(null);
@@ -533,7 +533,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
 interface EditAllocationModalProps {
     allocation: Allocation;
     onClose: () => void;
-    onSave: (data: Partial<Allocation>) => void;
+    onSave: (data: UpdateAllocationPayload) => void;
 }
 
 const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, onClose, onSave }) => {
@@ -553,7 +553,13 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
             setError('Allocation percentage must be between 1 and 100.');
             return;
         }
-        onSave({ ...formData, allocation_percentage: pct });
+        onSave({
+            allocation_percentage: pct,
+            start_date: formData.start_date,
+            end_date: formData.end_date,
+            status: formData.status,
+            notes: formData.notes,
+        });
     };
 
     return (

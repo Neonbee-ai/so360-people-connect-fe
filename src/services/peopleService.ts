@@ -4,6 +4,7 @@ import type {
   PersonRole,
   Allocation,
   CreateAllocationPayload,
+  UpdateAllocationPayload,
   UtilizationData,
   UtilizationSummary,
   PeopleEvent,
@@ -196,7 +197,7 @@ export const allocationsApi = {
     return api.post<Allocation>('/allocations', data);
   },
 
-  update: async (id: string, data: Partial<Allocation>): Promise<Allocation> => {
+  update: async (id: string, data: UpdateAllocationPayload): Promise<Allocation> => {
     return api.patch<Allocation>(`/allocations/${id}`, data);
   },
 

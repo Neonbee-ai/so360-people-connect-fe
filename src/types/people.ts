@@ -143,6 +143,14 @@ export interface CreateAllocationPayload {
   meta?: Record<string, unknown>;
 }
 
+export interface UpdateAllocationPayload {
+  start_date?: string;
+  end_date?: string;
+  allocation_percentage?: number;
+  status?: AllocationStatus;
+  notes?: string;
+}
+
 // Time Entry types removed — time logging is consolidated into the Timesheets
 // module. See src/services/timesheetApi.ts for the read-only consumer types.
 
