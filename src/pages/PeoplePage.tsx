@@ -48,6 +48,7 @@ const PeoplePage: React.FC = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [inviteResult, setInviteResult] = useState<{ link: string; email: string; emailSent: boolean } | null>(null);
     const [currencies, setCurrencies] = useState<string[]>(DEFAULT_CURRENCIES);
 
     // Debounce the search term: only update `debouncedSearch` 300ms after the
@@ -113,11 +114,42 @@ const PeoplePage: React.FC = () => {
         try {
             const created = await peopleApi.create(data);
             setShowCreateModal(false);
-            setToast({ message: `${data.full_name} has been added`, type: 'success' });
             recordActivity({ eventType: 'people.person.created', eventCategory: 'identity', description: `Person ${data.full_name} was created`, resourceType: 'person', resourceId: created?.id }).catch(() => {});
+
+            // When the admin chose "Invite as New User", mint the invite via Core (which also emails
+            // it via SES when requested) and surface the copyable link so it can be shared manually
+            // if email delivery is unreliable.
+            const invite = data as CreatePersonPayload & { userLinkageMode?: string; inviteEmail?: string; inviteRole?: string; sendInviteEmail?: boolean };
+            const inviteEmail = invite.inviteEmail || data.email;
+            if (invite.userLinkageMode === 'invite' && inviteEmail && invite.inviteRole && created?.id) {
+                try {
+                    const res = await peopleApi.inviteUser(created.id, inviteEmail, invite.inviteRole, invite.sendInviteEmail !== false);
+                    if (res.invite_status === 'existing_user') {
+                        setToast({ message: `${data.full_name} added — ${inviteEmail} already has an account and can sign in.`, type: 'success' });
+                    } else if (res.invite_link) {
+                        setInviteResult({ link: res.invite_link, email: inviteEmail, emailSent: !!res.email_sent });
+                    } else {
+                        setToast({ message: `${data.full_name} has been invited`, type: 'success' });
+                    }
+                } catch {
+                    setToast({ message: `${data.full_name} added, but sending the invite failed`, type: 'error' });
+                }
+            } else {
+                setToast({ message: `${data.full_name} has been added`, type: 'success' });
+            }
             loadPeople();
         } catch (error) {
             setToast({ message: 'Failed to create person', type: 'error' });
+        }
+    };
+
+    const handleCopyInvite = async () => {
+        if (!inviteResult) return;
+        try {
+            await navigator.clipboard.writeText(inviteResult.link);
+            setToast({ message: 'Invite link copied to clipboard', type: 'success' });
+        } catch {
+            setToast({ message: 'Could not copy automatically — select the link and copy it manually', type: 'error' });
         }
     };
 
@@ -412,6 +444,44 @@ const PeoplePage: React.FC = () => {
                 onCreate={handleCreate}
                 currencies={currencies}
             />
+
+            {/* Invite link — shown after inviting so the admin can copy/share it if email is unreliable */}
+            {inviteResult && (
+                <Modal isOpen={true} onClose={() => setInviteResult(null)} title="Invitation ready" size="md">
+                    <div className="space-y-4">
+                        <p className="text-sm text-slate-300">
+                            {inviteResult.emailSent
+                                ? <>We've emailed the invitation to <span className="text-slate-100 font-medium">{inviteResult.email}</span>. If it doesn't arrive, copy and share this link directly:</>
+                                : <>Share this invite link with <span className="text-slate-100 font-medium">{inviteResult.email}</span> so they can set a password and sign in:</>}
+                        </p>
+                        <div className="flex gap-2">
+                            <input
+                                readOnly
+                                value={inviteResult.link}
+                                onFocus={(e) => e.currentTarget.select()}
+                                className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-teal-500"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleCopyInvite}
+                                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                            >
+                                Copy link
+                            </button>
+                        </div>
+                        <p className="text-xs text-slate-500">This link lets the invitee set a password. It expires according to your security settings.</p>
+                        <div className="flex justify-end pt-2 border-t border-slate-800">
+                            <button
+                                type="button"
+                                onClick={() => setInviteResult(null)}
+                                className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>

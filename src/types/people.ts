@@ -91,6 +91,11 @@ export interface CreatePersonPayload {
   roles?: Omit<PersonRole, 'id' | 'person_id' | 'org_id' | 'tenant_id' | 'created_at'>[];
   meta?: Record<string, unknown>;
   work_location_id?: string;
+  userLinkageMode?: 'none' | 'link' | 'invite';
+  existingUserId?: string;
+  inviteEmail?: string;
+  inviteRole?: string;
+  sendInviteEmail?: boolean;
 }
 
 // Allocation

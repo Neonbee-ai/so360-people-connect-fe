@@ -175,10 +175,20 @@ export const peopleApi = {
     return api.get('/people/system/org-roles');
   },
 
-  inviteUser: async (personId: string, email: string, role: string): Promise<Person> => {
-    return api.post<Person>(`/people/${personId}/invite-user`, { email, role });
+  inviteUser: async (personId: string, email: string, role: string, sendEmail = true): Promise<InviteResult> => {
+    return api.post<InviteResult>(`/people/${personId}/invite-user`, { email, role, send_email: sendEmail });
   },
 };
+
+// Result of inviting a person: the copyable invite link (for manual sharing when email is
+// unreliable), whether Core also emailed it, and the resulting linkage status.
+export interface InviteResult {
+  invite_link: string | null;
+  invite_status: 'link_generated' | 'existing_user';
+  user_id: string | null;
+  email_sent: boolean;
+  message?: string;
+}
 
 // =============================================================================
 // ALLOCATIONS API

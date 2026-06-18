@@ -383,10 +383,16 @@ describe('peopleApi', () => {
       expect(mockApi.post).toHaveBeenCalledWith('/people/p1/link-user', { user_id: 'u1' });
     });
 
-    it('When inviteUser is called / Then it posts', async () => {
-      mockApi.post.mockResolvedValue({ id: 'p1' });
+    it('When inviteUser is called / Then it posts with the default send_email flag', async () => {
+      mockApi.post.mockResolvedValue({ invite_link: 'https://x', invite_status: 'link_generated' });
       await peopleApi.inviteUser('p1', 'test@test.com', 'member');
-      expect(mockApi.post).toHaveBeenCalledWith('/people/p1/invite-user', { email: 'test@test.com', role: 'member' });
+      expect(mockApi.post).toHaveBeenCalledWith('/people/p1/invite-user', { email: 'test@test.com', role: 'member', send_email: true });
+    });
+
+    it('When inviteUser is called with sendEmail false / Then it posts send_email: false', async () => {
+      mockApi.post.mockResolvedValue({ invite_link: 'https://x', invite_status: 'link_generated' });
+      await peopleApi.inviteUser('p1', 'test@test.com', 'member', false);
+      expect(mockApi.post).toHaveBeenCalledWith('/people/p1/invite-user', { email: 'test@test.com', role: 'member', send_email: false });
     });
   });
 });

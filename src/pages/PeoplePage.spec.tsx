@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -17,6 +17,7 @@ vi.mock('../services/peopleService', () => ({
     delete: vi.fn(),
     export: vi.fn(),
     getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
+    inviteUser: vi.fn().mockResolvedValue({ invite_link: null, invite_status: 'existing_user', user_id: 'u1', email_sent: false }),
   },
   apiContext: {
     getBaseUrl: vi.fn(() => '/people-api'),
@@ -275,5 +276,55 @@ describe('Given the Department field in the create modal', () => {
 
     await waitFor(() => expect(mockApi.create).toHaveBeenCalled());
     expect(mockApi.create.mock.calls[0][0].department_id).toBeUndefined();
+  });
+});
+
+describe('Given the "Invite as New User" flow on create', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+    mockApi.getOrgRoles.mockResolvedValue({ data: [{ id: 'role-1', name: 'Member' }] });
+    mockApi.create.mockResolvedValue({ id: 'new-p' });
+  });
+
+  const openModalAndFillInvite = async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Add Person'));
+    await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
+
+    const nameInput = screen.getByPlaceholderText('John Doe');
+    fireEvent.change(nameInput, { target: { value: 'New Hire' } });
+    await waitFor(() => expect(nameInput).toHaveValue('New Hire'));
+
+    // Invite mode is the default; fill the invitation email + role.
+    const inviteEmail = screen.getByPlaceholderText('Email for invitation');
+    fireEvent.change(inviteEmail, { target: { value: 'hire@test.com' } });
+
+    const roleSelect = screen.getAllByRole('combobox').find(s => within(s).queryByText('Select role...'))!;
+    fireEvent.change(roleSelect, { target: { value: 'role-1' } });
+
+    return nameInput.closest('form')!;
+  };
+
+  it('When a new user is invited / Then inviteUser is called and the copyable link is shown', async () => {
+    mockApi.inviteUser.mockResolvedValue({ invite_link: 'https://sso.neonbee.app/reset-password-confirm#token=xyz', invite_status: 'link_generated', user_id: 'u1', email_sent: true });
+
+    const form = await openModalAndFillInvite();
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalledWith('new-p', 'hire@test.com', 'role-1', true));
+    // The copyable invite link surfaces for manual sharing.
+    await waitFor(() => expect(screen.getByDisplayValue('https://sso.neonbee.app/reset-password-confirm#token=xyz')).toBeInTheDocument());
+    expect(screen.getByText('Copy link')).toBeInTheDocument();
+  });
+
+  it('When the invitee already has an account / Then no link modal is shown', async () => {
+    mockApi.inviteUser.mockResolvedValue({ invite_link: null, invite_status: 'existing_user', user_id: 'u2', email_sent: false });
+
+    const form = await openModalAndFillInvite();
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalled());
+    expect(screen.queryByText('Copy link')).not.toBeInTheDocument();
   });
 });
