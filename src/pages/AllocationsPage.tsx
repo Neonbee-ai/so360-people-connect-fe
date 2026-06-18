@@ -477,7 +477,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Allocation Percentage * (1-100%)</label>
                         <input
-                            type="number" required min="1" max="100" step="5"
+                            type="number" required min="1" max="100" step="1"
                             value={formData.allocation_percentage}
                             onChange={(e) => updateField('allocation_percentage', e.target.value === '' ? '' : parseFloat(e.target.value))}
                             className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.allocation_percentage ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
