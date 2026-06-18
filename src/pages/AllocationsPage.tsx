@@ -555,7 +555,7 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
     const [apiError, setApiError] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setApiError('');
         const pct = Number(formData.allocation_percentage);
@@ -564,19 +564,16 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
             return;
         }
         setSubmitting(true);
-        try {
-            await onSave({
-                allocation_percentage: pct,
-                start_date: formData.start_date,
-                end_date: formData.end_date,
-                status: formData.status,
-                notes: formData.notes,
-            });
-        } catch (err) {
+        onSave({
+            allocation_percentage: pct,
+            start_date: formData.start_date,
+            end_date: formData.end_date,
+            status: formData.status,
+            notes: formData.notes,
+        }).catch((err: unknown) => {
             setApiError(err instanceof Error ? err.message : 'Failed to update allocation. Please try again.');
-        } finally {
             setSubmitting(false);
-        }
+        });
     };
 
     return (
