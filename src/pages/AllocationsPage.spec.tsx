@@ -271,7 +271,7 @@ describe('AllocationsPage — terminal-status allocations', () => {
 //   Error handling
 // ============================================================================
 describe('AllocationsPage — error handling', () => {
-  it('When create API fails / Then an error toast is shown', async () => {
+  it('When create API fails / Then the error is shown inline inside the modal and the modal stays open', async () => {
     mockAllocApi.getAll.mockResolvedValue({ data: [] });
     mockAllocApi.create.mockRejectedValue(new Error('Person already has an active allocation on this project.'));
     mockPeopleApi.getAll.mockResolvedValue({ data: [{ id: 'p1', full_name: 'Alice', job_title: 'Dev', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }] });
@@ -296,9 +296,11 @@ describe('AllocationsPage — error handling', () => {
     await waitFor(() =>
       expect(screen.getByText('Person already has an active allocation on this project.')).toBeInTheDocument(),
     );
+    // Modal must still be visible so the user can correct the input
+    expect(screen.getByText('Person *')).toBeInTheDocument();
   });
 
-  it('When update API fails / Then an error toast is shown', async () => {
+  it('When update API fails / Then an inline error is shown inside the edit modal', async () => {
     mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
     mockAllocApi.update.mockRejectedValue(new Error('Update failed'));
 
@@ -308,7 +310,9 @@ describe('AllocationsPage — error handling', () => {
     await waitFor(() => expect(screen.getByDisplayValue('80')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Save Changes'));
 
-    await waitFor(() => expect(screen.getByText('Failed to update allocation')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Update failed')).toBeInTheDocument());
+    // Modal should still be open
+    expect(screen.getByDisplayValue('80')).toBeInTheDocument();
   });
 
   it('When load fails / Then a failure toast is shown', async () => {

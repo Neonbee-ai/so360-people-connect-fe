@@ -49,28 +49,19 @@ const AllocationsPage: React.FC = () => {
     }, [loadAllocations]);
 
     const handleCreate = async (data: CreateAllocationPayload) => {
-        try {
-            const created = await allocationsApi.create(data);
-            setShowCreateModal(false);
-            setToast({ message: 'Allocation created successfully', type: 'success' });
-            recordActivity({ eventType: 'people.allocation.created', eventCategory: 'data', description: `Allocation created for ${data.entity_name || data.entity_id}`, resourceType: 'allocation', resourceId: created?.id }).catch(() => {});
-            loadAllocations();
-        } catch (error) {
-            const msg = error instanceof Error ? error.message : 'Failed to create allocation';
-            setToast({ message: msg, type: 'error' });
-        }
+        const created = await allocationsApi.create(data);
+        setShowCreateModal(false);
+        setToast({ message: 'Allocation created successfully', type: 'success' });
+        recordActivity({ eventType: 'people.allocation.created', eventCategory: 'data', description: `Allocation created for ${data.entity_name || data.entity_id}`, resourceType: 'allocation', resourceId: created?.id }).catch(() => {});
+        loadAllocations();
     };
 
     const handleUpdate = async (id: string, data: UpdateAllocationPayload) => {
-        try {
-            await allocationsApi.update(id, data);
-            setEditingAllocation(null);
-            setToast({ message: 'Allocation updated', type: 'success' });
-            recordActivity({ eventType: 'people.allocation.updated', eventCategory: 'data', description: `Allocation ${id} was updated`, resourceType: 'allocation', resourceId: id }).catch(() => {});
-            loadAllocations();
-        } catch (error) {
-            setToast({ message: 'Failed to update allocation', type: 'error' });
-        }
+        await allocationsApi.update(id, data);
+        setEditingAllocation(null);
+        setToast({ message: 'Allocation updated', type: 'success' });
+        recordActivity({ eventType: 'people.allocation.updated', eventCategory: 'data', description: `Allocation ${id} was updated`, resourceType: 'allocation', resourceId: id }).catch(() => {});
+        loadAllocations();
     };
 
     const handleCancel = async (id: string) => {
@@ -301,7 +292,7 @@ const AllocationsPage: React.FC = () => {
 interface CreateAllocationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreate: (data: CreateAllocationPayload) => void;
+    onCreate: (data: CreateAllocationPayload) => Promise<void>;
 }
 
 const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, onClose, onCreate }) => {
@@ -319,9 +310,14 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
     };
     const [formData, setFormData] = useState<CreateAllocationPayload>(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [apiError, setApiError] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
+            setFormData(emptyForm);
+            setErrors({});
+            setApiError('');
             setLoadingPeople(true);
             peopleApi.getAll({ status: 'active', limit: 100 })
                 .then(result => setPeople(result.data))
@@ -349,27 +345,31 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
         return next;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setApiError('');
         const validationErrors = validate(formData);
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
             return;
         }
-        // Build a payload that exactly matches the backend contract: numeric
-        // allocation_percentage + UUID entity_id, no UI-only fields.
-        onCreate({
-            person_id: formData.person_id,
-            entity_type: formData.entity_type,
-            entity_id: formData.entity_id.trim(),
-            entity_name: formData.entity_name?.trim() || undefined,
-            start_date: formData.start_date,
-            end_date: formData.end_date || undefined,
-            allocation_percentage: Number(formData.allocation_percentage),
-            notes: formData.notes?.trim() || undefined,
-        });
-        setFormData(emptyForm);
-        setErrors({});
+        setSubmitting(true);
+        try {
+            await onCreate({
+                person_id: formData.person_id,
+                entity_type: formData.entity_type,
+                entity_id: formData.entity_id.trim(),
+                entity_name: formData.entity_name?.trim() || undefined,
+                start_date: formData.start_date,
+                end_date: formData.end_date || undefined,
+                allocation_percentage: Number(formData.allocation_percentage),
+                notes: formData.notes?.trim() || undefined,
+            });
+        } catch (error) {
+            setApiError(error instanceof Error ? error.message : 'Failed to create allocation. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const updateField = (field: string, value: unknown) => {
@@ -512,13 +512,20 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                     />
                 </div>
 
+                {/* API error banner */}
+                {apiError && (
+                    <div className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-400">
+                        {apiError}
+                    </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
                         Cancel
                     </button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">
-                        Create Allocation
+                    <button type="submit" disabled={submitting} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                        {submitting ? 'Creating…' : 'Create Allocation'}
                     </button>
                 </div>
             </form>
@@ -533,7 +540,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
 interface EditAllocationModalProps {
     allocation: Allocation;
     onClose: () => void;
-    onSave: (data: UpdateAllocationPayload) => void;
+    onSave: (data: UpdateAllocationPayload) => Promise<void>;
 }
 
 const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, onClose, onSave }) => {
@@ -545,21 +552,31 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
         notes: allocation.notes || '',
     });
     const [error, setError] = useState('');
+    const [apiError, setApiError] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setApiError('');
         const pct = Number(formData.allocation_percentage);
         if (!Number.isFinite(pct) || pct < 1 || pct > 100) {
             setError('Allocation percentage must be between 1 and 100.');
             return;
         }
-        onSave({
-            allocation_percentage: pct,
-            start_date: formData.start_date,
-            end_date: formData.end_date,
-            status: formData.status,
-            notes: formData.notes,
-        });
+        setSubmitting(true);
+        try {
+            await onSave({
+                allocation_percentage: pct,
+                start_date: formData.start_date,
+                end_date: formData.end_date,
+                status: formData.status,
+                notes: formData.notes,
+            });
+        } catch (err) {
+            setApiError(err instanceof Error ? err.message : 'Failed to update allocation. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -622,12 +639,18 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
                     />
                 </div>
 
+                {apiError && (
+                    <div className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-400">
+                        {apiError}
+                    </div>
+                )}
+
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
                         Cancel
                     </button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">
-                        Save Changes
+                    <button type="submit" disabled={submitting} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                        {submitting ? 'Saving…' : 'Save Changes'}
                     </button>
                 </div>
             </form>
