@@ -208,7 +208,7 @@ const PersonDetailPage: React.FC = () => {
 
     const totalAllocated = allocations
         .filter(a => a.status === 'active')
-        .reduce((sum, a) => sum + (a.allocation_percentage ?? 0), 0);
+        .reduce((sum, a) => sum + (a.allocation_value ?? 0), 0);
 
     const totalHoursLogged = timeEntries.reduce((sum, te) => sum + te.hours, 0);
 
@@ -526,7 +526,7 @@ const PersonDetailPage: React.FC = () => {
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-sm font-medium text-slate-50">
-                                                    {alloc.allocation_percentage}%
+                                                    {alloc.allocation_value}%
                                                 </span>
                                                 <StatusBadge status={alloc.status} />
                                             </div>

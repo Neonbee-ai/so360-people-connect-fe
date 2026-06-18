@@ -107,9 +107,8 @@ export interface Allocation {
   start_date: string;
   end_date: string;
 
-  // Backend stores allocation as a percentage (1-100). Legacy
-  // allocation_type/value/period fields were never persisted by the API.
-  allocation_percentage: number;
+  allocation_value: number;
+  allocation_type: string;
 
   status: AllocationStatus;
   approved_by?: string;

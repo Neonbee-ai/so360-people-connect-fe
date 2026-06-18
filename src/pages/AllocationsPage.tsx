@@ -96,7 +96,7 @@ const AllocationsPage: React.FC = () => {
         }
         acc[personId].allocations.push(alloc);
         if (alloc.status === 'active') {
-            acc[personId].totalPct += alloc.allocation_percentage ?? 0;
+            acc[personId].totalPct += alloc.allocation_value ?? 0;
         }
         return acc;
     }, {});
@@ -218,7 +218,7 @@ const AllocationsPage: React.FC = () => {
                                     {/* Allocation Value */}
                                     <div className="text-right flex-shrink-0">
                                         <div className="text-lg font-bold text-slate-50">
-                                            {alloc.allocation_percentage}
+                                            {alloc.allocation_value}
                                             <span className="text-sm text-slate-400 ml-0.5">%</span>
                                         </div>
                                         {isOverallocated && alloc.status === 'active' && (
@@ -260,9 +260,9 @@ const AllocationsPage: React.FC = () => {
                                         <div className="w-full bg-slate-800 rounded-full h-1.5">
                                             <div
                                                 className={`h-1.5 rounded-full transition-all ${
-                                                    (alloc.allocation_percentage ?? 0) > 80 ? 'bg-amber-500' : 'bg-teal-500'
+                                                    (alloc.allocation_value ?? 0) > 80 ? 'bg-amber-500' : 'bg-teal-500'
                                                 }`}
-                                                style={{ width: `${Math.min(alloc.allocation_percentage ?? 0, 100)}%` }}
+                                                style={{ width: `${Math.min(alloc.allocation_value ?? 0, 100)}%` }}
                                             />
                                         </div>
                                     </div>
@@ -538,7 +538,7 @@ interface EditAllocationModalProps {
 
 const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, onClose, onSave }) => {
     const [formData, setFormData] = useState({
-        allocation_percentage: allocation.allocation_percentage,
+        allocation_percentage: allocation.allocation_value,
         start_date: allocation.start_date,
         end_date: allocation.end_date,
         status: allocation.status as AllocationStatus,
