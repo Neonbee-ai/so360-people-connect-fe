@@ -34,11 +34,15 @@ vi.mock('@so360/shell-context', () => ({
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
 
+// Symbol the org formatter renders. Defaults to '$' (USD) so existing
+// assertions hold; BDD currency specs flip it to prove rates are formatted
+// via the org's business-settings currency rather than a hardcoded '$'.
+let mockCurrencySymbol = '$';
 vi.mock('../utils/formatters', () => ({
   usePeopleFormatters: () => ({
     formatDate: (d: string, _opts?: any) => d ?? '',
     formatDateTime: (d: string) => d ?? '',
-    formatCurrency: (v: number) => `$${v}`,
+    formatCurrency: (v: number) => `${mockCurrencySymbol}${v}`,
     formatNumber: (n: number) => String(n),
     currency: 'USD',
     locale: 'en-US',
@@ -156,6 +160,38 @@ describe('PersonDetailPage', () => {
       // not /people — otherwise the router strips the MFE prefix and shows the dashboard.
       fireEvent.click(screen.getByText('Back to People'));
       expect(mockNavigate).toHaveBeenCalledWith('/people/people');
+    });
+  });
+
+  describe('Given the org-wide currency is not USD', () => {
+    beforeEach(() => {
+      mockCurrencySymbol = 'AED ';
+      mockPeople.getById.mockResolvedValue({
+        id: 'p1', full_name: 'Alice Smith', type: 'employee', status: 'active',
+        email: 'alice@test.com', job_title: 'Developer', department: 'Engineering',
+        cost_rate: 50, cost_rate_unit: 'hour', billing_rate: 75,
+        available_hours_per_day: 8, start_date: '2024-01-01', people_roles: [], user_id: null,
+      });
+      mockAlloc.getAll.mockResolvedValue({ data: [] });
+      mockTime.getEntries.mockResolvedValue({ data: [] });
+    });
+    afterEach(() => { mockCurrencySymbol = '$'; });
+
+    it('When the cost rate is shown / Then it renders in the org currency, not a hardcoded $', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('AED 50/hour')).toBeInTheDocument());
+      expect(screen.queryByText('$50/hour')).not.toBeInTheDocument();
+    });
+
+    it('When the rate history is shown / Then cost and billing rates render in the org currency', async () => {
+      mockPeople.getRateHistory.mockResolvedValue([
+        { id: 'rh1', new_cost_rate: 60, new_billing_rate: 90, effective_date: '2025-03-01', reason: 'Annual review' },
+      ]);
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Rate History'));
+      await waitFor(() => expect(screen.getByText('AED 60/hour')).toBeInTheDocument());
+      expect(screen.getByText('AED 90/hour')).toBeInTheDocument();
     });
   });
 

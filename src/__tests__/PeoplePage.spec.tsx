@@ -45,6 +45,20 @@ vi.mock('@so360/shell-context', () => ({
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
 }));
 
+// Symbol the org formatter renders. Defaults to '$' (USD); BDD currency specs
+// flip it to prove rates are formatted via the org's business-settings currency
+// rather than a hardcoded '$'.
+let mockCurrencySymbol = '$';
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    formatDate: (d: string) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `${mockCurrencySymbol}${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD', locale: 'en-US', timezone: 'UTC',
+  }),
+}));
+
 import PeoplePage from '../pages/PeoplePage';
 import { peopleApi } from '../services/peopleService';
 import { workLocationsApi } from '../services/workLocationsService';
@@ -117,6 +131,25 @@ describe('PeoplePage', () => {
       // The shell mounts People Connect at /people/*; the People Registry list is at
       // /people/people, so the detail page must be at /people/people/:id — not /people/:id.
       expect(mockNavigate).toHaveBeenCalledWith('/people/people/1');
+    });
+  });
+
+  describe('Given the org-wide currency is not USD', () => {
+    beforeEach(() => {
+      mockCurrencySymbol = 'AED ';
+      mockPeopleApi.getAll.mockResolvedValue({
+        data: [
+          { id: '1', full_name: 'Alice Johnson', email: 'alice@test.com', type: 'employee', status: 'active', cost_rate: 50, cost_rate_unit: 'hour', billing_rate: 80, job_title: 'Engineer', department: 'Engineering', people_roles: [] },
+        ],
+      });
+    });
+    afterEach(() => { mockCurrencySymbol = '$'; });
+
+    it('When a person card shows cost and billing rates / Then they render in the org currency, not a hardcoded $', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('AED 50/hour')).toBeInTheDocument());
+      expect(screen.getByText('Bill: AED 80/hour')).toBeInTheDocument();
+      expect(screen.queryByText('$50/hour')).not.toBeInTheDocument();
     });
   });
 

@@ -14,6 +14,7 @@ import { usePeopleContext } from '../hooks/useShellContext';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import { QuotaBar, QuotaGate } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
+import { usePeopleFormatters } from '../utils/formatters';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 
@@ -22,6 +23,7 @@ const PeoplePage: React.FC = () => {
     const location = useLocation();
     const { orgId, tenantId } = usePeopleContext();
     const { recordActivity } = useActivity();
+    const formatters = usePeopleFormatters();
     const shell = useShellBridge();
     const canAddEmployee = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employees:create') ?? true);
     const canImportEmployees = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employees:import') ?? true);
@@ -185,7 +187,7 @@ const PeoplePage: React.FC = () => {
                         {/* Import Button */}
                         {canImportEmployees && (
                         <button
-                            onClick={() => navigate('/import-export')}
+                            onClick={() => navigate('/people/import-export')}
                             className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
                         >
                             <Upload size={16} />
@@ -411,11 +413,11 @@ const PeoplePage: React.FC = () => {
                                 {/* Cost Info */}
                                 <div className="text-right flex-shrink-0">
                                     <div className="text-sm font-medium text-slate-50">
-                                        ${person.cost_rate}/{person.cost_rate_unit}
+                                        {formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}
                                     </div>
                                     {person.billing_rate && person.billing_rate > 0 && (
                                         <div className="text-xs text-slate-500">
-                                            Bill: ${person.billing_rate}/{person.cost_rate_unit}
+                                            Bill: {formatters.formatCurrency(person.billing_rate)}/{person.cost_rate_unit}
                                         </div>
                                     )}
                                 </div>

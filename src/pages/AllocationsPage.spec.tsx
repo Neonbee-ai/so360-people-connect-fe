@@ -23,6 +23,16 @@ vi.mock('@so360/shell-context', () => ({
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
 }));
 
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    formatDate: (d: string) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD', locale: 'en-US', timezone: 'UTC',
+  }),
+}));
+
 import AllocationsPage from './AllocationsPage';
 import { allocationsApi, peopleApi, entitiesApi } from '../services/peopleService';
 

@@ -3,6 +3,13 @@ import { render, screen, waitFor, fireEvent, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../services/workLocationsService', () => ({
   workLocationsApi: {
     getAll: vi.fn().mockResolvedValue({ data: [] }),
@@ -41,6 +48,16 @@ vi.mock('../hooks/useShellContext', () => ({
 
 vi.mock('../services/apiClient', () => ({
   apiContext: { getBaseUrl: vi.fn(() => '/people-api') },
+}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    formatDate: (d: string) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD', locale: 'en-US', timezone: 'UTC',
+  }),
 }));
 
 import PeoplePage from './PeoplePage';
@@ -95,6 +112,35 @@ describe('Given PeoplePage loads with people', () => {
   it('When people are fetched / Then status badge is shown', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Active')).toBeInTheDocument());
+  });
+});
+
+/*
+ * BDD specs: the "Import" button on the People Registry navigates to the
+ * Import/Export page.
+ *
+ * Regression: the button previously called navigate('/import-export') which —
+ * because the MFE is mounted under the shell at '/people/*' — escaped the
+ * module prefix and resolved to the shell root, hitting the shell's
+ * "Page Not Found". The correct target is '/people/import-export'.
+ */
+describe('Given the "Import" button on the People Registry', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  it('When clicked / Then it navigates to /people/import-export', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Import'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/import-export');
+  });
+
+  it('When clicked / Then it does NOT navigate to bare /import-export (regression guard: was hitting the shell 404)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Import'));
+    expect(mockNavigate).not.toHaveBeenCalledWith('/import-export');
   });
 });
 

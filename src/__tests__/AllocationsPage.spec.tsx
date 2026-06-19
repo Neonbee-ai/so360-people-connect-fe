@@ -22,6 +22,20 @@ vi.mock('@so360/shell-context', () => ({
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
 }));
 
+// Symbol the org formatter renders. Defaults to '$' (USD); the BDD currency spec
+// flips it to prove rates are formatted via the org's business-settings currency
+// rather than a hardcoded '$'.
+let mockCurrencySymbol = '$';
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    formatDate: (d: string) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `${mockCurrencySymbol}${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD', locale: 'en-US', timezone: 'UTC',
+  }),
+}));
+
 import AllocationsPage from '../pages/AllocationsPage';
 import { allocationsApi, peopleApi, entitiesApi } from '../services/peopleService';
 
@@ -96,6 +110,25 @@ describe('AllocationsPage', () => {
       await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
       fireEvent.click(screen.getByText('New Allocation'));
       await waitFor(() => expect(screen.getByText('Person *')).toBeInTheDocument());
+    });
+  });
+
+  describe('Given the org-wide currency is not USD', () => {
+    beforeEach(() => {
+      mockCurrencySymbol = 'AED ';
+      mockAllocApi.getAll.mockResolvedValue({ data: [] });
+      mockPeopleApi.getAll.mockResolvedValue({
+        data: [{ id: 'p1', full_name: 'Alice', job_title: 'Dev', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }],
+      });
+    });
+    afterEach(() => { mockCurrencySymbol = '$'; });
+
+    it('When the person picker lists a cost rate / Then it renders in the org currency, not a hardcoded $', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('New Allocation')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('New Allocation'));
+      await waitFor(() => expect(screen.getByText(/AED 50\/hour/)).toBeInTheDocument());
+      expect(screen.queryByText(/\$50\/hour/)).not.toBeInTheDocument();
     });
   });
 

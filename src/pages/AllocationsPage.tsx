@@ -13,6 +13,7 @@ import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
 import { isUuid } from '../utils/validation';
 import EntitySelector from '../components/EntitySelector';
+import { usePeopleFormatters } from '../utils/formatters';
 import type { Allocation, CreateAllocationPayload, UpdateAllocationPayload, Person, AllocationStatus, EntityOption, LookupEntityType } from '../types/people';
 
 const AllocationsPage: React.FC = () => {
@@ -296,6 +297,7 @@ interface CreateAllocationModalProps {
 }
 
 const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, onClose, onCreate }) => {
+    const formatters = usePeopleFormatters();
     const [people, setPeople] = useState<Person[]>([]);
     const [loadingPeople, setLoadingPeople] = useState(false);
     const emptyForm: CreateAllocationPayload = {
@@ -406,7 +408,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <option value="">Select a person...</option>
                             {people.map(p => (
                                 <option key={p.id} value={p.id}>
-                                    {p.full_name} - {p.job_title || p.type} (${p.cost_rate}/{p.cost_rate_unit})
+                                    {p.full_name} - {p.job_title || p.type} ({formatters.formatCurrency(p.cost_rate)}/{p.cost_rate_unit})
                                 </option>
                             ))}
                         </select>

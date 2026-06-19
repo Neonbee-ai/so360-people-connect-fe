@@ -362,7 +362,7 @@ const PersonDetailPage: React.FC = () => {
                         <DollarSign size={14} className="text-emerald-400" />
                         <span className="text-xs text-slate-400">Cost Rate</span>
                     </div>
-                    <div className="text-lg font-bold text-slate-50">${person.cost_rate}/{person.cost_rate_unit}</div>
+                    <div className="text-lg font-bold text-slate-50">{formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}</div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -623,14 +623,14 @@ const PersonDetailPage: React.FC = () => {
                                                 <div>
                                                     <div className="text-xs text-slate-500">Cost Rate</div>
                                                     <div className="text-lg font-medium text-slate-50">
-                                                        ${event.new_cost_rate}/{person.cost_rate_unit}
+                                                        {formatters.formatCurrency(event.new_cost_rate)}/{person.cost_rate_unit}
                                                     </div>
                                                 </div>
                                                 {event.new_billing_rate && (
                                                     <div>
                                                         <div className="text-xs text-slate-500">Billing Rate</div>
                                                         <div className="text-lg font-medium text-teal-400">
-                                                            ${event.new_billing_rate}/{person.cost_rate_unit}
+                                                            {formatters.formatCurrency(event.new_billing_rate)}/{person.cost_rate_unit}
                                                         </div>
                                                     </div>
                                                 )}
