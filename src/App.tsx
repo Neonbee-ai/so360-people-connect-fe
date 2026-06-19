@@ -133,6 +133,8 @@ const TeamPerformancePage = lazy(() => import('./pages/TeamPerformancePage'));
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
 const ImportExportPage = lazy(() => import('./pages/ImportExportPage'));
 const WorkLocationsPage = lazy(() => import('./pages/WorkLocationsPage'));
+const ApprovalChainsPage = lazy(() => import('./pages/settings/ApprovalChainsPage'));
+const EmploymentPolicyPage = lazy(() => import('./pages/settings/EmploymentPolicyPage'));
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -192,6 +194,8 @@ const App = () => {
 
                     {/* Settings */}
                     <Route path="settings/work-locations" element={<WorkLocationsPage />} />
+                    <Route path="settings/approval-chains" element={<FeatureGate flagKey="submodule:people:approval_chains"><ApprovalChainsPage /></FeatureGate>} />
+                    <Route path="settings/employment-policy" element={<FeatureGate flagKey="submodule:people:employment_policy"><EmploymentPolicyPage /></FeatureGate>} />
 
                     {/* Import/Export */}
                     <Route path="import-export" element={<ImportExportPage />} />
