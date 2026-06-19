@@ -77,4 +77,5 @@ export const UserCheck = createIcon('UserCheck');
 export const UserMinus = createIcon('UserMinus');
 export const MapPin = createIcon('MapPin');
 export const ExternalLink = createIcon('ExternalLink');
+export const Shield = createIcon('Shield');
 export type LucideIcon = React.FC<any>;
