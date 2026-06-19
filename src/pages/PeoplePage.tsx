@@ -75,6 +75,9 @@ const PeoplePage: React.FC = () => {
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [inviteResult, setInviteResult] = useState<{ link: string; email: string; emailSent: boolean } | null>(null);
     const [currencies, setCurrencies] = useState<string[]>(DEFAULT_CURRENCIES);
+    // Org's configured base currency (from Core business_settings), used as the
+    // default selection for new-person currency. Empty until settings load.
+    const [baseCurrency, setBaseCurrency] = useState<string>('');
     // Tracks the person currently being invited from the list row so we can
     // disable just that button while the request is in flight.
     const [invitingId, setInvitingId] = useState<string | null>(null);
@@ -128,13 +131,14 @@ const PeoplePage: React.FC = () => {
             | null
             | undefined;
         if (!settings) return;
+        const orgCurrency = settings.currency || settings.base_currency;
+        if (orgCurrency) setBaseCurrency(orgCurrency);
         if (Array.isArray(settings.supported_currencies) && settings.supported_currencies.length > 0) {
             setCurrencies(settings.supported_currencies);
             return;
         }
-        const baseCurrency = settings.currency || settings.base_currency;
-        if (baseCurrency && !DEFAULT_CURRENCIES.includes(baseCurrency)) {
-            setCurrencies([baseCurrency, ...DEFAULT_CURRENCIES]);
+        if (orgCurrency && !DEFAULT_CURRENCIES.includes(orgCurrency)) {
+            setCurrencies([orgCurrency, ...DEFAULT_CURRENCIES]);
         }
     }, [shell?.businessSettings]);
 
@@ -552,6 +556,7 @@ const PeoplePage: React.FC = () => {
                 onClose={() => setShowCreateModal(false)}
                 onCreate={handleCreate}
                 currencies={currencies}
+                defaultCurrency={baseCurrency}
             />
 
             {/* Invite link — shown after inviting so the admin can copy/share it if email is unreliable */}
@@ -606,9 +611,13 @@ interface CreatePersonModalProps {
     onClose: () => void;
     onCreate: (data: CreatePersonPayload) => void;
     currencies?: string[];
+    // Org's configured base currency; pre-selected as the default. Falls back to
+    // 'USD' only when no org currency is configured.
+    defaultCurrency?: string;
 }
 
-const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, onCreate, currencies = DEFAULT_CURRENCIES }) => {
+const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, onCreate, currencies = DEFAULT_CURRENCIES, defaultCurrency }) => {
+    const initialCurrency = defaultCurrency || 'USD';
     const { orgId, tenantId } = usePeopleContext();
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
     const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
@@ -634,7 +643,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         job_title: '',
         cost_rate: 0,
         cost_rate_unit: 'hour',
-        currency: 'USD',
+        currency: initialCurrency,
         billing_rate: 0,
         available_hours_per_day: 8,
         available_days_per_week: 5,
@@ -642,6 +651,13 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         userLinkageMode: 'invite',
         sendInviteEmail: true,
     });
+
+    // Org business_settings load asynchronously (and after first mount), so the
+    // useState default above may capture the 'USD' fallback. Re-sync the currency
+    // to the org default whenever the modal opens or the resolved default changes.
+    useEffect(() => {
+        if (isOpen) setFormData(prev => ({ ...prev, currency: initialCurrency }));
+    }, [isOpen, initialCurrency]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -655,7 +671,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         setFormData({
             full_name: '', email: '', phone: '', type: 'employee',
             department_id: '', job_title: '', cost_rate: 0, cost_rate_unit: 'hour',
-            currency: 'USD', billing_rate: 0, available_hours_per_day: 8,
+            currency: initialCurrency, billing_rate: 0, available_hours_per_day: 8,
             available_days_per_week: 5, start_date: new Date().toISOString().split('T')[0],
             userLinkageMode: 'invite', sendInviteEmail: true,
         });

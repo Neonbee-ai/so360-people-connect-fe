@@ -206,6 +206,43 @@ describe('PeoplePage — effectiveFlagsLoaded gate', () => {
 });
 
 // =============================================================================
+// Add Person — Currency defaults to the org's configured base currency
+// =============================================================================
+
+describe('PeoplePage — Add Person currency default', () => {
+  const openCreateModal = async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Add Person')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Add Person'));
+    await waitFor(() => expect(screen.getByText('Identity')).toBeInTheDocument());
+  };
+
+  beforeEach(() => {
+    mockPeopleApi.getAll.mockResolvedValue({ data: [] });
+  });
+
+  it('Given the org base currency is INR / When the Add Person modal opens / Then Currency defaults to INR', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, businessSettings: { currency: 'INR' } } as any;
+    await openCreateModal();
+    expect((screen.getByDisplayValue('INR') as HTMLSelectElement).value).toBe('INR');
+  });
+
+  it('Given the org base currency is AED (not in the built-in list) / When the modal opens / Then AED is an option and is pre-selected', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, businessSettings: { base_currency: 'AED' } } as any;
+    await openCreateModal();
+    const select = screen.getByDisplayValue('AED') as HTMLSelectElement;
+    expect(select.value).toBe('AED');
+    expect(within(select).getByText('AED')).toBeInTheDocument();
+  });
+
+  it('Given no org currency is configured / When the modal opens / Then Currency falls back to USD and is never blank', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true } as any;
+    await openCreateModal();
+    expect((screen.getByDisplayValue('USD') as HTMLSelectElement).value).toBe('USD');
+  });
+});
+
+// =============================================================================
 // People Registry ↔ Team Management unification — system access columns
 // =============================================================================
 
