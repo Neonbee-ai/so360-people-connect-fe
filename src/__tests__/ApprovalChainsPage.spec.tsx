@@ -33,8 +33,6 @@ vi.mock('@so360/design-system', () => ({
   ),
 }));
 
-vi.mock('lucide-react', () => new Proxy({}, { get: (_t, prop) => prop === '__esModule' ? true : () => null }));
-
 import { orgPolicyApi } from '../services/orgPolicyService';
 import ApprovalChainsPage from '../pages/settings/ApprovalChainsPage';
 
