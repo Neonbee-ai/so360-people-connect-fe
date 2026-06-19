@@ -88,7 +88,7 @@ export const leaveRequestsApi = {
   },
 
   reject: async (id: string, reason: string): Promise<LeaveRequest> => {
-    return api.post<LeaveRequest>(`/leave-requests/${id}/reject`, { reason });
+    return api.post<LeaveRequest>(`/leave-requests/${id}/reject`, { rejection_reason: reason });
   },
 
   getPendingApprovals: async (): Promise<PaginatedResponse<LeaveRequest>> => {
