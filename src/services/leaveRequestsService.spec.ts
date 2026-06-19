@@ -83,7 +83,7 @@ describe('Given leaveRequestsApi.reject', () => {
   it('When called with id and reason / Then it calls POST /leave-requests/:id/reject', async () => {
     mockApi.post.mockResolvedValue({ id: 'lr1', status: 'rejected', rejection_reason: 'No cover' });
     await leaveRequestsApi.reject('lr1', 'No cover');
-    expect(mockApi.post).toHaveBeenCalledWith('/leave-requests/lr1/reject', { reason: 'No cover' });
+    expect(mockApi.post).toHaveBeenCalledWith('/leave-requests/lr1/reject', { rejection_reason: 'No cover' });
   });
 });
 

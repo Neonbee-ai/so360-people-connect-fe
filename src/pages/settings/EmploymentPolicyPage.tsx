@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button, FeatureGate } from '@so360/design-system';
+
+import { Button } from '@so360/design-system';
 import { Settings, Save, RefreshCw, AlertCircle } from 'lucide-react';
 import { orgPolicyApi, EmploymentPolicy } from '../../services/orgPolicyService';
 import { useShellBridge } from '@so360/shell-context';
 
 const EmploymentPolicyPage: React.FC = () => {
-  const navigate = useNavigate();
   const [policy, setPolicy] = useState<EmploymentPolicy | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -15,7 +14,7 @@ const EmploymentPolicyPage: React.FC = () => {
   const loadAttemptedRef = useRef(false);
   const shell = useShellBridge();
   const flagsLoaded = shell?.effectiveFlagsLoaded ?? false;
-  const manageState = shell?.getFeatureState ? shell.getFeatureState('action:people:employment_policy:manage') : 'enabled';
+  const canManage = (flagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employment_policy:manage') ?? true);
   const tenantId = shell?.currentTenant?.id;
   const orgId = shell?.currentOrg?.id;
 
@@ -165,7 +164,7 @@ const EmploymentPolicyPage: React.FC = () => {
         </div>
       )}
 
-      <FeatureGate state={manageState} loading={!flagsLoaded} onUpgradeClick={() => navigate('/org/billing')}>
+      {canManage && (
         <div className="flex justify-end gap-3 pt-6 border-t border-slate-800">
           <Button
             variant="secondary"
@@ -181,7 +180,7 @@ const EmploymentPolicyPage: React.FC = () => {
             {isSaving ? 'Saving...' : 'Save Policy'}
           </Button>
         </div>
-      </FeatureGate>
+      )}
     </div>
   );
 };

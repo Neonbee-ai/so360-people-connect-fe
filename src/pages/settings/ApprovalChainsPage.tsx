@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, FeatureGate } from '@so360/design-system';
+import { Button } from '@so360/design-system';
 import { Users, UserPlus, Trash2, Shield, Loader2, Search, User } from 'lucide-react';
 import { orgPolicyApi, ApprovalChain, CreateApprovalChainPayload } from '../../services/orgPolicyService';
 import { peopleApi } from '../../services/peopleService';
@@ -213,7 +213,7 @@ const ApprovalChainsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const shell = useShellBridge();
   const flagsLoaded = shell?.effectiveFlagsLoaded ?? false;
-  const manageState = shell?.getFeatureState ? shell.getFeatureState('action:people:approval_chains:manage') : 'enabled';
+  const canManage = (flagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:approval_chains:manage') ?? true);
 
   const tenantId = shell?.currentTenant?.id;
   const orgId = shell?.currentOrg?.id;
@@ -263,12 +263,12 @@ const ApprovalChainsPage: React.FC = () => {
             Define reporting lines for automated submission routing across Timesheet, Leave, and Expenses.
           </p>
         </div>
-        <FeatureGate state={manageState} loading={!flagsLoaded} onUpgradeClick={() => navigate('/org/billing')}>
+        {canManage && (
           <Button variant="primary" className="w-full sm:w-auto h-11 px-6" onClick={() => setIsAddOpen(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             New Relationship
           </Button>
-        </FeatureGate>
+        )}
       </div>
 
       {error && (
@@ -328,7 +328,7 @@ const ApprovalChainsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <FeatureGate state={manageState} loading={!flagsLoaded} onUpgradeClick={() => navigate('/org/billing')}>
+                      {canManage && (
                         <Button
                           variant="secondary"
                           size="sm"
@@ -337,7 +337,7 @@ const ApprovalChainsPage: React.FC = () => {
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
-                      </FeatureGate>
+                      )}
                     </td>
                   </tr>
                 ))

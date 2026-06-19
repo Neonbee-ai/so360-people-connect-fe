@@ -24,7 +24,6 @@ vi.mock('@so360/design-system', () => ({
   Button: ({ children, onClick, disabled, type }: any) => (
     <button onClick={onClick} disabled={disabled} type={type}>{children}</button>
   ),
-  FeatureGate: ({ children }: any) => <>{children}</>,
 }));
 
 import { orgPolicyApi } from '../services/orgPolicyService';

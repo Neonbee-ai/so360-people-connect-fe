@@ -166,7 +166,7 @@ describe('leaveRequestsApi', () => {
     it('When reject is called / Then it posts reason to reject endpoint', async () => {
       mockApi.post.mockResolvedValue({ id: 'lr1' });
       await leaveRequestsApi.reject('lr1', 'Not enough notice');
-      expect(mockApi.post).toHaveBeenCalledWith('/leave-requests/lr1/reject', { reason: 'Not enough notice' });
+      expect(mockApi.post).toHaveBeenCalledWith('/leave-requests/lr1/reject', { rejection_reason: 'Not enough notice' });
     });
 
     it('When getPendingApprovals is called / Then it calls the pending endpoint', async () => {
