@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 const mockNavigate = vi.fn();
@@ -22,6 +22,7 @@ vi.mock('../services/peopleService', () => ({
     create: vi.fn(),
     export: vi.fn(),
     getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
+    inviteUser: vi.fn(),
   },
 }));
 
@@ -201,5 +202,159 @@ describe('PeoplePage — effectiveFlagsLoaded gate', () => {
     expect(screen.getByText('Add Person')).toBeInTheDocument();
     expect(screen.getByText('Import')).toBeInTheDocument();
     expect(screen.getByText('Export')).toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+// People Registry ↔ Team Management unification — system access columns
+// =============================================================================
+
+// Build a registry person with the system-access fields under test. Defaults
+// are deliberately minimal so legacy-payload specs can omit the new fields.
+const accessPerson = (over: Record<string, any> = {}) => ({
+  id: 'p1',
+  full_name: 'Jane Doe',
+  email: 'jane@test.com',
+  type: 'employee',
+  status: 'active',
+  cost_rate: 50,
+  cost_rate_unit: 'hour',
+  job_title: 'Engineer',
+  department: 'Engineering',
+  people_roles: [],
+  ...over,
+});
+
+// Scope assertions to a single person's card so duplicated labels (Role:/Invite:)
+// across rows never cross-match.
+const rowFor = (name: string) =>
+  screen.getByText(name).closest('div.bg-slate-900') as HTMLElement;
+
+describe('PeoplePage — System access columns', () => {
+  describe('Access Status badge', () => {
+    it('Given access_status=active / Then renders "Has Access"', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'active' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).getByText('Has Access')).toBeInTheDocument();
+    });
+
+    it('Given access_status=pending / Then renders "Invitation Pending"', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'pending' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).getByText('Invitation Pending')).toBeInTheDocument();
+    });
+
+    it('Given access_status=no_access / Then renders "No Access"', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'no_access' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).getByText('No Access')).toBeInTheDocument();
+    });
+
+    it('Given login_status=blocked / Then "Blocked" overrides access_status', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'active', login_status: 'blocked' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      const row = rowFor('Jane Doe');
+      expect(within(row).getByText('Blocked')).toBeInTheDocument();
+      expect(within(row).queryByText('Has Access')).not.toBeInTheDocument();
+    });
+
+    it('Given no access_status (legacy payload) / Then defaults to "No Access"', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson()] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).getByText('No Access')).toBeInTheDocument();
+    });
+  });
+
+  describe('System Role', () => {
+    it('Given system_role is set / Then it renders the role value', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'active', system_role: 'Admin' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).getByText('Role: Admin')).toBeInTheDocument();
+    });
+
+    it('Given system_role is absent / Then it renders the "—" fallback', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'no_access' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).getByText('Role: —')).toBeInTheDocument();
+    });
+  });
+
+  describe('Invitation Status', () => {
+    it('Given invitation_status=accepted / Then renders "Accepted"', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'active', invitation_status: 'accepted' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).getByText('Invite: Accepted')).toBeInTheDocument();
+    });
+
+    it('Given invitation_status=expired / Then renders "Expired"', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'no_access', invitation_status: 'expired' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).getByText('Invite: Expired')).toBeInTheDocument();
+    });
+
+    it('Given invitation_status is null / Then renders the "—" fallback', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'no_access', invitation_status: null })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).getByText('Invite: —')).toBeInTheDocument();
+    });
+  });
+
+  describe('Invite action', () => {
+    it('Given a no_access row / Then the Invite button is visible and enabled', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'no_access' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      const btn = within(rowFor('Jane Doe')).getByRole('button', { name: /Invite/ });
+      expect(btn).toBeInTheDocument();
+      expect(btn).not.toBeDisabled();
+    });
+
+    it('Given a no_access row with email / When Invite is clicked / Then inviteUser is called and the row does not navigate', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ id: 'p1', access_status: 'no_access', email: 'jane@x.com' })] });
+      mockPeopleApi.getOrgRoles.mockResolvedValue({ data: [{ id: 'role-1', name: 'Member' }] });
+      mockPeopleApi.inviteUser.mockResolvedValue({ invite_status: 'link_generated', invite_link: 'https://invite/abc', email_sent: true, user_id: null });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      fireEvent.click(within(rowFor('Jane Doe')).getByRole('button', { name: /Invite/ }));
+      await waitFor(() => expect(mockPeopleApi.inviteUser).toHaveBeenCalledWith('p1', 'jane@x.com', 'role-1', true));
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('Given a pending row / Then the button shows "Invited" and is disabled', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'pending' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      const btn = within(rowFor('Jane Doe')).getByRole('button', { name: /Invited/ });
+      expect(btn).toBeDisabled();
+    });
+
+    it('Given an active (has-access) row / Then no Invite button is shown', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ access_status: 'active' })] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(within(rowFor('Jane Doe')).queryByRole('button', { name: /Invite/ })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Backward compatibility', () => {
+    it('Given a fully legacy payload (no new fields) / Then the row still renders without crashing', async () => {
+      mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson()] });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      const row = rowFor('Jane Doe');
+      expect(within(row).getByText('No Access')).toBeInTheDocument();
+      expect(within(row).getByText('Role: —')).toBeInTheDocument();
+      expect(within(row).getByText('Invite: —')).toBeInTheDocument();
+    });
   });
 });

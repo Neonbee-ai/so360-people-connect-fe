@@ -7,7 +7,7 @@ import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { peopleApi } from '../services/peopleService';
-import type { Person, CreatePersonPayload, PersonStatus } from '../types/people';
+import type { Person, CreatePersonPayload, PersonStatus, AccessStatus, InvitationStatus } from '../types/people';
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
@@ -17,6 +17,29 @@ import { workLocationsApi, WorkLocation } from '../services/workLocationsService
 import { usePeopleFormatters } from '../utils/formatters';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
+
+// Access-status badge — mirrors the StatusBadge colour vocabulary used across
+// this module (emerald=ok, amber=pending, slate=neutral, rose=blocked). A
+// 'blocked' login_status always wins over access_status.
+const ACCESS_BADGE: Record<string, { label: string; className: string }> = {
+    active: { label: 'Has Access', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
+    pending: { label: 'Invitation Pending', className: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
+    no_access: { label: 'No Access', className: 'bg-slate-500/10 text-slate-400 border-slate-500/30' },
+    blocked: { label: 'Blocked', className: 'bg-rose-500/10 text-rose-400 border-rose-500/30' },
+};
+
+const resolveAccessBadge = (person: Pick<Person, 'access_status' | 'login_status'>) => {
+    // Blocked is a hard override regardless of access_status.
+    if (person.login_status === 'blocked') return ACCESS_BADGE.blocked;
+    const key: AccessStatus = person.access_status ?? 'no_access';
+    return ACCESS_BADGE[key] ?? ACCESS_BADGE.no_access;
+};
+
+const INVITATION_LABEL: Record<InvitationStatus, string> = {
+    pending: 'Pending',
+    accepted: 'Accepted',
+    expired: 'Expired',
+};
 
 const PeoplePage: React.FC = () => {
     const navigate = useNavigate();
@@ -52,6 +75,9 @@ const PeoplePage: React.FC = () => {
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [inviteResult, setInviteResult] = useState<{ link: string; email: string; emailSent: boolean } | null>(null);
     const [currencies, setCurrencies] = useState<string[]>(DEFAULT_CURRENCIES);
+    // Tracks the person currently being invited from the list row so we can
+    // disable just that button while the request is in flight.
+    const [invitingId, setInvitingId] = useState<string | null>(null);
 
     // Debounce the search term: only update `debouncedSearch` 300ms after the
     // last keystroke. Cleanup cancels the pending timer on each change so a
@@ -152,6 +178,39 @@ const PeoplePage: React.FC = () => {
             setToast({ message: 'Invite link copied to clipboard', type: 'success' });
         } catch {
             setToast({ message: 'Could not copy automatically — select the link and copy it manually', type: 'error' });
+        }
+    };
+
+    // Invite a person to a user account directly from the registry row. Used
+    // primarily for `no_access` people. Resolves a default org role (the
+    // backend requires one) and reuses the same invite-link surface as create.
+    const handleInvite = async (person: Person) => {
+        const email = person.email;
+        if (!email) {
+            setToast({ message: `${person.full_name} has no email — add one before inviting`, type: 'error' });
+            return;
+        }
+        try {
+            setInvitingId(person.id);
+            const roles = await peopleApi.getOrgRoles();
+            const defaultRole = roles.data?.[0]?.id;
+            if (!defaultRole) {
+                setToast({ message: 'No org roles available to assign — set up roles first', type: 'error' });
+                return;
+            }
+            const res = await peopleApi.inviteUser(person.id, email, defaultRole, true);
+            if (res.invite_status === 'existing_user') {
+                setToast({ message: `${email} already has an account and can sign in.`, type: 'success' });
+            } else if (res.invite_link) {
+                setInviteResult({ link: res.invite_link, email, emailSent: !!res.email_sent });
+            } else {
+                setToast({ message: `${person.full_name} has been invited`, type: 'success' });
+            }
+            loadPeople();
+        } catch {
+            setToast({ message: `Failed to invite ${person.full_name}`, type: 'error' });
+        } finally {
+            setInvitingId(null);
         }
     };
 
@@ -421,6 +480,54 @@ const PeoplePage: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* System Access (access status / system role / invitation) */}
+                                {(() => {
+                                    const accessBadge = resolveAccessBadge(person);
+                                    const invitation = person.invitation_status
+                                        ? (INVITATION_LABEL[person.invitation_status] ?? '—')
+                                        : '—';
+                                    return (
+                                        <div className="hidden md:flex flex-col items-end gap-1 flex-shrink-0 min-w-[140px]" aria-label="System access">
+                                            {/* Access Status */}
+                                            <span
+                                                aria-label="Access status"
+                                                className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${accessBadge.className}`}
+                                            >
+                                                {accessBadge.label}
+                                            </span>
+                                            {/* System Role (Core login role — distinct from skill/people_roles) */}
+                                            <span className="text-xs text-slate-500" aria-label="System role">
+                                                Role: {person.system_role || '—'}
+                                            </span>
+                                            {/* Invitation Status */}
+                                            <span className="text-xs text-slate-600" aria-label="Invitation status">
+                                                Invite: {invitation}
+                                            </span>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Invite action — primarily for people without access */}
+                                {(() => {
+                                    const isPending = person.access_status === 'pending' || person.invitation_status === 'pending';
+                                    const hasAccess = person.access_status === 'active';
+                                    // Hide entirely once the person already has access; otherwise
+                                    // show Invite (no_access) or a disabled "Invited" (pending).
+                                    if (hasAccess) return null;
+                                    return (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); if (!isPending) handleInvite(person); }}
+                                            disabled={isPending || invitingId === person.id}
+                                            title={isPending ? 'Invitation already sent' : 'Invite to a user account'}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 flex-shrink-0 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 text-slate-50 text-xs font-medium rounded-lg transition-colors"
+                                        >
+                                            <UserPlus size={14} />
+                                            {isPending ? 'Invited' : (invitingId === person.id ? 'Inviting…' : 'Invite')}
+                                        </button>
+                                    );
+                                })()}
 
                                 {/* Roles */}
                                 <div className="hidden lg:flex items-center gap-1 flex-shrink-0">

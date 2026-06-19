@@ -51,11 +51,30 @@ export interface Person {
   work_location_id?: string;
   work_location?: { id: string; name: string; location_type: string } | null;
 
+  // System access / identity unification (People Registry ↔ Team Management).
+  // All optional — older payloads predate these and must still render.
+  /** Whether this person has a usable login: active / pending invite / none. */
+  access_status?: AccessStatus;
+  /** Lifecycle of an outstanding user invitation, null when not invited. */
+  invitation_status?: InvitationStatus | null;
+  /** Core IAM login role name (e.g. 'Admin', 'Member'). Distinct from people_roles/skills. */
+  system_role?: string | null;
+  /** Login account state — 'blocked' overrides the access badge. */
+  login_status?: LoginStatus;
+  /** Linked Core user account, when one exists. */
+  linked_user_id?: string | null;
+  /** Last active timestamp (ISO) of the linked user. */
+  last_active?: string | null;
+
   // Relations
   people_roles?: PersonRole[];
 }
 
 export type PersonStatus = 'active' | 'inactive' | 'on_leave' | 'terminated';
+
+export type AccessStatus = 'active' | 'pending' | 'no_access';
+export type InvitationStatus = 'pending' | 'accepted' | 'expired';
+export type LoginStatus = 'active' | 'blocked' | 'pending' | 'none';
 
 export interface PersonRole {
   id: string;
