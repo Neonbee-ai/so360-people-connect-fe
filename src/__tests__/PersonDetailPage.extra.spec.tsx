@@ -23,6 +23,8 @@ vi.mock('../services/peopleService', () => ({
     getRateHistory: vi.fn(),
     linkUser: vi.fn(),
     inviteUser: vi.fn(),
+    getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
+    updateSystemRole: vi.fn(),
   },
   allocationsApi: { getAll: vi.fn() },
 }));
@@ -214,7 +216,8 @@ describe('PersonDetailPage — extra scenarios', () => {
 
     it('When person loads / Then shows job title', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Developer')).toBeInTheDocument());
+      // Job title renders in both the header and the Employment Information card.
+      await waitFor(() => expect(screen.getAllByText('Developer').length).toBeGreaterThanOrEqual(1));
     });
   });
 });

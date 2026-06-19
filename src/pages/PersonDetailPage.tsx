@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Mail, Phone, Calendar, DollarSign, Clock, Target,
     Tag, Plus, Trash2, Edit2, Save, X, History, User, UserCheck, UserPlus,
+    Briefcase, Shield,
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
@@ -34,6 +35,7 @@ const PersonDetailPage: React.FC = () => {
     const [editing, setEditing] = useState(false);
     const [editData, setEditData] = useState<Partial<Person>>({});
     const [showRoleModal, setShowRoleModal] = useState(false);
+    const [showSystemRoleModal, setShowSystemRoleModal] = useState(false);
     const [showLinkUserModal, setShowLinkUserModal] = useState(false);
     const [showUpdateRateModal, setShowUpdateRateModal] = useState(false);
     const [activeTab, setActiveTab] = useState<string>('overview');
@@ -119,26 +121,44 @@ const PersonDetailPage: React.FC = () => {
         }
     };
 
-    const handleAddRole = async (roleData: { role_name: string; skill_category: string; proficiency: string; is_primary: boolean }) => {
+    // Skills & Competencies — a capability tracker, intentionally separate from the
+    // System Role (which is the Core IAM access role, edited via handleUpdateSystemRole).
+    const handleAddSkill = async (skillData: { role_name: string; skill_category: string; proficiency: string; is_primary: boolean }) => {
         if (!id) return;
         try {
-            const newRole = await peopleApi.addRole(id, roleData as Omit<PersonRole, 'id' | 'person_id' | 'org_id' | 'tenant_id' | 'created_at'>);
-            setPerson(prev => prev ? { ...prev, people_roles: [...(prev.people_roles || []), newRole] } : prev);
+            const newSkill = await peopleApi.addRole(id, skillData as Omit<PersonRole, 'id' | 'person_id' | 'org_id' | 'tenant_id' | 'created_at'>);
+            setPerson(prev => prev ? { ...prev, people_roles: [...(prev.people_roles || []), newSkill] } : prev);
             setShowRoleModal(false);
-            setToast({ message: 'Role added', type: 'success' });
+            setToast({ message: 'Skill added', type: 'success' });
         } catch (error) {
-            setToast({ message: 'Failed to add role', type: 'error' });
+            setToast({ message: 'Failed to add skill', type: 'error' });
         }
     };
 
-    const handleRemoveRole = async (roleId: string) => {
+    const handleRemoveSkill = async (skillId: string) => {
         if (!id) return;
         try {
-            await peopleApi.removeRole(id, roleId);
-            setPerson(prev => prev ? { ...prev, people_roles: prev.people_roles?.filter(r => r.id !== roleId) } : prev);
-            setToast({ message: 'Role removed', type: 'success' });
+            await peopleApi.removeRole(id, skillId);
+            setPerson(prev => prev ? { ...prev, people_roles: prev.people_roles?.filter(r => r.id !== skillId) } : prev);
+            setToast({ message: 'Skill removed', type: 'success' });
         } catch (error) {
-            setToast({ message: 'Failed to remove role', type: 'error' });
+            setToast({ message: 'Failed to remove skill', type: 'error' });
+        }
+    };
+
+    // System Role — the single source of truth for access. Updating it patches the
+    // person's Core IAM org membership, which keeps the employee profile, Team
+    // Management, and permissions in sync automatically (one membership, one role).
+    const handleUpdateSystemRole = async (roleId: string, roleName: string) => {
+        if (!id) return;
+        try {
+            await peopleApi.updateSystemRole(id, roleId);
+            setPerson(prev => prev ? { ...prev, system_role: roleName } : prev);
+            setShowSystemRoleModal(false);
+            setToast({ message: 'System role updated', type: 'success' });
+            recordActivity({ eventType: 'people.person.role_changed', eventCategory: 'identity', description: `${person?.full_name ?? 'Person'} system role changed to ${roleName}`, resourceType: 'person', resourceId: id }).catch(() => {});
+        } catch (error) {
+            setToast({ message: 'Failed to update system role', type: 'error' });
         }
     };
 
@@ -387,31 +407,79 @@ const PersonDetailPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Roles & Skills */}
+            {/* Employment Information — single source of truth, populated from the
+                employee record + Core IAM membership captured at registration. The
+                System Role here IS the access role (no separate role structure). */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl">
                 <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-slate-50 flex items-center gap-2">
-                        <Tag size={14} /> Roles & Skills
+                        <Briefcase size={14} /> Employment Information
+                    </h3>
+                    <button
+                        onClick={() => setShowSystemRoleModal(true)}
+                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
+                    >
+                        <Edit2 size={12} /> Edit Role
+                    </button>
+                </div>
+                <div className="p-5 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1">Job Title</div>
+                        <div className="text-sm text-slate-50">{person.job_title || '—'}</div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Shield size={11} /> System Role</div>
+                        <div className="text-sm text-slate-50">
+                            {person.system_role || <span className="text-slate-500">No system access</span>}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1">Department</div>
+                        <div className="text-sm text-slate-50">{person.department_info?.name || person.department || '—'}</div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1">Employment Type</div>
+                        <div className="text-sm text-slate-50 capitalize">{person.type || '—'}</div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1">Access Status</div>
+                        <div><StatusBadge status={person.access_status || 'no_access'} /></div>
+                    </div>
+                    {person.invitation_status && (
+                        <div>
+                            <div className="text-xs text-slate-500 mb-1">Invitation</div>
+                            <div><StatusBadge status={person.invitation_status} /></div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Skills & Competencies — capability tracker only; NOT an access role.
+                Intentionally distinct from the System Role above. */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl">
+                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-50 flex items-center gap-2">
+                        <Tag size={14} /> Skills &amp; Competencies
                     </h3>
                     <button
                         onClick={() => setShowRoleModal(true)}
                         className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
                     >
-                        <Plus size={12} /> Add Role
+                        <Plus size={12} /> Add Skill
                     </button>
                 </div>
                 <div className="p-5">
                     {!person.people_roles || person.people_roles.length === 0 ? (
-                        <p className="text-sm text-slate-500">No roles assigned yet</p>
+                        <p className="text-sm text-slate-500">No skills added yet</p>
                     ) : (
                         <div className="flex flex-wrap gap-2">
-                            {person.people_roles.map(role => (
-                                <div key={role.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
-                                    <span className="text-sm text-slate-50">{role.role_name}</span>
-                                    {role.skill_category && <span className="text-xs text-slate-500">{role.skill_category}</span>}
-                                    <StatusBadge status={role.proficiency} />
-                                    {role.is_primary && <span className="text-xs text-teal-400 font-medium">Primary</span>}
-                                    <button onClick={() => handleRemoveRole(role.id)} className="ml-1 text-slate-500 hover:text-rose-400">
+                            {person.people_roles.map(skill => (
+                                <div key={skill.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
+                                    <span className="text-sm text-slate-50">{skill.role_name}</span>
+                                    {skill.skill_category && <span className="text-xs text-slate-500">{skill.skill_category}</span>}
+                                    <StatusBadge status={skill.proficiency} />
+                                    {skill.is_primary && <span className="text-xs text-teal-400 font-medium">Primary</span>}
+                                    <button onClick={() => handleRemoveSkill(skill.id)} className="ml-1 text-slate-500 hover:text-rose-400">
                                         <Trash2 size={12} />
                                     </button>
                                 </div>
@@ -703,40 +771,49 @@ const PersonDetailPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Add Role Modal */}
-            <AddRoleModal isOpen={showRoleModal} onClose={() => setShowRoleModal(false)} onAdd={handleAddRole} />
+            {/* Add Skill Modal */}
+            <AddSkillModal isOpen={showRoleModal} onClose={() => setShowRoleModal(false)} onAdd={handleAddSkill} />
+
+            {/* Edit System Role Modal — updates the existing IAM membership role */}
+            <EditSystemRoleModal
+                isOpen={showSystemRoleModal}
+                onClose={() => setShowSystemRoleModal(false)}
+                currentRole={person.system_role ?? null}
+                hasAccess={!!person.linked_user_id || !!person.user_id}
+                onSave={handleUpdateSystemRole}
+            />
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
 
-// Add Role Modal Component
-const AddRoleModal: React.FC<{
+// Add Skill Modal Component — captures a capability/competency (NOT an access role).
+const AddSkillModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
     onAdd: (data: { role_name: string; skill_category: string; proficiency: string; is_primary: boolean }) => void;
 }> = ({ isOpen, onClose, onAdd }) => {
-    const [roleName, setRoleName] = useState('');
+    const [skillName, setSkillName] = useState('');
     const [category, setCategory] = useState('');
     const [proficiency, setProficiency] = useState('intermediate');
     const [isPrimary, setIsPrimary] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!roleName) return;
-        onAdd({ role_name: roleName, skill_category: category, proficiency, is_primary: isPrimary });
-        setRoleName(''); setCategory(''); setProficiency('intermediate'); setIsPrimary(false);
+        if (!skillName) return;
+        onAdd({ role_name: skillName, skill_category: category, proficiency, is_primary: isPrimary });
+        setSkillName(''); setCategory(''); setProficiency('intermediate'); setIsPrimary(false);
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Add Role / Skill" size="sm">
+        <Modal isOpen={isOpen} onClose={onClose} title="Add Skill" size="sm">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Role Name *</label>
-                    <input type="text" required value={roleName} onChange={e => setRoleName(e.target.value)}
+                    <label className="block text-xs text-slate-400 mb-1">Skill Name *</label>
+                    <input type="text" required value={skillName} onChange={e => setSkillName(e.target.value)}
                         className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        placeholder="e.g., Full Stack Developer" />
+                        placeholder="e.g., React, Financial Modelling" />
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Skill Category</label>
@@ -757,13 +834,85 @@ const AddRoleModal: React.FC<{
                 <label className="flex items-center gap-2 text-sm text-slate-300">
                     <input type="checkbox" checked={isPrimary} onChange={e => setIsPrimary(e.target.checked)}
                         className="rounded border-slate-600" />
-                    Primary role
+                    Primary skill
                 </label>
                 <div className="flex justify-end gap-3 pt-2">
                     <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg">Add Role</button>
+                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg">Add Skill</button>
                 </div>
             </form>
+        </Modal>
+    );
+};
+
+// Edit System Role Modal — updates the person's existing Core IAM org membership
+// role. This is the single source of truth; it does NOT create a new role record.
+const EditSystemRoleModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    currentRole: string | null;
+    hasAccess: boolean;
+    onSave: (roleId: string, roleName: string) => void;
+}> = ({ isOpen, onClose, currentRole, hasAccess, onSave }) => {
+    const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
+    const [roleId, setRoleId] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        setRoleId('');
+        peopleApi.getOrgRoles().then(r => setOrgRoles(r.data ?? [])).catch(() => setOrgRoles([]));
+    }, [isOpen]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!roleId) return;
+        const selected = orgRoles.find(r => r.id === roleId);
+        setSaving(true);
+        try {
+            await onSave(roleId, selected?.name ?? '');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Edit System Role" size="sm">
+            {!hasAccess ? (
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-300">
+                        This person has no system access yet. Invite them to a user account from the
+                        People list to assign a system role.
+                    </p>
+                    <div className="flex justify-end pt-2">
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50">Close</button>
+                    </div>
+                </div>
+            ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">Current Role</label>
+                        <div className="text-sm text-slate-50">{currentRole || '—'}</div>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">New System Role *</label>
+                        <select required value={roleId} onChange={e => setRoleId(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500">
+                            <option value="">Select role...</option>
+                            {orgRoles.map(role => (
+                                <option key={role.id} value={role.id}>{role.name}</option>
+                            ))}
+                        </select>
+                        <p className="mt-1 text-xs text-slate-500">Updates access across the profile, Team Management, and permissions.</p>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
+                        <button type="submit" disabled={saving || !roleId} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg">
+                            {saving ? 'Saving…' : 'Save Role'}
+                        </button>
+                    </div>
+                </form>
+            )}
         </Modal>
     );
 };

@@ -28,6 +28,8 @@ vi.mock('../services/peopleService', () => ({
     getRateHistory: vi.fn(),
     linkUser: vi.fn(),
     inviteUser: vi.fn(),
+    getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
+    updateSystemRole: vi.fn(),
   },
   allocationsApi: { getAll: vi.fn() },
 }));
@@ -147,7 +149,8 @@ describe('Given a person linked to a department', () => {
       department_info: { id: 'dep-old', name: 'Legacy Ops', code: 'OPS', is_active: false },
     });
     renderPage();
-    await waitFor(() => expect(screen.getByText('Legacy Ops')).toBeInTheDocument());
+    // Department now renders in both the header and the Employment Information card.
+    await waitFor(() => expect(screen.getAllByText('Legacy Ops').length).toBeGreaterThanOrEqual(1));
   });
 
   it('When editing and selecting a new department / Then update is called with the relational department_id', async () => {
@@ -187,12 +190,12 @@ describe('Given a person linked to a department', () => {
 // handleAddRole paths
 // ---------------------------------------------------------------------------
 
-describe('Given a person exists — handleAddRole', () => {
+describe('Given a person exists — handleAddSkill', () => {
   beforeEach(() => {
     mockPeople.getById.mockResolvedValue({ ...basePerson });
   });
 
-  it('When Add Role modal is submitted successfully / Then addRole is called and role appears', async () => {
+  it('When Add Skill modal is submitted successfully / Then addRole is called and skill appears', async () => {
     mockPeople.addRole.mockResolvedValue({
       id: 'r2',
       role_name: 'Backend Dev',
@@ -204,37 +207,37 @@ describe('Given a person exists — handleAddRole', () => {
     renderPage();
     await waitFor(() => screen.getByText('Alice Smith'));
 
-    // Open modal (the "Add Role" opener button)
-    const addRoleOpener = screen.getAllByText('Add Role')[0];
-    fireEvent.click(addRoleOpener);
-    await waitFor(() => screen.getByText('Add Role / Skill'));
+    // Open modal (the "Add Skill" opener button)
+    const addSkillOpener = screen.getAllByText('Add Skill')[0];
+    fireEvent.click(addSkillOpener);
+    await waitFor(() => screen.getByText('Skill Name *'));
 
-    // Fill in role name and submit the form
-    const roleInput = screen.getByPlaceholderText('e.g., Full Stack Developer');
-    fireEvent.change(roleInput, { target: { value: 'Backend Dev' } });
-    const form = roleInput.closest('form') as HTMLFormElement;
+    // Fill in skill name and submit the form
+    const skillInput = screen.getByPlaceholderText('e.g., React, Financial Modelling');
+    fireEvent.change(skillInput, { target: { value: 'Backend Dev' } });
+    const form = skillInput.closest('form') as HTMLFormElement;
     fireEvent.submit(form);
 
     await waitFor(() => expect(mockPeople.addRole).toHaveBeenCalledWith('p1', expect.objectContaining({ role_name: 'Backend Dev' })));
-    await waitFor(() => expect(screen.getByText('Role added')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Skill added')).toBeInTheDocument());
   });
 
-  it('When Add Role modal submit fails / Then shows failure toast', async () => {
-    mockPeople.addRole.mockImplementation(async () => { throw new Error('Role creation failed'); });
+  it('When Add Skill modal submit fails / Then shows failure toast', async () => {
+    mockPeople.addRole.mockImplementation(async () => { throw new Error('Skill creation failed'); });
 
     renderPage();
     await waitFor(() => screen.getByText('Alice Smith'));
 
-    const addRoleOpener = screen.getAllByText('Add Role')[0];
-    fireEvent.click(addRoleOpener);
-    await waitFor(() => screen.getByText('Add Role / Skill'));
+    const addSkillOpener = screen.getAllByText('Add Skill')[0];
+    fireEvent.click(addSkillOpener);
+    await waitFor(() => screen.getByText('Skill Name *'));
 
-    const roleInput = screen.getByPlaceholderText('e.g., Full Stack Developer');
-    fireEvent.change(roleInput, { target: { value: 'Backend Dev' } });
-    const form = roleInput.closest('form') as HTMLFormElement;
+    const skillInput = screen.getByPlaceholderText('e.g., React, Financial Modelling');
+    fireEvent.change(skillInput, { target: { value: 'Backend Dev' } });
+    const form = skillInput.closest('form') as HTMLFormElement;
     fireEvent.submit(form);
 
-    await waitFor(() => expect(screen.getByText('Failed to add role')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Failed to add skill')).toBeInTheDocument());
   });
 });
 
@@ -242,7 +245,7 @@ describe('Given a person exists — handleAddRole', () => {
 // handleRemoveRole failure
 // ---------------------------------------------------------------------------
 
-describe('Given a person exists — handleRemoveRole failure', () => {
+describe('Given a person exists — handleRemoveSkill failure', () => {
   beforeEach(() => {
     mockPeople.getById.mockResolvedValue({ ...basePerson });
     mockPeople.removeRole.mockImplementation(async () => { throw new Error('Remove failed'); });
@@ -255,7 +258,7 @@ describe('Given a person exists — handleRemoveRole failure', () => {
     const trashButton = screen.getByTestId('icon-Trash2').closest('button');
     if (trashButton) fireEvent.click(trashButton);
 
-    await waitFor(() => expect(screen.getByText('Failed to remove role')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Failed to remove skill')).toBeInTheDocument());
   });
 });
 

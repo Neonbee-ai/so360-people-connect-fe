@@ -533,11 +533,11 @@ const PeoplePage: React.FC = () => {
                                     );
                                 })()}
 
-                                {/* Roles */}
+                                {/* Skills — capability tags (distinct from the System Role shown above) */}
                                 <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
-                                    {person.people_roles?.slice(0, 2).map((role) => (
-                                        <span key={role.id} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-400">
-                                            {role.role_name}
+                                    {person.people_roles?.slice(0, 2).map((skill) => (
+                                        <span key={skill.id} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-400">
+                                            {skill.role_name}
                                         </span>
                                     ))}
                                     {person.people_roles && person.people_roles.length > 2 && (

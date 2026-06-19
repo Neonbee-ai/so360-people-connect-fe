@@ -178,6 +178,13 @@ export const peopleApi = {
   inviteUser: async (personId: string, email: string, role: string, sendEmail = true): Promise<InviteResult> => {
     return api.post<InviteResult>(`/people/${personId}/invite-user`, { email, role, send_email: sendEmail });
   },
+
+  // Update the person's existing Core IAM org-membership role (the System Role —
+  // single source of truth). Keeps the profile, Team Management, and permissions
+  // in sync without creating a separate role record.
+  updateSystemRole: async (personId: string, roleId: string): Promise<{ role_id: string }> => {
+    return api.patch<{ role_id: string }>(`/people/${personId}/system-role`, { role_id: roleId });
+  },
 };
 
 // Result of inviting a person: the copyable invite link (for manual sharing when email is

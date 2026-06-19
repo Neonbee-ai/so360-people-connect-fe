@@ -71,6 +71,14 @@ describe('Given peopleApi.update', () => {
   });
 });
 
+describe('Given peopleApi.updateSystemRole', () => {
+  it('When called with personId and roleId / Then it PATCHes /people/:id/system-role with role_id', async () => {
+    mockApi.patch.mockResolvedValue({ role_id: 'role-9' });
+    await peopleApi.updateSystemRole('p1', 'role-9');
+    expect(mockApi.patch).toHaveBeenCalledWith('/people/p1/system-role', { role_id: 'role-9' });
+  });
+});
+
 describe('Given peopleApi.delete', () => {
   it('When called with id / Then it calls DELETE /people/:id', async () => {
     mockApi.delete.mockResolvedValue({ message: 'Deleted' });

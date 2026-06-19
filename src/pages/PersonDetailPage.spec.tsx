@@ -13,6 +13,8 @@ vi.mock('../services/peopleService', () => ({
     getRateHistory: vi.fn(),
     linkUser: vi.fn(),
     inviteUser: vi.fn(),
+    getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
+    updateSystemRole: vi.fn(),
   },
   allocationsApi: { getAll: vi.fn() },
 }));
@@ -106,9 +108,10 @@ describe('Given PersonDetailPage loads successfully', () => {
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
   });
 
-  it('When page loads / Then job title is shown', async () => {
+  it('When page loads / Then job title is shown (header + Employment Information card)', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Engineer')).toBeInTheDocument());
+    // Job title now appears in both the header and the Employment Information card.
+    await waitFor(() => expect(screen.getAllByText('Engineer').length).toBeGreaterThanOrEqual(1));
   });
 
   it('When page loads / Then status badge is shown', async () => {
@@ -119,6 +122,60 @@ describe('Given PersonDetailPage loads successfully', () => {
   it('When page loads / Then email is displayed', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('alice@test.com')).toBeInTheDocument());
+  });
+});
+
+describe('Given PersonDetailPage Employment Information', () => {
+  beforeEach(() => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    mockTimeApi.getEntries.mockResolvedValue({ data: [] });
+  });
+
+  it('When the person has a system_role / Then it is displayed in Employment Information', async () => {
+    mockPeopleApi.getById.mockResolvedValue({ ...mockPerson, system_role: 'Admin', linked_user_id: 'u1' });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Employment Information')).toBeInTheDocument());
+    expect(screen.getByText('System Role')).toBeInTheDocument();
+    expect(screen.getByText('Admin')).toBeInTheDocument();
+  });
+
+  it('When the person has no system_role / Then "No system access" is shown (not "No roles assigned")', async () => {
+    mockPeopleApi.getById.mockResolvedValue({ ...mockPerson, system_role: null });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Employment Information')).toBeInTheDocument());
+    expect(screen.getByText('No system access')).toBeInTheDocument();
+    expect(screen.queryByText('No roles assigned yet')).not.toBeInTheDocument();
+  });
+
+  it('When rendered / Then an Edit Role action is available (not Add Role)', async () => {
+    mockPeopleApi.getById.mockResolvedValue({ ...mockPerson, system_role: 'Manager', linked_user_id: 'u1' });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Edit Role')).toBeInTheDocument());
+    expect(screen.queryByText('Add Role')).not.toBeInTheDocument();
+  });
+});
+
+describe('Given PersonDetailPage Skills & Competencies', () => {
+  beforeEach(() => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    mockTimeApi.getEntries.mockResolvedValue({ data: [] });
+  });
+
+  it('When the person has no skills / Then the empty state reads "No skills added yet"', async () => {
+    mockPeopleApi.getById.mockResolvedValue({ ...mockPerson, people_roles: [] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Skills & Competencies')).toBeInTheDocument());
+    expect(screen.getByText('No skills added yet')).toBeInTheDocument();
+    expect(screen.getByText('Add Skill')).toBeInTheDocument();
+  });
+
+  it('When the person has skills / Then each skill name is rendered', async () => {
+    mockPeopleApi.getById.mockResolvedValue({
+      ...mockPerson,
+      people_roles: [{ id: 's1', role_name: 'React', skill_category: 'Engineering', proficiency: 'advanced', is_primary: true }],
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('React')).toBeInTheDocument());
   });
 });
 
@@ -175,7 +232,8 @@ describe('Given PersonDetailPage with timesheet 403', () => {
 
   it('When timesheet returns 403 / Then the job title and email are still displayed', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Engineer')).toBeInTheDocument());
+    // Job title renders in both the header and the Employment Information card.
+    await waitFor(() => expect(screen.getAllByText('Engineer').length).toBeGreaterThanOrEqual(1));
     expect(screen.getByText('alice@test.com')).toBeInTheDocument();
   });
 });

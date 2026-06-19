@@ -9,7 +9,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../services/peopleService', () => ({
-  peopleApi: { getById: vi.fn(), update: vi.fn(), addRole: vi.fn(), removeRole: vi.fn(), getEmploymentHistory: vi.fn(), getRateHistory: vi.fn(), linkUser: vi.fn(), inviteUser: vi.fn() },
+  peopleApi: { getById: vi.fn(), update: vi.fn(), addRole: vi.fn(), removeRole: vi.fn(), getEmploymentHistory: vi.fn(), getRateHistory: vi.fn(), linkUser: vi.fn(), inviteUser: vi.fn(), getOrgRoles: vi.fn().mockResolvedValue({ data: [] }), updateSystemRole: vi.fn() },
   allocationsApi: { getAll: vi.fn() },
 }));
 
@@ -105,7 +105,8 @@ describe('PersonDetailPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
       expect(screen.getByText('alice@test.com')).toBeInTheDocument();
-      expect(screen.getByText('Developer')).toBeInTheDocument();
+      // Job title renders in both the header and the Employment Information card.
+      expect(screen.getAllByText('Developer').length).toBeGreaterThanOrEqual(1);
     });
 
     it('When the page loads / Then it shows roles', async () => {
@@ -141,11 +142,12 @@ describe('PersonDetailPage', () => {
       await waitFor(() => expect(screen.getAllByText('Cost Rate').length).toBeGreaterThan(1));
     });
 
-    it('When Add Role is clicked / Then the add role modal opens', async () => {
+    it('When Add Skill is clicked / Then the add skill modal opens', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Add Role')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Role'));
-      await waitFor(() => expect(screen.getByText('Add Role / Skill')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Add Skill')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Add Skill'));
+      // Modal opened — assert on a field unique to the modal (the button label also reads "Add Skill").
+      await waitFor(() => expect(screen.getByText('Skill Name *')).toBeInTheDocument());
     });
 
     it('When Link User is shown for unlinked person / Then it is visible', async () => {
