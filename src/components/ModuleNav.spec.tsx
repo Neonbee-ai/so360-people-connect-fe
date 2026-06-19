@@ -103,3 +103,44 @@ describe('Given ModuleNav effectiveFlagsLoaded gate', () => {
     expect(screen.getByText('Reviews')).toBeInTheDocument();
   });
 });
+
+describe('Given ModuleNav Leave Types visibility', () => {
+  it('When user is not admin / Then Leave Types is still visible (not adminOnly)', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.getByText('Leave Types')).toBeInTheDocument();
+  });
+
+  it('When user is admin / Then Leave Types is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Leave Types')).toBeInTheDocument();
+  });
+
+  it('When rendered / Then Leave Types link points to /leaves/types', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    renderNav('/leaves/types');
+    const link = screen.getByText('Leave Types').closest('a');
+    expect(link?.getAttribute('href')).toBe('/leaves/types');
+  });
+});
+
+describe('Given ModuleNav adminOnly filter', () => {
+  it('When user is not admin / Then Review Templates is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.queryByText('Review Templates')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin / Then Review Templates is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Review Templates')).toBeInTheDocument();
+  });
+
+  it('When isAdmin is undefined (bridge not yet loaded) / Then adminOnly items are hidden', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    renderNav();
+    expect(screen.queryByText('Review Templates')).not.toBeInTheDocument();
+  });
+});

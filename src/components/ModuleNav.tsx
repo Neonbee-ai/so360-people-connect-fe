@@ -59,7 +59,7 @@ const navigationItems: NavSection[] = [
             { path: '/leaves/requests', label: 'Leave Requests', icon: CalendarDays },
             { path: '/leaves/calendar', label: 'Leave Calendar', icon: CalendarRange },
             { path: '/leaves/approvals', label: 'Pending Approvals', icon: CheckCircle },
-            { path: '/leaves/types', label: 'Leave Types', icon: Settings, adminOnly: true },
+            { path: '/leaves/types', label: 'Leave Types', icon: Settings },
         ]
     },
     {
@@ -83,6 +83,7 @@ const navigationItems: NavSection[] = [
 const ModuleNav: React.FC = () => {
     const location = useLocation();
     const shell = useShellBridge();
+    const isAdmin = (shell as any)?.isAdmin ?? false;
 
     const isActive = (path: string) => {
         if (path === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
@@ -93,9 +94,11 @@ const ModuleNav: React.FC = () => {
         <nav className="h-full w-64 bg-slate-900 border-r border-slate-800 overflow-y-auto">
             <div className="p-6 space-y-6">
                 {navigationItems.map((section) => {
-                    const visibleItems = section.items.filter(
-                        (item) => !item.flagKey || ((shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.(item.flagKey) ?? true))
-                    );
+                    const visibleItems = section.items.filter((item) => {
+                        if (item.adminOnly && !isAdmin) return false;
+                        if (item.flagKey && !((shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.(item.flagKey) ?? true))) return false;
+                        return true;
+                    });
                     if (visibleItems.length === 0) return null;
                     return (
                     <div key={section.section}>
