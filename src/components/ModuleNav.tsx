@@ -75,6 +75,9 @@ const navigationItems: NavSection[] = [
         section: 'Administration',
         items: [
             { path: '/import-export', label: 'Import/Export', icon: Upload },
+            { path: '/settings/work-locations', label: 'Work Locations', icon: Settings, adminOnly: true },
+            { path: '/settings/approval-chains', label: 'Hierarchy', icon: Building2, adminOnly: true, flagKey: 'submodule:people:approval_chains' },
+            { path: '/settings/employment-policy', label: 'Overtime Rules', icon: TrendingUp, adminOnly: true, flagKey: 'submodule:people:employment_policy' },
             { path: '/events', label: 'Events', icon: Activity },
         ]
     },
