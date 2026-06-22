@@ -144,3 +144,126 @@ describe('Given ModuleNav adminOnly filter', () => {
     expect(screen.queryByText('Review Templates')).not.toBeInTheDocument();
   });
 });
+
+// ─── Work Locations (adminOnly, no flagKey) ───────────────────────────────────
+
+describe('Given ModuleNav Work Locations item', () => {
+  it('When user is not admin / Then Work Locations is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.queryByText('Work Locations')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin / Then Work Locations is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Work Locations')).toBeInTheDocument();
+  });
+
+  it('When user is admin / Then Work Locations link points to /settings/work-locations', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav('/settings/work-locations');
+    const link = screen.getByText('Work Locations').closest('a');
+    expect(link?.getAttribute('href')).toBe('/settings/work-locations');
+  });
+});
+
+// ─── Hierarchy (adminOnly + submodule:people:approval_chains flag) ────────────
+
+describe('Given ModuleNav Hierarchy item', () => {
+  it('When user is not admin / Then Hierarchy is hidden regardless of flag', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.queryByText('Hierarchy')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin and flag is enabled / Then Hierarchy is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Hierarchy')).toBeInTheDocument();
+  });
+
+  it('When user is admin but flag is disabled / Then Hierarchy is hidden', () => {
+    mockShell = {
+      effectiveFlagsLoaded: true,
+      isFeatureEnabled: (key: string) => key !== 'submodule:people:approval_chains',
+      isAdmin: true,
+    };
+    renderNav();
+    expect(screen.queryByText('Hierarchy')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin but flags are not yet loaded / Then Hierarchy is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.queryByText('Hierarchy')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin and flag enabled / Then Hierarchy link points to /settings/approval-chains', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav('/settings/approval-chains');
+    const link = screen.getByText('Hierarchy').closest('a');
+    expect(link?.getAttribute('href')).toBe('/settings/approval-chains');
+  });
+});
+
+// ─── Overtime Rules (adminOnly + submodule:people:employment_policy flag) ─────
+
+describe('Given ModuleNav Overtime Rules item', () => {
+  it('When user is not admin / Then Overtime Rules is hidden regardless of flag', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.queryByText('Overtime Rules')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin and flag is enabled / Then Overtime Rules is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Overtime Rules')).toBeInTheDocument();
+  });
+
+  it('When user is admin but flag is disabled / Then Overtime Rules is hidden', () => {
+    mockShell = {
+      effectiveFlagsLoaded: true,
+      isFeatureEnabled: (key: string) => key !== 'submodule:people:employment_policy',
+      isAdmin: true,
+    };
+    renderNav();
+    expect(screen.queryByText('Overtime Rules')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin but flags are not yet loaded / Then Overtime Rules is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.queryByText('Overtime Rules')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin and flag enabled / Then Overtime Rules link points to /settings/employment-policy', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav('/settings/employment-policy');
+    const link = screen.getByText('Overtime Rules').closest('a');
+    expect(link?.getAttribute('href')).toBe('/settings/employment-policy');
+  });
+});
+
+// ─── Administration section collapses correctly ───────────────────────────────
+
+describe('Given ModuleNav Administration section with all admin items hidden', () => {
+  it('When user is not admin and no flagged items / Then Administration section is hidden entirely', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    // Import/Export and Events are not adminOnly — section still shows
+    expect(screen.getByText('Administration')).toBeInTheDocument();
+    expect(screen.queryByText('Work Locations')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hierarchy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Overtime Rules')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin / Then all three admin-only Administration items are visible together', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Work Locations')).toBeInTheDocument();
+    expect(screen.getByText('Hierarchy')).toBeInTheDocument();
+    expect(screen.getByText('Overtime Rules')).toBeInTheDocument();
+  });
+});
