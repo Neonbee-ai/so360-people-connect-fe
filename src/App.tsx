@@ -116,8 +116,6 @@ const PersonDetailPage = lazy(() => import('./pages/PersonDetailPage'));
 const AllocationsPage = lazy(() => import('./pages/AllocationsPage'));
 const EmployeeTimesheetsPage = lazy(() => import('./pages/EmployeeTimesheetsPage'));
 const UtilizationPage = lazy(() => import('./pages/UtilizationPage'));
-const EventsPage = lazy(() => import('./pages/EventsPage'));
-
 // New page imports
 const DepartmentsPage = lazy(() => import('./pages/DepartmentsPage'));
 const DepartmentDetailPage = lazy(() => import('./pages/DepartmentDetailPage'));
@@ -200,8 +198,7 @@ const App = () => {
                     {/* Import/Export */}
                     <Route path="import-export" element={<ImportExportPage />} />
 
-                    {/* Events */}
-                    <Route path="events" element={<EventsPage />} />
+
                 </Routes>
             </PeopleShellInitializer>
         </Layout>

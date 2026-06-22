@@ -41,7 +41,6 @@ vi.mock('./pages/PersonDetailPage', () => ({ default: () => React.createElement(
 vi.mock('./pages/AllocationsPage', () => ({ default: () => React.createElement('div', null, 'AllocationsPage') }));
 vi.mock('./pages/EmployeeTimesheetsPage', () => ({ default: () => React.createElement('div', null, 'EmployeeTimesheetsPage') }));
 vi.mock('./pages/UtilizationPage', () => ({ default: () => React.createElement('div', null, 'UtilizationPage') }));
-vi.mock('./pages/EventsPage', () => ({ default: () => React.createElement('div', null, 'EventsPage') }));
 vi.mock('./pages/DepartmentsPage', () => ({ default: () => React.createElement('div', null, 'DepartmentsPage') }));
 vi.mock('./pages/LeaveTypesPage', () => ({ default: () => React.createElement('div', null, 'LeaveTypesPage') }));
 vi.mock('./pages/LeaveRequestsPage', () => ({ default: () => React.createElement('div', null, 'LeaveRequestsPage') }));

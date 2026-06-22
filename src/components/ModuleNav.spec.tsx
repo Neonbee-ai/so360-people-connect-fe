@@ -252,11 +252,17 @@ describe('Given ModuleNav Administration section with all admin items hidden', (
   it('When user is not admin and no flagged items / Then Administration section is hidden entirely', () => {
     mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: false };
     renderNav();
-    // Import/Export and Events are not adminOnly — section still shows
+    // Import/Export is not adminOnly — section still shows
     expect(screen.getByText('Administration')).toBeInTheDocument();
     expect(screen.queryByText('Work Locations')).not.toBeInTheDocument();
     expect(screen.queryByText('Hierarchy')).not.toBeInTheDocument();
     expect(screen.queryByText('Overtime Rules')).not.toBeInTheDocument();
+  });
+
+  it('When rendered / Then Events nav item is absent (events consolidated into Shell FE Activity Log)', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.queryByText('Events')).not.toBeInTheDocument();
   });
 
   it('When user is admin / Then all three admin-only Administration items are visible together', () => {
