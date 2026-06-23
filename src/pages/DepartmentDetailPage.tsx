@@ -344,7 +344,7 @@ const DepartmentDetailPage: React.FC = () => {
     if (loadError === 'load_failed') {
         return (
             <div className="p-6">
-                <button onClick={() => navigate('/departments')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-6 transition-colors">
+                <button onClick={() => navigate('/people/departments')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-6 transition-colors">
                     <ArrowLeft size={16} /> Back to Departments
                 </button>
                 <EmptyState icon={Building2} title="Failed to load department" description="Could not load department details. Please try again." action={{ label: 'Retry', onClick: () => loadData() }} />
@@ -356,10 +356,10 @@ const DepartmentDetailPage: React.FC = () => {
     if (loadError === 'not_found' || !department) {
         return (
             <div className="p-6">
-                <button onClick={() => navigate('/departments')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-6 transition-colors">
+                <button onClick={() => navigate('/people/departments')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-6 transition-colors">
                     <ArrowLeft size={16} /> Back to Departments
                 </button>
-                <EmptyState icon={Building2} title="Department not found" description="This department does not exist or has been removed." action={{ label: 'Back to Departments', onClick: () => navigate('/departments') }} />
+                <EmptyState icon={Building2} title="Department not found" description="This department does not exist or has been removed." action={{ label: 'Back to Departments', onClick: () => navigate('/people/departments') }} />
             </div>
         );
     }
@@ -377,7 +377,7 @@ const DepartmentDetailPage: React.FC = () => {
             {/* Header */}
             <div>
                 <button
-                    onClick={() => navigate('/departments')}
+                    onClick={() => navigate('/people/departments')}
                     className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-4 transition-colors"
                 >
                     <ArrowLeft size={16} /> Back to Departments
@@ -535,7 +535,7 @@ const DepartmentDetailPage: React.FC = () => {
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 <button
-                                                    onClick={() => navigate(`/people/${emp.id}`)}
+                                                    onClick={() => navigate(`/people/people/${emp.id}`)}
                                                     className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
                                                 >
                                                     View Profile

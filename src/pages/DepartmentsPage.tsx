@@ -109,7 +109,7 @@ const DepartmentsPage: React.FC = () => {
                         {/* Info — clickable area navigates to department detail */}
                         <div
                             className="flex-1 min-w-0 cursor-pointer"
-                            onClick={() => navigate(`/departments/${dept.id}`)}
+                            onClick={() => navigate(`/people/departments/${dept.id}`)}
                         >
                             <div className="flex items-center gap-2 mb-0.5">
                                 <span className="text-sm font-medium text-slate-50 truncate hover:text-teal-300 transition-colors">{dept.name}</span>

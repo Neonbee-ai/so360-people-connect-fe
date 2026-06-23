@@ -3,6 +3,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
 
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+    return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../services/departmentsService', () => ({
     departmentsApi: {
         getById: vi.fn(),
@@ -408,16 +415,52 @@ describe('Given DepartmentDetailPage analytics tab', () => {
 // View Profile Navigation
 // =============================================================================
 
+/*
+ * Regression: these navigations previously omitted the '/people' shell-mount
+ * prefix, so under the shell (which mounts the people-connect MFE at
+ * '/people/*') they escaped the module and hit the shell's "Page Not Found".
+ *   - Back to Departments: '/departments'        -> '/people/departments'
+ *   - View Profile:        '/people/<id>'         -> '/people/people/<id>'
+ *     (the person-detail route lives at '/people/people/:id')
+ */
 describe('Given DepartmentDetailPage employee View Profile action', () => {
     beforeEach(() => {
         mockDeptApi.getById.mockResolvedValue(mockDept);
         mockDeptApi.getEmployees.mockResolvedValue({ data: [mockEmployee], total: 1, page: 1, limit: 100, totalPages: 1 });
     });
 
-    it('When View Profile is clicked / Then navigation to person page occurs', async () => {
+    it('When View Profile is clicked / Then it navigates to the shell-prefixed person route', async () => {
         renderPage();
         await waitFor(() => expect(screen.getByText('View Profile')).toBeInTheDocument());
         fireEvent.click(screen.getByText('View Profile'));
-        await waitFor(() => expect(screen.getByText('Person Detail')).toBeInTheDocument());
+        expect(mockNavigate).toHaveBeenCalledWith('/people/people/e1');
+    });
+
+    it('When View Profile is clicked / Then it does NOT navigate to the bare /people/<id> path (regression guard: was hitting the shell 404)', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('View Profile')).toBeInTheDocument());
+        fireEvent.click(screen.getByText('View Profile'));
+        expect(mockNavigate).not.toHaveBeenCalledWith('/people/e1');
+    });
+});
+
+describe('Given DepartmentDetailPage back navigation', () => {
+    beforeEach(() => {
+        mockDeptApi.getById.mockResolvedValue(mockDept);
+        mockDeptApi.getEmployees.mockResolvedValue({ data: [mockEmployee], total: 1, page: 1, limit: 100, totalPages: 1 });
+    });
+
+    it('When Back to Departments is clicked / Then it navigates to the shell-prefixed departments list', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText(/Back to Departments/i)).toBeInTheDocument());
+        fireEvent.click(screen.getByText(/Back to Departments/i));
+        expect(mockNavigate).toHaveBeenCalledWith('/people/departments');
+    });
+
+    it('When Back to Departments is clicked / Then it does NOT navigate to the bare /departments path (regression guard)', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText(/Back to Departments/i)).toBeInTheDocument());
+        fireEvent.click(screen.getByText(/Back to Departments/i));
+        expect(mockNavigate).not.toHaveBeenCalledWith('/departments');
     });
 });

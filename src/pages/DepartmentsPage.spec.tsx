@@ -3,6 +3,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
 
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../services/departmentsService', () => ({
   departmentsApi: {
     getAll: vi.fn(),
@@ -100,16 +107,31 @@ describe('Given DepartmentsPage create interaction', () => {
   });
 });
 
+/*
+ * Regression: clicking a department card previously called
+ * navigate('/departments/<id>') which — because the people-connect MFE is
+ * mounted under the shell at '/people/*' — escaped the module prefix and
+ * resolved to the shell root, hitting the shell's "Page Not Found" (so
+ * clicking a department appeared to do nothing). The correct target is
+ * '/people/departments/<id>'.
+ */
 describe('Given DepartmentsPage department card click navigation', () => {
   beforeEach(() => {
     mockApi.getAll.mockResolvedValue({ data: [mockDept], total: 1 });
     mockApi.getTree.mockResolvedValue({ data: [mockDept] });
   });
 
-  it('When department name area is clicked / Then navigation to department detail page occurs', async () => {
+  it('When department name area is clicked / Then it navigates to the shell-prefixed detail route', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Engineering'));
-    await waitFor(() => expect(screen.getByText('Department Detail')).toBeInTheDocument());
+    expect(mockNavigate).toHaveBeenCalledWith('/people/departments/d1');
+  });
+
+  it('When department name area is clicked / Then it does NOT navigate to the bare /departments path (regression guard: was hitting the shell 404)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Engineering'));
+    expect(mockNavigate).not.toHaveBeenCalledWith('/departments/d1');
   });
 });
