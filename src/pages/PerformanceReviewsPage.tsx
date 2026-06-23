@@ -271,6 +271,8 @@ interface CreateReviewModalProps {
 
 const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, onCreate }) => {
     const [templates, setTemplates] = useState<ReviewTemplate[]>([]);
+    const [templatesLoaded, setTemplatesLoaded] = useState(false);
+    const [seedingTemplates, setSeedingTemplates] = useState(false);
     const [people, setPeople] = useState<Person[]>([]);
     const [personSearch, setPersonSearch] = useState('');
     const [reviewerSearch, setReviewerSearch] = useState('');
@@ -297,6 +299,20 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
             setTemplates(result.data);
         } catch (error) {
             console.error('Failed to load templates:', error);
+        } finally {
+            setTemplatesLoaded(true);
+        }
+    };
+
+    const handleSeedDefaults = async () => {
+        setSeedingTemplates(true);
+        try {
+            const result = await reviewTemplatesApi.seedDefaults();
+            setTemplates(result.data);
+        } catch (error) {
+            console.error('Failed to create default templates:', error);
+        } finally {
+            setSeedingTemplates(false);
         }
     };
 
@@ -411,19 +427,33 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
 
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Review Template *</label>
-                    <select
-                        required
-                        value={formData.template_id}
-                        onChange={(e) => updateField('template_id', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                    >
-                        <option value="">Select template</option>
-                        {templates.map(template => (
-                            <option key={template.id} value={template.id}>
-                                {template.name} ({template.review_type})
-                            </option>
-                        ))}
-                    </select>
+                    {templatesLoaded && templates.length === 0 ? (
+                        <div className="px-3 py-3 bg-slate-800 border border-dashed border-slate-700 rounded-lg text-sm text-slate-400">
+                            <p className="mb-2 text-slate-300">No review templates found.</p>
+                            <button
+                                type="button"
+                                onClick={handleSeedDefaults}
+                                disabled={seedingTemplates}
+                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition-colors"
+                            >
+                                {seedingTemplates ? 'Creating…' : 'Create default templates'}
+                            </button>
+                        </div>
+                    ) : (
+                        <select
+                            required
+                            value={formData.template_id}
+                            onChange={(e) => updateField('template_id', e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        >
+                            <option value="">Select template</option>
+                            {templates.map(template => (
+                                <option key={template.id} value={template.id}>
+                                    {template.name} ({template.review_type})
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

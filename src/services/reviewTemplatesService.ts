@@ -60,6 +60,10 @@ export const reviewTemplatesApi = {
     return api.get<PaginatedResponse<ReviewTemplate>>('/review-templates', params);
   },
 
+  seedDefaults: async (): Promise<{ seeded: number; total: number; data: ReviewTemplate[] }> => {
+    return api.post<{ seeded: number; total: number; data: ReviewTemplate[] }>('/review-templates/seed-defaults', {});
+  },
+
   getById: async (id: string): Promise<ReviewTemplate> => {
     return api.get<ReviewTemplate>(`/review-templates/${id}`);
   },

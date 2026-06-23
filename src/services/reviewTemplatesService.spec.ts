@@ -62,6 +62,22 @@ describe('Given reviewTemplatesApi.getAll', () => {
   });
 });
 
+describe('Given reviewTemplatesApi.seedDefaults', () => {
+  it('When called / Then it POSTs to /review-templates/seed-defaults', async () => {
+    mockApi.post.mockResolvedValue({ seeded: 8, total: 8, data: [] });
+    await reviewTemplatesApi.seedDefaults();
+    expect(mockApi.post).toHaveBeenCalledWith('/review-templates/seed-defaults', {});
+  });
+
+  it('When the API resolves / Then the seeded count and templates are exposed', async () => {
+    const templates = [{ id: 'tpl1', name: 'Annual Performance Review', review_type: 'annual', is_active: true }];
+    mockApi.post.mockResolvedValue({ seeded: 8, total: 8, data: templates });
+    const result = await reviewTemplatesApi.seedDefaults();
+    expect(result.seeded).toBe(8);
+    expect(result.data).toEqual(templates);
+  });
+});
+
 describe('Given reviewTemplatesApi.getById', () => {
   it('When called with id / Then it calls GET /review-templates/:id', async () => {
     mockApi.get.mockResolvedValue({ id: 'tpl1', name: 'Annual Review' });
