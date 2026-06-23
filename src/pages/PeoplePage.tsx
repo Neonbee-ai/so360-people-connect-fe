@@ -15,6 +15,7 @@ import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/s
 import { QuotaBar, QuotaGate } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import { usePeopleFormatters } from '../utils/formatters';
+import { fetchOrgBaseCurrency } from '../services/settingsService';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 
@@ -617,16 +618,32 @@ interface CreatePersonModalProps {
 }
 
 const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, onCreate, currencies = DEFAULT_CURRENCIES, defaultCurrency }) => {
-    const initialCurrency = defaultCurrency || 'USD';
     const { orgId, tenantId } = usePeopleContext();
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
     const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
+    // Holds the resolved org currency. Initialized from the shell prop when available;
+    // falls back to a direct Core BE fetch to avoid the shell's async race condition.
+    const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || 'USD');
 
     useEffect(() => {
         if (!isOpen) return;
         workLocationsApi.getAll().then(r => setWorkLocations(r.data)).catch(() => {});
         peopleApi.getOrgRoles().then(r => setOrgRoles(r.data ?? [])).catch(() => {});
     }, [isOpen]);
+
+    // When the shell hasn't pre-loaded businessSettings yet (defaultCurrency is empty),
+    // fetch org currency directly from Core BE so the field is never stuck on USD.
+    useEffect(() => {
+        if (!isOpen || !orgId || defaultCurrency) return;
+        fetchOrgBaseCurrency(orgId).then(currency => {
+            if (currency) setResolvedCurrency(currency);
+        }).catch(() => {});
+    }, [isOpen, orgId, defaultCurrency]);
+
+    // Keep in sync if the shell prop arrives after the modal is already mounted.
+    useEffect(() => {
+        if (defaultCurrency) setResolvedCurrency(defaultCurrency);
+    }, [defaultCurrency]);
 
     const [formData, setFormData] = useState<CreatePersonPayload & {
         userLinkageMode?: 'none' | 'link' | 'invite';
@@ -643,7 +660,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         job_title: '',
         cost_rate: 0,
         cost_rate_unit: 'hour',
-        currency: initialCurrency,
+        currency: resolvedCurrency,
         billing_rate: 0,
         available_hours_per_day: 8,
         available_days_per_week: 5,
@@ -652,12 +669,10 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         sendInviteEmail: true,
     });
 
-    // Org business_settings load asynchronously (and after first mount), so the
-    // useState default above may capture the 'USD' fallback. Re-sync the currency
-    // to the org default whenever the modal opens or the resolved default changes.
+    // Sync form currency whenever the resolved currency updates or the modal opens.
     useEffect(() => {
-        if (isOpen) setFormData(prev => ({ ...prev, currency: initialCurrency }));
-    }, [isOpen, initialCurrency]);
+        if (isOpen) setFormData(prev => ({ ...prev, currency: resolvedCurrency }));
+    }, [isOpen, resolvedCurrency]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -671,7 +686,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         setFormData({
             full_name: '', email: '', phone: '', type: 'employee',
             department_id: '', job_title: '', cost_rate: 0, cost_rate_unit: 'hour',
-            currency: initialCurrency, billing_rate: 0, available_hours_per_day: 8,
+            currency: resolvedCurrency, billing_rate: 0, available_hours_per_day: 8,
             available_days_per_week: 5, start_date: new Date().toISOString().split('T')[0],
             userLinkageMode: 'invite', sendInviteEmail: true,
         });
