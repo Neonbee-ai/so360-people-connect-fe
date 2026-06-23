@@ -169,14 +169,16 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
     expect(screen.getByText('Probation Review (probation)')).toBeInTheDocument();
   });
 
-  it('When templates API returns empty / Then only the placeholder option exists in the dropdown', async () => {
+  it('When templates API returns empty / Then the empty-state prompt and seed button are shown', async () => {
     mockTemplatesApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => screen.getByText('Create Review'));
     fireEvent.click(screen.getAllByText('Create Review')[0]);
     await waitFor(() => expect(mockTemplatesApi.getAll).toHaveBeenCalled());
-    expect(screen.getByText('Select template')).toBeInTheDocument();
+    expect(screen.getByText('No review templates found.')).toBeInTheDocument();
+    expect(screen.getByText('Create default templates')).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /Annual|Quarterly|Probation/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Select template')).not.toBeInTheDocument();
   });
 
   it('When templates API rejects / Then the page does not crash', async () => {
