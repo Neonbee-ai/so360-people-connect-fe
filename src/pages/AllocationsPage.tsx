@@ -187,7 +187,7 @@ const AllocationsPage: React.FC = () => {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-0.5">
                                             <span
-                                                onClick={() => navigate(`/people/${alloc.person_id}`)}
+                                                onClick={() => navigate(`/people/people/${alloc.person_id}`)}
                                                 className="text-sm font-medium text-slate-50 hover:text-teal-400 cursor-pointer truncate"
                                             >
                                                 {alloc.person?.full_name || 'Unknown Person'}

@@ -281,7 +281,7 @@ const ReviewDetailPage: React.FC = () => {
             {/* Header with back button */}
             <div className="flex items-center gap-4">
                 <button
-                    onClick={() => navigate('/reviews')}
+                    onClick={() => navigate('/people/reviews')}
                     className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
                 >
                     <ArrowLeft size={20} className="text-slate-400" />

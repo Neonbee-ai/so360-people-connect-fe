@@ -189,3 +189,44 @@ describe('Given the Add Person button on the Dashboard', () => {
     expect(mockNavigate).toHaveBeenCalledTimes(1);
   });
 });
+
+/*
+ * Regression: the Dashboard's "View all" (Recent Timesheet Entries) and
+ * "Review now" (Pending Approvals) shortcuts previously called navigate('/time'),
+ * which — because the people-connect MFE is mounted under the shell at
+ * '/people/*' — escaped the module and hit the shell's "Page Not Found".
+ * The correct target is '/people/time'.
+ */
+describe('Given the Dashboard timesheet shortcuts', () => {
+  beforeEach(() => {
+    mockUtil.getSummary.mockResolvedValue({
+      total_people: 10, avg_utilization_pct: 72, total_hours_this_week: 340,
+      total_cost_this_week: 17000, active_allocations: 5, pending_approvals: 2, burn_rate_daily: 3400,
+    });
+    mockTimesheet.getEntries.mockResolvedValue({
+      data: [{ id: 'te1', entity_name: 'Project X', entity_type: 'project', entry_date: '2026-06-08', hours: 8, status: 'approved', description: 'Dev work' }],
+    });
+    mockEvents.getAll.mockResolvedValue({ data: [] });
+  });
+
+  it('When "View all" timesheet entries is clicked / Then it navigates to /people/time', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('View all')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('View all'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/time');
+  });
+
+  it('When "View all" is clicked / Then it does NOT navigate to the bare /time path (regression guard)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('View all')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('View all'));
+    expect(mockNavigate).not.toHaveBeenCalledWith('/time');
+  });
+
+  it('When "Review now" pending-approvals shortcut is clicked / Then it navigates to /people/time', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Review now')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Review now'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/time');
+  });
+});

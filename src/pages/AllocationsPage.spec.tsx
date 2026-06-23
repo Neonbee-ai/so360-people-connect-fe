@@ -3,6 +3,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../services/peopleService', () => ({
   allocationsApi: {
     getAll: vi.fn(),
@@ -432,5 +439,32 @@ describe('AllocationsPage — create form validation', () => {
     // Must send allocation_percentage, never allocation_value
     expect(typeof payload.allocation_percentage).toBe('number');
     expect('allocation_value' in payload).toBe(false);
+  });
+});
+
+/*
+ * Regression: clicking an allocated person's name previously called
+ * navigate('/people/<id>'), which — because the people-connect MFE is mounted
+ * under the shell at '/people/*' and the person-detail route lives at
+ * '/people/people/:id' — escaped to a non-existent route and hit the shell's
+ * "Page Not Found". The correct target is '/people/people/<id>'.
+ */
+describe('Given an allocation card person link', () => {
+  beforeEach(() => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [{ ...mockAllocation, id: 'a1', person_id: 'p1' }] });
+  });
+
+  it('When the person name is clicked / Then it navigates to the shell-prefixed person route', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Alice'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/people/p1');
+  });
+
+  it('When the person name is clicked / Then it does NOT navigate to the bare /people/<id> path (regression guard)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Alice'));
+    expect(mockNavigate).not.toHaveBeenCalledWith('/people/p1');
   });
 });

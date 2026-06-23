@@ -186,7 +186,7 @@ const PerformanceReviewsPage: React.FC = () => {
                             {reviews.map(review => (
                                 <tr
                                     key={review.id}
-                                    onClick={() => navigate(`/reviews/${review.id}`)}
+                                    onClick={() => navigate(`/people/reviews/${review.id}`)}
                                     className="hover:bg-slate-800/50 cursor-pointer transition-colors"
                                 >
                                     <td className="px-4 py-3">
@@ -233,7 +233,7 @@ const PerformanceReviewsPage: React.FC = () => {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                navigate(`/reviews/${review.id}`);
+                                                navigate(`/people/reviews/${review.id}`);
                                             }}
                                             className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
                                         >

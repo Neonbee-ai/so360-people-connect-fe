@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
+
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 vi.mock('../services/performanceReviewsService', () => ({
   performanceReviewsApi: {
@@ -139,5 +146,32 @@ describe('Given ReviewDetailPage with template sections', () => {
   it('When template sections load / Then section title is displayed', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Technical Skills')).toBeInTheDocument());
+  });
+});
+
+/*
+ * Regression: the header back button previously called navigate('/reviews'),
+ * which — because the people-connect MFE is mounted under the shell at
+ * '/people/*' — escaped the module and hit the shell's "Page Not Found".
+ * The correct target is '/people/reviews'.
+ */
+describe('Given the ReviewDetailPage back button', () => {
+  beforeEach(() => {
+    mockReviewsApi.getById.mockResolvedValue(mockReview);
+    mockTemplatesApi.getById.mockResolvedValue(mockTemplate);
+  });
+
+  it('When back is clicked / Then it navigates to the shell-prefixed reviews list', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Alice - Annual 2024/i })).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button')[0]);
+    expect(mockNavigate).toHaveBeenCalledWith('/people/reviews');
+  });
+
+  it('When back is clicked / Then it does NOT navigate to the bare /reviews path (regression guard)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Alice - Annual 2024/i })).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button')[0]);
+    expect(mockNavigate).not.toHaveBeenCalledWith('/reviews');
   });
 });

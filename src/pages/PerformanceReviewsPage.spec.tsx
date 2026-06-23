@@ -3,6 +3,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../services/performanceReviewsService', () => ({
   performanceReviewsApi: {
     getAll: vi.fn(),
@@ -188,5 +195,39 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
     fireEvent.click(screen.getAllByText('Create Review')[0]);
     await waitFor(() => expect(mockTemplatesApi.getAll).toHaveBeenCalled());
     expect(screen.getByText('Performance Reviews')).toBeInTheDocument();
+  });
+});
+
+/*
+ * Regression: opening a review (row click and the "View" action button)
+ * previously called navigate('/reviews/<id>'), which — because the
+ * people-connect MFE is mounted under the shell at '/people/*' — escaped the
+ * module and hit the shell's "Page Not Found". The correct target is
+ * '/people/reviews/<id>'.
+ */
+describe('Given a review row in the Performance Reviews table', () => {
+  beforeEach(() => {
+    mockReviewsApi.getAll.mockResolvedValue({ data: [mockReview], total: 1 });
+  });
+
+  it('When the "View" action is clicked / Then it navigates to the shell-prefixed review route', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('View')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('View'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/reviews/rv1');
+  });
+
+  it('When the review row is clicked / Then it navigates to the shell-prefixed review route', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Alice'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/reviews/rv1');
+  });
+
+  it('When a review is opened / Then it does NOT navigate to the bare /reviews/<id> path (regression guard)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('View')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('View'));
+    expect(mockNavigate).not.toHaveBeenCalledWith('/reviews/rv1');
   });
 });

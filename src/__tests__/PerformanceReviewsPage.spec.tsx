@@ -103,11 +103,13 @@ describe('PerformanceReviewsPage', () => {
       await waitFor(() => expect(mockApi.getMyReviews).toHaveBeenCalled());
     });
 
-    it('When a review row is clicked / Then it navigates to the detail', async () => {
+    it('When a review row is clicked / Then it navigates to the shell-prefixed detail route', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
       fireEvent.click(screen.getByText('Alice'));
-      expect(mockNavigate).toHaveBeenCalledWith('/reviews/r1');
+      // MFE is mounted under the shell at /people/*, so the detail route is /people/reviews/:id
+      expect(mockNavigate).toHaveBeenCalledWith('/people/reviews/r1');
+      expect(mockNavigate).not.toHaveBeenCalledWith('/reviews/r1');
     });
   });
 

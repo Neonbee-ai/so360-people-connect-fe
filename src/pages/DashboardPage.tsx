@@ -131,7 +131,7 @@ const DashboardPage: React.FC = () => {
                     <div className="text-xl font-bold text-slate-50">{summary?.pending_approvals || 0}</div>
                     {summary && summary.pending_approvals > 0 && (
                         <button
-                            onClick={() => navigate('/time')}
+                            onClick={() => navigate('/people/time')}
                             className="text-xs text-amber-400 hover:text-amber-300 mt-1 flex items-center gap-1"
                         >
                             Review now <ArrowRight size={12} />
@@ -244,7 +244,7 @@ const DashboardPage: React.FC = () => {
                     <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
                         <h3 className="text-sm font-semibold text-slate-50">Recent Timesheet Entries</h3>
                         <button
-                            onClick={() => navigate('/time')}
+                            onClick={() => navigate('/people/time')}
                             className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1"
                         >
                             View all <ArrowRight size={12} />
