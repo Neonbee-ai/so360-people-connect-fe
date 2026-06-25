@@ -120,6 +120,34 @@ describe('Given LeaveRequestsPage status filter', () => {
   });
 });
 
+describe('Given LeaveRequestsPage tab bar removal', () => {
+  beforeEach(() => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [mockRequest], total: 1 });
+  });
+
+  it('When page loads / Then Team Requests tab is not rendered', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    expect(screen.queryByText('Team Requests')).not.toBeInTheDocument();
+  });
+
+  it('When page loads / Then My Requests tab button is not rendered (tab bar removed)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'My Requests' })).not.toBeInTheDocument();
+  });
+
+  it('When page loads / Then page heading is still visible', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Leave Requests')).toBeInTheDocument());
+  });
+
+  it('When page loads / Then status filter is still present', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByDisplayValue('All Statuses')).toBeInTheDocument());
+  });
+});
+
 describe('Given LeaveRequestsPage API failure', () => {
   beforeEach(() => {
     mockLeaveApi.getAll.mockImplementation(async () => { throw new Error('Server error'); });

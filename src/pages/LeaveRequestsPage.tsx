@@ -19,7 +19,6 @@ const LeaveRequestsPage: React.FC = () => {
     const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:leave_requests:create') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'my' | 'team'>('my');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [viewingRequest, setViewingRequest] = useState<LeaveRequest | null>(null);
@@ -85,30 +84,6 @@ const LeaveRequestsPage: React.FC = () => {
                     </button>
                 }
             />
-
-            {/* Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-800">
-                <button
-                    onClick={() => setActiveTab('my')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'my'
-                            ? 'text-teal-400 border-b-2 border-teal-400'
-                            : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    My Requests
-                </button>
-                <button
-                    onClick={() => setActiveTab('team')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'team'
-                            ? 'text-teal-400 border-b-2 border-teal-400'
-                            : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    Team Requests
-                </button>
-            </div>
 
             {/* Filters */}
             <div className="flex items-center gap-3">

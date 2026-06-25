@@ -88,10 +88,16 @@ describe('LeaveRequestsPage', () => {
       expect(screen.getByText('2.5')).toBeInTheDocument();
     });
 
-    it('When the page loads / Then it shows tabs for My and Team requests', async () => {
+    it('When the page loads / Then Team Requests tab is absent', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('My Requests')).toBeInTheDocument());
-      expect(screen.getByText('Team Requests')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+      expect(screen.queryByText('Team Requests')).not.toBeInTheDocument();
+    });
+
+    it('When the page loads / Then My Requests tab button is absent (tab bar removed)', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+      expect(screen.queryByRole('button', { name: 'My Requests' })).not.toBeInTheDocument();
     });
 
     it('When Request Leave is clicked / Then the modal opens', async () => {
