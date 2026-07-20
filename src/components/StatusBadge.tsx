@@ -26,6 +26,16 @@ const statusStyles: Record<string, string> = {
     // Type badges
     employee: 'bg-teal-500/10 text-teal-400 border-teal-500/30',
     contractor: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+
+    // Attendance statuses
+    present: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    absent: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+    half_day: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    leave: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+    wfh: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+    on_duty: 'bg-teal-500/10 text-teal-400 border-teal-500/30',
+    holiday: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+    weekend: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
 };
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {

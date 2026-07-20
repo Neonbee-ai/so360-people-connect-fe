@@ -78,4 +78,6 @@ export const UserMinus = createIcon('UserMinus');
 export const MapPin = createIcon('MapPin');
 export const ExternalLink = createIcon('ExternalLink');
 export const Shield = createIcon('Shield');
+export const ClipboardCheck = createIcon('ClipboardCheck');
+export const Home = createIcon('Home');
 export type LucideIcon = React.FC<any>;

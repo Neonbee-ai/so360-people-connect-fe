@@ -16,6 +16,7 @@ import {
     FileText,
     Upload,
     Settings,
+    ClipboardCheck,
 } from 'lucide-react';
 
 interface NavItem {
@@ -49,6 +50,7 @@ const navigationItems: NavSection[] = [
         section: 'Resource Management',
         items: [
             { path: '/allocations', label: 'Allocations', icon: Calendar, flagKey: 'submodule:people:allocations' },
+            { path: '/attendance', label: 'Attendance', icon: ClipboardCheck, flagKey: 'submodule:people:attendance' },
             { path: '/time', label: 'Employee Timesheets', icon: Clock },
             { path: '/utilization', label: 'Utilization', icon: Activity, flagKey: 'submodule:people:utilization' },
         ]

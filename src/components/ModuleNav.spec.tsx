@@ -104,6 +104,32 @@ describe('Given ModuleNav effectiveFlagsLoaded gate', () => {
   });
 });
 
+// ─── Attendance (submodule:people:attendance flag) ────────────────────────────
+
+describe('Given ModuleNav Attendance item', () => {
+  it('When the attendance flag is enabled / Then Attendance is visible and points to /attendance', () => {
+    mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    renderNav();
+    const link = screen.getByText('Attendance').closest('a');
+    expect(link?.getAttribute('href')).toBe('/attendance');
+  });
+
+  it('When the attendance flag is disabled / Then Attendance is hidden', () => {
+    mockShell = {
+      effectiveFlagsLoaded: true,
+      isFeatureEnabled: (key: string) => key !== 'submodule:people:attendance',
+    };
+    renderNav();
+    expect(screen.queryByText('Attendance')).not.toBeInTheDocument();
+  });
+
+  it('When flags are not yet loaded / Then Attendance is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    renderNav();
+    expect(screen.queryByText('Attendance')).not.toBeInTheDocument();
+  });
+});
+
 describe('Given ModuleNav Leave Types visibility', () => {
   it('When user is not admin / Then Leave Types is still visible (not adminOnly)', () => {
     mockShell = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isAdmin: false };
