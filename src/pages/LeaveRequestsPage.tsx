@@ -324,9 +324,22 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                         ))}
                     </select>
                     {selectedBalance && (
-                        <p className="mt-1 text-xs text-slate-400">
-                            Available: <span className="text-teal-400 font-medium">{selectedBalance.available} days</span>
-                        </p>
+                        <div className="mt-2 grid grid-cols-3 gap-2 p-2 bg-slate-800/50 rounded-lg text-center">
+                            <div>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Allocated</p>
+                                <p className="text-sm font-medium text-slate-200">
+                                    {selectedBalance.opening_balance + selectedBalance.accrued + selectedBalance.adjusted} days
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Used</p>
+                                <p className="text-sm font-medium text-slate-200">{selectedBalance.used} days</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Remaining</p>
+                                <p className="text-sm font-medium text-teal-400">{selectedBalance.available} days</p>
+                            </div>
+                        </div>
                     )}
                 </div>
 

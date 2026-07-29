@@ -124,6 +124,7 @@ const LeaveTypesPage = lazy(() => import('./pages/LeaveTypesPage'));
 const LeaveRequestsPage = lazy(() => import('./pages/LeaveRequestsPage'));
 const LeaveCalendarPage = lazy(() => import('./pages/LeaveCalendarPage'));
 const LeaveApprovalsPage = lazy(() => import('./pages/LeaveApprovalsPage'));
+const LeaveBalancesPage = lazy(() => import('./pages/LeaveBalancesPage'));
 const ReviewTemplatesPage = lazy(() => import('./pages/ReviewTemplatesPage'));
 const PerformanceReviewsPage = lazy(() => import('./pages/PerformanceReviewsPage'));
 const ReviewDetailPage = lazy(() => import('./pages/ReviewDetailPage'));
@@ -181,6 +182,7 @@ const App = () => {
                     <Route path="leaves/requests" element={<LeaveRequestsPage />} />
                     <Route path="leaves/calendar" element={<LeaveCalendarPage />} />
                     <Route path="leaves/approvals" element={<LeaveApprovalsPage />} />
+                    <Route path="leaves/balances" element={<LeaveBalancesPage />} />
 
                     {/* Performance Reviews */}
                     <Route path="reviews/templates" element={<FeatureGate flagKey="submodule:people:reviews"><ReviewTemplatesPage /></FeatureGate>} />

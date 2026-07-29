@@ -44,14 +44,19 @@ export interface CreateLeaveRequestPayload {
 }
 
 export interface LeaveBalance {
+  id: string;
   person_id: string;
   leave_type_id: string;
-  leave_type_name: string;
-  total_entitled: number;
+  fiscal_year: number;
+  opening_balance: number;
+  accrued: number;
   used: number;
   pending: number;
+  adjusted: number;
+  expired: number;
   available: number;
-  carried_forward: number;
+  leave_type?: { id: string; name: string; code: string; color?: string };
+  person?: { id: string; full_name: string; email?: string; avatar_url?: string };
 }
 
 // =============================================================================
@@ -97,5 +102,36 @@ export const leaveRequestsApi = {
 
   getBalances: async (personId: string): Promise<{ data: LeaveBalance[] }> => {
     return api.get<{ data: LeaveBalance[] }>('/leave-balances', { person_id: personId });
+  },
+};
+
+// =============================================================================
+// LEAVE BALANCES ADMIN API
+// =============================================================================
+
+export interface InitializeBalancePayload {
+  person_id: string;
+  fiscal_year: number;
+}
+
+export interface AdjustBalancePayload {
+  person_id: string;
+  leave_type_id: string;
+  fiscal_year: number;
+  adjustment_amount: number;
+  reason?: string;
+}
+
+export const leaveBalancesApi = {
+  getAll: async (params?: { person_id?: string; fiscal_year?: number }): Promise<{ data: LeaveBalance[] }> => {
+    return api.get<{ data: LeaveBalance[] }>('/leave-balances', params);
+  },
+
+  initialize: async (data: InitializeBalancePayload): Promise<{ message: string; person_id: string; fiscal_year: number }> => {
+    return api.post('/leave-balances/initialize', data);
+  },
+
+  adjust: async (data: AdjustBalancePayload): Promise<LeaveBalance> => {
+    return api.post<LeaveBalance>('/leave-balances/adjust', data);
   },
 };

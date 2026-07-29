@@ -17,6 +17,7 @@ import {
     Upload,
     Settings,
     ClipboardCheck,
+    DollarSign,
 } from 'lucide-react';
 
 interface NavItem {
@@ -62,6 +63,7 @@ const navigationItems: NavSection[] = [
             { path: '/leaves/calendar', label: 'Leave Calendar', icon: CalendarRange },
             { path: '/leaves/approvals', label: 'Pending Approvals', icon: CheckCircle },
             { path: '/leaves/types', label: 'Leave Types', icon: Settings },
+            { path: '/leaves/balances', label: 'Leave Balances', icon: DollarSign, adminOnly: true },
         ]
     },
     {
