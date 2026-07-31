@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
@@ -52,6 +52,8 @@ const PeoplePage: React.FC = () => {
     const canAddEmployee = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employees:create') ?? true);
     const canImportEmployees = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employees:import') ?? true);
     const canExportEmployees = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employees:export') ?? true);
+    const canEditEmployee = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employees:update') ?? true);
+    const canDeleteEmployee = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employees:delete') ?? true);
     const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_employees' }], []);
     const { getQuota } = useQuota({ checks: quotaChecks, orgId });
     const quotaData = getQuota('max_employees');
@@ -82,6 +84,18 @@ const PeoplePage: React.FC = () => {
     // Tracks the person currently being invited from the list row so we can
     // disable just that button while the request is in flight.
     const [invitingId, setInvitingId] = useState<string | null>(null);
+    // Row Actions (⋮) menu — which person's menu is open, the person queued
+    // for edit, and any pending confirm-dialog action.
+    const [openActionsId, setOpenActionsId] = useState<string | null>(null);
+    const [editPerson, setEditPerson] = useState<Person | null>(null);
+    const [confirmAction, setConfirmAction] = useState<
+        | { type: 'delete'; person: Person }
+        | { type: 'deactivate'; person: Person }
+        | { type: 'archive'; person: Person }
+        | { type: 'cancel-invite'; person: Person }
+        | null
+    >(null);
+    const [actionBusy, setActionBusy] = useState(false);
 
     // Debounce the search term: only update `debouncedSearch` 300ms after the
     // last keystroke. Cleanup cancels the pending timer on each change so a
@@ -219,6 +233,100 @@ const PeoplePage: React.FC = () => {
         }
     };
 
+    // Resend a still-pending invitation — same underlying call as the initial
+    // invite (idempotent server-side), just re-triggerable from the Actions menu.
+    const handleResendInvite = async (person: Person) => {
+        const email = person.email;
+        if (!email) {
+            setToast({ message: `${person.full_name} has no email on file`, type: 'error' });
+            return;
+        }
+        setActionBusy(true);
+        try {
+            const roles = await peopleApi.getOrgRoles();
+            const defaultRole = roles.data?.[0]?.id;
+            if (!defaultRole) {
+                setToast({ message: 'No org roles available to assign — set up roles first', type: 'error' });
+                return;
+            }
+            const res = await peopleApi.inviteUser(person.id, email, defaultRole, true);
+            if (res.invite_link) {
+                setInviteResult({ link: res.invite_link, email, emailSent: !!res.email_sent });
+            } else {
+                setToast({ message: `Invitation resent to ${person.full_name}`, type: 'success' });
+            }
+            recordActivity({ eventType: 'people.person.invitation_resent', eventCategory: 'identity', description: `Invitation resent to ${person.full_name}`, resourceType: 'person', resourceId: person.id }).catch(() => {});
+            loadPeople();
+        } catch {
+            setToast({ message: `Failed to resend invitation to ${person.full_name}`, type: 'error' });
+        } finally {
+            setActionBusy(false);
+        }
+    };
+
+    const handleCancelInvite = async (person: Person) => {
+        setActionBusy(true);
+        try {
+            await peopleApi.cancelInvite(person.id);
+            setToast({ message: `Invitation to ${person.full_name} has been cancelled`, type: 'success' });
+            recordActivity({ eventType: 'people.person.invitation_cancelled', eventCategory: 'identity', description: `Invitation to ${person.full_name} was cancelled`, resourceType: 'person', resourceId: person.id }).catch(() => {});
+            loadPeople();
+        } catch (error) {
+            setToast({ message: error instanceof Error ? error.message : 'Failed to cancel invitation', type: 'error' });
+        } finally {
+            setActionBusy(false);
+            setConfirmAction(null);
+        }
+    };
+
+    const handleEditSave = async (id: string, data: Partial<Person>) => {
+        setActionBusy(true);
+        try {
+            await peopleApi.update(id, data);
+            setToast({ message: 'Employee updated', type: 'success' });
+            recordActivity({ eventType: 'people.person.updated', eventCategory: 'identity', description: `Person ${data.full_name ?? ''} was updated`.trim(), resourceType: 'person', resourceId: id }).catch(() => {});
+            setEditPerson(null);
+            loadPeople();
+        } catch (error) {
+            setToast({ message: error instanceof Error ? error.message : 'Failed to update employee', type: 'error' });
+        } finally {
+            setActionBusy(false);
+        }
+    };
+
+    // Quick status toggles (Activate / Deactivate / Archive) — no confirmation
+    // needed for re-activating, but deactivate/archive go through confirmAction.
+    const handleSetStatus = async (person: Person, status: PersonStatus) => {
+        setActionBusy(true);
+        try {
+            await peopleApi.update(person.id, { status });
+            const verb = status === 'active' ? 'reactivated' : status === 'archived' ? 'archived' : 'deactivated';
+            setToast({ message: `${person.full_name} has been ${verb}`, type: 'success' });
+            recordActivity({ eventType: `people.person.${status === 'active' ? 'activated' : status}`, eventCategory: 'identity', description: `${person.full_name} was ${verb}`, resourceType: 'person', resourceId: person.id }).catch(() => {});
+            loadPeople();
+        } catch (error) {
+            setToast({ message: error instanceof Error ? error.message : `Failed to update ${person.full_name}`, type: 'error' });
+        } finally {
+            setActionBusy(false);
+            setConfirmAction(null);
+        }
+    };
+
+    const handleDeleteConfirmed = async (person: Person) => {
+        setActionBusy(true);
+        try {
+            const res = await peopleApi.delete(person.id);
+            setToast({ message: res.message, type: res.hard_deleted ? 'success' : 'info' });
+            recordActivity({ eventType: res.hard_deleted ? 'people.person.deleted' : 'people.person.deactivated', eventCategory: 'identity', description: `${person.full_name}: ${res.message}`, resourceType: 'person', resourceId: person.id }).catch(() => {});
+            loadPeople();
+        } catch (error) {
+            setToast({ message: error instanceof Error ? error.message : `Failed to delete ${person.full_name}`, type: 'error' });
+        } finally {
+            setActionBusy(false);
+            setConfirmAction(null);
+        }
+    };
+
     const handleExport = async (format: 'csv' | 'excel') => {
         try {
             const blob = await peopleApi.export(format, {
@@ -336,6 +444,7 @@ const PeoplePage: React.FC = () => {
                     <option value="inactive">Inactive</option>
                     <option value="on_leave">On Leave</option>
                     <option value="terminated">Terminated</option>
+                    <option value="archived">Archived</option>
                 </select>
                 <select
                     value={typeFilter}
@@ -545,6 +654,87 @@ const PeoplePage: React.FC = () => {
                                         <span className="text-xs text-slate-600">+{person.people_roles.length - 2}</span>
                                     )}
                                 </div>
+
+                                {/* Actions (⋮) — Edit / Deactivate / Archive / Delete / Resend / Cancel */}
+                                {(canEditEmployee || canDeleteEmployee) && (
+                                    <div className="relative flex-shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); setOpenActionsId(openActionsId === person.id ? null : person.id); }}
+                                            aria-label="Employee actions"
+                                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
+                                        >
+                                            <MoreHorizontal size={16} />
+                                        </button>
+                                        {openActionsId === person.id && (
+                                            <>
+                                                {/* Backdrop to close the menu on outside click */}
+                                                <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setOpenActionsId(null); }} />
+                                                <div
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-20 py-1"
+                                                >
+                                                    {canEditEmployee && (
+                                                        <button
+                                                            onClick={() => { setEditPerson(person); setOpenActionsId(null); }}
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700"
+                                                        >
+                                                            <Pencil size={14} /> Edit Employee
+                                                        </button>
+                                                    )}
+                                                    {canEditEmployee && (person.invitation_status === 'pending' || person.access_status === 'pending') && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => { setOpenActionsId(null); handleResendInvite(person); }}
+                                                                className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700"
+                                                            >
+                                                                <Send size={14} /> Resend Invitation
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setConfirmAction({ type: 'cancel-invite', person }); setOpenActionsId(null); }}
+                                                                className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-amber-400 hover:bg-slate-700"
+                                                            >
+                                                                <XCircle size={14} /> Cancel Invitation
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {canEditEmployee && person.status !== 'active' && (
+                                                        <button
+                                                            onClick={() => { setOpenActionsId(null); handleSetStatus(person, 'active'); }}
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-emerald-400 hover:bg-slate-700"
+                                                        >
+                                                            <UserCheck size={14} /> Activate
+                                                        </button>
+                                                    )}
+                                                    {canEditEmployee && person.status === 'active' && (
+                                                        <button
+                                                            onClick={() => { setConfirmAction({ type: 'deactivate', person }); setOpenActionsId(null); }}
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-amber-400 hover:bg-slate-700"
+                                                        >
+                                                            <UserMinus size={14} /> Deactivate
+                                                        </button>
+                                                    )}
+                                                    {canEditEmployee && person.status !== 'archived' && (
+                                                        <button
+                                                            onClick={() => { setConfirmAction({ type: 'archive', person }); setOpenActionsId(null); }}
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
+                                                        >
+                                                            <Archive size={14} /> Archive
+                                                        </button>
+                                                    )}
+                                                    {canDeleteEmployee && (
+                                                        <button
+                                                            onClick={() => { setConfirmAction({ type: 'delete', person }); setOpenActionsId(null); }}
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-rose-400 hover:bg-slate-700 border-t border-slate-700 mt-1 pt-2"
+                                                        >
+                                                            <Trash2 size={14} /> Delete Employee
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -596,6 +786,47 @@ const PeoplePage: React.FC = () => {
                         </div>
                     </div>
                 </Modal>
+            )}
+
+            {/* Edit Modal */}
+            <EditPersonModal
+                person={editPerson}
+                isOpen={!!editPerson}
+                onClose={() => setEditPerson(null)}
+                onSave={handleEditSave}
+                currencies={currencies}
+                busy={actionBusy}
+            />
+
+            {/* Deactivate / Archive / Delete / Cancel-invite confirmation */}
+            {confirmAction && (
+                <ConfirmDialog
+                    title={
+                        confirmAction.type === 'delete' ? 'Delete Employee'
+                            : confirmAction.type === 'archive' ? 'Archive Employee'
+                                : confirmAction.type === 'cancel-invite' ? 'Cancel Invitation'
+                                    : 'Deactivate Employee'
+                    }
+                    message={
+                        confirmAction.type === 'delete'
+                            ? `Are you sure you want to delete ${confirmAction.person.full_name}? If they have linked business data or an active account, they will be deactivated instead of permanently removed.`
+                            : confirmAction.type === 'archive'
+                                ? `Archive ${confirmAction.person.full_name}? They will be hidden from active-resource views but their records are preserved and can be reactivated later.`
+                                : confirmAction.type === 'cancel-invite'
+                                    ? `Cancel the pending invitation for ${confirmAction.person.full_name}? They will not be able to use the invite link afterward.`
+                                    : `Deactivate ${confirmAction.person.full_name}? Their records are preserved and they can be reactivated later.`
+                    }
+                    confirmLabel={confirmAction.type === 'delete' ? 'Delete Employee' : confirmAction.type === 'archive' ? 'Archive' : confirmAction.type === 'cancel-invite' ? 'Cancel Invitation' : 'Deactivate'}
+                    danger={confirmAction.type === 'delete' || confirmAction.type === 'cancel-invite'}
+                    busy={actionBusy}
+                    onCancel={() => setConfirmAction(null)}
+                    onConfirm={() => {
+                        if (confirmAction.type === 'delete') handleDeleteConfirmed(confirmAction.person);
+                        else if (confirmAction.type === 'archive') handleSetStatus(confirmAction.person, 'archived');
+                        else if (confirmAction.type === 'deactivate') handleSetStatus(confirmAction.person, 'inactive');
+                        else if (confirmAction.type === 'cancel-invite') handleCancelInvite(confirmAction.person);
+                    }}
+                />
             )}
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -966,6 +1197,290 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
                         Add Person
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+// =============================================================================
+// Confirm Dialog — mirrors the delete-confirmation pattern used in CRM
+// (so360-crm-fe LeadsPage) for visual consistency across the platform.
+// =============================================================================
+
+interface ConfirmDialogProps {
+    title: string;
+    message: string;
+    confirmLabel: string;
+    danger?: boolean;
+    busy?: boolean;
+    onCancel: () => void;
+    onConfirm: () => void;
+}
+
+const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ title, message, confirmLabel, danger, busy, onCancel, onConfirm }) => (
+    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="bg-slate-900 border border-slate-700/50 rounded-lg shadow-2xl w-full max-w-md p-6">
+            <h2 className="text-xl font-semibold text-slate-100 mb-2">{title}</h2>
+            <p className="text-slate-400 mb-6">{message}</p>
+            <div className="flex justify-end gap-3">
+                <button
+                    onClick={onCancel}
+                    disabled={busy}
+                    className="px-4 py-2 text-slate-300 hover:text-slate-50 transition-colors disabled:opacity-50"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={onConfirm}
+                    disabled={busy}
+                    className={`px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-70 ${danger ? 'bg-red-600 hover:bg-red-700 disabled:bg-red-800' : 'bg-teal-600 hover:bg-teal-500 disabled:bg-teal-800'}`}
+                >
+                    {busy && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
+                    {confirmLabel}
+                </button>
+            </div>
+        </div>
+    </div>
+);
+
+// =============================================================================
+// Edit Person Modal
+// =============================================================================
+
+interface EditPersonModalProps {
+    person: Person | null;
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (id: string, data: Partial<Person>) => void;
+    currencies?: string[];
+    busy?: boolean;
+}
+
+const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClose, onSave, currencies = DEFAULT_CURRENCIES, busy }) => {
+    const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
+    const [formData, setFormData] = useState<Partial<Person>>({});
+
+    useEffect(() => {
+        if (!isOpen) return;
+        workLocationsApi.getAll().then(r => setWorkLocations(r.data)).catch(() => {});
+    }, [isOpen]);
+
+    // Reload the form whenever a different person is opened for edit.
+    useEffect(() => {
+        if (!person) return;
+        setFormData({
+            full_name: person.full_name,
+            email: person.email,
+            phone: person.phone,
+            job_title: person.job_title,
+            department_id: person.department_id,
+            type: person.type,
+            employee_id: person.employee_id,
+            employment_type: person.employment_type,
+            cost_rate: person.cost_rate,
+            cost_rate_unit: person.cost_rate_unit,
+            currency: person.currency,
+            billing_rate: person.billing_rate,
+            available_hours_per_day: person.available_hours_per_day,
+            start_date: person.start_date,
+            work_location_id: person.work_location_id,
+        });
+    }, [person]);
+
+    const updateField = (field: string, value: unknown) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!person || !formData.full_name) return;
+        onSave(person.id, formData);
+    };
+
+    if (!person) return null;
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title={`Edit ${person.full_name}`} size="lg">
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Identity</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                            <label className="block text-xs text-slate-400 mb-1">Full Name *</label>
+                            <input
+                                type="text" required value={formData.full_name || ''}
+                                onChange={(e) => updateField('full_name', e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Email</label>
+                            <input
+                                type="email" value={formData.email || ''}
+                                onChange={(e) => updateField('email', e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Phone</label>
+                            <input
+                                type="text" value={formData.phone || ''}
+                                onChange={(e) => updateField('phone', e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Employee ID</label>
+                            <input
+                                type="text" value={formData.employee_id || ''}
+                                onChange={(e) => updateField('employee_id', e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Classification</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Type</label>
+                            <select
+                                value={formData.type || 'employee'}
+                                onChange={(e) => updateField('type', e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            >
+                                <option value="employee">Employee</option>
+                                <option value="contractor">Contractor</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Employment Type</label>
+                            <select
+                                value={formData.employment_type || ''}
+                                onChange={(e) => updateField('employment_type', e.target.value || undefined)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            >
+                                <option value="">Not set</option>
+                                <option value="full_time">Full Time</option>
+                                <option value="part_time">Part Time</option>
+                                <option value="contract">Contract</option>
+                                <option value="intern">Intern</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Department</label>
+                            <DepartmentSelector
+                                value={formData.department_id || ''}
+                                onChange={(id) => updateField('department_id', id || undefined)}
+                                placeholder="Select department..."
+                                allowClear
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Job Title</label>
+                            <input
+                                type="text" value={formData.job_title || ''}
+                                onChange={(e) => updateField('job_title', e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Work Location</label>
+                            <select
+                                value={formData.work_location_id || ''}
+                                onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            >
+                                <option value="">None</option>
+                                {workLocations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Joining Date</label>
+                            <input
+                                type="date" value={formData.start_date ? formData.start_date.slice(0, 10) : ''}
+                                onChange={(e) => updateField('start_date', e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Cost & Billing</h4>
+                    <div className="grid grid-cols-4 gap-4">
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Cost Rate</label>
+                            <input
+                                type="number" min="0" step="0.01" value={formData.cost_rate ?? 0}
+                                onChange={(e) => updateField('cost_rate', parseFloat(e.target.value) || 0)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Rate Unit</label>
+                            <select
+                                value={formData.cost_rate_unit || 'hour'}
+                                onChange={(e) => updateField('cost_rate_unit', e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            >
+                                <option value="hour">Per Hour</option>
+                                <option value="day">Per Day</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Billing Rate</label>
+                            <input
+                                type="number" min="0" step="0.01" value={formData.billing_rate ?? 0}
+                                onChange={(e) => updateField('billing_rate', parseFloat(e.target.value) || 0)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Currency</label>
+                            <select
+                                value={formData.currency || currencies[0]}
+                                onChange={(e) => updateField('currency', e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            >
+                                {currencies.map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Hours/Day</label>
+                            <input
+                                type="number" min="1" max="24" value={formData.available_hours_per_day ?? 8}
+                                onChange={(e) => updateField('available_hours_per_day', parseFloat(e.target.value) || 8)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                    Role &amp; System Permissions are managed from the employee's detail page.
+                </p>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button
+                        type="button" onClick={onClose} disabled={busy}
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit" disabled={busy}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                    >
+                        {busy && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
+                        Save Changes
                     </button>
                 </div>
             </form>

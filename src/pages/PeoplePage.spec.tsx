@@ -22,6 +22,7 @@ vi.mock('../services/peopleService', () => ({
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    cancelInvite: vi.fn(),
     export: vi.fn(),
     getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
     inviteUser: vi.fn().mockResolvedValue({ invite_link: null, invite_status: 'existing_user', user_id: 'u1', email_sent: false }),
@@ -92,6 +93,9 @@ beforeEach(() => {
   (departmentsApi as any).getTree.mockResolvedValue([]);
   mockApi.getOrgRoles.mockResolvedValue({ data: [] });
   mockWorkLocationsApi.getAll.mockResolvedValue({ data: [] });
+  mockApi.update.mockResolvedValue({ id: 'p1' });
+  mockApi.delete.mockResolvedValue({ message: 'Person deactivated successfully', hard_deleted: false });
+  mockApi.cancelInvite.mockResolvedValue({ message: 'Invitation cancelled' });
 });
 
 describe('Given PeoplePage loads with people', () => {
@@ -372,5 +376,147 @@ describe('Given the "Invite as New User" flow on create', () => {
 
     await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalled());
     expect(screen.queryByText('Copy link')).not.toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+// Employee management: Edit / Deactivate / Archive / Delete / Resend / Cancel
+// =============================================================================
+
+const openRowActionsMenu = async () => {
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+  fireEvent.click(screen.getByLabelText('Employee actions'));
+};
+
+describe('Given the row Actions (⋮) menu', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  it('When opened / Then shows Edit and Delete Employee for an active employee', async () => {
+    await openRowActionsMenu();
+    expect(screen.getByText('Edit Employee')).toBeInTheDocument();
+    expect(screen.getByText('Delete Employee')).toBeInTheDocument();
+    expect(screen.getByText('Deactivate')).toBeInTheDocument();
+    expect(screen.getByText('Archive')).toBeInTheDocument();
+  });
+
+  it('When a pending person is shown / Then Resend and Cancel Invitation actions appear', async () => {
+    mockApi.getAll.mockResolvedValue({
+      data: [{ ...mockPerson, access_status: 'pending', invitation_status: 'pending' }],
+      total: 1,
+    });
+    await openRowActionsMenu();
+    expect(screen.getByText('Resend Invitation')).toBeInTheDocument();
+    expect(screen.getByText('Cancel Invitation')).toBeInTheDocument();
+  });
+});
+
+describe('Given "Edit Employee" is clicked', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  it('When opened / Then the Edit modal is pre-filled and saving calls peopleApi.update', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Edit Employee'));
+
+    await waitFor(() => expect(screen.getByText('Edit Alice Smith')).toBeInTheDocument());
+    const nameInput = screen.getByDisplayValue('Alice Smith');
+    fireEvent.change(nameInput, { target: { value: 'Alice Updated' } });
+
+    const form = nameInput.closest('form')!;
+    fireEvent.submit(form);
+
+    await waitFor(() =>
+      expect(mockApi.update).toHaveBeenCalledWith('p1', expect.objectContaining({ full_name: 'Alice Updated' })),
+    );
+  });
+});
+
+describe('Given "Deactivate" is clicked from the Actions menu', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  it('When confirmed / Then peopleApi.update is called with status inactive', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Deactivate'));
+
+    await waitFor(() => expect(screen.getByText('Deactivate Employee')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Deactivate' }));
+
+    await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('p1', { status: 'inactive' }));
+  });
+});
+
+describe('Given "Archive" is clicked from the Actions menu', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  it('When confirmed / Then peopleApi.update is called with status archived', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Archive'));
+
+    await waitFor(() => expect(screen.getByText('Archive Employee')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
+
+    await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('p1', { status: 'archived' }));
+  });
+});
+
+describe('Given "Delete Employee" is clicked from the Actions menu', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  it('When confirmed / Then peopleApi.delete is called and the resulting message is toasted', async () => {
+    mockApi.delete.mockResolvedValue({ message: 'Person deactivated successfully', hard_deleted: false });
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Delete Employee'));
+
+    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Employee' }));
+
+    await waitFor(() => expect(mockApi.delete).toHaveBeenCalledWith('p1'));
+    await waitFor(() => expect(screen.getByText('Person deactivated successfully')).toBeInTheDocument());
+  });
+});
+
+describe('Given "Cancel Invitation" is clicked for a pending person', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({
+      data: [{ ...mockPerson, access_status: 'pending', invitation_status: 'pending' }],
+      total: 1,
+    });
+  });
+
+  it('When confirmed / Then peopleApi.cancelInvite is called', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Cancel Invitation'));
+
+    await waitFor(() => expect(screen.getByText('Cancel Invitation', { selector: 'h2' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel Invitation' }));
+
+    await waitFor(() => expect(mockApi.cancelInvite).toHaveBeenCalledWith('p1'));
+  });
+});
+
+describe('Given "Resend Invitation" is clicked for a pending person', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({
+      data: [{ ...mockPerson, access_status: 'pending', invitation_status: 'pending' }],
+      total: 1,
+    });
+    mockApi.getOrgRoles.mockResolvedValue({ data: [{ id: 'role-1', name: 'Member' }] });
+  });
+
+  it('When clicked / Then peopleApi.inviteUser is called again for that person', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Resend Invitation'));
+
+    await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalledWith('p1', 'alice@test.com', 'role-1', true));
   });
 });

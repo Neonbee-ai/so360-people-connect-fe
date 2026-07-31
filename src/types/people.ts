@@ -51,6 +51,9 @@ export interface Person {
   work_location_id?: string;
   work_location?: { id: string; name: string; location_type: string } | null;
 
+  employee_id?: string;
+  employment_type?: 'full_time' | 'part_time' | 'contract' | 'intern';
+
   // System access / identity unification (People Registry ↔ Team Management).
   // All optional — older payloads predate these and must still render.
   /** Whether this person has a usable login: active / pending invite / none. */
@@ -70,7 +73,7 @@ export interface Person {
   people_roles?: PersonRole[];
 }
 
-export type PersonStatus = 'active' | 'inactive' | 'on_leave' | 'terminated';
+export type PersonStatus = 'active' | 'inactive' | 'on_leave' | 'terminated' | 'archived';
 
 export type AccessStatus = 'active' | 'pending' | 'no_access';
 export type InvitationStatus = 'pending' | 'accepted' | 'expired';

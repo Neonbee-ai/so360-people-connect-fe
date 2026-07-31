@@ -11,6 +11,7 @@ const statusStyles: Record<string, string> = {
     inactive: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
     on_leave: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
     terminated: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+    archived: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
 
     // Allocation statuses
     planned: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
