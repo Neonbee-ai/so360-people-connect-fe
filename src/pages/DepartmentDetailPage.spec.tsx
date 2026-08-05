@@ -220,7 +220,9 @@ describe('Given DepartmentDetailPage Access tab', () => {
         fireEvent.click(screen.getByText('Access'));
         await waitFor(() => expect(screen.getByText(/No one has scoped access/i)).toBeInTheDocument());
 
-        fireEvent.click(screen.getByText('Grant Access'));
+        // Both the tab's header action button and the empty-state's action
+        // button read "Grant Access" here — either opens the same modal.
+        fireEvent.click(screen.getAllByText('Grant Access')[0]);
         await waitFor(() => expect(screen.getByText(/Grant Department Access/i)).toBeInTheDocument());
 
         const select = await screen.findByDisplayValue('Select a person');
