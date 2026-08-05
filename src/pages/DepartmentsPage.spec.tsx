@@ -149,7 +149,7 @@ describe('Given DepartmentsPage department card click navigation', () => {
 describe('Given DepartmentsPage Parent Department selector with a nested tree', () => {
   // Engineering (d1) -> QA (d2) -> Automation (d3)
   const automation = { id: 'd3', name: 'Automation', code: 'AUTO', is_active: true, employee_count: 0, children: [] };
-  const qa = { id: 'd2', name: 'QA', code: 'QA', is_active: true, employee_count: 1, children: [automation] };
+  const qa = { id: 'd2', name: 'QA', code: 'QAD', is_active: true, employee_count: 1, children: [automation] };
   const engineering = { ...mockDept, children: [qa] };
 
   beforeEach(() => {
