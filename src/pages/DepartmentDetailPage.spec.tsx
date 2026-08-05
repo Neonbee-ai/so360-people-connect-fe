@@ -25,6 +25,22 @@ vi.mock('../services/peopleService', () => ({
     },
 }));
 
+vi.mock('../services/departmentScopeService', () => ({
+    departmentScopeApi: {
+        listForDepartment: vi.fn(),
+        grant: vi.fn(),
+        revoke: vi.fn(),
+    },
+}));
+
+vi.mock('../services/apiClient', () => ({
+    apiContext: {
+        getOrgId: () => 'org-1',
+        getTenantId: () => 'tenant-1',
+        getAccessToken: () => 'tok',
+    },
+}));
+
 vi.mock('@so360/shell-context', () => ({
     useActivity: () => ({ recordActivity: async () => {} }),
     useShellBridge: () => ({
@@ -40,9 +56,11 @@ vi.mock('@so360/shell-context', () => ({
 import DepartmentDetailPage from './DepartmentDetailPage';
 import { departmentsApi } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
+import { departmentScopeApi } from '../services/departmentScopeService';
 
 const mockDeptApi = departmentsApi as any;
 const mockPeopleApi = peopleApi as any;
+const mockScopeApi = departmentScopeApi as any;
 
 const mockDept = {
     id: 'd1',
@@ -90,6 +108,7 @@ const renderPage = (id = 'd1') =>
 beforeEach(() => {
     vi.resetAllMocks();
     mockPeopleApi.getAll.mockResolvedValue({ data: [], total: 0 });
+    mockScopeApi.listForDepartment.mockResolvedValue([]);
 });
 
 // =============================================================================
@@ -155,6 +174,88 @@ describe('Given DepartmentDetailPage loads successfully', () => {
     it('When page loads / Then back navigation button is rendered', async () => {
         renderPage();
         await waitFor(() => expect(screen.getByText(/Back to Departments/i)).toBeInTheDocument());
+    });
+});
+
+// =============================================================================
+// Access Tab (Phase 5: department-scoped access permissions)
+// =============================================================================
+
+describe('Given DepartmentDetailPage Access tab', () => {
+    beforeEach(() => {
+        mockDeptApi.getById.mockResolvedValue(mockDept);
+        mockDeptApi.getEmployees.mockResolvedValue({ data: [mockEmployee], total: 1, page: 1, limit: 100, totalPages: 1 });
+    });
+
+    it('When no one has scoped access / Then shows the empty state', async () => {
+        mockScopeApi.listForDepartment.mockResolvedValue([]);
+        renderPage();
+        await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+        fireEvent.click(screen.getByText('Access'));
+        await waitFor(() => expect(screen.getByText(/No one has scoped access to this department/i)).toBeInTheDocument());
+    });
+
+    it('When grantees exist / Then lists each with their email and scope description', async () => {
+        mockScopeApi.listForDepartment.mockResolvedValue([
+            { id: 's1', user_id: 'u9', include_descendants: true, user_email: 'lead@test.com', user_full_name: 'Team Lead' },
+        ]);
+        renderPage();
+        await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+        fireEvent.click(screen.getByText('Access'));
+        await waitFor(() => expect(screen.getByText('Team Lead')).toBeInTheDocument());
+        expect(screen.getByText('lead@test.com')).toBeInTheDocument();
+        expect(screen.getByText('Includes sub-departments')).toBeInTheDocument();
+    });
+
+    it('When Grant Access is submitted with a selected person / Then calls departmentScopeApi.grant and reloads the list', async () => {
+        mockPeopleApi.getAll.mockResolvedValue({
+            data: [{ id: 'p9', full_name: 'Nina Person', linked_user_id: 'u9', job_title: 'Manager' }],
+            total: 1,
+        });
+        mockScopeApi.listForDepartment.mockResolvedValue([]);
+        mockScopeApi.grant.mockResolvedValue(undefined);
+
+        renderPage();
+        await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+        fireEvent.click(screen.getByText('Access'));
+        await waitFor(() => expect(screen.getByText(/No one has scoped access/i)).toBeInTheDocument());
+
+        fireEvent.click(screen.getByText('Grant Access'));
+        await waitFor(() => expect(screen.getByText(/Grant Department Access/i)).toBeInTheDocument());
+
+        const select = await screen.findByDisplayValue('Select a person');
+        fireEvent.change(select, { target: { value: 'u9' } });
+        // Both the tab's header action button and the modal's submit button
+        // read "Grant Access" — the submit button is the last one rendered.
+        const grantButtons = screen.getAllByRole('button', { name: /Grant Access/ });
+        fireEvent.click(grantButtons[grantButtons.length - 1]);
+
+        await waitFor(() =>
+            expect(mockScopeApi.grant).toHaveBeenCalledWith({
+                user_id: 'u9',
+                org_id: 'org-1',
+                department_id: 'd1',
+                include_descendants: true,
+            }),
+        );
+        expect(mockScopeApi.listForDepartment).toHaveBeenCalledTimes(2);
+    });
+
+    it('When Revoke is clicked on a grantee / Then calls departmentScopeApi.revoke and reloads the list', async () => {
+        mockScopeApi.listForDepartment.mockResolvedValue([
+            { id: 's1', user_id: 'u9', include_descendants: false, user_email: 'lead@test.com', user_full_name: 'Team Lead' },
+        ]);
+        mockScopeApi.revoke.mockResolvedValue(undefined);
+
+        renderPage();
+        await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+        fireEvent.click(screen.getByText('Access'));
+        await waitFor(() => expect(screen.getByText('Team Lead')).toBeInTheDocument());
+
+        fireEvent.click(screen.getByText('Revoke'));
+
+        await waitFor(() => expect(mockScopeApi.revoke).toHaveBeenCalledWith('s1', 'org-1'));
+        expect(mockScopeApi.listForDepartment).toHaveBeenCalledTimes(2);
     });
 });
 

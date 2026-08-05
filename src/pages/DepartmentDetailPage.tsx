@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Building2, Users, UserCheck, User,
     Calendar, Edit2, UserPlus, Archive, BarChart2,
-    Mail, Briefcase,
+    Mail, Briefcase, ShieldCheck, X,
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
@@ -13,6 +13,8 @@ import EmptyState from '../components/EmptyState';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { departmentsApi, Department, DepartmentEmployee } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
+import { departmentScopeApi, DepartmentScopeGrantee } from '../services/departmentScopeService';
+import { apiContext } from '../services/apiClient';
 import type { Person } from '../types/people';
 
 // =============================================================================
@@ -224,6 +226,119 @@ const AssignManagerModal: React.FC<AssignManagerModalProps> = ({ isOpen, onClose
 };
 
 // =============================================================================
+// Grant Department Access Modal
+// =============================================================================
+
+interface GrantAccessModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onGrant: (userId: string, includeDescendants: boolean) => Promise<void>;
+}
+
+const GrantAccessModal: React.FC<GrantAccessModalProps> = ({ isOpen, onClose, onGrant }) => {
+    const [people, setPeople] = useState<Person[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [search, setSearch] = useState('');
+    const [selectedUserId, setSelectedUserId] = useState('');
+    const [includeDescendants, setIncludeDescendants] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        setSelectedUserId('');
+        setSearch('');
+        setIncludeDescendants(true);
+        setLoading(true);
+        peopleApi.getAll({ status: 'active', limit: 200 })
+            .then(res => setPeople((res.data ?? []).filter(p => !!p.linked_user_id)))
+            .catch(() => setPeople([]))
+            .finally(() => setLoading(false));
+    }, [isOpen]);
+
+    const filtered = search
+        ? people.filter(p => p.full_name.toLowerCase().includes(search.toLowerCase()))
+        : people;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUserId) return;
+        setSubmitting(true);
+        try {
+            await onGrant(selectedUserId, includeDescendants);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Grant Department Access">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <p className="text-sm text-slate-400">
+                    Grant a person visibility into this department in People Registry and Departments —
+                    only people with a linked login can be granted access.
+                </p>
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1">Search</label>
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Search by name..."
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1">Select Person *</label>
+                    {loading ? (
+                        <div className="h-10 bg-slate-800 rounded-lg animate-pulse" />
+                    ) : filtered.length === 0 ? (
+                        <p className="text-xs text-slate-500">No people with a linked login found.</p>
+                    ) : (
+                        <select
+                            required
+                            value={selectedUserId}
+                            onChange={e => setSelectedUserId(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        >
+                            <option value="">Select a person</option>
+                            {filtered.map(p => (
+                                <option key={p.id} value={p.linked_user_id as string}>
+                                    {p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        id="include_descendants"
+                        checked={includeDescendants}
+                        onChange={e => setIncludeDescendants(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600"
+                    />
+                    <label htmlFor="include_descendants" className="text-sm text-slate-300">
+                        Also include all sub-departments
+                    </label>
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={!selectedUserId || submitting}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                        {submitting ? 'Granting…' : 'Grant Access'}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+// =============================================================================
 // Department Detail Page
 // =============================================================================
 
@@ -239,9 +354,12 @@ const DepartmentDetailPage: React.FC = () => {
     const [employeeTotal, setEmployeeTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<'not_found' | 'load_failed' | null>(null);
-    const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'access'>('overview');
     const [showEditModal, setShowEditModal] = useState(false);
     const [showAssignManagerModal, setShowAssignManagerModal] = useState(false);
+    const [showGrantAccessModal, setShowGrantAccessModal] = useState(false);
+    const [scopeGrantees, setScopeGrantees] = useState<DepartmentScopeGrantee[]>([]);
+    const [loadingScopes, setLoadingScopes] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadData = useCallback(async () => {
@@ -309,6 +427,57 @@ const DepartmentDetailPage: React.FC = () => {
         }
     };
 
+    const loadScopeGrantees = useCallback(async () => {
+        if (!id) return;
+        const orgId = apiContext.getOrgId();
+        if (!orgId) return;
+        setLoadingScopes(true);
+        try {
+            const grantees = await departmentScopeApi.listForDepartment(orgId, id);
+            setScopeGrantees(grantees);
+        } catch {
+            setScopeGrantees([]);
+        } finally {
+            setLoadingScopes(false);
+        }
+    }, [id]);
+
+    useEffect(() => {
+        if (activeTab === 'access') {
+            loadScopeGrantees();
+        }
+    }, [activeTab, loadScopeGrantees]);
+
+    const handleGrantAccess = async (userId: string, includeDescendants: boolean) => {
+        if (!id) return;
+        const orgId = apiContext.getOrgId();
+        try {
+            await departmentScopeApi.grant({
+                user_id: userId,
+                org_id: orgId,
+                department_id: id,
+                include_descendants: includeDescendants,
+            });
+            setShowGrantAccessModal(false);
+            setToast({ message: 'Department access granted', type: 'success' });
+            recordActivity({ eventType: 'people.department.access_granted', eventCategory: 'identity', description: `Department access granted for ${department?.name || id}`, resourceType: 'department', resourceId: id }).catch(() => {});
+            loadScopeGrantees();
+        } catch (error) {
+            setToast({ message: error instanceof Error ? error.message : 'Failed to grant access', type: 'error' });
+        }
+    };
+
+    const handleRevokeAccess = async (scopeId: string) => {
+        const orgId = apiContext.getOrgId();
+        try {
+            await departmentScopeApi.revoke(scopeId, orgId);
+            setToast({ message: 'Department access revoked', type: 'success' });
+            loadScopeGrantees();
+        } catch (error) {
+            setToast({ message: error instanceof Error ? error.message : 'Failed to revoke access', type: 'error' });
+        }
+    };
+
     const handleArchive = async () => {
         if (!id || !department) return;
         if (employeeTotal > 0) {
@@ -370,6 +539,7 @@ const DepartmentDetailPage: React.FC = () => {
     const TABS = [
         { key: 'overview', label: 'Overview' },
         { key: 'analytics', label: 'Analytics' },
+        ...(canEdit ? [{ key: 'access', label: 'Access' }] as const : []),
     ] as const;
 
     return (
@@ -574,6 +744,71 @@ const DepartmentDetailPage: React.FC = () => {
                 </div>
             )}
 
+            {/* Access Tab */}
+            {activeTab === 'access' && (
+                <div className="space-y-4">
+                    <PageHeader
+                        title="Scoped Access"
+                        subtitle="People granted visibility into this department + its sub-departments, beyond their normal role permissions"
+                        actions={
+                            <button
+                                onClick={() => setShowGrantAccessModal(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                            >
+                                <ShieldCheck size={16} />
+                                Grant Access
+                            </button>
+                        }
+                    />
+
+                    {loadingScopes ? (
+                        <div className="space-y-2">
+                            {[...Array(2)].map((_, i) => (
+                                <div key={i} className="h-14 bg-slate-800/50 rounded-xl animate-pulse" />
+                            ))}
+                        </div>
+                    ) : scopeGrantees.length === 0 ? (
+                        <EmptyState
+                            icon={ShieldCheck}
+                            title="No one has scoped access to this department"
+                            description="Everyone's visibility is governed by their normal role permissions. Grant access to restrict someone to just this department (+ its sub-departments)."
+                            action={{ label: 'Grant Access', onClick: () => setShowGrantAccessModal(true) }}
+                        />
+                    ) : (
+                        <div className="space-y-2">
+                            {scopeGrantees.map(grantee => (
+                                <div
+                                    key={grantee.id}
+                                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between"
+                                >
+                                    <div>
+                                        <p className="text-sm font-medium text-slate-50">
+                                            {grantee.user_full_name || grantee.user_email || grantee.user_id}
+                                        </p>
+                                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                                            {grantee.user_email && (
+                                                <span className="flex items-center gap-1">
+                                                    <Mail size={11} /> {grantee.user_email}
+                                                </span>
+                                            )}
+                                            <span>
+                                                {grantee.include_descendants ? 'Includes sub-departments' : 'This department only'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleRevokeAccess(grantee.id)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-500/50 rounded-lg transition-colors"
+                                    >
+                                        <X size={13} /> Revoke
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Modals */}
             {showEditModal && department && (
                 <EditDepartmentModal
@@ -589,6 +824,12 @@ const DepartmentDetailPage: React.FC = () => {
                 onClose={() => setShowAssignManagerModal(false)}
                 currentHeadId={department.head_person_id}
                 onAssign={handleAssignManager}
+            />
+
+            <GrantAccessModal
+                isOpen={showGrantAccessModal}
+                onClose={() => setShowGrantAccessModal(false)}
+                onGrant={handleGrantAccess}
             />
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
