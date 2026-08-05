@@ -135,3 +135,96 @@ describe('Given DepartmentsPage department card click navigation', () => {
     expect(mockNavigate).not.toHaveBeenCalledWith('/departments/d1');
   });
 });
+
+/*
+ * Regression: the "Parent Department" dropdown used to be populated straight
+ * from the root-level tree array, so only top-level departments were ever
+ * selectable as a parent — a department nested one level down could never
+ * itself become a parent, capping real nesting at depth 2 regardless of
+ * what the backend/DB supported. The dropdown must now be built from the
+ * FULLY FLATTENED tree (every depth), indented, and must exclude the
+ * department being edited plus all of its descendants (self-parenting /
+ * cycles).
+ */
+describe('Given DepartmentsPage Parent Department selector with a nested tree', () => {
+  // Engineering (d1) -> QA (d2) -> Automation (d3)
+  const automation = { id: 'd3', name: 'Automation', code: 'AUTO', is_active: true, employee_count: 0, children: [] };
+  const qa = { id: 'd2', name: 'QA', code: 'QA', is_active: true, employee_count: 1, children: [automation] };
+  const engineering = { ...mockDept, children: [qa] };
+
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [engineering], total: 1 });
+    mockApi.getTree.mockResolvedValue({ data: [engineering] });
+  });
+
+  it('When a parent is selected while creating a department / Then the full reporting path breadcrumb is shown', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('QA')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Create Department'));
+    await waitFor(() => expect(screen.getByText(/Parent Department/i)).toBeInTheDocument());
+
+    const select = screen.getAllByRole('combobox').find((el) =>
+      Array.from(el.querySelectorAll('option')).some((o) => o.textContent?.includes('Automation')),
+    ) as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'd3' } }); // Automation
+
+    await waitFor(() =>
+      expect(screen.getByText(/Engineering → QA → Automation/)).toBeInTheDocument(),
+    );
+  });
+
+  it('When creating a department / Then the parent selector lists every depth of the tree, not just root departments', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Create Department'));
+    await waitFor(() => expect(screen.getByText(/Parent Department/i)).toBeInTheDocument());
+
+    const select = screen.getAllByRole('combobox').find((el) =>
+      Array.from(el.querySelectorAll('option')).some((o) => o.textContent?.includes('Automation')),
+    );
+    expect(select).toBeTruthy();
+    const optionTexts = Array.from(select!.querySelectorAll('option')).map((o) => o.textContent);
+    expect(optionTexts.some((t) => t?.includes('Engineering'))).toBe(true);
+    expect(optionTexts.some((t) => t?.includes('QA'))).toBe(true);
+    expect(optionTexts.some((t) => t?.includes('Automation'))).toBe(true);
+  });
+
+  it('When editing the QA department / Then the parent selector excludes QA itself and its descendant Automation (no self-parent / cycle)', async () => {
+    renderPage();
+    // Engineering (root) is expanded by default, so QA is already visible.
+    await waitFor(() => expect(screen.getByText('QA')).toBeInTheDocument());
+    const editButtons = screen.getAllByText('Edit');
+    // Engineering renders first, QA is nested below it — QA's Edit is the 2nd.
+    fireEvent.click(editButtons[1]);
+    await waitFor(() => expect(screen.getByText(/Parent Department/i)).toBeInTheDocument());
+
+    const select = screen.getAllByRole('combobox').find((el) =>
+      Array.from(el.querySelectorAll('option')).some((o) => o.textContent?.includes('Engineering')),
+    );
+    const optionTexts = Array.from(select!.querySelectorAll('option')).map((o) => o.textContent);
+    expect(optionTexts.some((t) => t?.includes('Engineering'))).toBe(true);
+    expect(optionTexts.some((t) => t === 'QA')).toBe(false);
+    expect(optionTexts.some((t) => t?.includes('Automation'))).toBe(false);
+  });
+});
+
+describe('Given DepartmentsPage create/update failure surfaces the backend error message', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockDept], total: 1 });
+    mockApi.getTree.mockResolvedValue({ data: [mockDept] });
+  });
+
+  it('When create fails with a circular-reference error / Then the toast shows the backend message, not a generic one', async () => {
+    mockApi.create.mockRejectedValue(new Error('Cannot set department as parent - would create circular reference'));
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Create Department'));
+    await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'X' } });
+    fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'X Dept' } });
+    fireEvent.click(screen.getByText('Create'));
+    await waitFor(() =>
+      expect(screen.getByText('Cannot set department as parent - would create circular reference')).toBeInTheDocument(),
+    );
+  });
+});

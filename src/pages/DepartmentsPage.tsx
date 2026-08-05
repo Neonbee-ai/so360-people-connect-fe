@@ -54,7 +54,7 @@ const DepartmentsPage: React.FC = () => {
             recordActivity({ eventType: 'people.department.created', eventCategory: 'identity', description: `Department ${data.name} was created`, resourceType: 'department', resourceId: created?.id }).catch(() => {});
             loadDepartments();
         } catch (error) {
-            setToast({ message: 'Failed to create department', type: 'error' });
+            setToast({ message: error instanceof Error ? error.message : 'Failed to create department', type: 'error' });
         }
     };
 
@@ -66,7 +66,7 @@ const DepartmentsPage: React.FC = () => {
             recordActivity({ eventType: 'people.department.updated', eventCategory: 'identity', description: `Department ${data.name || id} was updated`, resourceType: 'department', resourceId: id }).catch(() => {});
             loadDepartments();
         } catch (error) {
-            setToast({ message: 'Failed to update department', type: 'error' });
+            setToast({ message: error instanceof Error ? error.message : 'Failed to update department', type: 'error' });
         }
     };
 
@@ -239,6 +239,23 @@ interface DepartmentModalProps {
     departments: Department[];
 }
 
+interface FlatDepartment extends Department {
+    depth: number;
+    ancestorIds: string[];
+    ancestorNames: string[];
+}
+
+const flattenDepartmentTree = (nodes: Department[], depth = 0, ancestorIds: string[] = [], ancestorNames: string[] = []): FlatDepartment[] => {
+    const result: FlatDepartment[] = [];
+    for (const node of nodes) {
+        result.push({ ...node, depth, ancestorIds, ancestorNames });
+        if (node.children?.length) {
+            result.push(...flattenDepartmentTree(node.children, depth + 1, [...ancestorIds, node.id], [...ancestorNames, node.name]));
+        }
+    }
+    return result;
+};
+
 const DepartmentModal: React.FC<DepartmentModalProps> = ({
     isOpen,
     onClose,
@@ -293,6 +310,23 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    // Flatten the full tree so any department at any depth is selectable as a parent.
+    const flatList = useMemo(() => flattenDepartmentTree(departments), [departments]);
+
+    // A department can't become its own parent, nor can any of its descendants
+    // (that would create a cycle) — exclude those from the selector entirely.
+    const eligibleParents = useMemo(() => {
+        if (!department) return flatList;
+        return flatList.filter(d => d.id !== department.id && !d.ancestorIds.includes(department.id));
+    }, [flatList, department]);
+
+    const reportingPath = useMemo(() => {
+        if (!formData.parent_id) return null;
+        const selected = flatList.find(d => d.id === formData.parent_id);
+        if (!selected) return null;
+        return [...selected.ancestorNames, selected.name];
+    }, [flatList, formData.parent_id]);
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={department ? 'Edit Department' : 'Create Department'}>
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -340,10 +374,17 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                         className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     >
                         <option value="">None (Top Level)</option>
-                        {departments.map(dept => (
-                            <option key={dept.id} value={dept.id}>{dept.name}</option>
+                        {eligibleParents.map(dept => (
+                            <option key={dept.id} value={dept.id}>
+                                {dept.depth > 0 ? `${'  '.repeat(dept.depth)}└ ` : ''}{dept.name}
+                            </option>
                         ))}
                     </select>
+                    {reportingPath && (
+                        <p className="mt-1.5 text-xs text-slate-500">
+                            Reporting Path: {reportingPath.join(' → ')}
+                        </p>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
