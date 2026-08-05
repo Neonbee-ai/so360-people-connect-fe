@@ -206,7 +206,7 @@ export interface InviteResult {
 // =============================================================================
 
 export const allocationsApi = {
-  getAll: async (params?: { person_id?: string; entity_id?: string; entity_type?: string; status?: string; page?: number; limit?: number }): Promise<PaginatedResponse<Allocation>> => {
+  getAll: async (params?: { person_id?: string; entity_id?: string; entity_type?: string; status?: string; department_id?: string; page?: number; limit?: number }): Promise<PaginatedResponse<Allocation>> => {
     return api.get<PaginatedResponse<Allocation>>('/allocations', params);
   },
 

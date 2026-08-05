@@ -21,6 +21,12 @@ vi.mock('../services/peopleService', () => ({
   entitiesApi: { list: vi.fn() },
 }));
 
+vi.mock('../services/departmentsService', () => ({
+  departmentsApi: {
+    getTree: vi.fn(),
+  },
+}));
+
 let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
@@ -42,10 +48,12 @@ vi.mock('../utils/formatters', () => ({
 
 import AllocationsPage from './AllocationsPage';
 import { allocationsApi, peopleApi, entitiesApi } from '../services/peopleService';
+import { departmentsApi } from '../services/departmentsService';
 
 const mockAllocApi = allocationsApi as any;
 const mockPeopleApi = peopleApi as any;
 const mockEntitiesApi = entitiesApi as any;
+const mockDeptApi = departmentsApi as any;
 
 const renderPage = () =>
   render(<MemoryRouter><AllocationsPage /></MemoryRouter>);
@@ -70,6 +78,7 @@ beforeEach(() => {
   mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
   mockPeopleApi.getAll.mockResolvedValue({ data: [] });
   mockEntitiesApi.list.mockResolvedValue({ data: [] });
+  mockDeptApi.getTree.mockResolvedValue({ data: [] });
 });
 
 // ============================================================================
@@ -128,6 +137,47 @@ describe('AllocationsPage', () => {
       await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
       fireEvent.click(screen.getByText('New Allocation'));
       await waitFor(() => expect(screen.getByText('Person *')).toBeInTheDocument());
+    });
+  });
+
+  describe('Given the department filter', () => {
+    const engineering = { id: 'd1', name: 'Engineering', code: 'ENG', is_active: true, children: [
+      { id: 'd2', name: 'QA', code: 'QA2', is_active: true, children: [] },
+    ] };
+
+    beforeEach(() => {
+      mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
+      mockDeptApi.getTree.mockResolvedValue({ data: [engineering] });
+    });
+
+    it('When departments load / Then the filter lists every depth of the tree, indented', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+      const select = screen.getAllByRole('combobox').find(el =>
+        Array.from(el.querySelectorAll('option')).some(o => o.textContent?.includes('QA')),
+      ) as HTMLSelectElement;
+      const optionTexts = Array.from(select.querySelectorAll('option')).map(o => o.textContent);
+      expect(optionTexts.some(t => t?.includes('Engineering'))).toBe(true);
+      expect(optionTexts.some(t => t?.includes('QA'))).toBe(true);
+    });
+
+    it('When a department is selected / Then allocations are re-fetched with department_id', async () => {
+      renderPage();
+      await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
+      const select = screen.getAllByRole('combobox').find(el =>
+        Array.from(el.querySelectorAll('option')).some(o => o.textContent?.includes('Engineering')),
+      ) as HTMLSelectElement;
+      fireEvent.change(select, { target: { value: 'd1' } });
+      await waitFor(() =>
+        expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ department_id: 'd1' })),
+      );
+    });
+
+    it('When the departments API fails / Then the page still renders with an empty department filter', async () => {
+      mockDeptApi.getTree.mockRejectedValueOnce(new Error('down'));
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+      expect(screen.getByText('All Departments')).toBeInTheDocument();
     });
   });
 

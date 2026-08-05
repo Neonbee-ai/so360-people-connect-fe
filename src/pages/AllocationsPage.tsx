@@ -11,10 +11,24 @@ import Modal from '../components/Modal';
 import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
+import { departmentsApi, Department } from '../services/departmentsService';
 import { isUuid } from '../utils/validation';
 import EntitySelector from '../components/EntitySelector';
 import { usePeopleFormatters } from '../utils/formatters';
 import type { Allocation, CreateAllocationPayload, UpdateAllocationPayload, Person, AllocationStatus, EntityOption, LookupEntityType } from '../types/people';
+
+interface FlatDepartment extends Department {
+    depth: number;
+}
+
+const flattenDepartmentTree = (nodes: Department[], depth = 0): FlatDepartment[] => {
+    const result: FlatDepartment[] = [];
+    for (const node of nodes) {
+        result.push({ ...node, depth });
+        if (node.children?.length) result.push(...flattenDepartmentTree(node.children, depth + 1));
+    }
+    return result;
+};
 
 const AllocationsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -25,6 +39,8 @@ const AllocationsPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [entityTypeFilter, setEntityTypeFilter] = useState<string>('');
+    const [departmentFilter, setDepartmentFilter] = useState<string>('');
+    const [departments, setDepartments] = useState<FlatDepartment[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingAllocation, setEditingAllocation] = useState<Allocation | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -35,6 +51,7 @@ const AllocationsPage: React.FC = () => {
             const result = await allocationsApi.getAll({
                 status: statusFilter || undefined,
                 entity_type: entityTypeFilter || undefined,
+                department_id: departmentFilter || undefined,
             });
             setAllocations(result.data);
         } catch (error) {
@@ -43,11 +60,17 @@ const AllocationsPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [statusFilter, entityTypeFilter]);
+    }, [statusFilter, entityTypeFilter, departmentFilter]);
 
     useEffect(() => {
         loadAllocations();
     }, [loadAllocations]);
+
+    useEffect(() => {
+        departmentsApi.getTree()
+            .then(res => setDepartments(flattenDepartmentTree(res.data)))
+            .catch(() => setDepartments([]));
+    }, []);
 
     const handleCreate = async (data: CreateAllocationPayload) => {
         const created = await allocationsApi.create(data);
@@ -134,6 +157,18 @@ const AllocationsPage: React.FC = () => {
                     <option value="customer">Customer</option>
                     <option value="opportunity">Opportunity</option>
                     <option value="department">Department</option>
+                </select>
+                <select
+                    value={departmentFilter}
+                    onChange={(e) => setDepartmentFilter(e.target.value)}
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                >
+                    <option value="">All Departments</option>
+                    {departments.map(dept => (
+                        <option key={dept.id} value={dept.id}>
+                            {dept.depth > 0 ? `${'  '.repeat(dept.depth)}└ ` : ''}{dept.name}
+                        </option>
+                    ))}
                 </select>
 
                 {/* Summary Stats */}
