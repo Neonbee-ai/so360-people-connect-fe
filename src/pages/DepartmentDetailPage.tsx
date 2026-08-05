@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Building2, Users, UserCheck, User,
     Calendar, Edit2, UserPlus, Archive, BarChart2,
-    Mail, Briefcase, ShieldCheck, X,
+    Mail, Briefcase, Shield, X,
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
@@ -755,7 +755,7 @@ const DepartmentDetailPage: React.FC = () => {
                                 onClick={() => setShowGrantAccessModal(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                             >
-                                <ShieldCheck size={16} />
+                                <Shield size={16} />
                                 Grant Access
                             </button>
                         }
@@ -769,7 +769,7 @@ const DepartmentDetailPage: React.FC = () => {
                         </div>
                     ) : scopeGrantees.length === 0 ? (
                         <EmptyState
-                            icon={ShieldCheck}
+                            icon={Shield}
                             title="No one has scoped access to this department"
                             description="Everyone's visibility is governed by their normal role permissions. Grant access to restrict someone to just this department (+ its sub-departments)."
                             action={{ label: 'Grant Access', onClick: () => setShowGrantAccessModal(true) }}
