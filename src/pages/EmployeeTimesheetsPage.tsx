@@ -7,7 +7,7 @@ import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';
 import type { TimesheetEntry, TimesheetUtilizationPerson } from '../services/timesheetApi';
@@ -50,7 +50,6 @@ const EmployeeTimesheetsPage: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [fromDate, setFromDate] = useState<string>(defaultWeek.from);
     const [toDate, setToDate] = useState<string>(defaultWeek.to);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     // Person selector options (same people list used across PC pages)
     useEffect(() => {
@@ -80,7 +79,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
             setUtilization(utilizationResult.people || []);
         } catch (error) {
             console.error('Failed to load employee timesheets:', error);
-            setToast({ message: 'Failed to load employee timesheets', type: 'error' });
+            toast.error('Failed to load employee timesheets');
         } finally {
             setLoading(false);
         }
@@ -246,7 +245,6 @@ const EmployeeTimesheetsPage: React.FC = () => {
                 </div>
             )}
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

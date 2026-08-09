@@ -41,6 +41,7 @@ vi.mock('../utils/formatters', () => ({
 
 import GoalsPage from '../pages/GoalsPage';
 import { goalsApi } from '../services/goalsService';
+import { toast } from '@so360/design-system';
 
 const mockApi = goalsApi as any;
 
@@ -68,10 +69,11 @@ describe('GoalsPage — extra scenarios', () => {
 
   describe('Given API load fails', () => {
     it('When getAll rejects / Then shows error toast message', async () => {
+      const toastErrorSpy = vi.spyOn(toast, 'error');
       mockApi.getAll.mockImplementation(async () => { throw new Error('Network error'); });
       renderPage();
       await waitFor(() => expect(screen.getByText('Goals')).toBeInTheDocument());
-      expect(screen.getByText('Failed to load goals')).toBeInTheDocument();
+      await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load goals'));
     });
   });
 
@@ -107,6 +109,7 @@ describe('GoalsPage — extra scenarios', () => {
     });
 
     it('When create throws / Then failure toast is shown', async () => {
+      const toastErrorSpy = vi.spyOn(toast, 'error');
       renderPage();
       await waitFor(() => screen.getByText('Goals'));
       fireEvent.click(screen.getAllByText('Create Goal')[0]);
@@ -118,7 +121,7 @@ describe('GoalsPage — extra scenarios', () => {
           fireEvent.change(titleInput, { target: { value: 'Test goal' } });
           const submitBtn = screen.getAllByText('Create Goal')[0];
           fireEvent.click(submitBtn);
-          await waitFor(() => expect(screen.getByText('Failed to create goal')).toBeInTheDocument());
+          await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to create goal'));
         }
       }
     });

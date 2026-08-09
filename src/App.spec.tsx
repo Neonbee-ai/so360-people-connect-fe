@@ -16,6 +16,14 @@ vi.mock('@so360/design-system', () => ({
     if (state === 'hidden') return hiddenFallback;
     return children;
   },
+  toast: {
+    success: () => 'toast-id',
+    error: () => 'toast-id',
+    warning: () => 'toast-id',
+    info: () => 'toast-id',
+    promise: (p: any) => p,
+    dismiss: () => undefined,
+  },
 }));
 
 vi.mock('./services/peopleService', () => ({

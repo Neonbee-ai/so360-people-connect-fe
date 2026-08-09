@@ -3,7 +3,7 @@ import { MapPin, Plus, Edit2, Trash2 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import { workLocationsApi, WorkLocation, CreateWorkLocationPayload, LocationType } from '../services/workLocationsService';
 
@@ -31,7 +31,6 @@ const WorkLocationsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<WorkLocation | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -39,7 +38,7 @@ const WorkLocationsPage: React.FC = () => {
       const result = await workLocationsApi.getAll();
       setLocations(result.data);
     } catch {
-      setToast({ message: 'Failed to load work locations', type: 'error' });
+      toast.error('Failed to load work locations');
     } finally {
       setLoading(false);
     }
@@ -51,10 +50,10 @@ const WorkLocationsPage: React.FC = () => {
     try {
       await workLocationsApi.create(data);
       setShowModal(false);
-      setToast({ message: `Work location "${data.name}" created`, type: 'success' });
+      toast.success(`Work location "${data.name}" created`);
       load();
     } catch {
-      setToast({ message: 'Failed to create work location', type: 'error' });
+      toast.error('Failed to create work location');
     }
   };
 
@@ -62,10 +61,10 @@ const WorkLocationsPage: React.FC = () => {
     try {
       await workLocationsApi.update(id, data);
       setEditing(null);
-      setToast({ message: 'Work location updated', type: 'success' });
+      toast.success('Work location updated');
       load();
     } catch {
-      setToast({ message: 'Failed to update work location', type: 'error' });
+      toast.error('Failed to update work location');
     }
   };
 
@@ -76,10 +75,10 @@ const WorkLocationsPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       const result = await workLocationsApi.delete(id);
-      setToast({ message: result.message, type: 'success' });
+      toast.success(result.message);
       load();
     } catch {
-      setToast({ message: 'Failed to delete work location', type: 'error' });
+      toast.error('Failed to delete work location');
     }
   };
 
@@ -184,7 +183,6 @@ const WorkLocationsPage: React.FC = () => {
         location={editing}
       />
 
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

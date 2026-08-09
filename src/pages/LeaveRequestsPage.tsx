@@ -4,7 +4,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance } from '../services/leaveRequestsService';
@@ -22,7 +22,6 @@ const LeaveRequestsPage: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [viewingRequest, setViewingRequest] = useState<LeaveRequest | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadRequests = useCallback(async () => {
         try {
@@ -34,7 +33,7 @@ const LeaveRequestsPage: React.FC = () => {
             setRequests(result.data);
         } catch (error) {
             console.error('Failed to load leave requests:', error);
-            setToast({ message: 'Failed to load leave requests', type: 'error' });
+            toast.error('Failed to load leave requests');
         } finally {
             setLoading(false);
         }
@@ -49,12 +48,12 @@ const LeaveRequestsPage: React.FC = () => {
             const created = await leaveRequestsApi.create(data);
             await leaveRequestsApi.submit(created.id);
             setShowCreateModal(false);
-            setToast({ message: 'Leave request submitted successfully', type: 'success' });
+            toast.success('Leave request submitted successfully');
             recordActivity({ eventType: 'people.leave.requested', eventCategory: 'data', description: `Leave request submitted from ${data.start_date} to ${data.end_date}`, resourceType: 'leave_request', resourceId: created.id }).catch(() => {});
             loadRequests();
         } catch (error) {
             const msg = error instanceof Error ? error.message : 'Failed to create leave request';
-            setToast({ message: msg, type: 'error' });
+            toast.error(msg);
         }
     };
 
@@ -202,7 +201,6 @@ const LeaveRequestsPage: React.FC = () => {
                 formatters={formatters}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

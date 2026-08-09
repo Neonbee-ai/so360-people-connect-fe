@@ -4,7 +4,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { reviewTemplatesApi, ReviewTemplate, CreateReviewTemplatePayload } from '../services/reviewTemplatesService';
 
@@ -16,7 +16,6 @@ const ReviewTemplatesPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<ReviewTemplate | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadTemplates = useCallback(async () => {
         try {
@@ -25,7 +24,7 @@ const ReviewTemplatesPage: React.FC = () => {
             setTemplates(result.data);
         } catch (error) {
             console.error('Failed to load review templates:', error);
-            setToast({ message: 'Failed to load review templates', type: 'error' });
+            toast.error('Failed to load review templates');
         } finally {
             setLoading(false);
         }
@@ -39,11 +38,11 @@ const ReviewTemplatesPage: React.FC = () => {
         try {
             const created = await reviewTemplatesApi.create(data);
             setShowCreateModal(false);
-            setToast({ message: `Review template ${data.name} has been created`, type: 'success' });
+            toast.success(`Review template ${data.name} has been created`);
             recordActivity({ eventType: 'people.review_template.created', eventCategory: 'data', description: `Review template ${data.name} was created`, resourceType: 'review_template', resourceId: created?.id }).catch(() => {});
             loadTemplates();
         } catch (error) {
-            setToast({ message: 'Failed to create review template', type: 'error' });
+            toast.error('Failed to create review template');
         }
     };
 
@@ -51,11 +50,11 @@ const ReviewTemplatesPage: React.FC = () => {
         try {
             await reviewTemplatesApi.update(id, data);
             setEditingTemplate(null);
-            setToast({ message: 'Review template updated successfully', type: 'success' });
+            toast.success('Review template updated successfully');
             recordActivity({ eventType: 'people.review_template.updated', eventCategory: 'data', description: `Review template ${data.name || id} was updated`, resourceType: 'review_template', resourceId: id }).catch(() => {});
             loadTemplates();
         } catch (error) {
-            setToast({ message: 'Failed to update review template', type: 'error' });
+            toast.error('Failed to update review template');
         }
     };
 
@@ -65,10 +64,10 @@ const ReviewTemplatesPage: React.FC = () => {
 
         try {
             await reviewTemplatesApi.clone(template.id, newName);
-            setToast({ message: 'Template cloned successfully', type: 'success' });
+            toast.success('Template cloned successfully');
             loadTemplates();
         } catch (error) {
-            setToast({ message: 'Failed to clone template', type: 'error' });
+            toast.error('Failed to clone template');
         }
     };
 
@@ -186,7 +185,6 @@ const ReviewTemplatesPage: React.FC = () => {
                 template={editingTemplate}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

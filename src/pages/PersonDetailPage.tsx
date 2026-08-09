@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -39,7 +39,6 @@ const PersonDetailPage: React.FC = () => {
     const [showLinkUserModal, setShowLinkUserModal] = useState(false);
     const [showUpdateRateModal, setShowUpdateRateModal] = useState(false);
     const [activeTab, setActiveTab] = useState<string>('overview');
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
 
     useEffect(() => {
@@ -60,7 +59,7 @@ const PersonDetailPage: React.FC = () => {
                 if (cancelled) return;
                 setPerson(null);
                 setLoadError('load_failed');
-                setToast({ message: 'Failed to load employee details', type: 'error' });
+                toast.error('Failed to load employee details');
                 setLoading(false);
                 return;
             }
@@ -109,7 +108,7 @@ const PersonDetailPage: React.FC = () => {
             const updated = await peopleApi.update(id, editData);
             setPerson({ ...person, ...updated });
             setEditing(false);
-            setToast({ message: 'Person updated', type: 'success' });
+            toast.success('Person updated');
             const statusChanged = editData.status && editData.status !== person.status;
             if (statusChanged) {
                 recordActivity({ eventType: 'people.person.status_changed', eventCategory: 'identity', description: `Person ${person.full_name} status changed to ${editData.status}`, resourceType: 'person', resourceId: id }).catch(() => {});
@@ -117,7 +116,7 @@ const PersonDetailPage: React.FC = () => {
                 recordActivity({ eventType: 'people.person.updated', eventCategory: 'identity', description: `Person ${person.full_name} was updated`, resourceType: 'person', resourceId: id }).catch(() => {});
             }
         } catch (error) {
-            setToast({ message: 'Failed to update', type: 'error' });
+            toast.error('Failed to update');
         }
     };
 
@@ -129,9 +128,9 @@ const PersonDetailPage: React.FC = () => {
             const newSkill = await peopleApi.addRole(id, skillData as Omit<PersonRole, 'id' | 'person_id' | 'org_id' | 'tenant_id' | 'created_at'>);
             setPerson(prev => prev ? { ...prev, people_roles: [...(prev.people_roles || []), newSkill] } : prev);
             setShowRoleModal(false);
-            setToast({ message: 'Skill added', type: 'success' });
+            toast.success('Skill added');
         } catch (error) {
-            setToast({ message: 'Failed to add skill', type: 'error' });
+            toast.error('Failed to add skill');
         }
     };
 
@@ -140,9 +139,9 @@ const PersonDetailPage: React.FC = () => {
         try {
             await peopleApi.removeRole(id, skillId);
             setPerson(prev => prev ? { ...prev, people_roles: prev.people_roles?.filter(r => r.id !== skillId) } : prev);
-            setToast({ message: 'Skill removed', type: 'success' });
+            toast.success('Skill removed');
         } catch (error) {
-            setToast({ message: 'Failed to remove skill', type: 'error' });
+            toast.error('Failed to remove skill');
         }
     };
 
@@ -155,10 +154,10 @@ const PersonDetailPage: React.FC = () => {
             await peopleApi.updateSystemRole(id, roleId);
             setPerson(prev => prev ? { ...prev, system_role: roleName } : prev);
             setShowSystemRoleModal(false);
-            setToast({ message: 'System role updated', type: 'success' });
+            toast.success('System role updated');
             recordActivity({ eventType: 'people.person.role_changed', eventCategory: 'identity', description: `${person?.full_name ?? 'Person'} system role changed to ${roleName}`, resourceType: 'person', resourceId: id }).catch(() => {});
         } catch (error) {
-            setToast({ message: 'Failed to update system role', type: 'error' });
+            toast.error('Failed to update system role');
         }
     };
 
@@ -783,7 +782,6 @@ const PersonDetailPage: React.FC = () => {
                 onSave={handleUpdateSystemRole}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

@@ -33,6 +33,7 @@ vi.mock('@so360/shell-context', () => ({
 import EmployeeTimesheetsPage from './EmployeeTimesheetsPage';
 import { peopleApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';
+import { toast } from '@so360/design-system';
 
 const mockPeopleApi = peopleApi as any;
 const mockTimesheet = timesheetApi as any;
@@ -212,8 +213,9 @@ describe('Given the Timesheet module is unavailable', () => {
   });
 
   it('When loading fails / Then an error toast is shown and the page does not crash', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load employee timesheets')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load employee timesheets'));
     expect(screen.getByText('Employee Timesheets')).toBeInTheDocument();
   });
 });
@@ -225,8 +227,9 @@ describe('Given the Timesheet module returns a 403 authorization error', () => {
   });
 
   it('When a 403-type error is returned / Then a graceful error toast is shown without exposing backend internals', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load employee timesheets')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load employee timesheets'));
     expect(screen.getByText('Employee Timesheets')).toBeInTheDocument();
   });
 

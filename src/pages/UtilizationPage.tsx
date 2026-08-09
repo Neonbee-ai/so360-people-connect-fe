@@ -10,7 +10,7 @@ import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { utilizationApi } from '../services/peopleService';
 import type { UtilizationData, UtilizationSummary } from '../types/people';
 
@@ -27,7 +27,6 @@ const UtilizationPage: React.FC = () => {
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
     const [sortBy, setSortBy] = useState<'name' | 'utilization' | 'cost'>('utilization');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     // Compute initial week
     const getWeekDates = (offset: number = 0) => {
@@ -62,7 +61,7 @@ const UtilizationPage: React.FC = () => {
             setSummary(summaryData);
         } catch (error) {
             console.error('Failed to load utilization:', error);
-            setToast({ message: 'Failed to load utilization data', type: 'error' });
+            toast.error('Failed to load utilization data');
         } finally {
             setLoading(false);
         }
@@ -341,7 +340,6 @@ const UtilizationPage: React.FC = () => {
                 </div>
             )}
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

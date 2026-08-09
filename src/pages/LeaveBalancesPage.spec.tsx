@@ -32,6 +32,7 @@ import LeaveBalancesPage from './LeaveBalancesPage';
 import { peopleApi } from '../services/peopleService';
 import { leaveTypesApi } from '../services/leaveTypesService';
 import { leaveBalancesApi } from '../services/leaveRequestsService';
+import { toast } from '@so360/design-system';
 
 const mockPeopleApi = peopleApi as any;
 const mockLeaveTypesApi = leaveTypesApi as any;
@@ -78,6 +79,7 @@ describe('Given an employee is selected with no balance initialized yet', () => 
 
   it('When Initialize Balances is clicked / Then it calls the initialize API for the selected employee/year and reloads', async () => {
     mockBalancesApi.initialize.mockResolvedValue({ message: 'ok' });
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
@@ -89,7 +91,7 @@ describe('Given an employee is selected with no balance initialized yet', () => 
     await waitFor(() => expect(mockBalancesApi.initialize).toHaveBeenCalledWith(
       expect.objectContaining({ person_id: 'person-1' }),
     ));
-    await waitFor(() => expect(screen.getByText('Leave balances initialized successfully')).toBeInTheDocument());
+    await waitFor(() => expect(toastSuccessSpy).toHaveBeenCalledWith('Leave balances initialized successfully'));
   });
 });
 

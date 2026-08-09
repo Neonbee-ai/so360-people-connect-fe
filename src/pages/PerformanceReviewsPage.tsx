@@ -5,7 +5,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview, CreatePerformanceReviewPayload } from '../services/performanceReviewsService';
@@ -24,7 +24,6 @@ const PerformanceReviewsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'all' | 'my' | 'team'>('all');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadReviews = useCallback(async () => {
         try {
@@ -41,7 +40,7 @@ const PerformanceReviewsPage: React.FC = () => {
             setReviews(result.data);
         } catch (error) {
             console.error('Failed to load performance reviews:', error);
-            setToast({ message: 'Failed to load performance reviews', type: 'error' });
+            toast.error('Failed to load performance reviews');
         } finally {
             setLoading(false);
         }
@@ -55,11 +54,11 @@ const PerformanceReviewsPage: React.FC = () => {
         try {
             const created = await performanceReviewsApi.create(data);
             setShowCreateModal(false);
-            setToast({ message: 'Performance review created successfully', type: 'success' });
+            toast.success('Performance review created successfully');
             recordActivity({ eventType: 'people.review.created', eventCategory: 'data', description: `Performance review was created`, resourceType: 'review', resourceId: created?.id }).catch(() => {});
             loadReviews();
         } catch (error) {
-            setToast({ message: 'Failed to create performance review', type: 'error' });
+            toast.error('Failed to create performance review');
         }
     };
 
@@ -254,7 +253,6 @@ const PerformanceReviewsPage: React.FC = () => {
                 onCreate={handleCreate}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

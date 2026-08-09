@@ -3,7 +3,7 @@ import { MessageSquare, Plus, Star, CheckCircle, Eye, EyeOff } from 'lucide-reac
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { feedbackApi, Feedback, CreateFeedbackPayload } from '../services/feedbackService';
@@ -20,7 +20,6 @@ const FeedbackPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [typeFilter, setTypeFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadFeedback = useCallback(async () => {
         setLoading(true);
@@ -44,22 +43,22 @@ const FeedbackPage: React.FC = () => {
     const handleCreate = async (data: CreateFeedbackPayload) => {
         try {
             const created = await feedbackApi.create(data);
-            setToast({ message: 'Feedback submitted successfully', type: 'success' });
+            toast.success('Feedback submitted successfully');
             setShowCreateModal(false);
             recordActivity({ eventType: 'people.feedback.submitted', eventCategory: 'data', description: `${data.feedback_type} feedback was submitted`, resourceType: 'feedback', resourceId: created?.id }).catch(() => {});
             loadFeedback();
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to submit feedback', type: 'error' });
+            toast.error(error.message || 'Failed to submit feedback');
         }
     };
 
     const handleAcknowledge = async (id: string) => {
         try {
             await feedbackApi.acknowledge(id);
-            setToast({ message: 'Feedback acknowledged', type: 'success' });
+            toast.success('Feedback acknowledged');
             loadFeedback();
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to acknowledge', type: 'error' });
+            toast.error(error.message || 'Failed to acknowledge');
         }
     };
 
@@ -191,7 +190,6 @@ const FeedbackPage: React.FC = () => {
                 onCreate={handleCreate}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

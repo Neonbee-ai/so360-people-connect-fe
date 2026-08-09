@@ -67,6 +67,7 @@ import { peopleApi, allocationsApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';
 import { goalsApi } from '../services/goalsService';
 import { workLocationsApi } from '../services/workLocationsService';
+import { toast } from '@so360/design-system';
 
 const mockPeople = peopleApi as any;
 const mockAlloc = allocationsApi as any;
@@ -111,11 +112,12 @@ describe('PersonDetailPage — extra scenarios', () => {
     });
 
     it('When save is clicked and update fails / Then shows failure toast', async () => {
+      const toastErrorSpy = vi.spyOn(toast, 'error');
       renderPage();
       await waitFor(() => screen.getByText('Alice Smith'));
       fireEvent.click(screen.getByText('Edit'));
       fireEvent.click(screen.getByText('Save'));
-      await waitFor(() => expect(screen.getByText('Failed to update')).toBeInTheDocument());
+      await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to update'));
     });
   });
 

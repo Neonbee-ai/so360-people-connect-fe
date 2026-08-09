@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
@@ -132,7 +132,6 @@ const ReviewDetailPage: React.FC = () => {
     const [managerFormData, setManagerFormData] = useState<Record<string, unknown>>({});
     const [overallRating, setOverallRating] = useState<number>(0);
     const [submitting, setSubmitting] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     useEffect(() => {
         if (id) loadReview(id);
@@ -166,7 +165,7 @@ const ReviewDetailPage: React.FC = () => {
             }
         } catch (error) {
             console.error('Failed to load review:', error);
-            setToast({ message: 'Failed to load review', type: 'error' });
+            toast.error('Failed to load review');
         } finally {
             setLoading(false);
         }
@@ -203,11 +202,11 @@ const ReviewDetailPage: React.FC = () => {
         setSubmitting(true);
         try {
             await performanceReviewsApi.submitSelfReview(review.id, selfFormData);
-            setToast({ message: 'Self review submitted successfully', type: 'success' });
+            toast.success('Self review submitted successfully');
             recordActivity({ eventType: 'people.review.submitted', eventCategory: 'data', description: `Self review submitted for ${review.person?.full_name || 'person'}`, resourceType: 'review', resourceId: review.id }).catch(() => {});
             if (id) loadReview(id);
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to submit self review', type: 'error' });
+            toast.error(error.message || 'Failed to submit self review');
         } finally {
             setSubmitting(false);
         }
@@ -219,11 +218,11 @@ const ReviewDetailPage: React.FC = () => {
         try {
             const calculatedRating = overallRating || calculateOverallFromForm(managerFormData, template.sections, template.rating_scale);
             await performanceReviewsApi.submitManagerReview(review.id, managerFormData, calculatedRating);
-            setToast({ message: 'Manager review submitted successfully', type: 'success' });
+            toast.success('Manager review submitted successfully');
             recordActivity({ eventType: 'people.review.updated', eventCategory: 'data', description: `Manager review submitted for ${review.person?.full_name || 'person'}`, resourceType: 'review', resourceId: review.id }).catch(() => {});
             if (id) loadReview(id);
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to submit manager review', type: 'error' });
+            toast.error(error.message || 'Failed to submit manager review');
         } finally {
             setSubmitting(false);
         }
@@ -234,11 +233,11 @@ const ReviewDetailPage: React.FC = () => {
         setSubmitting(true);
         try {
             await performanceReviewsApi.complete(review.id);
-            setToast({ message: 'Review completed successfully', type: 'success' });
+            toast.success('Review completed successfully');
             recordActivity({ eventType: 'people.review.completed', eventCategory: 'data', description: `Performance review completed for ${review.person?.full_name || 'person'}`, resourceType: 'review', resourceId: review.id }).catch(() => {});
             if (id) loadReview(id);
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to complete review', type: 'error' });
+            toast.error(error.message || 'Failed to complete review');
         } finally {
             setSubmitting(false);
         }
@@ -473,7 +472,6 @@ const ReviewDetailPage: React.FC = () => {
                 )}
             </div>
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

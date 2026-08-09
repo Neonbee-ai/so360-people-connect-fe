@@ -64,6 +64,7 @@ import PeoplePage from '../pages/PeoplePage';
 import { peopleApi } from '../services/peopleService';
 import { workLocationsApi } from '../services/workLocationsService';
 import { departmentsApi } from '../services/departmentsService';
+import { toast } from '@so360/design-system';
 
 const mockPeopleApi = peopleApi as any;
 const mockWorkLocationsApi = workLocationsApi as any;
@@ -176,9 +177,10 @@ describe('PeoplePage', () => {
     });
 
     it('When the page loads / Then it shows an error toast', async () => {
+      const toastErrorSpy = vi.spyOn(toast, 'error');
       renderPage();
       await waitFor(() => expect(screen.getByText('People Registry')).toBeInTheDocument());
-      expect(screen.getByText('Failed to load people')).toBeInTheDocument();
+      await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load people'));
     });
   });
 });

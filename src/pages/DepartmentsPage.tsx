@@ -5,9 +5,8 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { QuotaBar, QuotaGate } from '@so360/design-system';
+import { QuotaBar, QuotaGate, toast } from '@so360/design-system';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
 
 const DepartmentsPage: React.FC = () => {
@@ -24,7 +23,6 @@ const DepartmentsPage: React.FC = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadDepartments = useCallback(async () => {
         try {
@@ -36,7 +34,7 @@ const DepartmentsPage: React.FC = () => {
             setExpandedIds(allIds);
         } catch (error) {
             console.error('Failed to load departments:', error);
-            setToast({ message: 'Failed to load departments', type: 'error' });
+            toast.error('Failed to load departments');
         } finally {
             setLoading(false);
         }
@@ -50,11 +48,11 @@ const DepartmentsPage: React.FC = () => {
         try {
             const created = await departmentsApi.create(data);
             setShowCreateModal(false);
-            setToast({ message: `Department ${data.name} has been created`, type: 'success' });
+            toast.success(`Department ${data.name} has been created`);
             recordActivity({ eventType: 'people.department.created', eventCategory: 'identity', description: `Department ${data.name} was created`, resourceType: 'department', resourceId: created?.id }).catch(() => {});
             loadDepartments();
         } catch (error) {
-            setToast({ message: error instanceof Error ? error.message : 'Failed to create department', type: 'error' });
+            toast.error(error instanceof Error ? error.message : 'Failed to create department');
         }
     };
 
@@ -62,11 +60,11 @@ const DepartmentsPage: React.FC = () => {
         try {
             await departmentsApi.update(id, data);
             setEditingDepartment(null);
-            setToast({ message: 'Department updated successfully', type: 'success' });
+            toast.success('Department updated successfully');
             recordActivity({ eventType: 'people.department.updated', eventCategory: 'identity', description: `Department ${data.name || id} was updated`, resourceType: 'department', resourceId: id }).catch(() => {});
             loadDepartments();
         } catch (error) {
-            setToast({ message: error instanceof Error ? error.message : 'Failed to update department', type: 'error' });
+            toast.error(error instanceof Error ? error.message : 'Failed to update department');
         }
     };
 
@@ -221,7 +219,6 @@ const DepartmentsPage: React.FC = () => {
                 departments={departments}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

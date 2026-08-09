@@ -49,6 +49,7 @@ vi.mock('../utils/formatters', () => ({
 import AllocationsPage from './AllocationsPage';
 import { allocationsApi, peopleApi, entitiesApi } from '../services/peopleService';
 import { departmentsApi } from '../services/departmentsService';
+import { toast } from '@so360/design-system';
 
 const mockAllocApi = allocationsApi as any;
 const mockPeopleApi = peopleApi as any;
@@ -385,9 +386,10 @@ describe('AllocationsPage — error handling', () => {
   });
 
   it('When load fails / Then a failure toast is shown', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     mockAllocApi.getAll.mockRejectedValue(new Error('Network error'));
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load allocations')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load allocations'));
   });
 });
 

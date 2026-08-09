@@ -29,6 +29,7 @@ vi.mock('../services/attendanceService', () => ({
 
 import AttendanceRegisterPage from './AttendanceRegisterPage';
 import { attendanceApi } from '../services/attendanceService';
+import { toast } from '@so360/design-system';
 
 const mockAttendanceApi = attendanceApi as any;
 
@@ -154,10 +155,11 @@ describe('Given a quick-mark action is clicked for an unmarked person', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
 
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     mockAttendanceApi.mark.mockRejectedValue(new Error('Server error'));
     fireEvent.click(screen.getByRole('button', { name: 'Mark Absent' }));
 
-    await waitFor(() => expect(screen.getByText('Server error')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Server error'));
     const aliceRow = screen.getByText('Alice').closest('tr')!;
     expect(within(aliceRow).getByText('Not Marked')).toBeInTheDocument();
   });
@@ -249,7 +251,8 @@ describe('Given AttendanceRegisterPage register fetch fails', () => {
   });
 
   it('When the register fetch fails / Then an error toast is shown', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load attendance register')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load attendance register'));
   });
 });

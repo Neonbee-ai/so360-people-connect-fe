@@ -85,6 +85,7 @@ import { timesheetApi } from '../services/timesheetApi';
 import { goalsApi } from '../services/goalsService';
 import { workLocationsApi } from '../services/workLocationsService';
 import { departmentsApi } from '../services/departmentsService';
+import { toast } from '@so360/design-system';
 
 const mockPeople = peopleApi as any;
 const mockDepartments = departmentsApi as any;
@@ -196,6 +197,7 @@ describe('Given a person exists — handleAddSkill', () => {
   });
 
   it('When Add Skill modal is submitted successfully / Then addRole is called and skill appears', async () => {
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
     mockPeople.addRole.mockResolvedValue({
       id: 'r2',
       role_name: 'Backend Dev',
@@ -219,10 +221,11 @@ describe('Given a person exists — handleAddSkill', () => {
     fireEvent.submit(form);
 
     await waitFor(() => expect(mockPeople.addRole).toHaveBeenCalledWith('p1', expect.objectContaining({ role_name: 'Backend Dev' })));
-    await waitFor(() => expect(screen.getByText('Skill added')).toBeInTheDocument());
+    await waitFor(() => expect(toastSuccessSpy).toHaveBeenCalledWith('Skill added'));
   });
 
   it('When Add Skill modal submit fails / Then shows failure toast', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     mockPeople.addRole.mockImplementation(async () => { throw new Error('Skill creation failed'); });
 
     renderPage();
@@ -237,7 +240,7 @@ describe('Given a person exists — handleAddSkill', () => {
     const form = skillInput.closest('form') as HTMLFormElement;
     fireEvent.submit(form);
 
-    await waitFor(() => expect(screen.getByText('Failed to add skill')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to add skill'));
   });
 });
 
@@ -252,13 +255,14 @@ describe('Given a person exists — handleRemoveSkill failure', () => {
   });
 
   it('When removeRole fails / Then shows failure toast', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
     await waitFor(() => screen.getByText('Frontend Dev'));
 
     const trashButton = screen.getByTestId('icon-Trash2').closest('button');
     if (trashButton) fireEvent.click(trashButton);
 
-    await waitFor(() => expect(screen.getByText('Failed to remove skill')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to remove skill'));
   });
 });
 

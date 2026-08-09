@@ -20,6 +20,7 @@ vi.mock('@so360/shell-context', () => ({
 
 import UtilizationPage from './UtilizationPage';
 import { utilizationApi } from '../services/peopleService';
+import { toast } from '@so360/design-system';
 
 const mockApi = utilizationApi as any;
 
@@ -109,8 +110,9 @@ describe('Given UtilizationPage API failure', () => {
   });
 
   it('When API fails / Then error toast appears', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
     await waitFor(() => expect(screen.getByText('Utilization Intelligence')).toBeInTheDocument());
-    expect(screen.getByText('Failed to load utilization data')).toBeInTheDocument();
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load utilization data'));
   });
 });

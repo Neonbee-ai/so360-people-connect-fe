@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
 import { leaveRequestsApi, LeaveRequest } from '../services/leaveRequestsService';
 import { departmentsApi, Department } from '../services/departmentsService';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -24,7 +23,6 @@ const LeaveCalendarPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
     const [loadError, setLoadError] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -291,7 +289,6 @@ const LeaveCalendarPage: React.FC = () => {
                 </Modal>
             )}
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

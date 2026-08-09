@@ -4,7 +4,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
@@ -22,7 +22,6 @@ const GoalsPage: React.FC = () => {
     const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
     const [updatingProgress, setUpdatingProgress] = useState<Goal | null>(null);
     const [progressValue, setProgressValue] = useState<number>(0);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadGoals = useCallback(async () => {
         try {
@@ -34,7 +33,7 @@ const GoalsPage: React.FC = () => {
             setGoals(result.data);
         } catch (error) {
             console.error('Failed to load goals:', error);
-            setToast({ message: 'Failed to load goals', type: 'error' });
+            toast.error('Failed to load goals');
         } finally {
             setLoading(false);
         }
@@ -48,11 +47,11 @@ const GoalsPage: React.FC = () => {
         try {
             const created = await goalsApi.create(data);
             setShowCreateModal(false);
-            setToast({ message: `Goal ${data.title} has been created`, type: 'success' });
+            toast.success(`Goal ${data.title} has been created`);
             recordActivity({ eventType: 'people.goal.created', eventCategory: 'data', description: `Goal "${data.title}" was created`, resourceType: 'goal', resourceId: created?.id }).catch(() => {});
             loadGoals();
         } catch (error) {
-            setToast({ message: 'Failed to create goal', type: 'error' });
+            toast.error('Failed to create goal');
         }
     };
 
@@ -60,28 +59,28 @@ const GoalsPage: React.FC = () => {
         try {
             await goalsApi.update(id, data);
             setEditingGoal(null);
-            setToast({ message: 'Goal updated successfully', type: 'success' });
+            toast.success('Goal updated successfully');
             recordActivity({ eventType: 'people.goal.updated', eventCategory: 'data', description: `Goal "${data.title || id}" was updated`, resourceType: 'goal', resourceId: id }).catch(() => {});
             loadGoals();
         } catch (error) {
-            setToast({ message: 'Failed to update goal', type: 'error' });
+            toast.error('Failed to update goal');
         }
     };
 
     const handleUpdateProgress = async () => {
         if (!updatingProgress) return;
         if (isNaN(progressValue) || progressValue < 0) {
-            setToast({ message: 'Please enter a valid progress value (0 or above)', type: 'error' });
+            toast.error('Please enter a valid progress value (0 or above)');
             return;
         }
 
         try {
             await goalsApi.updateProgress(updatingProgress.id, progressValue, updatingProgress.target_value);
             setUpdatingProgress(null);
-            setToast({ message: 'Progress updated successfully', type: 'success' });
+            toast.success('Progress updated successfully');
             loadGoals();
         } catch (error) {
-            setToast({ message: 'Unable to update progress. Please try again.', type: 'error' });
+            toast.error('Unable to update progress. Please try again.');
         }
     };
 
@@ -90,11 +89,11 @@ const GoalsPage: React.FC = () => {
 
         try {
             await goalsApi.complete(goal.id);
-            setToast({ message: 'Goal marked as completed', type: 'success' });
+            toast.success('Goal marked as completed');
             recordActivity({ eventType: 'people.goal.completed', eventCategory: 'data', description: `Goal "${goal.title}" was completed`, resourceType: 'goal', resourceId: goal.id }).catch(() => {});
             loadGoals();
         } catch (error) {
-            setToast({ message: 'Failed to complete goal', type: 'error' });
+            toast.error('Failed to complete goal');
         }
     };
 
@@ -314,7 +313,6 @@ const GoalsPage: React.FC = () => {
                 </div>
             </Modal>
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

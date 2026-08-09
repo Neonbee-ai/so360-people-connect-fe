@@ -33,6 +33,7 @@ vi.mock('../utils/formatters', () => ({
 
 import LeaveApprovalsPage from './LeaveApprovalsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
+import { toast } from '@so360/design-system';
 
 const mockApi = leaveRequestsApi as any;
 
@@ -102,7 +103,8 @@ describe('Given LeaveApprovalsPage API failure', () => {
   });
 
   it('When API fails / Then error toast is shown', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load pending approvals')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load pending approvals'));
   });
 });

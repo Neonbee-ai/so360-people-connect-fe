@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TrendingUp, Star, Target, Users, Award } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
 import { goalsApi, Goal } from '../services/goalsService';
 
@@ -10,7 +10,6 @@ const TeamPerformancePage: React.FC = () => {
     const [reviews, setReviews] = useState<PerformanceReview[]>([]);
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     useEffect(() => {
         loadData();
@@ -27,7 +26,7 @@ const TeamPerformancePage: React.FC = () => {
             setGoals(goalsRes.data || []);
         } catch (error) {
             console.error('Failed to load team performance data:', error);
-            setToast({ message: 'Failed to load performance data', type: 'error' });
+            toast.error('Failed to load performance data');
         } finally {
             setLoading(false);
         }
@@ -214,7 +213,6 @@ const TeamPerformancePage: React.FC = () => {
                 </div>
             </div>
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

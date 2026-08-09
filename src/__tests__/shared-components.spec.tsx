@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
@@ -246,69 +246,35 @@ describe('StatusBadge', () => {
 });
 
 // ============================================================
-// Toast
+// Toast (design-system universal facade — shell mounts the viewport)
 // ============================================================
 
-import Toast from '../components/Toast';
+import { toast, useToast, getErrorMessage } from '@so360/design-system';
 
-describe('Toast', () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  describe('Given success type', () => {
-    it('When rendered / Then shows message', () => {
-      render(<Toast message="Saved successfully" type="success" onClose={vi.fn()} />);
-      expect(screen.getByText('Saved successfully')).toBeInTheDocument();
+describe('Toast facade', () => {
+  describe('Given the design-system toast facade', () => {
+    it('When success/error/warning/info are called / Then each returns a toast id', () => {
+      expect(toast.success('Saved successfully')).toBe('toast-id');
+      expect(toast.error('Something went wrong')).toBe('toast-id');
+      expect(toast.warning('Careful')).toBe('toast-id');
+      expect(toast.info('FYI')).toBe('toast-id');
     });
 
-    it('When rendered / Then applies emerald styling', () => {
-      const { container } = render(<Toast message="OK" type="success" onClose={vi.fn()} />);
-      const toastDiv = container.firstChild as HTMLElement;
-      expect(toastDiv?.className).toContain('emerald');
+    it('When useToast is called / Then it returns the same facade', () => {
+      expect(useToast()).toBe(toast);
     });
-  });
 
-  describe('Given error type', () => {
-    it('When rendered / Then applies rose styling', () => {
-      const { container } = render(<Toast message="Something went wrong" type="error" onClose={vi.fn()} />);
-      const toastDiv = container.firstChild as HTMLElement;
-      expect(toastDiv?.className).toContain('rose');
+    it('When a spec spies on toast.success / Then call sites are observable', () => {
+      const spy = vi.spyOn(toast, 'success');
+      toast.success('observable message');
+      expect(spy).toHaveBeenCalledWith('observable message');
+      spy.mockRestore();
     });
   });
 
-  describe('Given info type', () => {
-    it('When rendered / Then applies blue styling', () => {
-      const { container } = render(<Toast message="FYI" type="info" onClose={vi.fn()} />);
-      const toastDiv = container.firstChild as HTMLElement;
-      expect(toastDiv?.className).toContain('blue');
-    });
-  });
-
-  describe('Given close button', () => {
-    it('When close clicked / Then calls onClose immediately', () => {
-      const onClose = vi.fn();
-      render(<Toast message="msg" type="success" onClose={onClose} />);
-      // fireEvent avoids userEvent/fake-timer incompatibilities
-      fireEvent.click(screen.getByRole('button'));
-      expect(onClose).toHaveBeenCalled();
-    });
-  });
-
-  describe('Given default duration', () => {
-    it('When 4000ms elapses / Then auto-calls onClose', () => {
-      const onClose = vi.fn();
-      render(<Toast message="Timed" type="info" onClose={onClose} />);
-      act(() => { vi.advanceTimersByTime(4000); });
-      expect(onClose).toHaveBeenCalled();
-    });
-
-    it('When custom duration=1000 / Then calls onClose after 1s', () => {
-      const onClose = vi.fn();
-      render(<Toast message="Quick" type="success" onClose={onClose} duration={1000} />);
-      act(() => { vi.advanceTimersByTime(999); });
-      expect(onClose).not.toHaveBeenCalled();
-      act(() => { vi.advanceTimersByTime(1); });
-      expect(onClose).toHaveBeenCalled();
+  describe('Given getErrorMessage', () => {
+    it('When called with a fallback / Then the fallback is honoured', () => {
+      expect(getErrorMessage(new Error('boom'), 'fallback text')).toBe('fallback text');
     });
   });
 });

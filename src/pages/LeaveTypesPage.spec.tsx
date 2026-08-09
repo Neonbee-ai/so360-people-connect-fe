@@ -23,6 +23,7 @@ vi.mock('@so360/shell-context', () => ({
 
 import LeaveTypesPage from './LeaveTypesPage';
 import { leaveTypesApi } from '../services/leaveTypesService';
+import { toast } from '@so360/design-system';
 
 const mockApi = leaveTypesApi as any;
 
@@ -102,7 +103,8 @@ describe('Given LeaveTypesPage API failure', () => {
   });
 
   it('When API fails / Then error toast is shown', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load leave types')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load leave types'));
   });
 });

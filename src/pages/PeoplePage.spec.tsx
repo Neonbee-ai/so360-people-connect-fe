@@ -65,6 +65,7 @@ import PeoplePage from './PeoplePage';
 import { departmentsApi } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
 import { workLocationsApi } from '../services/workLocationsService';
+import { toast } from '@so360/design-system';
 
 const mockApi = peopleApi as any;
 const mockWorkLocationsApi = workLocationsApi as any;
@@ -474,6 +475,7 @@ describe('Given "Delete Employee" is clicked from the Actions menu', () => {
 
   it('When confirmed / Then peopleApi.delete is called and the resulting message is toasted', async () => {
     mockApi.delete.mockResolvedValue({ message: 'Person deactivated successfully', hard_deleted: false });
+    const toastInfoSpy = vi.spyOn(toast, 'info');
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Delete Employee'));
 
@@ -481,7 +483,7 @@ describe('Given "Delete Employee" is clicked from the Actions menu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete Employee' }));
 
     await waitFor(() => expect(mockApi.delete).toHaveBeenCalledWith('p1'));
-    await waitFor(() => expect(screen.getByText('Person deactivated successfully')).toBeInTheDocument());
+    await waitFor(() => expect(toastInfoSpy).toHaveBeenCalledWith('Person deactivated successfully'));
   });
 });
 

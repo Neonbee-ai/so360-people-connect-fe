@@ -8,7 +8,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
@@ -43,7 +43,6 @@ const AllocationsPage: React.FC = () => {
     const [departments, setDepartments] = useState<FlatDepartment[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingAllocation, setEditingAllocation] = useState<Allocation | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadAllocations = useCallback(async () => {
         try {
@@ -56,7 +55,7 @@ const AllocationsPage: React.FC = () => {
             setAllocations(result.data);
         } catch (error) {
             console.error('Failed to load allocations:', error);
-            setToast({ message: 'Failed to load allocations', type: 'error' });
+            toast.error('Failed to load allocations');
         } finally {
             setLoading(false);
         }
@@ -75,7 +74,7 @@ const AllocationsPage: React.FC = () => {
     const handleCreate = async (data: CreateAllocationPayload) => {
         const created = await allocationsApi.create(data);
         setShowCreateModal(false);
-        setToast({ message: 'Allocation created successfully', type: 'success' });
+        toast.success('Allocation created successfully');
         recordActivity({ eventType: 'people.allocation.created', eventCategory: 'data', description: `Allocation created for ${data.entity_name || data.entity_id}`, resourceType: 'allocation', resourceId: created?.id }).catch(() => {});
         loadAllocations();
     };
@@ -83,7 +82,7 @@ const AllocationsPage: React.FC = () => {
     const handleUpdate = async (id: string, data: UpdateAllocationPayload) => {
         await allocationsApi.update(id, data);
         setEditingAllocation(null);
-        setToast({ message: 'Allocation updated', type: 'success' });
+        toast.success('Allocation updated');
         recordActivity({ eventType: 'people.allocation.updated', eventCategory: 'data', description: `Allocation ${id} was updated`, resourceType: 'allocation', resourceId: id }).catch(() => {});
         loadAllocations();
     };
@@ -92,10 +91,10 @@ const AllocationsPage: React.FC = () => {
         if (!confirm('Cancel this allocation? This action cannot be undone.')) return;
         try {
             await allocationsApi.cancel(id);
-            setToast({ message: 'Allocation cancelled', type: 'success' });
+            toast.success('Allocation cancelled');
             loadAllocations();
         } catch (error) {
-            setToast({ message: 'Failed to cancel allocation', type: 'error' });
+            toast.error('Failed to cancel allocation');
         }
     };
 
@@ -316,7 +315,6 @@ const AllocationsPage: React.FC = () => {
                 />
             )}
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

@@ -249,9 +249,43 @@ export const entitiesApi = {
 // UTILIZATION API
 // =============================================================================
 
+// The backend returns a flat per-person row (person_id, person_name, logged_hours,
+// cost, variance as percentage points, ...) — see utilization.service.ts. The UI
+// (UtilizationPage/Card/Table) is written against the nested { person, utilization }
+// shape declared in types/people.ts, so raw rows are mapped here at the service
+// boundary rather than reshaping the already-tested backend contract.
+const mapUtilizationRow = (row: any): UtilizationData => {
+  const availableHours = row.available_hours || 0;
+  const actualHours = row.logged_hours || 0;
+  const plannedHours = Math.round(availableHours * ((row.target_utilization ?? 80) / 100));
+  return {
+    person: {
+      id: row.person_id,
+      full_name: row.person_name,
+      email: row.person_email,
+      job_title: row.job_title,
+      cost_rate: row.cost_rate,
+      available_hours_per_day: row.available_hours_per_day,
+      status: row.status,
+    },
+    utilization: {
+      available_hours: availableHours,
+      planned_hours: plannedHours,
+      actual_hours: actualHours,
+      actual_cost: row.cost || 0,
+      utilization_pct: row.utilization_pct || 0,
+      allocation_pct: row.allocation_pct || 0,
+      variance_hours: Math.round((actualHours - plannedHours) * 10) / 10,
+      is_idle: !!row.is_idle,
+      is_overallocated: !!row.is_overallocated,
+    },
+  };
+};
+
 export const utilizationApi = {
   getAll: async (params?: { period_start?: string; period_end?: string; person_id?: string }): Promise<{ data: UtilizationData[]; period: { start: string; end: string } }> => {
-    return api.get('/utilization', params);
+    const raw = await api.get<{ data: any[]; period: { start: string; end: string } }>('/utilization', params);
+    return { data: (raw.data || []).map(mapUtilizationRow), period: raw.period };
   },
 
   getSummary: async (): Promise<UtilizationSummary> => {

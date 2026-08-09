@@ -5,7 +5,7 @@ import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import {
     attendanceApi,
     AttendanceRegisterRow,
@@ -32,7 +32,6 @@ const AttendanceRegisterPage: React.FC = () => {
     const [summary, setSummary] = useState<AttendanceSummary | null>(null);
     const [loading, setLoading] = useState(true);
     const [editingRow, setEditingRow] = useState<AttendanceRegisterRow | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadSummary = useCallback(async (forDate: string) => {
         try {
@@ -50,7 +49,7 @@ const AttendanceRegisterPage: React.FC = () => {
             setRows(result.data);
         } catch (error) {
             console.error('Failed to load attendance register:', error);
-            setToast({ message: 'Failed to load attendance register', type: 'error' });
+            toast.error('Failed to load attendance register');
         } finally {
             setLoading(false);
         }
@@ -81,13 +80,13 @@ const AttendanceRegisterPage: React.FC = () => {
                         : r,
                 ),
             );
-            setToast({ message: `${row.person_name} marked ${statusLabel(status)}`, type: 'success' });
+            toast.success(`${row.person_name} marked ${statusLabel(status)}`);
             loadSummary(date);
         } catch (error) {
             // Revert on failure — never leave a false status behind.
             setRows((prev) => prev.map((r) => (r.person_id === row.person_id ? previous : r)));
             const msg = error instanceof Error ? error.message : 'Failed to update attendance';
-            setToast({ message: msg, type: 'error' });
+            toast.error(msg);
         }
     };
 
@@ -211,9 +210,8 @@ const AttendanceRegisterPage: React.FC = () => {
             )}
 
             {/* Edit Modal */}
-            <AttendanceEditModal row={editingRow} date={date} onClose={() => setEditingRow(null)} onSaved={handleSaved} setToast={setToast} />
+            <AttendanceEditModal row={editingRow} date={date} onClose={() => setEditingRow(null)} onSaved={handleSaved} />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
@@ -227,12 +225,11 @@ interface AttendanceEditModalProps {
     date: string;
     onClose: () => void;
     onSaved: () => void;
-    setToast: (t: { message: string; type: ToastType } | null) => void;
 }
 
 const STATUS_OPTIONS: AttendanceStatus[] = ['present', 'absent', 'half_day', 'leave', 'wfh', 'on_duty', 'holiday', 'weekend'];
 
-const AttendanceEditModal: React.FC<AttendanceEditModalProps> = ({ row, date, onClose, onSaved, setToast }) => {
+const AttendanceEditModal: React.FC<AttendanceEditModalProps> = ({ row, date, onClose, onSaved }) => {
     const [status, setStatus] = useState<AttendanceStatus>('present');
     const [checkIn, setCheckIn] = useState('');
     const [checkOut, setCheckOut] = useState('');
@@ -284,11 +281,11 @@ const AttendanceEditModal: React.FC<AttendanceEditModalProps> = ({ row, date, on
                     notes: notes || null,
                 });
             }
-            setToast({ message: `Attendance updated for ${row.person_name}`, type: 'success' });
+            toast.success(`Attendance updated for ${row.person_name}`);
             onSaved();
         } catch (error) {
             const msg = error instanceof Error ? error.message : 'Failed to save attendance';
-            setToast({ message: msg, type: 'error' });
+            toast.error(msg);
         } finally {
             setSaving(false);
         }

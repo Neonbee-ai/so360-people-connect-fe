@@ -8,7 +8,7 @@ import {
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { departmentsApi, Department, DepartmentEmployee } from '../services/departmentsService';
@@ -360,7 +360,6 @@ const DepartmentDetailPage: React.FC = () => {
     const [showGrantAccessModal, setShowGrantAccessModal] = useState(false);
     const [scopeGrantees, setScopeGrantees] = useState<DepartmentScopeGrantee[]>([]);
     const [loadingScopes, setLoadingScopes] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadData = useCallback(async () => {
         if (!id) return;
@@ -407,10 +406,10 @@ const DepartmentDetailPage: React.FC = () => {
             await departmentsApi.update(id, data);
             setDepartment(prev => prev ? { ...prev, ...data } : prev);
             setShowEditModal(false);
-            setToast({ message: 'Department updated successfully', type: 'success' });
+            toast.success('Department updated successfully');
             recordActivity({ eventType: 'people.department.updated', eventCategory: 'identity', description: `Department ${data.name || department.name} was updated`, resourceType: 'department', resourceId: id }).catch(() => {});
         } catch {
-            setToast({ message: 'Failed to update department', type: 'error' });
+            toast.error('Failed to update department');
         }
     };
 
@@ -420,10 +419,10 @@ const DepartmentDetailPage: React.FC = () => {
             const updated = await departmentsApi.update(id, { head_person_id: personId });
             setDepartment(prev => prev ? { ...prev, ...updated } : prev);
             setShowAssignManagerModal(false);
-            setToast({ message: 'Department manager assigned successfully', type: 'success' });
+            toast.success('Department manager assigned successfully');
             recordActivity({ eventType: 'people.department.updated', eventCategory: 'identity', description: `Department manager updated for ${department.name}`, resourceType: 'department', resourceId: id }).catch(() => {});
         } catch {
-            setToast({ message: 'Failed to assign manager', type: 'error' });
+            toast.error('Failed to assign manager');
         }
     };
 
@@ -459,11 +458,11 @@ const DepartmentDetailPage: React.FC = () => {
                 include_descendants: includeDescendants,
             });
             setShowGrantAccessModal(false);
-            setToast({ message: 'Department access granted', type: 'success' });
+            toast.success('Department access granted');
             recordActivity({ eventType: 'people.department.access_granted', eventCategory: 'identity', description: `Department access granted for ${department?.name || id}`, resourceType: 'department', resourceId: id }).catch(() => {});
             loadScopeGrantees();
         } catch (error) {
-            setToast({ message: error instanceof Error ? error.message : 'Failed to grant access', type: 'error' });
+            toast.error(error instanceof Error ? error.message : 'Failed to grant access');
         }
     };
 
@@ -471,25 +470,25 @@ const DepartmentDetailPage: React.FC = () => {
         const orgId = apiContext.getOrgId();
         try {
             await departmentScopeApi.revoke(scopeId, orgId);
-            setToast({ message: 'Department access revoked', type: 'success' });
+            toast.success('Department access revoked');
             loadScopeGrantees();
         } catch (error) {
-            setToast({ message: error instanceof Error ? error.message : 'Failed to revoke access', type: 'error' });
+            toast.error(error instanceof Error ? error.message : 'Failed to revoke access');
         }
     };
 
     const handleArchive = async () => {
         if (!id || !department) return;
         if (employeeTotal > 0) {
-            setToast({ message: `Cannot archive department with active employee assignments. Transfer or reassign ${employeeTotal} employee(s) first.`, type: 'error' });
+            toast.error(`Cannot archive department with active employee assignments. Transfer or reassign ${employeeTotal} employee(s) first.`);
             return;
         }
         try {
             await departmentsApi.update(id, { is_active: false });
             setDepartment(prev => prev ? { ...prev, is_active: false } : prev);
-            setToast({ message: 'Department archived successfully', type: 'success' });
+            toast.success('Department archived successfully');
         } catch {
-            setToast({ message: 'Failed to archive department', type: 'error' });
+            toast.error('Failed to archive department');
         }
     };
 
@@ -832,7 +831,6 @@ const DepartmentDetailPage: React.FC = () => {
                 onGrant={handleGrantAccess}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

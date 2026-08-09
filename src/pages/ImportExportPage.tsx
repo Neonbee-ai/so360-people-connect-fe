@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Upload, FileDown, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
 
@@ -18,7 +18,6 @@ const ImportExportPage: React.FC = () => {
         success: number;
         errors: Array<{ row: number; field: string; message: string }>;
     } | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [departments, setDepartments] = useState<Department[]>([]);
 
     useEffect(() => {
@@ -47,9 +46,9 @@ const ImportExportPage: React.FC = () => {
             window.URL.revokeObjectURL(url);
             a.remove();
 
-            setToast({ message: `Exported successfully as ${exportFormat.toUpperCase()}`, type: 'success' });
+            toast.success(`Exported successfully as ${exportFormat.toUpperCase()}`);
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to export people', type: 'error' });
+            toast.error(error.message || 'Failed to export people');
         } finally {
             setIsExporting(false);
         }
@@ -68,9 +67,9 @@ const ImportExportPage: React.FC = () => {
             window.URL.revokeObjectURL(url);
             a.remove();
 
-            setToast({ message: 'Template downloaded successfully', type: 'success' });
+            toast.success('Template downloaded successfully');
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to download template', type: 'error' });
+            toast.error(error.message || 'Failed to download template');
         }
     };
 
@@ -95,9 +94,9 @@ const ImportExportPage: React.FC = () => {
                 });
 
                 if (!result.errors || result.errors.length === 0) {
-                    setToast({ message: 'Validation successful! All records are valid.', type: 'success' });
+                    toast.success('Validation successful! All records are valid.');
                 } else {
-                    setToast({ message: `Validation found ${result.errors.length} errors.`, type: 'error' });
+                    toast.error(`Validation found ${result.errors.length} errors.`);
                 }
             } else {
                 const result = await peopleApi.import(importFile);
@@ -107,14 +106,14 @@ const ImportExportPage: React.FC = () => {
                 });
 
                 if (!result.errors || result.errors.length === 0) {
-                    setToast({ message: `Import successful! ${result.success} people imported.`, type: 'success' });
+                    toast.success(`Import successful! ${result.success} people imported.`);
                     setImportFile(null);
                 } else {
-                    setToast({ message: `Imported ${result.success} records with ${result.errors.length} errors.`, type: 'error' });
+                    toast.error(`Imported ${result.success} records with ${result.errors.length} errors.`);
                 }
             }
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to process import', type: 'error' });
+            toast.error(error.message || 'Failed to process import');
         } finally {
             setIsImporting(false);
         }
@@ -322,7 +321,6 @@ const ImportExportPage: React.FC = () => {
                 </div>
             </div>
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

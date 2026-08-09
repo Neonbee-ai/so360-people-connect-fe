@@ -37,6 +37,7 @@ vi.mock('../utils/formatters', () => ({
 
 import GoalsPage from './GoalsPage';
 import { goalsApi } from '../services/goalsService';
+import { toast } from '@so360/design-system';
 
 const mockApi = goalsApi as any;
 
@@ -115,7 +116,8 @@ describe('Given GoalsPage API failure', () => {
   });
 
   it('When API fails / Then error toast is shown', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load goals')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load goals'));
   });
 });

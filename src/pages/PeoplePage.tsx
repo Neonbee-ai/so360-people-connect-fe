@@ -5,14 +5,13 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
 import { peopleApi } from '../services/peopleService';
 import type { Person, CreatePersonPayload, PersonStatus, AccessStatus, InvitationStatus } from '../types/people';
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { QuotaBar, QuotaGate } from '@so360/design-system';
+import { QuotaBar, QuotaGate, toast } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import { usePeopleFormatters } from '../utils/formatters';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
@@ -75,7 +74,6 @@ const PeoplePage: React.FC = () => {
     const [joiningToFilter, setJoiningToFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [inviteResult, setInviteResult] = useState<{ link: string; email: string; emailSent: boolean } | null>(null);
     const [currencies, setCurrencies] = useState<string[]>(DEFAULT_CURRENCIES);
     // Org's configured base currency (from Core business_settings), used as the
@@ -120,7 +118,7 @@ const PeoplePage: React.FC = () => {
             setPeople(result.data);
         } catch (error) {
             console.error('Failed to load people:', error);
-            setToast({ message: 'Failed to load people', type: 'error' });
+            toast.error('Failed to load people');
         } finally {
             setLoading(false);
         }
@@ -172,21 +170,21 @@ const PeoplePage: React.FC = () => {
                 try {
                     const res = await peopleApi.inviteUser(created.id, inviteEmail, invite.inviteRole, invite.sendInviteEmail !== false);
                     if (res.invite_status === 'existing_user') {
-                        setToast({ message: `${data.full_name} added — ${inviteEmail} already has an account and can sign in.`, type: 'success' });
+                        toast.success(`${data.full_name} added — ${inviteEmail} already has an account and can sign in.`);
                     } else if (res.invite_link) {
                         setInviteResult({ link: res.invite_link, email: inviteEmail, emailSent: !!res.email_sent });
                     } else {
-                        setToast({ message: `${data.full_name} has been invited`, type: 'success' });
+                        toast.success(`${data.full_name} has been invited`);
                     }
                 } catch {
-                    setToast({ message: `${data.full_name} added, but sending the invite failed`, type: 'error' });
+                    toast.error(`${data.full_name} added, but sending the invite failed`);
                 }
             } else {
-                setToast({ message: `${data.full_name} has been added`, type: 'success' });
+                toast.success(`${data.full_name} has been added`);
             }
             loadPeople();
         } catch (error) {
-            setToast({ message: 'Failed to create person', type: 'error' });
+            toast.error('Failed to create person');
         }
     };
 
@@ -194,9 +192,9 @@ const PeoplePage: React.FC = () => {
         if (!inviteResult) return;
         try {
             await navigator.clipboard.writeText(inviteResult.link);
-            setToast({ message: 'Invite link copied to clipboard', type: 'success' });
+            toast.success('Invite link copied to clipboard');
         } catch {
-            setToast({ message: 'Could not copy automatically — select the link and copy it manually', type: 'error' });
+            toast.error('Could not copy automatically — select the link and copy it manually');
         }
     };
 
@@ -206,7 +204,7 @@ const PeoplePage: React.FC = () => {
     const handleInvite = async (person: Person) => {
         const email = person.email;
         if (!email) {
-            setToast({ message: `${person.full_name} has no email — add one before inviting`, type: 'error' });
+            toast.error(`${person.full_name} has no email — add one before inviting`);
             return;
         }
         try {
@@ -214,20 +212,20 @@ const PeoplePage: React.FC = () => {
             const roles = await peopleApi.getOrgRoles();
             const defaultRole = roles.data?.[0]?.id;
             if (!defaultRole) {
-                setToast({ message: 'No org roles available to assign — set up roles first', type: 'error' });
+                toast.error('No org roles available to assign — set up roles first');
                 return;
             }
             const res = await peopleApi.inviteUser(person.id, email, defaultRole, true);
             if (res.invite_status === 'existing_user') {
-                setToast({ message: `${email} already has an account and can sign in.`, type: 'success' });
+                toast.success(`${email} already has an account and can sign in.`);
             } else if (res.invite_link) {
                 setInviteResult({ link: res.invite_link, email, emailSent: !!res.email_sent });
             } else {
-                setToast({ message: `${person.full_name} has been invited`, type: 'success' });
+                toast.success(`${person.full_name} has been invited`);
             }
             loadPeople();
         } catch {
-            setToast({ message: `Failed to invite ${person.full_name}`, type: 'error' });
+            toast.error(`Failed to invite ${person.full_name}`);
         } finally {
             setInvitingId(null);
         }
@@ -238,7 +236,7 @@ const PeoplePage: React.FC = () => {
     const handleResendInvite = async (person: Person) => {
         const email = person.email;
         if (!email) {
-            setToast({ message: `${person.full_name} has no email on file`, type: 'error' });
+            toast.error(`${person.full_name} has no email on file`);
             return;
         }
         setActionBusy(true);
@@ -246,19 +244,19 @@ const PeoplePage: React.FC = () => {
             const roles = await peopleApi.getOrgRoles();
             const defaultRole = roles.data?.[0]?.id;
             if (!defaultRole) {
-                setToast({ message: 'No org roles available to assign — set up roles first', type: 'error' });
+                toast.error('No org roles available to assign — set up roles first');
                 return;
             }
             const res = await peopleApi.inviteUser(person.id, email, defaultRole, true);
             if (res.invite_link) {
                 setInviteResult({ link: res.invite_link, email, emailSent: !!res.email_sent });
             } else {
-                setToast({ message: `Invitation resent to ${person.full_name}`, type: 'success' });
+                toast.success(`Invitation resent to ${person.full_name}`);
             }
             recordActivity({ eventType: 'people.person.invitation_resent', eventCategory: 'identity', description: `Invitation resent to ${person.full_name}`, resourceType: 'person', resourceId: person.id }).catch(() => {});
             loadPeople();
         } catch {
-            setToast({ message: `Failed to resend invitation to ${person.full_name}`, type: 'error' });
+            toast.error(`Failed to resend invitation to ${person.full_name}`);
         } finally {
             setActionBusy(false);
         }
@@ -268,11 +266,11 @@ const PeoplePage: React.FC = () => {
         setActionBusy(true);
         try {
             await peopleApi.cancelInvite(person.id);
-            setToast({ message: `Invitation to ${person.full_name} has been cancelled`, type: 'success' });
+            toast.success(`Invitation to ${person.full_name} has been cancelled`);
             recordActivity({ eventType: 'people.person.invitation_cancelled', eventCategory: 'identity', description: `Invitation to ${person.full_name} was cancelled`, resourceType: 'person', resourceId: person.id }).catch(() => {});
             loadPeople();
         } catch (error) {
-            setToast({ message: error instanceof Error ? error.message : 'Failed to cancel invitation', type: 'error' });
+            toast.error(error instanceof Error ? error.message : 'Failed to cancel invitation');
         } finally {
             setActionBusy(false);
             setConfirmAction(null);
@@ -283,12 +281,12 @@ const PeoplePage: React.FC = () => {
         setActionBusy(true);
         try {
             await peopleApi.update(id, data);
-            setToast({ message: 'Employee updated', type: 'success' });
+            toast.success('Employee updated');
             recordActivity({ eventType: 'people.person.updated', eventCategory: 'identity', description: `Person ${data.full_name ?? ''} was updated`.trim(), resourceType: 'person', resourceId: id }).catch(() => {});
             setEditPerson(null);
             loadPeople();
         } catch (error) {
-            setToast({ message: error instanceof Error ? error.message : 'Failed to update employee', type: 'error' });
+            toast.error(error instanceof Error ? error.message : 'Failed to update employee');
         } finally {
             setActionBusy(false);
         }
@@ -301,11 +299,11 @@ const PeoplePage: React.FC = () => {
         try {
             await peopleApi.update(person.id, { status });
             const verb = status === 'active' ? 'reactivated' : status === 'archived' ? 'archived' : 'deactivated';
-            setToast({ message: `${person.full_name} has been ${verb}`, type: 'success' });
+            toast.success(`${person.full_name} has been ${verb}`);
             recordActivity({ eventType: `people.person.${status === 'active' ? 'activated' : status}`, eventCategory: 'identity', description: `${person.full_name} was ${verb}`, resourceType: 'person', resourceId: person.id }).catch(() => {});
             loadPeople();
         } catch (error) {
-            setToast({ message: error instanceof Error ? error.message : `Failed to update ${person.full_name}`, type: 'error' });
+            toast.error(error instanceof Error ? error.message : `Failed to update ${person.full_name}`);
         } finally {
             setActionBusy(false);
             setConfirmAction(null);
@@ -316,11 +314,12 @@ const PeoplePage: React.FC = () => {
         setActionBusy(true);
         try {
             const res = await peopleApi.delete(person.id);
-            setToast({ message: res.message, type: res.hard_deleted ? 'success' : 'info' });
+            if (res.hard_deleted) toast.success(res.message);
+            else toast.info(res.message);
             recordActivity({ eventType: res.hard_deleted ? 'people.person.deleted' : 'people.person.deactivated', eventCategory: 'identity', description: `${person.full_name}: ${res.message}`, resourceType: 'person', resourceId: person.id }).catch(() => {});
             loadPeople();
         } catch (error) {
-            setToast({ message: error instanceof Error ? error.message : `Failed to delete ${person.full_name}`, type: 'error' });
+            toast.error(error instanceof Error ? error.message : `Failed to delete ${person.full_name}`);
         } finally {
             setActionBusy(false);
             setConfirmAction(null);
@@ -343,9 +342,9 @@ const PeoplePage: React.FC = () => {
             a.download = `people-${new Date().toISOString().split('T')[0]}.${format === 'csv' ? 'csv' : 'xlsx'}`;
             a.click();
             setShowExportMenu(false);
-            setToast({ message: `Exported ${people.length} people as ${format.toUpperCase()}`, type: 'success' });
+            toast.success(`Exported ${people.length} people as ${format.toUpperCase()}`);
         } catch (error) {
-            setToast({ message: 'Failed to export people', type: 'error' });
+            toast.error('Failed to export people');
         }
     };
 
@@ -829,7 +828,6 @@ const PeoplePage: React.FC = () => {
                 />
             )}
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

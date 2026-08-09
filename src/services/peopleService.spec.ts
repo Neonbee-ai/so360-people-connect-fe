@@ -103,6 +103,71 @@ describe('Given utilizationApi.getSummary', () => {
   });
 });
 
+describe('Given utilizationApi.getAll', () => {
+  // The backend returns a flat per-person row (person_id, person_name,
+  // logged_hours, cost, ...) — see utilization.service.ts. The UI reads a
+  // nested { person, utilization } shape, so getAll must reshape every row;
+  // a regression here reintroduces the "Cannot read properties of undefined
+  // (reading 'full_name')" crash on the Utilization page.
+  it('When the backend returns a flat row / Then it is reshaped into nested person/utilization objects', async () => {
+    mockApi.get.mockResolvedValue({
+      data: [
+        {
+          person_id: 'p1',
+          person_name: 'Alice',
+          person_email: 'alice@test.com',
+          job_title: 'Engineer',
+          available_hours: 40,
+          logged_hours: 32,
+          utilization_pct: 80,
+          target_utilization: 80,
+          allocation_pct: 100,
+          cost: 1600,
+          is_idle: false,
+          is_overallocated: false,
+        },
+      ],
+      period: { start: '2026-08-03', end: '2026-08-07' },
+    });
+
+    const result = await utilizationApi.getAll();
+
+    expect(mockApi.get).toHaveBeenCalledWith('/utilization', undefined);
+    expect(result.period).toEqual({ start: '2026-08-03', end: '2026-08-07' });
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].person).toMatchObject({ id: 'p1', full_name: 'Alice', email: 'alice@test.com', job_title: 'Engineer' });
+    expect(result.data[0].utilization).toMatchObject({
+      available_hours: 40,
+      actual_hours: 32,
+      actual_cost: 1600,
+      utilization_pct: 80,
+      allocation_pct: 100,
+      is_idle: false,
+      is_overallocated: false,
+    });
+  });
+
+  it('When a row has no allocation/hours data / Then it defaults to zeroed, non-undefined numeric fields', async () => {
+    mockApi.get.mockResolvedValue({
+      data: [{ person_id: 'p2', person_name: 'Bob', is_idle: true, is_overallocated: false }],
+      period: { start: '2026-08-03', end: '2026-08-07' },
+    });
+
+    const result = await utilizationApi.getAll();
+
+    expect(result.data[0].utilization.available_hours).toBe(0);
+    expect(result.data[0].utilization.actual_hours).toBe(0);
+    expect(result.data[0].utilization.actual_cost).toBe(0);
+    expect(result.data[0].utilization.allocation_pct).toBe(0);
+  });
+
+  it('When called with period params / Then they are forwarded to GET /utilization', async () => {
+    mockApi.get.mockResolvedValue({ data: [], period: { start: 'a', end: 'b' } });
+    await utilizationApi.getAll({ period_start: '2026-08-03', period_end: '2026-08-07' });
+    expect(mockApi.get).toHaveBeenCalledWith('/utilization', { period_start: '2026-08-03', period_end: '2026-08-07' });
+  });
+});
+
 describe('Given eventsApi.getAll', () => {
   it('When called / Then it calls GET /events', async () => {
     mockApi.get.mockResolvedValue({ data: [], total: 0 });

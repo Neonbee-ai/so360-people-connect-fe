@@ -3,7 +3,7 @@ import { DollarSign, RefreshCw } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { leaveBalancesApi } from '../services/leaveRequestsService';
 import type { LeaveBalance } from '../services/leaveRequestsService';
@@ -26,7 +26,6 @@ const LeaveBalancesPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [initializing, setInitializing] = useState(false);
     const [adjustingType, setAdjustingType] = useState<LeaveType | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     useEffect(() => {
         peopleApi.getAll({ status: 'active', limit: 200 }).then(result => setPeople(result.data)).catch(() => undefined);
@@ -43,7 +42,7 @@ const LeaveBalancesPage: React.FC = () => {
             const result = await leaveBalancesApi.getAll({ person_id: personId, fiscal_year: fiscalYear });
             setBalances(result.data);
         } catch (error) {
-            setToast({ message: 'Failed to load leave balances', type: 'error' });
+            toast.error('Failed to load leave balances');
         } finally {
             setLoading(false);
         }
@@ -58,11 +57,11 @@ const LeaveBalancesPage: React.FC = () => {
         try {
             setInitializing(true);
             await leaveBalancesApi.initialize({ person_id: personId, fiscal_year: fiscalYear });
-            setToast({ message: 'Leave balances initialized successfully', type: 'success' });
+            toast.success('Leave balances initialized successfully');
             recordActivity({ eventType: 'people.leave_balance.initialized', eventCategory: 'data', description: `Leave balances initialized for fiscal year ${fiscalYear}`, resourceType: 'leave_balance', resourceId: personId }).catch(() => {});
             await loadBalances();
         } catch (error) {
-            setToast({ message: 'Failed to initialize leave balances', type: 'error' });
+            toast.error('Failed to initialize leave balances');
         } finally {
             setInitializing(false);
         }
@@ -78,12 +77,12 @@ const LeaveBalancesPage: React.FC = () => {
                 adjustment_amount,
                 reason,
             });
-            setToast({ message: `${adjustingType.name} balance adjusted`, type: 'success' });
+            toast.success(`${adjustingType.name} balance adjusted`);
             recordActivity({ eventType: 'people.leave_balance.adjusted', eventCategory: 'data', description: `${adjustingType.name} balance adjusted by ${adjustment_amount} days`, resourceType: 'leave_balance', resourceId: personId }).catch(() => {});
             setAdjustingType(null);
             await loadBalances();
         } catch (error) {
-            setToast({ message: 'Failed to adjust leave balance', type: 'error' });
+            toast.error('Failed to adjust leave balance');
         }
     };
 
@@ -205,7 +204,6 @@ const LeaveBalancesPage: React.FC = () => {
                 onSubmit={handleAdjust}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

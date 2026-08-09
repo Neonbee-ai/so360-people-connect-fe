@@ -16,6 +16,7 @@ vi.mock('../services/goalsService', () => ({
 import TeamPerformancePage from './TeamPerformancePage';
 import { performanceReviewsApi } from '../services/performanceReviewsService';
 import { goalsApi } from '../services/goalsService';
+import { toast } from '@so360/design-system';
 
 const mockReviewsApi = performanceReviewsApi as any;
 const mockGoalsApi = goalsApi as any;
@@ -85,8 +86,9 @@ describe('Given TeamPerformancePage API failure', () => {
   });
 
   it('When APIs fail / Then error toast appears', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
     await waitFor(() => expect(screen.getByText('Team Performance')).toBeInTheDocument());
-    expect(screen.getByText('Failed to load performance data')).toBeInTheDocument();
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load performance data'));
   });
 });
