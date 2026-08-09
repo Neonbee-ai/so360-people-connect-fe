@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { toast } from '@so360/design-system';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -97,7 +98,8 @@ describe('Given ReviewTemplatesPage API failure', () => {
   });
 
   it('When API fails / Then error toast appears', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
-    await waitFor(() => expect(screen.getByText(/Failed to load/i)).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith(expect.stringMatching(/Failed to load/i)));
   });
 });

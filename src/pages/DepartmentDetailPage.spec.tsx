@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { toast } from '@so360/design-system';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
 
@@ -409,10 +410,11 @@ describe('Given DepartmentDetailPage archive with active employees', () => {
     });
 
     it('When Archive is clicked with employees / Then error toast is shown', async () => {
+        const toastErrorSpy = vi.spyOn(toast, 'error');
         renderPage();
         await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: /Archive/i }));
-        await waitFor(() => expect(screen.getByText(/Cannot archive department/i)).toBeInTheDocument());
+        await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith(expect.stringMatching(/Cannot archive department/i)));
     });
 
     it('When Archive is clicked with employees / Then update is NOT called', async () => {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { toast } from '@so360/design-system';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
 
@@ -215,6 +216,7 @@ describe('Given DepartmentsPage create/update failure surfaces the backend error
   });
 
   it('When create fails with a circular-reference error / Then the toast shows the backend message, not a generic one', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     mockApi.create.mockRejectedValue(new Error('Cannot set department as parent - would create circular reference'));
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
@@ -224,7 +226,7 @@ describe('Given DepartmentsPage create/update failure surfaces the backend error
     fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'X Dept' } });
     fireEvent.click(screen.getByText('Create'));
     await waitFor(() =>
-      expect(screen.getByText('Cannot set department as parent - would create circular reference')).toBeInTheDocument(),
+      expect(toastErrorSpy).toHaveBeenCalledWith('Cannot set department as parent - would create circular reference'),
     );
   });
 });
