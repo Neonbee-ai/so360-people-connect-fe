@@ -17,8 +17,7 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@so360/design-system": ["src/types/stubs/design-system"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src"],
