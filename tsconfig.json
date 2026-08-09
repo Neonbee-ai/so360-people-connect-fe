@@ -17,7 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@so360/design-system": ["../../so360-shell-fe/packages/design-system/src/index.ts"]
     }
   },
   "include": ["src"],
