@@ -848,7 +848,9 @@ interface CreatePersonModalProps {
 
 const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, onCreate, currencies = DEFAULT_CURRENCIES, defaultCurrency }) => {
     const { orgId, tenantId } = usePeopleContext();
+    const navigate = useNavigate();
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
+    const [workLocationsError, setWorkLocationsError] = useState(false);
     const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
     // Holds the resolved org currency. Initialized from the shell prop when available;
     // falls back to a direct Core BE fetch to avoid the shell's async race condition.
@@ -856,7 +858,10 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
 
     useEffect(() => {
         if (!isOpen) return;
-        workLocationsApi.getAll().then(r => setWorkLocations(r.data)).catch(() => {});
+        setWorkLocationsError(false);
+        workLocationsApi.getAll()
+            .then(r => setWorkLocations(r.data ?? []))
+            .catch(() => setWorkLocationsError(true));
         peopleApi.getOrgRoles().then(r => setOrgRoles(r.data ?? [])).catch(() => {});
     }, [isOpen]);
 
@@ -1002,11 +1007,25 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
-                                <option value="">None</option>
+                                <option value="">Select Work Location</option>
                                 {workLocations.map(loc => (
                                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                                 ))}
                             </select>
+                            {workLocationsError ? (
+                                <p className="text-xs text-rose-400 mt-1">Couldn't load work locations. Try reopening this form.</p>
+                            ) : workLocations.length === 0 ? (
+                                <p className="text-xs text-slate-500 mt-1">
+                                    No work locations configured.{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/people/settings/work-locations')}
+                                        className="text-teal-400 hover:text-teal-300 underline"
+                                    >
+                                        Create Work Location
+                                    </button>
+                                </p>
+                            ) : null}
                         </div>
                     </div>
                 </div>
@@ -1257,12 +1276,17 @@ interface EditPersonModalProps {
 }
 
 const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClose, onSave, currencies = DEFAULT_CURRENCIES, busy }) => {
+    const navigate = useNavigate();
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
+    const [workLocationsError, setWorkLocationsError] = useState(false);
     const [formData, setFormData] = useState<Partial<Person>>({});
 
     useEffect(() => {
         if (!isOpen) return;
-        workLocationsApi.getAll().then(r => setWorkLocations(r.data)).catch(() => {});
+        setWorkLocationsError(false);
+        workLocationsApi.getAll()
+            .then(r => setWorkLocations(r.data ?? []))
+            .catch(() => setWorkLocationsError(true));
     }, [isOpen]);
 
     // Reload the form whenever a different person is opened for edit.
@@ -1392,11 +1416,25 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                 onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
-                                <option value="">None</option>
+                                <option value="">Select Work Location</option>
                                 {workLocations.map(loc => (
                                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                                 ))}
                             </select>
+                            {workLocationsError ? (
+                                <p className="text-xs text-rose-400 mt-1">Couldn't load work locations. Try reopening this form.</p>
+                            ) : workLocations.length === 0 ? (
+                                <p className="text-xs text-slate-500 mt-1">
+                                    No work locations configured.{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/people/settings/work-locations')}
+                                        className="text-teal-400 hover:text-teal-300 underline"
+                                    >
+                                        Create Work Location
+                                    </button>
+                                </p>
+                            ) : null}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Joining Date</label>

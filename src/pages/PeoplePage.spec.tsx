@@ -257,6 +257,45 @@ describe('Given PeoplePage create modal', () => {
   });
 });
 
+describe('Given the Work Location field in the create modal', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  const openModal = async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Add Person'));
+    await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
+  };
+
+  it('When work locations exist / Then they populate the dropdown', async () => {
+    mockWorkLocationsApi.getAll.mockResolvedValue({
+      data: [{ id: 'wl-1', name: 'Head Office' }, { id: 'wl-2', name: 'Remote' }],
+    });
+    await openModal();
+    await waitFor(() => expect(screen.getByText('Head Office')).toBeInTheDocument());
+    expect(screen.getByText('Remote')).toBeInTheDocument();
+    expect(screen.getByText('Select Work Location')).toBeInTheDocument();
+  });
+
+  it('When no work locations are configured / Then an empty state with a "Create Work Location" action is shown, not a bare "None"', async () => {
+    mockWorkLocationsApi.getAll.mockResolvedValue({ data: [] });
+    await openModal();
+    await waitFor(() => expect(screen.getByText(/No work locations configured/i)).toBeInTheDocument());
+    expect(screen.queryByText('None')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Create Work Location'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/work-locations');
+  });
+
+  it('When the work locations fetch fails / Then an error message is shown instead of silently rendering an empty dropdown', async () => {
+    mockWorkLocationsApi.getAll.mockRejectedValue(new Error('network error'));
+    await openModal();
+    await waitFor(() => expect(screen.getByText(/Couldn't load work locations/i)).toBeInTheDocument());
+  });
+});
+
 describe('Given the Department field in the create modal', () => {
   beforeEach(() => {
     mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
