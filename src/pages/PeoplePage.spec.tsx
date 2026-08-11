@@ -16,6 +16,12 @@ vi.mock('../services/workLocationsService', () => ({
   },
 }));
 
+vi.mock('../services/mastersService', () => ({
+  mastersApi: {
+    getAll: vi.fn().mockResolvedValue({ data: [] }),
+  },
+}));
+
 vi.mock('../services/peopleService', () => ({
   peopleApi: {
     getAll: vi.fn(),
@@ -67,10 +73,12 @@ import PeoplePage from './PeoplePage';
 import { departmentsApi } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
 import { workLocationsApi } from '../services/workLocationsService';
+import { mastersApi } from '../services/mastersService';
 import { toast } from '@so360/design-system';
 
 const mockApi = peopleApi as any;
 const mockWorkLocationsApi = workLocationsApi as any;
+const mockMastersApi = mastersApi as any;
 
 const renderPage = () => render(<MemoryRouter><PeoplePage /></MemoryRouter>);
 
@@ -96,6 +104,7 @@ beforeEach(() => {
   (departmentsApi as any).getTree.mockResolvedValue([]);
   mockApi.getOrgRoles.mockResolvedValue({ data: [] });
   mockWorkLocationsApi.getAll.mockResolvedValue({ data: [] });
+  mockMastersApi.getAll.mockResolvedValue({ data: [] });
   mockApi.update.mockResolvedValue({ id: 'p1' });
   mockApi.delete.mockResolvedValue({ message: 'Person deactivated successfully', hard_deleted: false });
   mockApi.cancelInvite.mockResolvedValue({ message: 'Invitation cancelled' });
@@ -295,6 +304,99 @@ describe('Given the Work Location field in the create modal', () => {
     mockWorkLocationsApi.getAll.mockRejectedValue(new Error('network error'));
     await openModal();
     await waitFor(() => expect(screen.getByText(/Couldn't load work locations/i)).toBeInTheDocument());
+  });
+});
+
+describe('Given the Designation (Job Title) field in the create modal', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  const openModal = async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Add Person'));
+    await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
+  };
+
+  it('When designations exist / Then they populate the dropdown', async () => {
+    mockMastersApi.getAll.mockImplementation((type: string) =>
+      type === 'designation'
+        ? Promise.resolve({ data: [{ id: 'd-1', name: 'Manager' }, { id: 'd-2', name: 'Director' }] })
+        : Promise.resolve({ data: [] }),
+    );
+    await openModal();
+    await waitFor(() => expect(screen.getByText('Manager')).toBeInTheDocument());
+    expect(screen.getByText('Director')).toBeInTheDocument();
+    expect(screen.getByText('Select Designation')).toBeInTheDocument();
+  });
+
+  it('When no designations are configured / Then an empty state with a "Create Designation" action is shown, not a bare "None"', async () => {
+    mockMastersApi.getAll.mockResolvedValue({ data: [] });
+    await openModal();
+    await waitFor(() => expect(screen.getByText(/No designations configured/i)).toBeInTheDocument());
+    expect(screen.queryByText('None')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Create Designation'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/designations');
+  });
+
+  it('When the designations fetch fails / Then an error message is shown instead of silently rendering an empty dropdown', async () => {
+    mockMastersApi.getAll.mockImplementation((type: string) =>
+      type === 'designation'
+        ? Promise.reject(new Error('network error'))
+        : Promise.resolve({ data: [] }),
+    );
+    await openModal();
+    await waitFor(() => expect(screen.getByText(/Couldn't load designations/i)).toBeInTheDocument());
+  });
+});
+
+describe('Given the Employment Type field in the create modal', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  const openModal = async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Add Person'));
+    await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
+  };
+
+  it('When employment types exist / Then they populate the dropdown', async () => {
+    mockMastersApi.getAll.mockImplementation((type: string) =>
+      type === 'employment_type'
+        ? Promise.resolve({ data: [{ id: 'et-1', name: 'Full Time', code: 'full_time' }, { id: 'et-2', name: 'Contract', code: 'contract' }] })
+        : Promise.resolve({ data: [] }),
+    );
+    await openModal();
+    // "Full Time" also appears in the always-rendered list-page filter select, so
+    // assert on the modal-only "Select Employment Type" placeholder plus a count
+    // bump for "Full Time" rather than a bare unique-text match.
+    await waitFor(() => expect(screen.getByText('Select Employment Type')).toBeInTheDocument());
+    expect(screen.getAllByText('Full Time').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Contract').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('When no employment types are configured / Then an empty state with a "Create Employment Type" action is shown, not a bare "None"', async () => {
+    mockMastersApi.getAll.mockResolvedValue({ data: [] });
+    await openModal();
+    await waitFor(() => expect(screen.getByText(/No employment types configured/i)).toBeInTheDocument());
+    expect(screen.queryByText('None')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Create Employment Type'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/employment-types');
+  });
+
+  it('When the employment types fetch fails / Then an error message is shown instead of silently rendering an empty dropdown', async () => {
+    mockMastersApi.getAll.mockImplementation((type: string) =>
+      type === 'employment_type'
+        ? Promise.reject(new Error('network error'))
+        : Promise.resolve({ data: [] }),
+    );
+    await openModal();
+    await waitFor(() => expect(screen.getByText(/Couldn't load employment types/i)).toBeInTheDocument());
   });
 });
 

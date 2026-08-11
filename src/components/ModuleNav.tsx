@@ -18,6 +18,10 @@ import {
     Settings,
     ClipboardCheck,
     DollarSign,
+    Award,
+    Briefcase,
+    Sparkles,
+    UserCheck,
 } from 'lucide-react';
 
 interface NavItem {
@@ -83,6 +87,12 @@ const navigationItems: NavSection[] = [
             { path: '/settings/work-locations', label: 'Work Locations', icon: Settings, adminOnly: true },
             { path: '/settings/approval-chains', label: 'Hierarchy', icon: Building2, adminOnly: true, flagKey: 'submodule:people:approval_chains' },
             { path: '/settings/employment-policy', label: 'Overtime Rules', icon: TrendingUp, adminOnly: true, flagKey: 'submodule:people:employment_policy' },
+            // Master Data — Designations, Employment Types, Skills, Employee Status, Document Types.
+            { path: '/settings/designations', label: 'Designations', icon: Award, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/employment-types', label: 'Employment Types', icon: Briefcase, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/skills', label: 'Skills', icon: Sparkles, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/employee-status', label: 'Employee Status', icon: UserCheck, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/document-types', label: 'Document Types', icon: FileText, adminOnly: true, flagKey: 'submodule:people:masters' },
         ]
     },
 ];

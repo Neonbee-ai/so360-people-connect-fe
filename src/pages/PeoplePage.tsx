@@ -13,6 +13,7 @@ import { usePeopleContext } from '../hooks/useShellContext';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import { QuotaBar, QuotaGate, toast } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
+import { mastersApi, MasterRow } from '../services/mastersService';
 import { usePeopleFormatters } from '../utils/formatters';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
 
@@ -855,6 +856,10 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const navigate = useNavigate();
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
     const [workLocationsError, setWorkLocationsError] = useState(false);
+    const [designations, setDesignations] = useState<MasterRow[]>([]);
+    const [designationsError, setDesignationsError] = useState(false);
+    const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
+    const [employmentTypesError, setEmploymentTypesError] = useState(false);
     const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
     // Holds the resolved org currency. Initialized from the shell prop when available;
     // falls back to a direct Core BE fetch to avoid the shell's async race condition.
@@ -866,6 +871,14 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         workLocationsApi.getAll()
             .then(r => setWorkLocations(r.data ?? []))
             .catch(() => setWorkLocationsError(true));
+        setDesignationsError(false);
+        mastersApi.getAll('designation')
+            .then(r => setDesignations(r.data ?? []))
+            .catch(() => setDesignationsError(true));
+        setEmploymentTypesError(false);
+        mastersApi.getAll('employment_type')
+            .then(r => setEmploymentTypes(r.data ?? []))
+            .catch(() => setEmploymentTypesError(true));
         peopleApi.getOrgRoles().then(r => setOrgRoles(r.data ?? [])).catch(() => {});
     }, [isOpen]);
 
@@ -996,13 +1009,58 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Job Title</label>
-                            <input
-                                type="text" value={formData.job_title || ''}
-                                onChange={(e) => updateField('job_title', e.target.value)}
+                            <label className="block text-xs text-slate-400 mb-1">Job Title (Designation)</label>
+                            <select
+                                value={formData.job_title || ''}
+                                onChange={(e) => updateField('job_title', e.target.value || undefined)}
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                                placeholder="Senior Developer"
-                            />
+                            >
+                                <option value="">Select Designation</option>
+                                {designations.map(d => (
+                                    <option key={d.id} value={d.name}>{d.name}</option>
+                                ))}
+                            </select>
+                            {designationsError ? (
+                                <p className="text-xs text-rose-400 mt-1">Couldn't load designations. Try reopening this form.</p>
+                            ) : designations.length === 0 ? (
+                                <p className="text-xs text-slate-500 mt-1">
+                                    No designations configured.{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/people/settings/designations')}
+                                        className="text-teal-400 hover:text-teal-300 underline"
+                                    >
+                                        Create Designation
+                                    </button>
+                                </p>
+                            ) : null}
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Employment Type</label>
+                            <select
+                                value={(formData as any).employment_type || ''}
+                                onChange={(e) => updateField('employment_type', e.target.value || undefined)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            >
+                                <option value="">Select Employment Type</option>
+                                {employmentTypes.map(et => (
+                                    <option key={et.id} value={et.code}>{et.name}</option>
+                                ))}
+                            </select>
+                            {employmentTypesError ? (
+                                <p className="text-xs text-rose-400 mt-1">Couldn't load employment types. Try reopening this form.</p>
+                            ) : employmentTypes.length === 0 ? (
+                                <p className="text-xs text-slate-500 mt-1">
+                                    No employment types configured.{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/people/settings/employment-types')}
+                                        className="text-teal-400 hover:text-teal-300 underline"
+                                    >
+                                        Create Employment Type
+                                    </button>
+                                </p>
+                            ) : null}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Work Location</label>
@@ -1283,6 +1341,10 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
     const navigate = useNavigate();
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
     const [workLocationsError, setWorkLocationsError] = useState(false);
+    const [designations, setDesignations] = useState<MasterRow[]>([]);
+    const [designationsError, setDesignationsError] = useState(false);
+    const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
+    const [employmentTypesError, setEmploymentTypesError] = useState(false);
     const [formData, setFormData] = useState<Partial<Person>>({});
 
     useEffect(() => {
@@ -1291,6 +1353,14 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
         workLocationsApi.getAll()
             .then(r => setWorkLocations(r.data ?? []))
             .catch(() => setWorkLocationsError(true));
+        setDesignationsError(false);
+        mastersApi.getAll('designation')
+            .then(r => setDesignations(r.data ?? []))
+            .catch(() => setDesignationsError(true));
+        setEmploymentTypesError(false);
+        mastersApi.getAll('employment_type')
+            .then(r => setEmploymentTypes(r.data ?? []))
+            .catch(() => setEmploymentTypesError(true));
     }, [isOpen]);
 
     // Reload the form whenever a different person is opened for edit.
@@ -1390,11 +1460,24 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="">Not set</option>
-                                <option value="full_time">Full Time</option>
-                                <option value="part_time">Part Time</option>
-                                <option value="contract">Contract</option>
-                                <option value="intern">Intern</option>
+                                {employmentTypes.map(et => (
+                                    <option key={et.id} value={et.code}>{et.name}</option>
+                                ))}
                             </select>
+                            {employmentTypesError ? (
+                                <p className="text-xs text-rose-400 mt-1">Couldn't load employment types. Try reopening this form.</p>
+                            ) : employmentTypes.length === 0 ? (
+                                <p className="text-xs text-slate-500 mt-1">
+                                    No employment types configured.{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/people/settings/employment-types')}
+                                        className="text-teal-400 hover:text-teal-300 underline"
+                                    >
+                                        Create Employment Type
+                                    </button>
+                                </p>
+                            ) : null}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Department</label>
@@ -1406,12 +1489,31 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Job Title</label>
-                            <input
-                                type="text" value={formData.job_title || ''}
-                                onChange={(e) => updateField('job_title', e.target.value)}
+                            <label className="block text-xs text-slate-400 mb-1">Job Title (Designation)</label>
+                            <select
+                                value={formData.job_title || ''}
+                                onChange={(e) => updateField('job_title', e.target.value || undefined)}
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
+                            >
+                                <option value="">Select Designation</option>
+                                {designations.map(d => (
+                                    <option key={d.id} value={d.name}>{d.name}</option>
+                                ))}
+                            </select>
+                            {designationsError ? (
+                                <p className="text-xs text-rose-400 mt-1">Couldn't load designations. Try reopening this form.</p>
+                            ) : designations.length === 0 ? (
+                                <p className="text-xs text-slate-500 mt-1">
+                                    No designations configured.{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/people/settings/designations')}
+                                        className="text-teal-400 hover:text-teal-300 underline"
+                                    >
+                                        Create Designation
+                                    </button>
+                                </p>
+                            ) : null}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Work Location</label>
