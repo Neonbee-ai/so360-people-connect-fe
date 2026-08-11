@@ -80,4 +80,6 @@ export const ExternalLink = createIcon('ExternalLink');
 export const Shield = createIcon('Shield');
 export const ClipboardCheck = createIcon('ClipboardCheck');
 export const Home = createIcon('Home');
+export const Sparkles = createIcon('Sparkles');
+export const Hash = createIcon('Hash');
 export type LucideIcon = React.FC<any>;
