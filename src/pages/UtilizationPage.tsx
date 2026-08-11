@@ -71,28 +71,39 @@ const UtilizationPage: React.FC = () => {
         loadData();
     }, [loadData]);
 
-    // Sort data
-    const sortedData = [...utilizationData].sort((a, b) => {
-        let cmp = 0;
-        switch (sortBy) {
-            case 'name':
-                cmp = a.person.full_name.localeCompare(b.person.full_name);
-                break;
-            case 'utilization':
-                cmp = (a.utilization.utilization_pct || 0) - (b.utilization.utilization_pct || 0);
-                break;
-            case 'cost':
-                cmp = (a.utilization.actual_cost || 0) - (b.utilization.actual_cost || 0);
-                break;
-        }
-        return sortDir === 'asc' ? cmp : -cmp;
-    });
+    // Null-safe accessors — a single incomplete/malformed record (missing
+    // `.utilization` or `.person`, e.g. no allocation/timesheet data for that
+    // employee) must never crash the whole page.
+    const safeName = (d?: UtilizationData | null) => d?.person?.full_name || '';
+    const safePct = (d?: UtilizationData | null) => d?.utilization?.utilization_pct ?? 0;
+    const safeCost = (d?: UtilizationData | null) => d?.utilization?.actual_cost ?? 0;
+
+    // Sort data — filter out any null/undefined entries first, then sort
+    // using the null-safe accessors above so a bad record sorts as 0 instead
+    // of throwing.
+    const sortedData = [...utilizationData]
+        .filter((d): d is UtilizationData => Boolean(d))
+        .sort((a, b) => {
+            let cmp = 0;
+            switch (sortBy) {
+                case 'name':
+                    cmp = safeName(a).localeCompare(safeName(b));
+                    break;
+                case 'utilization':
+                    cmp = safePct(a) - safePct(b);
+                    break;
+                case 'cost':
+                    cmp = safeCost(a) - safeCost(b);
+                    break;
+            }
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
 
     // Derived signals
-    const idlePeople = utilizationData.filter(d => d.utilization.is_idle);
-    const overallocated = utilizationData.filter(d => d.utilization.is_overallocated);
+    const idlePeople = utilizationData.filter(d => d?.utilization?.is_idle);
+    const overallocated = utilizationData.filter(d => d?.utilization?.is_overallocated);
     const healthyCount = utilizationData.filter(d =>
-        !d.utilization.is_idle && !d.utilization.is_overallocated && d.utilization.utilization_pct >= 30
+        d?.utilization && !d.utilization.is_idle && !d.utilization.is_overallocated && safePct(d) >= 30
     ).length;
 
     const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
@@ -114,10 +125,11 @@ const UtilizationPage: React.FC = () => {
     };
 
     const getUtilizationLabel = (data: UtilizationData) => {
-        if (data.utilization.is_overallocated) return 'Overallocated';
-        if (data.utilization.is_idle) return 'Idle';
-        if (data.utilization.utilization_pct >= 80) return 'High';
-        if (data.utilization.utilization_pct >= 50) return 'Normal';
+        const pct = safePct(data);
+        if (data?.utilization?.is_overallocated) return 'Overallocated';
+        if (data?.utilization?.is_idle) return 'Idle';
+        if (pct >= 80) return 'High';
+        if (pct >= 50) return 'Normal';
         return 'Low';
     };
 
@@ -227,7 +239,7 @@ const UtilizationPage: React.FC = () => {
                     </div>
                     {idlePeople.length > 0 && (
                         <div className="text-xs text-slate-500 mt-1">
-                            {idlePeople.map(d => d.person.full_name).join(', ')}
+                            {idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ')}
                         </div>
                     )}
                 </div>
@@ -241,7 +253,7 @@ const UtilizationPage: React.FC = () => {
                     </div>
                     {overallocated.length > 0 && (
                         <div className="text-xs text-slate-500 mt-1">
-                            {overallocated.map(d => d.person.full_name).join(', ')}
+                            {overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ')}
                         </div>
                     )}
                 </div>
@@ -278,7 +290,7 @@ const UtilizationPage: React.FC = () => {
             </div>
 
             {/* Utilization Data */}
-            {utilizationData.length === 0 ? (
+            {sortedData.length === 0 ? (
                 <EmptyState
                     icon={BarChart3}
                     title="No utilization data"
@@ -305,15 +317,15 @@ const UtilizationPage: React.FC = () => {
                                 {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
                                 Estimated idle cost: {formatCurrency(
                                     idlePeople.reduce((sum, d) => {
-                                        const idleHours = d.utilization.available_hours - d.utilization.actual_hours;
-                                        return sum + (idleHours * (d.person.cost_rate || 0));
+                                        const idleHours = (d?.utilization?.available_hours ?? 0) - (d?.utilization?.actual_hours ?? 0);
+                                        return sum + (idleHours * (d?.person?.cost_rate || 0));
                                     }, 0)
                                 )} this period.
                             </div>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                {idlePeople.map(d => (
-                                    <span key={d.person.id} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-300">
-                                        {d.person.full_name} ({d.utilization.utilization_pct}%)
+                                {idlePeople.map((d, idx) => (
+                                    <span key={d?.person?.id || idx} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-300">
+                                        {d?.person?.full_name || 'Unknown'} ({safePct(d)}%)
                                     </span>
                                 ))}
                             </div>
@@ -354,9 +366,13 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
         currency: cardSettings?.base_currency || 'USD',
         locale: cardSettings?.document_language || 'en-US',
     });
-    const { person, utilization } = data;
-    const utilizationPct = utilization.utilization_pct || 0;
-    const allocationPct = utilization.allocation_pct || 0;
+    // Guard against an incomplete record (e.g. a person with no allocation
+    // or timesheet data yet) missing `person`/`utilization` entirely.
+    const rawPerson = data?.person ?? ({} as UtilizationData['person']);
+    const person = { ...rawPerson, full_name: rawPerson?.full_name || 'Unknown' };
+    const utilization = data?.utilization ?? ({} as UtilizationData['utilization']);
+    const utilizationPct = utilization.utilization_pct ?? 0;
+    const allocationPct = utilization.allocation_pct ?? 0;
 
     const getBarColor = (pct: number) => {
         if (pct >= 90) return 'bg-amber-500';
@@ -458,7 +474,7 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                     </span>
                     <span className="text-slate-600">|</span>
                     <span className="text-slate-500">
-                        Rate: {cardFormatters.formatCurrency(person.cost_rate)}/{person.available_hours_per_day ? 'hour' : 'day'}
+                        Rate: {cardFormatters.formatCurrency(person.cost_rate || 0)}/{person.available_hours_per_day ? 'hour' : 'day'}
                     </span>
                 </div>
             )}
@@ -478,6 +494,23 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
     });
     const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
 
+    // Normalize each row up-front so a single incomplete/malformed record
+    // (missing `person` or `utilization`) never crashes this component.
+    const rows = data.filter(Boolean).map((item, idx) => ({
+        key: item?.person?.id || `row-${idx}`,
+        fullName: item?.person?.full_name || 'Unknown',
+        jobTitle: item?.person?.job_title || '',
+        isIdle: !!item?.utilization?.is_idle,
+        isOverallocated: !!item?.utilization?.is_overallocated,
+        availableHours: item?.utilization?.available_hours ?? 0,
+        plannedHours: item?.utilization?.planned_hours ?? 0,
+        actualHours: item?.utilization?.actual_hours ?? 0,
+        utilizationPct: item?.utilization?.utilization_pct ?? 0,
+        allocationPct: item?.utilization?.allocation_pct ?? 0,
+        varianceHours: item?.utilization?.variance_hours ?? 0,
+        actualCost: item?.utilization?.actual_cost ?? 0,
+    }));
+
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
             <div className="grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 bg-slate-800/50 text-xs font-medium text-slate-400 uppercase tracking-wider">
@@ -491,72 +524,72 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
                 <div className="text-right">Cost</div>
             </div>
             <div className="divide-y divide-slate-800">
-                {data.map((item) => (
+                {rows.map((row) => (
                     <div
-                        key={item.person.id}
+                        key={row.key}
                         className={`grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 items-center hover:bg-slate-800/30 ${
-                            item.utilization.is_idle ? 'bg-rose-500/3' :
-                            item.utilization.is_overallocated ? 'bg-amber-500/3' : ''
+                            row.isIdle ? 'bg-rose-500/3' :
+                            row.isOverallocated ? 'bg-amber-500/3' : ''
                         }`}
                     >
                         <div className="flex items-center gap-2 min-w-0">
                             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
                                 <span className="text-[10px] font-medium text-teal-400">
-                                    {item.person.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                    {row.fullName.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                 </span>
                             </div>
                             <div className="min-w-0">
-                                <div className="text-sm text-slate-50 truncate">{item.person.full_name}</div>
-                                <div className="text-xs text-slate-500 truncate">{item.person.job_title}</div>
+                                <div className="text-sm text-slate-50 truncate">{row.fullName}</div>
+                                <div className="text-xs text-slate-500 truncate">{row.jobTitle}</div>
                             </div>
                         </div>
-                        <div className="text-right text-sm text-slate-300">{item.utilization.available_hours}h</div>
-                        <div className="text-right text-sm text-slate-300">{item.utilization.planned_hours}h</div>
-                        <div className="text-right text-sm text-slate-50 font-medium">{item.utilization.actual_hours}h</div>
+                        <div className="text-right text-sm text-slate-300">{row.availableHours}h</div>
+                        <div className="text-right text-sm text-slate-300">{row.plannedHours}h</div>
+                        <div className="text-right text-sm text-slate-50 font-medium">{row.actualHours}h</div>
                         <div className={`text-right text-sm font-bold ${
-                            item.utilization.utilization_pct >= 70 ? 'text-emerald-400' :
-                            item.utilization.utilization_pct >= 50 ? 'text-teal-400' :
-                            item.utilization.utilization_pct >= 30 ? 'text-blue-400' : 'text-rose-400'
+                            row.utilizationPct >= 70 ? 'text-emerald-400' :
+                            row.utilizationPct >= 50 ? 'text-teal-400' :
+                            row.utilizationPct >= 30 ? 'text-blue-400' : 'text-rose-400'
                         }`}>
-                            {item.utilization.utilization_pct}%
+                            {row.utilizationPct}%
                         </div>
-                        <div className={`text-right text-sm ${item.utilization.allocation_pct > 100 ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
-                            {item.utilization.allocation_pct}%
+                        <div className={`text-right text-sm ${row.allocationPct > 100 ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
+                            {row.allocationPct}%
                         </div>
                         <div className={`text-right text-sm ${
-                            item.utilization.variance_hours > 0 ? 'text-emerald-400' :
-                            item.utilization.variance_hours < -5 ? 'text-amber-400' : 'text-slate-400'
+                            row.varianceHours > 0 ? 'text-emerald-400' :
+                            row.varianceHours < -5 ? 'text-amber-400' : 'text-slate-400'
                         }`}>
-                            {item.utilization.variance_hours > 0 ? '+' : ''}{item.utilization.variance_hours}h
+                            {row.varianceHours > 0 ? '+' : ''}{row.varianceHours}h
                         </div>
-                        <div className="text-right text-sm text-slate-300">{formatCurrency(item.utilization.actual_cost || 0)}</div>
+                        <div className="text-right text-sm text-slate-300">{formatCurrency(row.actualCost)}</div>
                     </div>
                 ))}
             </div>
 
             {/* Totals row */}
             <div className="grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 bg-slate-800/50 border-t border-slate-700">
-                <div className="text-xs font-medium text-slate-400">TOTALS ({data.length} people)</div>
+                <div className="text-xs font-medium text-slate-400">TOTALS ({rows.length} people)</div>
                 <div className="text-right text-xs font-medium text-slate-300">
-                    {data.reduce((sum, d) => sum + d.utilization.available_hours, 0)}h
+                    {rows.reduce((sum, r) => sum + r.availableHours, 0)}h
                 </div>
                 <div className="text-right text-xs font-medium text-slate-300">
-                    {data.reduce((sum, d) => sum + d.utilization.planned_hours, 0)}h
+                    {rows.reduce((sum, r) => sum + r.plannedHours, 0)}h
                 </div>
                 <div className="text-right text-xs font-medium text-slate-50">
-                    {data.reduce((sum, d) => sum + d.utilization.actual_hours, 0)}h
+                    {rows.reduce((sum, r) => sum + r.actualHours, 0)}h
                 </div>
                 <div className="text-right text-xs font-medium text-teal-400">
-                    {data.length > 0 ? Math.round(data.reduce((sum, d) => sum + d.utilization.utilization_pct, 0) / data.length) : 0}%
+                    {rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.utilizationPct, 0) / rows.length) : 0}%
                 </div>
                 <div className="text-right text-xs font-medium text-slate-400">
-                    {data.length > 0 ? Math.round(data.reduce((sum, d) => sum + d.utilization.allocation_pct, 0) / data.length) : 0}%
+                    {rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.allocationPct, 0) / rows.length) : 0}%
                 </div>
                 <div className="text-right text-xs font-medium text-slate-400">
-                    {data.reduce((sum, d) => sum + d.utilization.variance_hours, 0)}h
+                    {rows.reduce((sum, r) => sum + r.varianceHours, 0)}h
                 </div>
                 <div className="text-right text-xs font-medium text-slate-50">
-                    {formatCurrency(data.reduce((sum, d) => sum + (d.utilization.actual_cost || 0), 0))}
+                    {formatCurrency(rows.reduce((sum, r) => sum + r.actualCost, 0))}
                 </div>
             </div>
         </div>

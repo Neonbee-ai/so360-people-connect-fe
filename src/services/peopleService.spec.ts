@@ -166,6 +166,56 @@ describe('Given utilizationApi.getAll', () => {
     await utilizationApi.getAll({ period_start: '2026-08-03', period_end: '2026-08-07' });
     expect(mockApi.get).toHaveBeenCalledWith('/utilization', { period_start: '2026-08-03', period_end: '2026-08-07' });
   });
+
+  // Regression coverage for the Utilization page crash:
+  // "Cannot read properties of undefined (reading 'utilization_pct')".
+  describe('Given a row has a missing/null/non-numeric utilization_pct', () => {
+    it('When utilization_pct is null / Then it defaults to a finite 0, never null/NaN', async () => {
+      mockApi.get.mockResolvedValue({
+        data: [{ person_id: 'p3', person_name: 'Carol', utilization_pct: null }],
+        period: { start: '2026-08-03', end: '2026-08-07' },
+      });
+      const result = await utilizationApi.getAll();
+      expect(result.data[0].utilization.utilization_pct).toBe(0);
+      expect(Number.isFinite(result.data[0].utilization.utilization_pct)).toBe(true);
+    });
+
+    it('When utilization_pct is a non-numeric string / Then it defaults to 0, never NaN', async () => {
+      mockApi.get.mockResolvedValue({
+        data: [{ person_id: 'p4', person_name: 'Dave', utilization_pct: 'not-a-number' }],
+        period: { start: '2026-08-03', end: '2026-08-07' },
+      });
+      const result = await utilizationApi.getAll();
+      expect(Number.isFinite(result.data[0].utilization.utilization_pct)).toBe(true);
+      expect(result.data[0].utilization.utilization_pct).toBe(0);
+    });
+
+    it('When utilization_pct is Infinity (upstream division-by-zero) / Then it defaults to 0', async () => {
+      mockApi.get.mockResolvedValue({
+        data: [{ person_id: 'p5', person_name: 'Eve', utilization_pct: Infinity }],
+        period: { start: '2026-08-03', end: '2026-08-07' },
+      });
+      const result = await utilizationApi.getAll();
+      expect(result.data[0].utilization.utilization_pct).toBe(0);
+    });
+  });
+
+  describe('Given the BE response array contains a null/undefined entry', () => {
+    it('When one row in `data` is null / Then it is dropped, and the remaining valid rows still map correctly', async () => {
+      mockApi.get.mockResolvedValue({
+        data: [
+          { person_id: 'p1', person_name: 'Alice', utilization_pct: 75 },
+          null,
+          undefined,
+          { person_id: 'p2', person_name: 'Bob', utilization_pct: 20 },
+        ],
+        period: { start: '2026-08-03', end: '2026-08-07' },
+      });
+      const result = await utilizationApi.getAll();
+      expect(result.data).toHaveLength(2);
+      expect(result.data.map((d) => d.person.id)).toEqual(['p1', 'p2']);
+    });
+  });
 });
 
 describe('Given eventsApi.getAll', () => {

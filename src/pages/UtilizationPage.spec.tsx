@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -98,6 +98,77 @@ describe('Given UtilizationPage with no utilization data', () => {
   });
 
   it('When no utilization data exists / Then empty state is shown', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText(/No utilization data/i)).toBeInTheDocument());
+  });
+});
+
+// Regression coverage for the reported crash:
+// "TypeError: Cannot read properties of undefined (reading 'utilization_pct')"
+// thrown inside the sort comparator when a record is missing/incomplete
+// (e.g. no allocation/timesheet data for that employee for the period).
+describe('Given UtilizationPage receives incomplete/malformed utilization records', () => {
+  const completeRecord = {
+    person: { id: 'p-complete', full_name: 'Complete Carla', email: 'carla@test.com', job_title: 'Lead', status: 'active', cost_rate: 90, available_hours_per_day: 8 },
+    utilization: {
+      available_hours: 40, planned_hours: 32, actual_hours: 28, actual_cost: 2520,
+      utilization_pct: 70, allocation_pct: 80, variance_hours: -4, is_idle: false, is_overallocated: false,
+    },
+  };
+  // A record whose nested `utilization` object is entirely missing — this is
+  // exactly the shape that made `a.utilization.utilization_pct` throw inside
+  // the sort comparator.
+  const recordMissingUtilization = {
+    person: { id: 'p-no-util', full_name: 'No Util Nate', email: 'nate@test.com', job_title: 'Analyst', status: 'active', cost_rate: 60, available_hours_per_day: 8 },
+  } as any;
+
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({
+      data: [completeRecord, recordMissingUtilization, null, undefined],
+      period: { start: '2024-06-10', end: '2024-06-14' },
+    });
+    mockApi.getSummary.mockResolvedValue(mockSummary);
+  });
+
+  it('When a record has no `.utilization` object / Then the page renders without throwing (default sort)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Utilization Intelligence')).toBeInTheDocument());
+    expect(screen.getByText('Complete Carla')).toBeInTheDocument();
+  });
+
+  it('When sorting by utilization with a record missing `.utilization` / Then the sort does not throw and both people still render', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Complete Carla')).toBeInTheDocument());
+    // Toggling the sort direction re-runs the comparator against the same
+    // (incomplete) data set — this is where the reported crash occurred.
+    fireEvent.click(screen.getByRole('button', { name: /Utilization/ }));
+    expect(screen.getByText('Complete Carla')).toBeInTheDocument();
+    expect(screen.getByText('No Util Nate')).toBeInTheDocument();
+  });
+
+  it('When sorting by name with a record missing `.utilization` / Then it does not throw', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Complete Carla')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Name'));
+    expect(screen.getByText('Complete Carla')).toBeInTheDocument();
+  });
+
+  it('When switching to Table View with an incomplete record / Then totals render as finite numbers, not NaN%', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Table View')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Table View'));
+    await waitFor(() => expect(screen.getByText(/TOTALS/)).toBeInTheDocument());
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
+  });
+});
+
+describe('Given UtilizationPage receives only null/undefined records', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [null, undefined], period: { start: '2024-06-10', end: '2024-06-14' } });
+    mockApi.getSummary.mockResolvedValue(mockSummary);
+  });
+
+  it('When every record is null/undefined / Then the empty state renders instead of crashing', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText(/No utilization data/i)).toBeInTheDocument());
   });
