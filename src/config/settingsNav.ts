@@ -37,7 +37,7 @@ export const settingsNavItems: SettingsNavItem[] = [
   { key: 'notification_settings', label: 'Notification Settings', path: 'settings/notifications', status: 'active' },
   { key: 'utilization_settings', label: 'Utilization Settings', path: 'settings/utilization-settings', status: 'active' },
   { key: 'timesheet_settings', label: 'Timesheet Settings', path: 'settings/timesheet-settings', status: 'active' },
-  { key: 'employee_custom_fields', label: 'Employee Custom Fields', path: 'settings/custom-fields', status: 'coming_soon' },
+  { key: 'employee_custom_fields', label: 'Employee Custom Fields', path: 'settings/custom-fields', status: 'active' },
   { key: 'numbering_prefixes', label: 'Numbering & Prefixes', path: 'settings/numbering', status: 'active' },
   { key: 'leave_types', label: 'Leave Types', path: 'leaves/types', status: 'active' },
 ];

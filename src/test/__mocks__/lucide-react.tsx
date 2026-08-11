@@ -85,4 +85,7 @@ export const Hash = createIcon('Hash');
 export const PieChart = createIcon('PieChart');
 export const Gauge = createIcon('Gauge');
 export const Bell = createIcon('Bell');
+export const ListChecks = createIcon('ListChecks');
+export const ArrowUp = createIcon('ArrowUp');
+export const ArrowDown = createIcon('ArrowDown');
 export type LucideIcon = React.FC<any>;

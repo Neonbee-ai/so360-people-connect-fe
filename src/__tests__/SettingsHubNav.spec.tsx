@@ -40,15 +40,18 @@ describe('Given the Settings Hub page is rendered', () => {
     });
   });
 
-  it('When rendered / Then coming_soon items are not links and show a Coming soon badge', () => {
+  it('When rendered / Then any coming_soon items are not links and show a Coming soon badge', () => {
+    // Every section in the catalog may have shipped by the time this runs
+    // (each team flips its own entry to 'active' as it ships) — this test
+    // asserts the coming_soon rendering *behavior* holds for whatever subset
+    // remains, not that a fixed count of placeholders must still exist.
     renderHub();
     const comingSoonItems = settingsNavItems.filter((i) => i.status === 'coming_soon');
-    expect(comingSoonItems.length).toBeGreaterThan(0);
     comingSoonItems.forEach((item) => {
       const label = screen.getByText(item.label);
       expect(label.closest('a')).toBeNull();
     });
-    const badges = screen.getAllByText('Coming soon');
+    const badges = screen.queryAllByText('Coming soon');
     expect(badges).toHaveLength(comingSoonItems.length);
   });
 

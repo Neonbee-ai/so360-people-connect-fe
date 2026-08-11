@@ -14,6 +14,13 @@ import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/s
 import { QuotaBar, QuotaGate, toast } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import { mastersApi, MasterRow } from '../services/mastersService';
+import {
+    customFieldDefsApi,
+    personCustomFieldsApi,
+    CustomFieldDef,
+    PersonCustomFieldValue,
+    CHOICE_FIELD_TYPES,
+} from '../services/customFieldsService';
 import { usePeopleFormatters } from '../utils/formatters';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
 
@@ -34,6 +41,137 @@ const resolveAccessBadge = (person: Pick<Person, 'access_status' | 'login_status
     if (person.login_status === 'blocked') return ACCESS_BADGE.blocked;
     const key: AccessStatus = person.access_status ?? 'no_access';
     return ACCESS_BADGE[key] ?? ACCESS_BADGE.no_access;
+};
+
+// =============================================================================
+// Custom Fields Section — renders one input per active custom field
+// definition (org-defined via Settings > Employee Custom Fields). Shared by
+// both the Create and Edit Person modals so the field-type -> input mapping
+// lives in exactly one place.
+// =============================================================================
+
+interface RenderableCustomField {
+    field_def_id: string;
+    label: string;
+    field_type: 'text' | 'number' | 'dropdown' | 'date' | 'checkbox' | 'multi_select';
+    options?: string[] | null;
+    is_required?: boolean;
+}
+
+interface CustomFieldsSectionProps {
+    fields: RenderableCustomField[];
+    values: Record<string, unknown>;
+    onChange: (fieldDefId: string, value: unknown) => void;
+    loadError?: boolean;
+}
+
+const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({ fields, values, onChange, loadError }) => {
+    if (loadError) {
+        return (
+            <div>
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Custom Fields</h4>
+                <p className="text-xs text-rose-400">Couldn't load custom fields. Try reopening this form.</p>
+            </div>
+        );
+    }
+
+    if (fields.length === 0) return null;
+
+    return (
+        <div data-testid="custom-fields-section">
+            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Custom Fields</h4>
+            <div className="grid grid-cols-2 gap-4">
+                {fields.map(field => {
+                    const value = values[field.field_def_id];
+                    const inputClass = "w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500";
+                    return (
+                        <div key={field.field_def_id} data-testid={`custom-field-${field.field_def_id}`}>
+                            <label className="block text-xs text-slate-400 mb-1">
+                                {field.label}{field.is_required && <span className="text-red-400"> *</span>}
+                            </label>
+                            {field.field_type === 'text' && (
+                                <input
+                                    type="text"
+                                    value={(value as string) || ''}
+                                    required={!!field.is_required}
+                                    onChange={e => onChange(field.field_def_id, e.target.value)}
+                                    className={inputClass}
+                                />
+                            )}
+                            {field.field_type === 'number' && (
+                                <input
+                                    type="number"
+                                    value={value === undefined || value === null ? '' : (value as number)}
+                                    required={!!field.is_required}
+                                    onChange={e => onChange(field.field_def_id, e.target.value === '' ? null : parseFloat(e.target.value))}
+                                    className={inputClass}
+                                />
+                            )}
+                            {field.field_type === 'date' && (
+                                <input
+                                    type="date"
+                                    value={(value as string) || ''}
+                                    required={!!field.is_required}
+                                    onChange={e => onChange(field.field_def_id, e.target.value)}
+                                    className={inputClass}
+                                />
+                            )}
+                            {field.field_type === 'checkbox' && (
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!value}
+                                        onChange={e => onChange(field.field_def_id, e.target.checked)}
+                                        className="text-teal-500 focus:ring-teal-500"
+                                    />
+                                    <span className="text-xs text-slate-400">Yes</span>
+                                </label>
+                            )}
+                            {field.field_type === 'dropdown' && (
+                                <select
+                                    value={(value as string) || ''}
+                                    required={!!field.is_required}
+                                    onChange={e => onChange(field.field_def_id, e.target.value || undefined)}
+                                    className={inputClass}
+                                >
+                                    <option value="">Select {field.label}</option>
+                                    {(field.options || []).map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            )}
+                            {field.field_type === 'multi_select' && (
+                                <div className="flex flex-wrap gap-2">
+                                    {(field.options || []).map(opt => {
+                                        const selected = Array.isArray(value) && (value as string[]).includes(opt);
+                                        return (
+                                            <button
+                                                key={opt}
+                                                type="button"
+                                                onClick={() => {
+                                                    const current: string[] = Array.isArray(value) ? [...(value as string[])] : [];
+                                                    const next = current.includes(opt)
+                                                        ? current.filter(v => v !== opt)
+                                                        : [...current, opt];
+                                                    onChange(field.field_def_id, next);
+                                                }}
+                                                className={`px-2 py-1 rounded-full text-xs border transition-colors ${selected ? 'bg-teal-600 border-teal-600 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-teal-500'}`}
+                                            >
+                                                {opt}
+                                            </button>
+                                        );
+                                    })}
+                                    {(field.options || []).length === 0 && (
+                                        <span className="text-xs text-slate-500">No options configured for this field.</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
 };
 
 const INVITATION_LABEL: Record<InvitationStatus, string> = {
@@ -158,9 +296,19 @@ const PeoplePage: React.FC = () => {
 
     const handleCreate = async (data: CreatePersonPayload) => {
         try {
-            const created = await peopleApi.create(data);
+            const customFieldValues = (data as any).customFieldValues as Record<string, unknown> | undefined;
+            const createPayload = { ...data } as any;
+            delete createPayload.customFieldValues;
+            const created = await peopleApi.create(createPayload);
             setShowCreateModal(false);
             recordActivity({ eventType: 'people.person.created', eventCategory: 'identity', description: `Person ${data.full_name} was created`, resourceType: 'person', resourceId: created?.id }).catch(() => {});
+
+            if (created?.id && customFieldValues && Object.keys(customFieldValues).length > 0) {
+                const entries = Object.entries(customFieldValues).map(([field_def_id, value]) => ({ field_def_id, value }));
+                personCustomFieldsApi.setForPerson(created.id, entries).catch(() => {
+                    toast.error('Person created, but saving custom field values failed');
+                });
+            }
 
             // When the admin chose "Invite as New User", mint the invite via Core (which also emails
             // it via SES when requested) and surface the copyable link so it can be shared manually
@@ -282,7 +430,18 @@ const PeoplePage: React.FC = () => {
     const handleEditSave = async (id: string, data: Partial<Person>) => {
         setActionBusy(true);
         try {
-            await peopleApi.update(id, data);
+            const customFieldValues = (data as any).customFieldValues as Record<string, unknown> | undefined;
+            const updatePayload = { ...data } as any;
+            delete updatePayload.customFieldValues;
+            await peopleApi.update(id, updatePayload);
+
+            if (customFieldValues && Object.keys(customFieldValues).length > 0) {
+                const entries = Object.entries(customFieldValues).map(([field_def_id, value]) => ({ field_def_id, value }));
+                await personCustomFieldsApi.setForPerson(id, entries).catch(() => {
+                    toast.error('Employee updated, but saving custom field values failed');
+                });
+            }
+
             toast.success('Employee updated');
             recordActivity({ eventType: 'people.person.updated', eventCategory: 'identity', description: `Person ${data.full_name ?? ''} was updated`.trim(), resourceType: 'person', resourceId: id }).catch(() => {});
             setEditPerson(null);
@@ -861,6 +1020,9 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
     const [employmentTypesError, setEmploymentTypesError] = useState(false);
     const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
+    const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
+    const [customFieldsError, setCustomFieldsError] = useState(false);
+    const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
     // Holds the resolved org currency. Initialized from the shell prop when available;
     // falls back to a direct Core BE fetch to avoid the shell's async race condition.
     const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || 'USD');
@@ -880,7 +1042,16 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
             .then(r => setEmploymentTypes(r.data ?? []))
             .catch(() => setEmploymentTypesError(true));
         peopleApi.getOrgRoles().then(r => setOrgRoles(r.data ?? [])).catch(() => {});
+        setCustomFieldsError(false);
+        setCustomFieldValues({});
+        customFieldDefsApi.getAll()
+            .then(r => setCustomFieldDefs(r.data ?? []))
+            .catch(() => setCustomFieldsError(true));
     }, [isOpen]);
+
+    const updateCustomFieldValue = (fieldDefId: string, value: unknown) => {
+        setCustomFieldValues(prev => ({ ...prev, [fieldDefId]: value }));
+    };
 
     // When the shell hasn't pre-loaded businessSettings yet (defaultCurrency is empty),
     // fetch org currency directly from Core BE so the field is never stuck on USD.
@@ -930,9 +1101,13 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         if (!formData.full_name || !formData.type) return;
         // Omit an unselected department so the backend @IsUUID validation is not
         // triggered by an empty string.
-        const payload = { ...formData };
+        const payload: any = { ...formData };
         payload.department_id = payload.department_id || undefined;
+        if (Object.keys(customFieldValues).length > 0) {
+            payload.customFieldValues = customFieldValues;
+        }
         onCreate(payload);
+        setCustomFieldValues({});
         // Reset form
         setFormData({
             full_name: '', email: '', phone: '', type: 'employee',
@@ -1169,6 +1344,14 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                     </div>
                 </div>
 
+                {/* Custom Fields */}
+                <CustomFieldsSection
+                    fields={customFieldDefs.map(d => ({ field_def_id: d.id, label: d.label, field_type: d.field_type, options: d.options, is_required: d.is_required }))}
+                    values={customFieldValues}
+                    onChange={updateCustomFieldValue}
+                    loadError={customFieldsError}
+                />
+
                 {/* User Linkage */}
                 <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
@@ -1346,6 +1529,9 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
     const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
     const [employmentTypesError, setEmploymentTypesError] = useState(false);
     const [formData, setFormData] = useState<Partial<Person>>({});
+    const [customFields, setCustomFields] = useState<PersonCustomFieldValue[]>([]);
+    const [customFieldsError, setCustomFieldsError] = useState(false);
+    const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
 
     useEffect(() => {
         if (!isOpen) return;
@@ -1385,14 +1571,38 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
         });
     }, [person]);
 
+    // Load this person's current custom field values (merged with every
+    // active field def) whenever the edit modal opens for a given person.
+    useEffect(() => {
+        if (!isOpen || !person) return;
+        setCustomFieldsError(false);
+        personCustomFieldsApi.getForPerson(person.id)
+            .then(r => {
+                const rows = r.data ?? [];
+                setCustomFields(rows);
+                const initial: Record<string, unknown> = {};
+                rows.forEach(row => { initial[row.field_def_id] = row.value; });
+                setCustomFieldValues(initial);
+            })
+            .catch(() => setCustomFieldsError(true));
+    }, [isOpen, person?.id]);
+
     const updateField = (field: string, value: unknown) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const updateCustomFieldValue = (fieldDefId: string, value: unknown) => {
+        setCustomFieldValues(prev => ({ ...prev, [fieldDefId]: value }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!person || !formData.full_name) return;
-        onSave(person.id, formData);
+        const payload: any = { ...formData };
+        if (Object.keys(customFieldValues).length > 0) {
+            payload.customFieldValues = customFieldValues;
+        }
+        onSave(person.id, payload);
     };
 
     if (!person) return null;
@@ -1605,6 +1815,14 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                         </div>
                     </div>
                 </div>
+
+                {/* Custom Fields */}
+                <CustomFieldsSection
+                    fields={customFields.map(f => ({ field_def_id: f.field_def_id, label: f.label, field_type: f.field_type, options: f.options, is_required: f.is_required }))}
+                    values={customFieldValues}
+                    onChange={updateCustomFieldValue}
+                    loadError={customFieldsError}
+                />
 
                 <p className="text-xs text-slate-500">
                     Role &amp; System Permissions are managed from the employee's detail page.
