@@ -36,11 +36,13 @@ vi.mock('../services/departmentsService', () => ({
   departmentsApi: { getTree: vi.fn() },
 }));
 
+const { mockRefreshQuota } = vi.hoisted(() => ({ mockRefreshQuota: vi.fn(async () => {}) }));
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
 
   useShellBridge: () => ({ effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
-  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: mockRefreshQuota }),
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
 
 vi.mock('../hooks/useShellContext', () => ({
@@ -523,6 +525,71 @@ describe('Given "Delete Employee" is clicked from the Actions menu', () => {
 
     await waitFor(() => expect(mockApi.delete).toHaveBeenCalledWith('p1'));
     await waitFor(() => expect(toastInfoSpy).toHaveBeenCalledWith('Person deactivated successfully'));
+  });
+});
+
+/*
+ * Regression: the People Registry quota bar ("0 / Unlimited") never updated
+ * after adding/removing an employee because the page loaded quotaData once
+ * and never called useQuota's refresh() on mutation. Every mutation that can
+ * change the employee count (create, edit, deactivate, archive, delete) must
+ * bust the 60s quota cache immediately.
+ */
+describe('Given PeoplePage mutates an employee', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  it('When a person is created / Then the quota counter is refreshed', async () => {
+    mockApi.create.mockResolvedValue({ id: 'new-p' });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Add Person'));
+    await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
+    const nameInput = screen.getByPlaceholderText('John Doe');
+    fireEvent.change(nameInput, { target: { value: 'Bob Jones' } });
+    const form = nameInput.closest('form')!;
+    fireEvent.submit(form);
+    await waitFor(() => expect(mockApi.create).toHaveBeenCalled());
+    await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
+  });
+
+  it('When an employee is edited / Then the quota counter is refreshed', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Edit Employee'));
+    await waitFor(() => expect(screen.getByText('Edit Alice Smith')).toBeInTheDocument());
+    const form = screen.getByDisplayValue('Alice Smith').closest('form')!;
+    fireEvent.submit(form);
+    await waitFor(() => expect(mockApi.update).toHaveBeenCalled());
+    await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
+  });
+
+  it('When an employee is deactivated / Then the quota counter is refreshed', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Deactivate'));
+    await waitFor(() => expect(screen.getByText('Deactivate Employee')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Deactivate' }));
+    await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('p1', { status: 'inactive' }));
+    await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
+  });
+
+  it('When an employee is archived / Then the quota counter is refreshed', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Archive'));
+    await waitFor(() => expect(screen.getByText('Archive Employee')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
+    await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('p1', { status: 'archived' }));
+    await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
+  });
+
+  it('When an employee is deleted / Then the quota counter is refreshed', async () => {
+    mockApi.delete.mockResolvedValue({ message: 'Person deleted', hard_deleted: true });
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Delete Employee'));
+    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Employee' }));
+    await waitFor(() => expect(mockApi.delete).toHaveBeenCalledWith('p1'));
+    await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
   });
 });
 

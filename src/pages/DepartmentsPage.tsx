@@ -15,7 +15,7 @@ const DepartmentsPage: React.FC = () => {
     const shell = useShellBridge();
     const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:departments:create') ?? true);
     const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_departments' }], []);
-    const { getQuota } = useQuota({ checks: quotaChecks, orgId: shell?.currentOrg?.id || '' });
+    const { getQuota, refresh: refreshQuota } = useQuota({ checks: quotaChecks, orgId: shell?.currentOrg?.id || '' });
     const quotaData = getQuota('max_departments');
     const { isSandboxMode, sandboxEntryLimit, limitItems, isLimited } = useSandboxLimit();
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -51,6 +51,7 @@ const DepartmentsPage: React.FC = () => {
             toast.success(`Department ${data.name} has been created`);
             recordActivity({ eventType: 'people.department.created', eventCategory: 'identity', description: `Department ${data.name} was created`, resourceType: 'department', resourceId: created?.id }).catch(() => {});
             loadDepartments();
+            refreshQuota().catch(() => {});
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to create department');
         }
@@ -63,6 +64,7 @@ const DepartmentsPage: React.FC = () => {
             toast.success('Department updated successfully');
             recordActivity({ eventType: 'people.department.updated', eventCategory: 'identity', description: `Department ${data.name || id} was updated`, resourceType: 'department', resourceId: id }).catch(() => {});
             loadDepartments();
+            refreshQuota().catch(() => {});
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to update department');
         }

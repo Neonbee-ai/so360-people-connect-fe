@@ -54,7 +54,7 @@ const PeoplePage: React.FC = () => {
     const canEditEmployee = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employees:update') ?? true);
     const canDeleteEmployee = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:employees:delete') ?? true);
     const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_employees' }], []);
-    const { getQuota } = useQuota({ checks: quotaChecks, orgId });
+    const { getQuota, refresh: refreshQuota } = useQuota({ checks: quotaChecks, orgId });
     const quotaData = getQuota('max_employees');
     const { isSandboxMode, sandboxEntryLimit, limitItems, isLimited } = useSandboxLimit();
     const [people, setPeople] = useState<Person[]>([]);
@@ -183,6 +183,7 @@ const PeoplePage: React.FC = () => {
                 toast.success(`${data.full_name} has been added`);
             }
             loadPeople();
+            refreshQuota().catch(() => {});
         } catch (error) {
             toast.error('Failed to create person');
         }
@@ -285,6 +286,7 @@ const PeoplePage: React.FC = () => {
             recordActivity({ eventType: 'people.person.updated', eventCategory: 'identity', description: `Person ${data.full_name ?? ''} was updated`.trim(), resourceType: 'person', resourceId: id }).catch(() => {});
             setEditPerson(null);
             loadPeople();
+            refreshQuota().catch(() => {});
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to update employee');
         } finally {
@@ -302,6 +304,7 @@ const PeoplePage: React.FC = () => {
             toast.success(`${person.full_name} has been ${verb}`);
             recordActivity({ eventType: `people.person.${status === 'active' ? 'activated' : status}`, eventCategory: 'identity', description: `${person.full_name} was ${verb}`, resourceType: 'person', resourceId: person.id }).catch(() => {});
             loadPeople();
+            refreshQuota().catch(() => {});
         } catch (error) {
             toast.error(error instanceof Error ? error.message : `Failed to update ${person.full_name}`);
         } finally {
@@ -318,6 +321,7 @@ const PeoplePage: React.FC = () => {
             else toast.info(res.message);
             recordActivity({ eventType: res.hard_deleted ? 'people.person.deleted' : 'people.person.deactivated', eventCategory: 'identity', description: `${person.full_name}: ${res.message}`, resourceType: 'person', resourceId: person.id }).catch(() => {});
             loadPeople();
+            refreshQuota().catch(() => {});
         } catch (error) {
             toast.error(error instanceof Error ? error.message : `Failed to delete ${person.full_name}`);
         } finally {

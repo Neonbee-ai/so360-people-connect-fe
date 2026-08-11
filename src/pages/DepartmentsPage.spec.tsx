@@ -21,11 +21,13 @@ vi.mock('../services/departmentsService', () => ({
   },
 }));
 
+const { mockRefreshQuota } = vi.hoisted(() => ({ mockRefreshQuota: vi.fn(async () => {}) }));
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
 
   useShellBridge: () => ({ effectiveFlagsLoaded: true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
-  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: mockRefreshQuota }),
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
 
 import DepartmentsPage from './DepartmentsPage';
@@ -206,6 +208,43 @@ describe('Given DepartmentsPage Parent Department selector with a nested tree', 
     expect(optionTexts.some((t) => t?.includes('Engineering'))).toBe(true);
     expect(optionTexts.some((t) => t === 'QA')).toBe(false);
     expect(optionTexts.some((t) => t?.includes('Automation'))).toBe(false);
+  });
+});
+
+/*
+ * Regression: the Departments quota bar ("0 / Unlimited") never updated
+ * after a create because the page loaded quotaData once and never called
+ * useQuota's refresh() on mutation. Creating/updating a department must
+ * bust the 60s quota cache immediately so the counter reflects the new
+ * count right away instead of lagging behind the department list.
+ */
+describe('Given DepartmentsPage mutates a department', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockDept], total: 1 });
+    mockApi.getTree.mockResolvedValue({ data: [mockDept] });
+    mockRefreshQuota.mockClear();
+  });
+
+  it('When a department is created / Then the quota counter is refreshed', async () => {
+    mockApi.create.mockResolvedValue({ id: 'd2', name: 'Sales' });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Create Department'));
+    await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'SAL' } });
+    fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'Sales' } });
+    fireEvent.click(screen.getByText('Create'));
+    await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
+  });
+
+  it('When a department is updated (e.g. deactivated) / Then the quota counter is refreshed', async () => {
+    mockApi.update.mockResolvedValue({ ...mockDept, is_active: false });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+    fireEvent.click(screen.getAllByText('Edit')[0]);
+    await waitFor(() => expect(screen.getByText(/Parent Department/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Update'));
+    await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
   });
 });
 
