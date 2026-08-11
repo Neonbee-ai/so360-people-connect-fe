@@ -133,6 +133,8 @@ const TeamPerformancePage = lazy(() => import('./pages/TeamPerformancePage'));
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
 const ImportExportPage = lazy(() => import('./pages/ImportExportPage'));
 const WorkLocationsPage = lazy(() => import('./pages/WorkLocationsPage'));
+const HolidaysPage = lazy(() => import('./pages/HolidaysPage'));
+const ShiftsPage = lazy(() => import('./pages/ShiftsPage'));
 const ApprovalChainsPage = lazy(() => import('./pages/settings/ApprovalChainsPage'));
 const EmploymentPolicyPage = lazy(() => import('./pages/settings/EmploymentPolicyPage'));
 
@@ -196,6 +198,8 @@ const App = () => {
 
                     {/* Settings */}
                     <Route path="settings/work-locations" element={<WorkLocationsPage />} />
+                    <Route path="settings/holidays" element={<FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate>} />
+                    <Route path="settings/shifts" element={<FeatureGate flagKey="submodule:people:shifts"><ShiftsPage /></FeatureGate>} />
                     <Route path="settings/approval-chains" element={<FeatureGate flagKey="submodule:people:approval_chains"><ApprovalChainsPage /></FeatureGate>} />
                     <Route path="settings/employment-policy" element={<FeatureGate flagKey="submodule:people:employment_policy"><EmploymentPolicyPage /></FeatureGate>} />
 
