@@ -8,8 +8,8 @@ import { settingsNavItems } from '../config/settingsNav';
 const renderHub = () => render(<MemoryRouter><SettingsHubPage /></MemoryRouter>);
 
 describe('Given the Settings Hub nav config', () => {
-  it('When settingsNavItems is inspected / Then it has exactly 20 entries (the full named catalog)', () => {
-    expect(settingsNavItems).toHaveLength(20);
+  it('When settingsNavItems is inspected / Then it has exactly 21 entries (the full named catalog)', () => {
+    expect(settingsNavItems).toHaveLength(21);
   });
 
   it('When settingsNavItems is inspected / Then every entry has key, label, path, and a valid status', () => {
@@ -23,7 +23,7 @@ describe('Given the Settings Hub nav config', () => {
 });
 
 describe('Given the Settings Hub page is rendered', () => {
-  it('When rendered / Then all 20 section labels are shown', () => {
+  it('When rendered / Then all 21 section labels are shown', () => {
     renderHub();
     settingsNavItems.forEach((item) => {
       expect(screen.getByText(item.label)).toBeInTheDocument();

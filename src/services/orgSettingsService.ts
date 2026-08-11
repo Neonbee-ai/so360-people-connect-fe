@@ -10,6 +10,12 @@ export type SettingsCategory =
   | 'organization'
   | 'attendance'
   | 'numbering'
+  | 'leave_policy'
+  | 'resource_allocation_defaults'
+  | 'performance_settings'
+  | 'notification_settings'
+  | 'utilization_settings'
+  | 'timesheet_settings'
   | string;
 
 export interface OrgSettingsResponse<T = Record<string, unknown>> {

@@ -146,6 +146,13 @@ const SettingsHubPage = lazy(() => import('./pages/SettingsHubPage'));
 const OrganizationSettingsPage = lazy(() => import('./pages/settings/OrganizationSettingsPage'));
 const AttendanceSettingsPage = lazy(() => import('./pages/settings/AttendanceSettingsPage'));
 const NumberingSettingsPage = lazy(() => import('./pages/settings/NumberingSettingsPage'));
+const LeaveSettingsPage = lazy(() => import('./pages/settings/LeaveSettingsPage'));
+const ResourceAllocationSettingsPage = lazy(() => import('./pages/settings/ResourceAllocationSettingsPage'));
+const PerformanceSettingsPage = lazy(() => import('./pages/settings/PerformanceSettingsPage'));
+const NotificationSettingsPage = lazy(() => import('./pages/settings/NotificationSettingsPage'));
+const UtilizationSettingsPage = lazy(() => import('./pages/settings/UtilizationSettingsPage'));
+const TimesheetSettingsPage = lazy(() => import('./pages/settings/TimesheetSettingsPage'));
+const CustomFieldsPage = lazy(() => import('./pages/settings/CustomFieldsPage'));
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -210,6 +217,12 @@ const App = () => {
                     <Route path="settings/organization" element={<OrganizationSettingsPage />} />
                     <Route path="settings/attendance" element={<AttendanceSettingsPage />} />
                     <Route path="settings/numbering" element={<NumberingSettingsPage />} />
+                    <Route path="settings/leave-configuration" element={<LeaveSettingsPage />} />
+                    <Route path="settings/resource-allocation" element={<ResourceAllocationSettingsPage />} />
+                    <Route path="settings/performance" element={<PerformanceSettingsPage />} />
+                    <Route path="settings/notifications" element={<NotificationSettingsPage />} />
+                    <Route path="settings/utilization-settings" element={<UtilizationSettingsPage />} />
+                    <Route path="settings/timesheet-settings" element={<TimesheetSettingsPage />} />
                     <Route path="settings/work-locations" element={<WorkLocationsPage />} />
                     <Route path="settings/holidays" element={<FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate>} />
                     <Route path="settings/shifts" element={<FeatureGate flagKey="submodule:people:shifts"><ShiftsPage /></FeatureGate>} />
@@ -222,6 +235,7 @@ const App = () => {
                     <Route path="settings/skills" element={<FeatureGate flagKey="submodule:people:masters"><SkillsPage /></FeatureGate>} />
                     <Route path="settings/employee-status" element={<FeatureGate flagKey="submodule:people:masters"><EmployeeStatusPage /></FeatureGate>} />
                     <Route path="settings/document-types" element={<FeatureGate flagKey="submodule:people:masters"><DocumentTypesPage /></FeatureGate>} />
+                    <Route path="settings/custom-fields" element={<FeatureGate flagKey="submodule:people:employee_custom_fields"><CustomFieldsPage /></FeatureGate>} />
 
                     {/* Import/Export */}
                     <Route path="import-export" element={<ImportExportPage />} />

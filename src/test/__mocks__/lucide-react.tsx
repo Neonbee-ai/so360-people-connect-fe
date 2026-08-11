@@ -82,4 +82,7 @@ export const ClipboardCheck = createIcon('ClipboardCheck');
 export const Home = createIcon('Home');
 export const Sparkles = createIcon('Sparkles');
 export const Hash = createIcon('Hash');
+export const PieChart = createIcon('PieChart');
+export const Gauge = createIcon('Gauge');
+export const Bell = createIcon('Bell');
 export type LucideIcon = React.FC<any>;
