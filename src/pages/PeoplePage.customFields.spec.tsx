@@ -42,6 +42,7 @@ vi.mock('../services/peopleService', () => ({
     export: vi.fn(),
     getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
     inviteUser: vi.fn().mockResolvedValue({ invite_link: null, invite_status: 'existing_user', user_id: 'u1', email_sent: false }),
+    getLaborCategoryOptions: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -111,6 +112,9 @@ const mockPerson = {
 beforeEach(() => {
   vi.resetAllMocks();
   mockPeopleApi.getOrgRoles.mockResolvedValue({ data: [] });
+  // resetAllMocks() above clears the module-level default; the Edit modal loads
+  // labor categories on open.
+  mockPeopleApi.getLaborCategoryOptions.mockResolvedValue([]);
   mockPeopleApi.update.mockResolvedValue({ id: 'p1' });
   mockPeopleApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
   mockDefsApi.getAll.mockResolvedValue({ data: [] });
