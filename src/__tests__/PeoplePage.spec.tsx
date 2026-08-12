@@ -23,6 +23,7 @@ vi.mock('../services/peopleService', () => ({
     export: vi.fn(),
     getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
     inviteUser: vi.fn(),
+    getLaborCategoryOptions: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -76,6 +77,9 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
   mockPeopleApi.getOrgRoles.mockResolvedValue({ data: [] });
+  // resetAllMocks() above clears the module-level default, so re-establish it:
+  // the Edit modal loads labor categories on open.
+  mockPeopleApi.getLaborCategoryOptions.mockResolvedValue([]);
   mockWorkLocationsApi.getAll.mockResolvedValue({ data: [] });
   (departmentsApi as any).getTree.mockResolvedValue([]);
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));

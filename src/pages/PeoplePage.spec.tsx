@@ -32,6 +32,7 @@ vi.mock('../services/peopleService', () => ({
     export: vi.fn(),
     getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
     inviteUser: vi.fn().mockResolvedValue({ invite_link: null, invite_status: 'existing_user', user_id: 'u1', email_sent: false }),
+    getLaborCategoryOptions: vi.fn().mockResolvedValue([]),
   },
   apiContext: {
     getBaseUrl: vi.fn(() => '/people-api'),
@@ -103,6 +104,9 @@ beforeEach(() => {
   vi.resetAllMocks();
   (departmentsApi as any).getTree.mockResolvedValue([]);
   mockApi.getOrgRoles.mockResolvedValue({ data: [] });
+  // resetAllMocks() above clears the module-level default, so re-establish it:
+  // the Edit modal loads labor categories on open.
+  mockApi.getLaborCategoryOptions.mockResolvedValue([]);
   mockWorkLocationsApi.getAll.mockResolvedValue({ data: [] });
   mockMastersApi.getAll.mockResolvedValue({ data: [] });
   mockApi.update.mockResolvedValue({ id: 'p1' });
@@ -576,6 +580,109 @@ describe('Given "Edit Employee" is clicked', () => {
     await waitFor(() =>
       expect(mockApi.update).toHaveBeenCalledWith('p1', expect.objectContaining({ full_name: 'Alice Updated' })),
     );
+  });
+});
+
+describe('Given the Edit modal\'s timesheet costing defaults', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  const openEditModal = async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Edit Employee'));
+    await waitFor(() => expect(screen.getByText('Edit Alice Smith')).toBeInTheDocument());
+  };
+
+  it('When the modal opens / Then the labor category options are loaded', async () => {
+    await openEditModal();
+    await waitFor(() => expect(mockApi.getLaborCategoryOptions).toHaveBeenCalled());
+  });
+
+  // Unconfigured costing is what blocks an employee from logging time, so the
+  // section must not be a place that configuration quietly hides.
+  it('Given nothing is configured / When the modal opens / Then the section auto-expands and reports what is missing', async () => {
+    await openEditModal();
+    expect(await screen.findByLabelText('Default Labor Category')).toBeInTheDocument();
+    expect(screen.getByText('2 missing')).toBeInTheDocument();
+  });
+
+  it('Given both fields are configured / When the modal opens / Then no missing badge is shown', async () => {
+    mockApi.getAll.mockResolvedValue({
+      data: [{ ...mockPerson, default_labor_category_id: 'cat-1', billing_type: 'billable' }],
+      total: 1,
+    });
+    await openEditModal();
+    expect(screen.queryByText(/missing/)).not.toBeInTheDocument();
+  });
+
+  it('When categories are returned / Then they populate the selector', async () => {
+    mockApi.getLaborCategoryOptions.mockResolvedValue([
+      { id: 'cat-1', code: 'SWE', name: 'Software Engineer', base_hourly_rate: 90, overtime_multiplier: 1.5, rate_configured: true },
+    ]);
+    await openEditModal();
+    expect(await screen.findByText('Software Engineer')).toBeInTheDocument();
+  });
+
+  // base_hourly_rate of 0 is legal but means unconfigured — picking such a
+  // category will not make a rateless employee costable, so say so.
+  it('Given a category has no rate / When listed / Then it is flagged rather than shown as usable', async () => {
+    mockApi.getLaborCategoryOptions.mockResolvedValue([
+      { id: 'cat-2', code: 'GEN', name: 'General', base_hourly_rate: 0, overtime_multiplier: 1.5, rate_configured: false },
+    ]);
+    await openEditModal();
+    expect(await screen.findByText('General (no rate)')).toBeInTheDocument();
+  });
+
+  it('Given the options call fails / When the modal opens / Then the form still renders', async () => {
+    mockApi.getLaborCategoryOptions.mockRejectedValue(new Error('service down'));
+    await openEditModal();
+    expect(await screen.findByLabelText('Default Labor Category')).toBeInTheDocument();
+  });
+
+  it('When the fields are set and saved / Then both are sent in the update payload', async () => {
+    mockApi.getLaborCategoryOptions.mockResolvedValue([
+      { id: 'cat-1', code: 'SWE', name: 'Software Engineer', base_hourly_rate: 90, overtime_multiplier: 1.5, rate_configured: true },
+    ]);
+    await openEditModal();
+
+    fireEvent.change(await screen.findByLabelText('Default Labor Category'), { target: { value: 'cat-1' } });
+    fireEvent.change(screen.getByLabelText('Billing Type'), { target: { value: 'billable' } });
+    fireEvent.submit(screen.getByDisplayValue('Alice Smith').closest('form')!);
+
+    await waitFor(() =>
+      expect(mockApi.update).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({ default_labor_category_id: 'cat-1', billing_type: 'billable' }),
+      ),
+    );
+  });
+
+  // An empty <select> value is '', which would trip the backend @IsUUID/@IsEnum
+  // validators. "Cleared" must travel as null.
+  it('When a field is cleared / Then null is sent rather than an empty string', async () => {
+    mockApi.getAll.mockResolvedValue({
+      data: [{ ...mockPerson, default_labor_category_id: 'cat-1', billing_type: 'billable' }],
+      total: 1,
+    });
+    await openEditModal();
+
+    fireEvent.change(await screen.findByLabelText('Default Labor Category'), { target: { value: '' } });
+    fireEvent.submit(screen.getByDisplayValue('Alice Smith').closest('form')!);
+
+    await waitFor(() => expect(mockApi.update).toHaveBeenCalled());
+    const payload = mockApi.update.mock.calls[0][1];
+    expect(payload.default_labor_category_id).toBeNull();
+    expect(payload.default_labor_category_id).not.toBe('');
+  });
+
+  // Cost centres belong to Accounting and are inherited via the department.
+  // An editable control here would fork the org's chart of cost centres.
+  it('When the section is shown / Then the cost centre is read-only, not an input', async () => {
+    await openEditModal();
+    await screen.findByLabelText('Default Labor Category');
+    expect(screen.getByText('Set on the department, not the employee.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Cost Center')).not.toBeInTheDocument();
   });
 });
 

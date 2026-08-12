@@ -11,6 +11,7 @@ import type {
   PaginatedResponse,
   EntityOption,
   LookupEntityType,
+  LaborCategoryOption,
 } from '../types/people';
 import { api, apiContext } from './apiClient';
 import { createRequestCache } from './requestCache';
@@ -46,6 +47,15 @@ export const peopleApi = {
 
   getMe: async (): Promise<Person> => {
     return api.get<Person>('/people/me');
+  },
+
+  /**
+   * Active labor categories for the employee cost-config selector.
+   * Read-only projection of the Timesheet-owned catalog — People Connect stores
+   * a per-employee default but never edits the catalog itself.
+   */
+  getLaborCategoryOptions: async (): Promise<LaborCategoryOption[]> => {
+    return api.get<LaborCategoryOption[]>('/people/labor-category-options');
   },
 
   create: async (data: CreatePersonPayload): Promise<Person> => {

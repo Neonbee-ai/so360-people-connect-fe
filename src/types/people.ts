@@ -31,6 +31,11 @@ export interface Person {
   currency: string;
   billing_rate?: number;
 
+  // Timesheet costing defaults — consumed by the Log Time precheck.
+  // Null/undefined means UNCONFIGURED, which is distinct from any default value.
+  default_labor_category_id?: string | null;
+  billing_type?: 'billable' | 'non_billable' | 'internal' | null;
+
   // Availability
   status: PersonStatus;
   available_hours_per_day: number;
@@ -78,6 +83,21 @@ export type PersonStatus = 'active' | 'inactive' | 'on_leave' | 'terminated' | '
 export type AccessStatus = 'active' | 'pending' | 'no_access';
 export type InvitationStatus = 'pending' | 'accepted' | 'expired';
 export type LoginStatus = 'active' | 'blocked' | 'pending' | 'none';
+
+/**
+ * A labor category option for the employee cost-config selector.
+ * `rate_configured` is false when base_hourly_rate is 0 — a legal value that
+ * nonetheless means "unconfigured", so the UI can warn that picking this
+ * category alone will not make a rateless employee costable.
+ */
+export interface LaborCategoryOption {
+  id: string;
+  code: string | null;
+  name: string | null;
+  base_hourly_rate: number;
+  overtime_multiplier: number;
+  rate_configured: boolean;
+}
 
 export interface PersonRole {
   id: string;

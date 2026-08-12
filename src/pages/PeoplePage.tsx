@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown, ChevronRight, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import { peopleApi } from '../services/peopleService';
-import type { Person, CreatePersonPayload, PersonStatus, AccessStatus, InvitationStatus } from '../types/people';
+import type { Person, CreatePersonPayload, PersonStatus, AccessStatus, InvitationStatus, LaborCategoryOption } from '../types/people';
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
@@ -1338,6 +1338,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             </select>
                         </div>
                     </div>
+
                 </div>
 
                 {/* Availability */}
@@ -1595,6 +1596,8 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
             available_hours_per_day: person.available_hours_per_day,
             start_date: person.start_date,
             work_location_id: person.work_location_id,
+            default_labor_category_id: person.default_labor_category_id,
+            billing_type: person.billing_type,
         });
     }, [person]);
 
@@ -1626,11 +1629,42 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
         e.preventDefault();
         if (!person || !formData.full_name) return;
         const payload: any = { ...formData };
+        // Empty select value means "clear it". Send null rather than '' so the
+        // backend @IsUUID / @IsEnum validators are not tripped by an empty string.
+        payload.default_labor_category_id = payload.default_labor_category_id || null;
+        payload.billing_type = payload.billing_type || null;
         if (Object.keys(customFieldValues).length > 0) {
             payload.customFieldValues = customFieldValues;
         }
         onSave(person.id, payload);
     };
+
+    // Timesheet costing defaults. These feed the Log Time precheck: an employee
+    // without a usable rate is blocked from logging time entirely.
+    const [showCosting, setShowCosting] = useState(false);
+    const [laborCategories, setLaborCategories] = useState<LaborCategoryOption[]>([]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        peopleApi.getLaborCategoryOptions()
+            .then((rows) => setLaborCategories(rows ?? []))
+            // The catalog is optional — an org with none simply relies on per-person
+            // rates, so a failure here must not break the form.
+            .catch(() => setLaborCategories([]));
+    }, [isOpen]);
+
+    const resolvedCostCenter = person?.department_info?.name
+        ? `Via ${person.department_info.name}`
+        : null;
+
+    // Surfaced on the collapsed disclosure so missing config is never hidden AND forgotten.
+    const missingCostingCount =
+        (formData.default_labor_category_id ? 0 : 1) + (formData.billing_type ? 0 : 1);
+
+    // Auto-expand when something is unset, so the section is not a place config goes to hide.
+    useEffect(() => {
+        if (isOpen && missingCostingCount > 0) setShowCosting(true);
+    }, [isOpen, missingCostingCount]);
 
     if (!person) return null;
 
@@ -1841,6 +1875,78 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                             />
                         </div>
                     </div>
+
+                    {/* Timesheet costing defaults — progressive disclosure. Collapsed
+                        when complete so the rate fields above stay the focus; the count
+                        badge means it is never hidden AND forgotten. */}
+                    <button
+                        type="button"
+                        onClick={() => setShowCosting((v) => !v)}
+                        className="mt-4 flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300"
+                        aria-expanded={showCosting}
+                    >
+                        {showCosting ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        Timesheet &amp; costing defaults
+                        {missingCostingCount > 0 && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px] font-semibold">
+                                {missingCostingCount} missing
+                            </span>
+                        )}
+                    </button>
+
+                    {showCosting && (
+                        <div className="mt-3 grid grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Default Labor Category</label>
+                                <select
+                                    value={formData.default_labor_category_id || ''}
+                                    onChange={(e) => updateField('default_labor_category_id', e.target.value || null)}
+                                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                    aria-label="Default Labor Category"
+                                >
+                                    <option value="">Not set</option>
+                                    {laborCategories.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name}{c.rate_configured ? '' : ' (no rate)'}
+                                        </option>
+                                    ))}
+                                </select>
+                                {laborCategories.length === 0 && (
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        No labor categories configured. The employee&apos;s own cost rate will be used.
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Billing Type</label>
+                                <select
+                                    value={formData.billing_type || ''}
+                                    onChange={(e) => updateField('billing_type', e.target.value || null)}
+                                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                    aria-label="Billing Type"
+                                >
+                                    <option value="">Not set</option>
+                                    <option value="billable">Billable</option>
+                                    <option value="non_billable">Non-billable</option>
+                                    <option value="internal">Internal</option>
+                                </select>
+                            </div>
+
+                            {/* Read-only: cost centres are owned by Accounting and inherited
+                                via the employee's department. Editing them here would fork
+                                the org's chart of cost centres. */}
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Cost Center</label>
+                                <div className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-400">
+                                    {resolvedCostCenter || 'Inherited from department — not set'}
+                                </div>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    Set on the department, not the employee.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Custom Fields */}
