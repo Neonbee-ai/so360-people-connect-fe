@@ -180,6 +180,33 @@ const INVITATION_LABEL: Record<InvitationStatus, string> = {
     expired: 'Expired',
 };
 
+/**
+ * Pick the org role an invite (or re-invite) should carry.
+ *
+ * Both invite actions previously used `roles.data[0].id` — the first row the API
+ * happened to return. Two things went wrong with that. The role handed to a new
+ * user was effectively arbitrary (Guest for some orgs, Admin for others), and
+ * because the backend upserts invites on (org_id, email), hitting "Resend"
+ * silently OVERWROTE the role an administrator had deliberately chosen.
+ *
+ * So: keep the person's existing role when they already have one, otherwise use
+ * the canonical Employee role. Never guess — returning null surfaces a real error
+ * rather than quietly granting the wrong level of access.
+ */
+export const resolveInviteRoleId = (
+    person: Person,
+    roles?: Array<{ id: string; name: string }>,
+): string | undefined => {
+    if (!roles?.length) return undefined;
+
+    const byName = (name?: string | null) =>
+        name
+            ? roles.find(r => r.name?.toLowerCase().trim() === name.toLowerCase().trim())
+            : undefined;
+
+    return (byName(person.system_role) ?? byName('Employee'))?.id;
+};
+
 const PeoplePage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -360,9 +387,9 @@ const PeoplePage: React.FC = () => {
         try {
             setInvitingId(person.id);
             const roles = await peopleApi.getOrgRoles();
-            const defaultRole = roles.data?.[0]?.id;
+            const defaultRole = resolveInviteRoleId(person, roles.data);
             if (!defaultRole) {
-                toast.error('No org roles available to assign — set up roles first');
+                toast.error('No suitable org role found — create an "Employee" role first');
                 return;
             }
             const res = await peopleApi.inviteUser(person.id, email, defaultRole, true);
@@ -392,9 +419,9 @@ const PeoplePage: React.FC = () => {
         setActionBusy(true);
         try {
             const roles = await peopleApi.getOrgRoles();
-            const defaultRole = roles.data?.[0]?.id;
+            const defaultRole = resolveInviteRoleId(person, roles.data);
             if (!defaultRole) {
-                toast.error('No org roles available to assign — set up roles first');
+                toast.error('No suitable org role found — create an "Employee" role first');
                 return;
             }
             const res = await peopleApi.inviteUser(person.id, email, defaultRole, true);
