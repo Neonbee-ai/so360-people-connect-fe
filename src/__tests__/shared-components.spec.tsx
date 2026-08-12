@@ -273,8 +273,29 @@ describe('Toast facade', () => {
   });
 
   describe('Given getErrorMessage', () => {
-    it('When called with a fallback / Then the fallback is honoured', () => {
-      expect(getErrorMessage(new Error('boom'), 'fallback text')).toBe('fallback text');
+    // A server-supplied message beats the caller's fallback — that is the whole
+    // point of the helper, and why callers can pass a generic fallback safely.
+    // This previously asserted the opposite, which only passed because the test
+    // stub ignored the error entirely.
+    it('When the error carries a message / Then that message wins over the fallback', () => {
+      expect(getErrorMessage(new Error('boom'), 'fallback text')).toBe('boom');
     });
+
+    it('When a server message is present / Then it beats the transport error message', () => {
+      const axiosLike = {
+        message: 'Request failed with status code 400',
+        response: { data: { message: "Labor category with code 'X' already exists" } },
+      };
+      expect(getErrorMessage(axiosLike, 'fallback text')).toBe(
+        "Labor category with code 'X' already exists",
+      );
+    });
+
+    it.each([[null], [undefined], [{}]])(
+      'When there is no usable message (%s) / Then the fallback is honoured',
+      (err) => {
+        expect(getErrorMessage(err, 'fallback text')).toBe('fallback text');
+      },
+    );
   });
 });

@@ -8,8 +8,19 @@ import { settingsNavItems } from '../config/settingsNav';
 const renderHub = () => render(<MemoryRouter><SettingsHubPage /></MemoryRouter>);
 
 describe('Given the Settings Hub nav config', () => {
-  it('When settingsNavItems is inspected / Then it has exactly 21 entries (the full named catalog)', () => {
-    expect(settingsNavItems).toHaveLength(21);
+  it('When settingsNavItems is inspected / Then it has exactly 22 entries (the full named catalog)', () => {
+    expect(settingsNavItems).toHaveLength(22);
+  });
+
+  // Labor categories became People Connect master data; this rail is the only
+  // place the screen is reachable, since its siblings (Designations, Skills,
+  // Employee Status) have no shell-nav entry either.
+  it('When settingsNavItems is inspected / Then Labor Categories is present and active', () => {
+    const entry = settingsNavItems.find((i) => i.key === 'labor_categories');
+    expect(entry).toMatchObject({
+      path: 'settings/labor-categories',
+      status: 'active',
+    });
   });
 
   it('When settingsNavItems is inspected / Then every entry has key, label, path, and a valid status', () => {

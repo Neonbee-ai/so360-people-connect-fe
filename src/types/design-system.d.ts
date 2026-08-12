@@ -74,4 +74,24 @@ declare module '@so360/design-system' {
     };
     export const ToastViewport: React.FC;
     export const ToastProvider: React.FC<{ children?: React.ReactNode }>;
+
+    // Inline status banner. Mirror any change here in the real component at
+    // so360-shell-fe/packages/design-system/src/components/Alert.tsx — this
+    // ambient declaration shadows the package's own types for this app.
+    export type AlertVariant = 'info' | 'success' | 'warning' | 'error';
+    export interface AlertAction {
+        label: string;
+        onClick: () => void;
+    }
+    export interface AlertProps {
+        variant?: AlertVariant;
+        title?: string;
+        children?: React.ReactNode;
+        icon?: React.ComponentType<{ className?: string }> | false;
+        action?: AlertAction;
+        onDismiss?: () => void;
+        className?: string;
+        id?: string;
+    }
+    export const Alert: React.FC<AlertProps>;
 }

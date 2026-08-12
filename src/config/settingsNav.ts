@@ -40,4 +40,6 @@ export const settingsNavItems: SettingsNavItem[] = [
   { key: 'employee_custom_fields', label: 'Employee Custom Fields', path: 'settings/custom-fields', status: 'active' },
   { key: 'numbering_prefixes', label: 'Numbering & Prefixes', path: 'settings/numbering', status: 'active' },
   { key: 'leave_types', label: 'Leave Types', path: 'leaves/types', status: 'active' },
+  // Appended per this file's contract — never reorder the entries above.
+  { key: 'labor_categories', label: 'Labor Categories', path: 'settings/labor-categories', status: 'active' },
 ];

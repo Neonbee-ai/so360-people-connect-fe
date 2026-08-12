@@ -22,7 +22,20 @@ export const toast = {
     dismiss: (_id?: string) => undefined,
 };
 export const useToast = () => toast;
-export const getErrorMessage = (_err: unknown, fallback?: string) => fallback ?? 'error';
+export const getErrorMessage = (err: unknown, fallback?: string) => {
+  // Mirrors the real implementation closely enough to be meaningful: a
+  // server-supplied message wins over the fallback. The previous stub always
+  // returned the fallback, which made every "the backend's message reaches the
+  // user" assertion vacuous.
+  const anyErr = err as any;
+  const candidate =
+    anyErr?.response?.data?.message ?? anyErr?.message ?? (typeof err === 'string' ? err : null);
+  if (Array.isArray(candidate) && candidate.length) return candidate.join('. ');
+  if (typeof candidate === 'string' && candidate.trim() && !/^\s*</.test(candidate)) {
+    return candidate.trim();
+  }
+  return fallback ?? 'Something went wrong. Please try again.';
+};
 export const attachToastErrorHandler = () => 0;
 export const toastBus = {
     show: () => undefined,
@@ -30,3 +43,15 @@ export const toastBus = {
     subscribe: () => () => undefined,
     getToasts: () => [],
 };
+
+// Faithful enough for assertions: error must be role="alert" (blocking) and the
+// action must be a real button, or specs asserting on them test nothing.
+export const Alert = ({ variant = 'info', title, children, action, onDismiss, id, className }: any) =>
+  React.createElement(
+    'div',
+    { id, className, role: variant === 'error' ? 'alert' : 'status' },
+    title ? React.createElement('p', null, title) : null,
+    children ?? null,
+    action ? React.createElement('button', { type: 'button', onClick: action.onClick }, action.label) : null,
+    onDismiss ? React.createElement('button', { type: 'button', 'aria-label': 'Dismiss', onClick: onDismiss }) : null,
+  );

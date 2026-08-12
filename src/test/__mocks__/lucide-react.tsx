@@ -88,4 +88,5 @@ export const Bell = createIcon('Bell');
 export const ListChecks = createIcon('ListChecks');
 export const ArrowUp = createIcon('ArrowUp');
 export const ArrowDown = createIcon('ArrowDown');
+export const UserCog = createIcon('UserCog');
 export type LucideIcon = React.FC<any>;

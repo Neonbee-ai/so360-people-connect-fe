@@ -140,6 +140,7 @@ const EmploymentPolicyPage = lazy(() => import('./pages/settings/EmploymentPolic
 const DesignationsPage = lazy(() => import('./pages/masters/DesignationsPage'));
 const EmploymentTypesPage = lazy(() => import('./pages/masters/EmploymentTypesPage'));
 const SkillsPage = lazy(() => import('./pages/masters/SkillsPage'));
+const LaborCategoriesPage = lazy(() => import('./pages/masters/LaborCategoriesPage'));
 const EmployeeStatusPage = lazy(() => import('./pages/masters/EmployeeStatusPage'));
 const DocumentTypesPage = lazy(() => import('./pages/masters/DocumentTypesPage'));
 const SettingsHubPage = lazy(() => import('./pages/SettingsHubPage'));
@@ -233,6 +234,7 @@ const App = () => {
                     <Route path="settings/designations" element={<FeatureGate flagKey="submodule:people:masters"><DesignationsPage /></FeatureGate>} />
                     <Route path="settings/employment-types" element={<FeatureGate flagKey="submodule:people:masters"><EmploymentTypesPage /></FeatureGate>} />
                     <Route path="settings/skills" element={<FeatureGate flagKey="submodule:people:masters"><SkillsPage /></FeatureGate>} />
+                    <Route path="settings/labor-categories" element={<FeatureGate flagKey="submodule:people:labor_categories"><LaborCategoriesPage /></FeatureGate>} />
                     <Route path="settings/employee-status" element={<FeatureGate flagKey="submodule:people:masters"><EmployeeStatusPage /></FeatureGate>} />
                     <Route path="settings/document-types" element={<FeatureGate flagKey="submodule:people:masters"><DocumentTypesPage /></FeatureGate>} />
                     <Route path="settings/custom-fields" element={<FeatureGate flagKey="submodule:people:employee_custom_fields"><CustomFieldsPage /></FeatureGate>} />
