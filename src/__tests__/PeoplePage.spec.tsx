@@ -364,7 +364,10 @@ describe('PeoplePage — System access columns', () => {
 
     it('Given a no_access row with email / When Invite is clicked / Then inviteUser is called and the row does not navigate', async () => {
       mockPeopleApi.getAll.mockResolvedValue({ data: [accessPerson({ id: 'p1', access_status: 'no_access', email: 'jane@x.com' })] });
-      mockPeopleApi.getOrgRoles.mockResolvedValue({ data: [{ id: 'role-1', name: 'Member' }] });
+      // resolveInviteRoleId matches the person's system_role by name, falling back
+      // to a role literally named "Employee" — it deliberately no longer grabs
+      // roles[0], which handed out whichever role the API happened to return first.
+      mockPeopleApi.getOrgRoles.mockResolvedValue({ data: [{ id: 'role-1', name: 'Employee' }] });
       mockPeopleApi.inviteUser.mockResolvedValue({ invite_status: 'link_generated', invite_link: 'https://invite/abc', email_sent: true, user_id: null });
       renderPage();
       await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());

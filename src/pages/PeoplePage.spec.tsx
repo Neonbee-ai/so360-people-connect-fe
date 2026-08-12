@@ -827,7 +827,10 @@ describe('Given "Resend Invitation" is clicked for a pending person', () => {
       data: [{ ...mockPerson, access_status: 'pending', invitation_status: 'pending' }],
       total: 1,
     });
-    mockApi.getOrgRoles.mockResolvedValue({ data: [{ id: 'role-1', name: 'Member' }] });
+    // resolveInviteRoleId matches the person's system_role by name, falling back
+    // to a role literally named "Employee" — it deliberately no longer grabs
+    // roles[0], which handed out whichever role the API returned first.
+    mockApi.getOrgRoles.mockResolvedValue({ data: [{ id: 'role-1', name: 'Employee' }] });
   });
 
   it('When clicked / Then peopleApi.inviteUser is called again for that person', async () => {
