@@ -402,13 +402,14 @@ describe('Given the Create Performance Review modal', () => {
       await waitFor(() =>
         expect(screen.getByTestId('reviewer-picker').textContent).toContain('Manager Bob'),
       );
-      fireEvent.change(document.querySelector('select') as HTMLSelectElement, { target: { value: 'tpl1' } });
+      // Scope to the form — the page renders its own status-filter select first.
+      const form = document.querySelector('form') as HTMLFormElement;
+      fireEvent.change(form.querySelector('select') as HTMLSelectElement, { target: { value: 'tpl1' } });
 
       const [start, end] = dateInputs();
       fireEvent.change(start, { target: { value: '2026-08-11' } });
       fireEvent.change(end, { target: { value: '2026-08-03' } });
 
-      const form = document.querySelector('form') as HTMLFormElement;
       const submit = form.querySelector('button[type="submit"]') as HTMLButtonElement;
       await waitFor(() => expect(submit).toBeDisabled());
 
@@ -456,10 +457,9 @@ describe('Given the Create Performance Review modal', () => {
         expect(screen.getByTestId('reviewer-picker').textContent).toContain('Manager Bob'),
       );
 
-      const templateSelect = document.querySelector('select') as HTMLSelectElement;
-      fireEvent.change(templateSelect, { target: { value: 'tpl1' } });
-
+      // Scope to the form — the page itself renders a status-filter select first.
       const form = document.querySelector('form') as HTMLFormElement;
+      fireEvent.change(form.querySelector('select') as HTMLSelectElement, { target: { value: 'tpl1' } });
       fireEvent.submit(form);
 
       await waitFor(() => expect(mockReviewsApi.create).toHaveBeenCalled());

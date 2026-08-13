@@ -105,14 +105,14 @@ const LeaveTypesPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">
+                            {/*
+                              * Rows are not navigation targets — the Actions
+                              * column owns editing. A row-wide click plus a
+                              * dedicated Edit button were two ways to do the
+                              * same thing, and the row swallowed clicks meant
+                              * only to read a value.
+                              */}
                             {leaveTypes.map(leaveType => (
-                                {/*
-                                  * The row is not a navigation target — the
-                                  * Actions column owns editing. Row-wide click
-                                  * plus a dedicated Edit button were two ways
-                                  * to do the same thing, and the row swallowed
-                                  * clicks meant only to inspect a value.
-                                  */}
                                 <tr
                                     key={leaveType.id}
                                     className="hover:bg-slate-800/50 transition-colors"
