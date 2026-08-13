@@ -117,3 +117,61 @@ describe('Given FeedbackPage create interaction', () => {
     await waitFor(() => expect(screen.getByText('Feedback Type *')).toBeInTheDocument());
   });
 });
+
+/*
+ * The "Feedback For" field is the same shared PersonPicker used by the Reviews
+ * modal — it must open its list on focus rather than demanding a keystroke,
+ * and it must not offer to edit the person's master record.
+ */
+describe('Given the Give Feedback modal person selector', () => {
+  const PEOPLE = [
+    { id: 'p1', full_name: 'Alice Anderson', job_title: 'Engineer' },
+    { id: 'p2', full_name: 'Aswin Shaji', job_title: 'Developer' },
+  ];
+
+  const openModal = async () => {
+    mockApi.getAll.mockResolvedValue({ data: [mockFeedback], total: 1 });
+    mockPeopleApi.getAll.mockResolvedValue({ data: PEOPLE, total: 2 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Give Feedback')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Give Feedback'));
+    await waitFor(() => expect(screen.getByTestId('feedback-person-picker')).toBeInTheDocument());
+  };
+
+  const pickerInput = () =>
+    screen.getByTestId('feedback-person-picker').querySelector('input') as HTMLInputElement;
+
+  it('When the field is focused without typing / Then the people list opens', async () => {
+    await openModal();
+    expect(screen.queryByText(/Aswin Shaji/)).not.toBeInTheDocument();
+
+    fireEvent.focus(pickerInput());
+
+    await waitFor(() => expect(screen.getByText(/Alice Anderson/)).toBeInTheDocument());
+    expect(screen.getByText(/Aswin Shaji/)).toBeInTheDocument();
+  });
+
+  it('When typing then clearing / Then the list filters and is restored', async () => {
+    await openModal();
+    fireEvent.focus(pickerInput());
+    await waitFor(() => expect(screen.getByText(/Aswin Shaji/)).toBeInTheDocument());
+
+    fireEvent.change(pickerInput(), { target: { value: 'alice' } });
+    await waitFor(() => expect(screen.queryByText(/Aswin Shaji/)).not.toBeInTheDocument());
+
+    fireEvent.change(pickerInput(), { target: { value: '' } });
+    await waitFor(() => expect(screen.getByText(/Aswin Shaji/)).toBeInTheDocument());
+  });
+
+  it('When a person is selected / Then Clear is offered and no Edit action appears', async () => {
+    await openModal();
+    fireEvent.focus(pickerInput());
+    fireEvent.click(await screen.findByText(/Alice Anderson/));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('feedback-person-picker').textContent).toContain('Alice Anderson'),
+    );
+    expect(screen.getByText('Clear')).toBeInTheDocument();
+    expect(screen.getByTestId('feedback-person-picker').textContent).not.toContain('Edit');
+  });
+});
