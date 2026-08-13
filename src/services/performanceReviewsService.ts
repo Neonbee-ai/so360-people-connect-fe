@@ -44,11 +44,36 @@ export interface CreatePerformanceReviewPayload {
   manager_review_deadline?: string;
 }
 
+/**
+ * A person who may be assigned as the reviewer for a given employee.
+ * Eligibility is derived server-side from `departments.head_person_id` —
+ * People Connect stores no per-person reporting manager.
+ */
+export interface EligibleReviewer {
+  id: string;
+  full_name: string;
+  email?: string;
+  avatar_url?: string;
+  job_title?: string;
+  department_id?: string;
+  heads_departments: string[];
+  is_direct_manager: boolean;
+}
+
+export interface EligibleReviewersResponse {
+  data: EligibleReviewer[];
+  direct_manager_id: string | null;
+}
+
 // =============================================================================
 // PERFORMANCE REVIEWS API
 // =============================================================================
 
 export const performanceReviewsApi = {
+  getEligibleReviewers: async (personId: string): Promise<EligibleReviewersResponse> => {
+    return api.get<EligibleReviewersResponse>('/performance-reviews/eligible-reviewers', { person_id: personId });
+  },
+
   getAll: async (params?: { person_id?: string; reviewer_id?: string; status?: string; page?: number; limit?: number }): Promise<PaginatedResponse<PerformanceReview>> => {
     return api.get<PaginatedResponse<PerformanceReview>>('/performance-reviews', params);
   },

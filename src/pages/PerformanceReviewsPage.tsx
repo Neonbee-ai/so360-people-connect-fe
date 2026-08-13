@@ -5,10 +5,11 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import PersonPicker from '../components/PersonPicker';
+import { toast, getErrorMessage } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
-import { performanceReviewsApi, PerformanceReview, CreatePerformanceReviewPayload } from '../services/performanceReviewsService';
+import { performanceReviewsApi, PerformanceReview, CreatePerformanceReviewPayload, EligibleReviewer } from '../services/performanceReviewsService';
 import { reviewTemplatesApi, ReviewTemplate } from '../services/reviewTemplatesService';
 import { peopleApi } from '../services/peopleService';
 import type { Person } from '../types/people';
@@ -58,7 +59,10 @@ const PerformanceReviewsPage: React.FC = () => {
             recordActivity({ eventType: 'people.review.created', eventCategory: 'data', description: `Performance review was created`, resourceType: 'review', resourceId: created?.id }).catch(() => {});
             loadReviews();
         } catch (error) {
-            toast.error('Failed to create performance review');
+            // Reviewer-eligibility and review-period rejections carry an
+            // actionable message from the API — show it rather than a generic
+            // failure the user cannot act on.
+            toast.error(getErrorMessage(error, 'Failed to create performance review'));
         }
     };
 
@@ -272,8 +276,9 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
     const [templatesLoaded, setTemplatesLoaded] = useState(false);
     const [seedingTemplates, setSeedingTemplates] = useState(false);
     const [people, setPeople] = useState<Person[]>([]);
-    const [personSearch, setPersonSearch] = useState('');
-    const [reviewerSearch, setReviewerSearch] = useState('');
+    const [eligibleReviewers, setEligibleReviewers] = useState<EligibleReviewer[]>([]);
+    const [reviewersLoading, setReviewersLoading] = useState(false);
+    const [reviewersLoaded, setReviewersLoaded] = useState(false);
     const [formData, setFormData] = useState<CreatePerformanceReviewPayload>({
         person_id: '',
         template_id: '',
@@ -290,6 +295,50 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
             loadPeople();
         }
     }, [isOpen]);
+
+    /**
+     * The reviewer list is a function of who is being reviewed — reload it on
+     * every change and drop any previously chosen reviewer who is no longer
+     * eligible, rather than silently submitting a stale id.
+     */
+    useEffect(() => {
+        if (!isOpen || !formData.person_id) {
+            setEligibleReviewers([]);
+            setReviewersLoaded(false);
+            return;
+        }
+
+        let cancelled = false;
+        setReviewersLoading(true);
+        performanceReviewsApi.getEligibleReviewers(formData.person_id)
+            .then(result => {
+                if (cancelled) return;
+                const list = result.data || [];
+                setEligibleReviewers(list);
+                setFormData(prev => {
+                    // Preselect the direct manager when there is one and nothing
+                    // valid is already chosen; otherwise clear an ineligible pick.
+                    if (prev.reviewer_id && list.some(r => r.id === prev.reviewer_id)) return prev;
+                    const preferred = result.direct_manager_id && list.some(r => r.id === result.direct_manager_id)
+                        ? result.direct_manager_id
+                        : '';
+                    return prev.reviewer_id === preferred ? prev : { ...prev, reviewer_id: preferred };
+                });
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setEligibleReviewers([]);
+                setFormData(prev => (prev.reviewer_id ? { ...prev, reviewer_id: '' } : prev));
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setReviewersLoading(false);
+                    setReviewersLoaded(true);
+                }
+            });
+
+        return () => { cancelled = true; };
+    }, [isOpen, formData.person_id]);
 
     const loadTemplates = async () => {
         try {
@@ -323,26 +372,32 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
         }
     };
 
+    const periodInvalid = Boolean(
+        formData.review_period_start &&
+        formData.review_period_end &&
+        formData.review_period_end < formData.review_period_start
+    );
+
+    const canSubmit = Boolean(
+        formData.person_id && formData.reviewer_id && formData.template_id && !periodInvalid
+    );
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.person_id || !formData.template_id || !formData.reviewer_id) return;
-        onCreate(formData);
+        // Guard, not belt-and-braces: a disabled button does not stop an
+        // implicit submit triggered by Enter inside a text input.
+        if (!canSubmit) return;
+        // The backend DTO validates deadlines as dates — an empty string is not
+        // a date, so unset optional deadlines must be omitted, not sent blank.
+        const payload: CreatePerformanceReviewPayload = { ...formData };
+        if (!payload.self_review_deadline) delete payload.self_review_deadline;
+        if (!payload.manager_review_deadline) delete payload.manager_review_deadline;
+        onCreate(payload);
     };
 
     const updateField = (field: keyof CreatePerformanceReviewPayload, value: unknown) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
-
-    const filteredPeopleForPerson = people.filter(p =>
-        !personSearch || p.full_name.toLowerCase().includes(personSearch.toLowerCase())
-    );
-
-    const filteredPeopleForReviewer = people.filter(p =>
-        !reviewerSearch || p.full_name.toLowerCase().includes(reviewerSearch.toLowerCase())
-    );
-
-    const selectedPerson = people.find(p => p.id === formData.person_id);
-    const selectedReviewer = people.find(p => p.id === formData.reviewer_id);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Create Performance Review">
@@ -350,76 +405,38 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                 {/* Person Selector */}
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Person Being Reviewed *</label>
-                    {selectedPerson ? (
-                        <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
-                            <span className="text-sm text-slate-50">{selectedPerson.full_name}</span>
-                            <button type="button" onClick={() => updateField('person_id', '')} className="text-xs text-slate-400 hover:text-red-400">Clear</button>
-                        </div>
-                    ) : (
-                        <div>
-                            <input
-                                type="text"
-                                placeholder="Search people..."
-                                value={personSearch}
-                                onChange={(e) => setPersonSearch(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                            {personSearch && (
-                                <div className="mt-1 max-h-32 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg">
-                                    {filteredPeopleForPerson.slice(0, 10).map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => { updateField('person_id', p.id); setPersonSearch(''); }}
-                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-slate-50"
-                                        >
-                                            {p.full_name} {p.job_title ? `(${p.job_title})` : ''}
-                                        </button>
-                                    ))}
-                                    {filteredPeopleForPerson.length === 0 && (
-                                        <p className="px-3 py-2 text-xs text-slate-500">No matches found</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    <PersonPicker
+                        options={people}
+                        value={formData.person_id}
+                        onChange={(id) => updateField('person_id', id)}
+                        placeholder="Search people..."
+                        emptyMessage="No active people found"
+                        data-testid="person-picker"
+                    />
                 </div>
 
-                {/* Reviewer Selector */}
+                {/* Reviewer Selector — restricted to managers eligible for this person */}
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Reviewer (Manager) *</label>
-                    {selectedReviewer ? (
-                        <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
-                            <span className="text-sm text-slate-50">{selectedReviewer.full_name}</span>
-                            <button type="button" onClick={() => updateField('reviewer_id', '')} className="text-xs text-slate-400 hover:text-red-400">Clear</button>
-                        </div>
-                    ) : (
-                        <div>
-                            <input
-                                type="text"
-                                placeholder="Search reviewer..."
-                                value={reviewerSearch}
-                                onChange={(e) => setReviewerSearch(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                            {reviewerSearch && (
-                                <div className="mt-1 max-h-32 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg">
-                                    {filteredPeopleForReviewer.slice(0, 10).map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => { updateField('reviewer_id', p.id); setReviewerSearch(''); }}
-                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-slate-50"
-                                        >
-                                            {p.full_name} {p.job_title ? `(${p.job_title})` : ''}
-                                        </button>
-                                    ))}
-                                    {filteredPeopleForReviewer.length === 0 && (
-                                        <p className="px-3 py-2 text-xs text-slate-500">No matches found</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                    <PersonPicker
+                        options={eligibleReviewers}
+                        value={formData.reviewer_id}
+                        onChange={(id) => updateField('reviewer_id', id)}
+                        placeholder="Search eligible managers..."
+                        emptyMessage="No eligible managers found"
+                        loading={reviewersLoading}
+                        disabled={!formData.person_id}
+                        disabledMessage="Select the person being reviewed first."
+                        data-testid="reviewer-picker"
+                    />
+                    {formData.person_id && reviewersLoaded && !reviewersLoading && eligibleReviewers.length === 0 && (
+                        <p className="mt-1 text-xs text-amber-400">
+                            No eligible managers found for this employee. Assign a department head in
+                            People Connect → Departments before creating this review.
+                        </p>
+                    )}
+                    {eligibleReviewers.some(r => r.is_direct_manager && r.id === formData.reviewer_id) && (
+                        <p className="mt-1 text-xs text-slate-500">Their reporting manager.</p>
                     )}
                 </div>
 
@@ -470,10 +487,24 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                         <input
                             type="date"
                             required
+                            // Blocks earlier dates in the picker; the explicit
+                            // check below still catches typed-in values, which
+                            // `min` does not prevent.
+                            min={formData.review_period_start || undefined}
+                            aria-invalid={periodInvalid}
                             value={formData.review_period_end}
                             onChange={(e) => updateField('review_period_end', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${
+                                periodInvalid
+                                    ? 'border-red-500 focus:border-red-500'
+                                    : 'border-slate-700 focus:border-teal-500'
+                            }`}
                         />
+                        {periodInvalid && (
+                            <p role="alert" className="mt-1 text-xs text-red-400">
+                                Review Period End date cannot be earlier than Review Period Start date.
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Self Review Deadline</label>
@@ -505,7 +536,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                     </button>
                     <button
                         type="submit"
-                        disabled={!formData.person_id || !formData.reviewer_id || !formData.template_id}
+                        disabled={!canSubmit}
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Create Review

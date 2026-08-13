@@ -106,10 +106,16 @@ const LeaveTypesPage: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-800">
                             {leaveTypes.map(leaveType => (
+                                {/*
+                                  * The row is not a navigation target — the
+                                  * Actions column owns editing. Row-wide click
+                                  * plus a dedicated Edit button were two ways
+                                  * to do the same thing, and the row swallowed
+                                  * clicks meant only to inspect a value.
+                                  */}
                                 <tr
                                     key={leaveType.id}
-                                    className="hover:bg-slate-800/50 cursor-pointer transition-colors"
-                                    onClick={() => setEditingLeaveType(leaveType)}
+                                    className="hover:bg-slate-800/50 transition-colors"
                                 >
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
@@ -141,10 +147,7 @@ const LeaveTypesPage: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         {canCreate && <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingLeaveType(leaveType);
-                                            }}
+                                            onClick={() => setEditingLeaveType(leaveType)}
                                             className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
                                         >
                                             Edit

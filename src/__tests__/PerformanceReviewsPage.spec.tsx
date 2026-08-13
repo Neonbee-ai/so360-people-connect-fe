@@ -11,6 +11,7 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../services/performanceReviewsService', () => ({
   performanceReviewsApi: {
     getAll: vi.fn(),
+    getEligibleReviewers: vi.fn(),
     getMyReviews: vi.fn(),
     create: vi.fn(),
   },
@@ -65,6 +66,9 @@ const renderPage = () =>
 beforeEach(() => {
   vi.resetAllMocks();
   mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  // The Create Review modal resolves eligible reviewers on open; without a
+  // default every spec that opens it would reject on an undefined mock.
+  mockApi.getEligibleReviewers.mockResolvedValue({ data: [], direct_manager_id: null });
 });
 
 describe('PerformanceReviewsPage', () => {

@@ -40,6 +40,10 @@ const LeaveCalendarPage: React.FC = () => {
     const loadLeaveRequests = async () => {
         setLoading(true);
         setLoadError(false);
+        // Drop the outgoing month's entries before the fetch — otherwise the
+        // previous month's leave stays painted over the new grid until the
+        // response lands, which reads as data belonging to the new month.
+        setLeaveRequests([]);
         try {
             const firstDay = new Date(year, month, 1).toISOString().split('T')[0];
             const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0];
@@ -195,10 +199,10 @@ const LeaveCalendarPage: React.FC = () => {
                             >
                                 {day.date && (
                                     <>
-                                        <div className={`text-xs font-medium mb-1 ${
+                                        <div className={`text-sm font-semibold mb-1 ${
                                             isToday
-                                                ? 'text-teal-400 bg-teal-400/10 w-6 h-6 rounded-full flex items-center justify-center'
-                                                : 'text-slate-400'
+                                                ? 'text-teal-400 bg-teal-400/10 w-7 h-7 rounded-full flex items-center justify-center'
+                                                : 'text-slate-300'
                                         }`}>
                                             {day.date}
                                         </div>

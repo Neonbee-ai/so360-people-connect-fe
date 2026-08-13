@@ -108,3 +108,42 @@ describe('Given LeaveTypesPage API failure', () => {
     await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load leave types'));
   });
 });
+
+/*
+ * Row-interaction standardisation: the Actions column owns editing. The whole
+ * row used to be clickable *as well*, so inspecting a value (code, accrual,
+ * status) navigated into the edit form by accident.
+ */
+describe('Given a Leave Type row with a dedicated Edit action', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockLeaveType], total: 1 });
+  });
+
+  it('When the Edit action is clicked / Then the edit modal opens', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Edit'));
+    await waitFor(() => expect(screen.getByText('Edit Leave Type')).toBeInTheDocument());
+  });
+
+  it('When the row name cell is clicked / Then no edit modal opens', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Annual Leave'));
+    expect(screen.queryByText('Edit Leave Type')).not.toBeInTheDocument();
+  });
+
+  it('When the row code cell is clicked / Then no edit modal opens', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('AL')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('AL'));
+    expect(screen.queryByText('Edit Leave Type')).not.toBeInTheDocument();
+  });
+
+  it('When the row is rendered / Then it carries no whole-row click affordance', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    const row = screen.getByText('Annual Leave').closest('tr') as HTMLTableRowElement;
+    expect(row.className).not.toContain('cursor-pointer');
+  });
+});

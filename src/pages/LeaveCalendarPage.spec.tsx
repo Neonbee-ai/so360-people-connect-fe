@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -296,5 +296,103 @@ describe('Given LeaveCalendarPage multi-day leave rendering', () => {
     await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
     const call = mockLeaveApi.getAll.mock.calls[0][0];
     expect(call.limit).toBe(200);
+  });
+});
+
+/*
+ * Month navigation, filter persistence, and date legibility.
+ *
+ * Navigating months already refetched, but the outgoing month's entries stayed
+ * painted until the new response landed — indistinguishable from leave that
+ * belongs to the month now on screen.
+ */
+const leaveOn = (dateStr: string, name: string, deptId?: string) => ({
+  id: `lr-${name}-${dateStr}`,
+  person: { id: `p-${name}`, full_name: `${name} Person`, department_id: deptId },
+  leave_type: { id: 'lt1', name: 'Annual Leave' },
+  start_date: dateStr,
+  end_date: dateStr,
+  status: 'approved',
+  total_days: 1,
+});
+
+// Derived from the real clock so the specs stay correct on any run date.
+const NOW = new Date();
+const monthLabel = (d: Date) =>
+  new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(d);
+const iso = (d: Date) => d.toISOString().split('T')[0];
+const THIS_MONTH = monthLabel(NOW);
+const PREV = new Date(NOW.getFullYear(), NOW.getMonth() - 1, 1);
+const PREV_MONTH = monthLabel(PREV);
+const PREV_FIRST = iso(new Date(PREV.getFullYear(), PREV.getMonth(), 1));
+const PREV_LAST = iso(new Date(PREV.getFullYear(), PREV.getMonth() + 1, 0));
+const THIS_15TH = iso(new Date(NOW.getFullYear(), NOW.getMonth(), 15));
+const PREV_15TH = iso(new Date(PREV.getFullYear(), PREV.getMonth(), 15));
+
+const prevButton = () => screen.getByText(THIS_MONTH).previousElementSibling as Element;
+
+describe('Given the Leave Calendar is navigated between months', () => {
+  beforeEach(() => {
+    mockDeptApi.getAll.mockResolvedValue({
+      data: [
+        { id: 'd1', name: 'Engineering' },
+        { id: 'd2', name: 'Marketing' },
+      ],
+    });
+  });
+
+  it('When the previous month is opened / Then leave is refetched for that month range', async () => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [], total: 0 });
+    renderPage();
+    await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
+    mockLeaveApi.getAll.mockClear();
+
+    fireEvent.click(prevButton());
+
+    await waitFor(() =>
+      expect(mockLeaveApi.getAll).toHaveBeenCalledWith(
+        expect.objectContaining({ start_date: PREV_FIRST, end_date: PREV_LAST }),
+      ),
+    );
+  });
+
+  it('When the month changes / Then the previous month entries are cleared before the new data arrives', async () => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [leaveOn(THIS_15TH, 'Stale')], total: 1 });
+    renderPage();
+    await waitFor(() => expect(screen.getAllByText('Stale').length).toBeGreaterThan(0));
+
+    // The next fetch never resolves — anything still on screen is stale paint.
+    mockLeaveApi.getAll.mockImplementation(() => new Promise(() => {}));
+    fireEvent.click(prevButton());
+
+    await waitFor(() => expect(screen.queryByText('Stale')).not.toBeInTheDocument());
+  });
+
+  it('When a department is selected and the month changes / Then the filter is still applied', async () => {
+    mockLeaveApi.getAll.mockResolvedValue({
+      data: [leaveOn(PREV_15TH, 'Eng', 'd1'), leaveOn(PREV_15TH, 'Mkt', 'd2')],
+      total: 2,
+    });
+    renderPage();
+    await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByDisplayValue('All Departments'), { target: { value: 'd1' } });
+    fireEvent.click(prevButton());
+
+    await waitFor(() => expect(screen.getByText(PREV_MONTH)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('Eng').length).toBeGreaterThan(0));
+    expect(screen.queryByText('Mkt')).not.toBeInTheDocument();
+    // The select keeps the chosen department rather than resetting on nav.
+    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('d1');
+  });
+
+  it('When the grid renders / Then date numbers use the larger type scale', async () => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [], total: 0 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText(THIS_MONTH)).toBeInTheDocument());
+
+    const dateCell = screen.getByText('15');
+    expect(dateCell.className).toContain('text-sm');
+    expect(dateCell.className).not.toContain('text-xs');
   });
 });

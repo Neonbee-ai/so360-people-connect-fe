@@ -3,6 +3,7 @@ import { MessageSquare, Plus, Star, CheckCircle, Eye, EyeOff } from 'lucide-reac
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
+import PersonPicker from '../components/PersonPicker';
 import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -206,7 +207,6 @@ interface CreateFeedbackModalProps {
 
 const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClose, onCreate }) => {
     const [people, setPeople] = useState<Person[]>([]);
-    const [personSearch, setPersonSearch] = useState('');
     const [formData, setFormData] = useState<CreateFeedbackPayload>({
         person_id: '',
         provider_id: apiContext.getUserId() || '',
@@ -234,47 +234,20 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const selectedPerson = people.find(p => p.id === formData.person_id);
-    const filteredPeople = people.filter(p =>
-        !personSearch || p.full_name.toLowerCase().includes(personSearch.toLowerCase())
-    );
-
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Give Feedback">
             <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Person Selector */}
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Feedback For *</label>
-                    {selectedPerson ? (
-                        <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
-                            <span className="text-sm text-slate-50">{selectedPerson.full_name}</span>
-                            <button type="button" onClick={() => updateField('person_id', '')} className="text-xs text-slate-400 hover:text-red-400">Clear</button>
-                        </div>
-                    ) : (
-                        <div>
-                            <input
-                                type="text"
-                                placeholder="Search people..."
-                                value={personSearch}
-                                onChange={(e) => setPersonSearch(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                            {personSearch && (
-                                <div className="mt-1 max-h-32 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg">
-                                    {filteredPeople.slice(0, 10).map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => { updateField('person_id', p.id); setPersonSearch(''); }}
-                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-slate-50"
-                                        >
-                                            {p.full_name}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    <PersonPicker
+                        options={people}
+                        value={formData.person_id}
+                        onChange={(id) => updateField('person_id', id)}
+                        placeholder="Search people..."
+                        emptyMessage="No people available"
+                        data-testid="feedback-person-picker"
+                    />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
