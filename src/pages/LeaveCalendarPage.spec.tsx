@@ -318,9 +318,14 @@ const leaveOn = (dateStr: string, name: string, deptId?: string) => ({
 
 // Derived from the real clock so the specs stay correct on any run date.
 const NOW = new Date();
+// Built from LOCAL calendar parts on purpose: the page keys its fetch and its
+// header off the local year/month, and going through toISOString() here would
+// bake the very UTC shift these specs exist to prevent.
 const monthLabel = (d: Date) =>
-  new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(d);
-const iso = (d: Date) => d.toISOString().split('T')[0];
+  new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1)));
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const THIS_MONTH = monthLabel(NOW);
 const PREV = new Date(NOW.getFullYear(), NOW.getMonth() - 1, 1);
 const PREV_MONTH = monthLabel(PREV);
@@ -394,5 +399,140 @@ describe('Given the Leave Calendar is navigated between months', () => {
     const dateCell = screen.getByText('15');
     expect(dateCell.className).toContain('text-sm');
     expect(dateCell.className).not.toContain('text-xs');
+  });
+
+  it('When months are switched faster than the API responds / Then a superseded response never repaints the grid', async () => {
+    // Hold the previous-month response open, then come back to this month and
+    // let it answer first. Releasing the stale response last must not repaint.
+    let releaseStale: (v: unknown) => void = () => {};
+    mockLeaveApi.getAll.mockResolvedValue({ data: [], total: 0 });
+    renderPage();
+    await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
+
+    mockLeaveApi.getAll.mockImplementation(
+      () => new Promise((resolve) => { releaseStale = resolve; }),
+    );
+    fireEvent.click(prevButton()); // → previous month, response withheld
+
+    mockLeaveApi.getAll.mockResolvedValue({ data: [leaveOn(THIS_15TH, 'Current')], total: 1 });
+    fireEvent.click(screen.getByText(PREV_MONTH).nextElementSibling as Element); // → back to this month
+    await waitFor(() => expect(screen.getAllByText('Current').length).toBeGreaterThan(0));
+
+    releaseStale({ data: [leaveOn(PREV_15TH, 'Superseded')], total: 1 });
+
+    await waitFor(() => expect(screen.getByText(THIS_MONTH)).toBeInTheDocument());
+    expect(screen.queryByText('Superseded')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Current').length).toBeGreaterThan(0);
+  });
+});
+
+describe('Given a department is selected on the Leave Calendar', () => {
+  const withDept = (deptId?: string, deptName?: string) => ({
+    id: `lr-${deptId ?? deptName ?? 'none'}`,
+    person: {
+      id: 'p1',
+      full_name: 'Dhanooj Person',
+      department_id: deptId,
+      department: deptName,
+    },
+    leave_type: { id: 'lt1', name: 'Annual Leave' },
+    start_date: THIS_15TH,
+    end_date: THIS_15TH,
+    status: 'approved',
+    total_days: 1,
+  });
+
+  beforeEach(() => {
+    mockDeptApi.getAll.mockResolvedValue({
+      data: [
+        { id: 'd-eng', name: 'Engineering A' },
+        { id: 'd-qa', name: 'QA Dpt', parent_id: 'd-eng' },
+        { id: 'd-sales', name: 'Sales' },
+      ],
+    });
+  });
+
+  const selectDept = (value: string) =>
+    fireEvent.change(screen.getByRole('combobox'), { target: { value } });
+
+  it('When the person sits in a SUB-department / Then their leave still shows under the parent', async () => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [withDept('d-qa')], total: 1 });
+    renderPage();
+    await waitFor(() => expect(screen.getAllByText('Dhanooj').length).toBeGreaterThan(0));
+
+    selectDept('d-eng');
+
+    await waitFor(() => expect(screen.getAllByText('Dhanooj').length).toBeGreaterThan(0));
+  });
+
+  it('When the person carries only the legacy department TEXT / Then the name matches that department', async () => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [withDept(undefined, 'Sales')], total: 1 });
+    renderPage();
+    await waitFor(() => expect(screen.getAllByText('Dhanooj').length).toBeGreaterThan(0));
+
+    selectDept('d-sales');
+
+    await waitFor(() => expect(screen.getAllByText('Dhanooj').length).toBeGreaterThan(0));
+  });
+
+  it('When the department has no leave this month / Then an explicit empty state names the department', async () => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [withDept('d-sales', 'Sales')], total: 1 });
+    renderPage();
+    await waitFor(() => expect(screen.getAllByText('Dhanooj').length).toBeGreaterThan(0));
+
+    selectDept('d-eng');
+
+    await waitFor(() =>
+      expect(screen.getByText(/No leave records for Engineering A/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Dhanooj')).not.toBeInTheDocument();
+  });
+
+  it('When no department is selected and the month is empty / Then a plain empty state is shown', async () => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [], total: 0 });
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByText(new RegExp(`No leave records in ${THIS_MONTH}`, 'i'))).toBeInTheDocument(),
+    );
+  });
+});
+
+describe('Given the calendar header is rendered in a positive-offset timezone', () => {
+  // Local midnight on the 1st is the PREVIOUS day in UTC, so formatting the raw
+  // Date object labelled July as "June" for anyone east of Greenwich.
+  beforeEach(() => {
+    mockDeptApi.getAll.mockResolvedValue({ data: [] });
+    mockLeaveApi.getAll.mockResolvedValue({ data: [], total: 0 });
+  });
+
+  it('When a month is navigated to / Then the header names that month, not the one before it', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText(THIS_MONTH)).toBeInTheDocument());
+
+    fireEvent.click(prevButton());
+
+    await waitFor(() => expect(screen.getByText(PREV_MONTH)).toBeInTheDocument());
+    expect(PREV_MONTH).toBe(
+      new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+        .format(new Date(Date.UTC(PREV.getFullYear(), PREV.getMonth(), 1))),
+    );
+  });
+
+  it('When a month is navigated to / Then the fetch range is that month\'s local first and last day', async () => {
+    renderPage();
+    await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
+    mockLeaveApi.getAll.mockClear();
+
+    fireEvent.click(prevButton());
+
+    await waitFor(() => {
+      const params = mockLeaveApi.getAll.mock.calls[0][0];
+      expect(params.start_date).toMatch(/-01$/);
+      expect(params.start_date.slice(0, 7)).toBe(
+        `${PREV.getFullYear()}-${String(PREV.getMonth() + 1).padStart(2, '0')}`,
+      );
+      expect(params.end_date.slice(0, 7)).toBe(params.start_date.slice(0, 7));
+    });
   });
 });

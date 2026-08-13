@@ -372,13 +372,26 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
             next.entity_id = 'Entity ID must be a valid UUID (e.g. 550e8400-e29b-41d4-a716-446655440000).';
         }
         if (!data.start_date) next.start_date = 'Start date is required.';
-        if (!data.end_date) next.end_date = 'End date is required.';
-        const pct = Number(data.allocation_percentage);
-        if (!Number.isFinite(pct) || pct < 1 || pct > 100) {
-            next.allocation_percentage = 'Allocation percentage must be between 1 and 100.';
+        if (!data.end_date) {
+            next.end_date = 'End date is required.';
+        } else if (data.start_date && data.end_date < data.start_date) {
+            next.end_date = 'End date cannot be earlier than start date.';
+        }
+        // The input hands back '' when cleared, which the payload type still
+        // declares as number — compare on the raw value before coercing.
+        const rawPct = data.allocation_percentage as number | string | null | undefined;
+        const pct = Number(rawPct);
+        if (rawPct === '' || rawPct === null || rawPct === undefined) {
+            next.allocation_percentage = 'Allocation percentage is required.';
+        } else if (!Number.isFinite(pct) || !Number.isInteger(pct) || pct < 1 || pct > 100) {
+            next.allocation_percentage = 'Enter a whole number between 1 and 100.';
         }
         return next;
     };
+
+    // Live validity — drives the submit button so the user never fires an
+    // incomplete form and has to read the errors afterwards.
+    const isFormValid = Object.keys(validate(formData)).length === 0;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -408,8 +421,18 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
     };
 
     const updateField = (field: string, value: unknown) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        setErrors(prev => (prev[field] ? { ...prev, [field]: '' } : prev));
+        const nextData = { ...formData, [field]: value } as CreateAllocationPayload;
+        setFormData(nextData);
+        // Re-validate the touched field against the new value so a corrected
+        // field clears immediately and a newly invalid one flags immediately.
+        const fieldErrors = validate(nextData);
+        setErrors(prev => ({
+            ...prev,
+            [field]: fieldErrors[field] || '',
+            // The date pair validates as a unit — fixing the start date must
+            // clear a stale "end before start" message on the end date.
+            ...(field === 'start_date' ? { end_date: fieldErrors.end_date || '' } : {}),
+        }));
     };
 
     const handleEntityTypeChange = (entityType: string) => {
@@ -436,7 +459,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             required
                             value={formData.person_id}
                             onChange={(e) => updateField('person_id', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.person_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                         >
                             <option value="">Select a person...</option>
                             {people.map(p => (
@@ -445,6 +468,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                                 </option>
                             ))}
                         </select>
+                        {errors.person_id && <p className="mt-1 text-xs text-rose-400">{errors.person_id}</p>}
                     </div>
                 </div>
 
@@ -490,18 +514,23 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Start Date *</label>
                             <input
-                                type="date" required value={formData.start_date}
+                                type="date" required aria-label="Start Date" value={formData.start_date}
                                 onChange={(e) => updateField('start_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.start_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             />
+                            <p className="mt-1 text-xs text-slate-500">Defaults to today — the allocation starts as soon as it is created.</p>
+                            {errors.start_date && <p className="mt-1 text-xs text-rose-400">{errors.start_date}</p>}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">End Date *</label>
                             <input
-                                type="date" required value={formData.end_date}
+                                type="date" required aria-label="End Date" value={formData.end_date}
+                                min={formData.start_date || undefined}
                                 onChange={(e) => updateField('end_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.end_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             />
+                            <p className="mt-1 text-xs text-slate-500">Required — allocations are costed over a closed window.</p>
+                            {errors.end_date && <p className="mt-1 text-xs text-rose-400">{errors.end_date}</p>}
                         </div>
                     </div>
                 </div>
@@ -510,14 +539,21 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                 <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Allocation Amount</h4>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Allocation Percentage * (1-100%)</label>
+                        <label className="block text-xs text-slate-400 mb-1">Allocation Percentage *</label>
                         <input
                             type="number" required min="1" max="100" step="1"
+                            aria-label="Allocation Percentage"
                             value={formData.allocation_percentage}
                             onChange={(e) => updateField('allocation_percentage', e.target.value === '' ? '' : parseFloat(e.target.value))}
                             className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.allocation_percentage ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                         />
-                        {errors.allocation_percentage && <p className="mt-1 text-xs text-rose-400">{errors.allocation_percentage}</p>}
+                        {errors.allocation_percentage ? (
+                            <p className="mt-1 text-xs text-rose-400">{errors.allocation_percentage}</p>
+                        ) : (
+                            <p className="mt-1 text-xs text-slate-500">
+                                Share of this person's working capacity, 1–100%. The bar below previews the value entered here.
+                            </p>
+                        )}
                     </div>
 
                     {/* Visual Preview */}
@@ -559,7 +595,12 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                     <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
                         Cancel
                     </button>
-                    <button type="submit" disabled={submitting} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                    <button
+                        type="submit"
+                        disabled={submitting || !isFormValid}
+                        title={isFormValid ? undefined : 'Complete all required fields to create the allocation.'}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                         {submitting ? 'Creating…' : 'Create Allocation'}
                     </button>
                 </div>

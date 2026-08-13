@@ -187,3 +187,80 @@ describe('Given UtilizationPage API failure', () => {
     await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load utilization data'));
   });
 });
+
+/*
+ * Layout consistency of the resource cards.
+ *
+ * Available/Actual/Cost previously sat in an auto-width column, so a longer
+ * cost value pushed the whole metric block — and with it the progress bars —
+ * out of line with the card above. Variance was also conditional, giving cards
+ * two different footer baselines.
+ */
+describe('Given resource cards are rendered on the Utilization page', () => {
+  const person = (id: string, name: string, over: Record<string, unknown> = {}) => ({
+    person: { ...mockUtilData.person, id, full_name: name },
+    utilization: { ...mockUtilData.utilization, ...over },
+  });
+
+  const cardFor = (name: string) =>
+    screen.getByText(name).closest('div.rounded-xl') as HTMLElement;
+
+  beforeEach(() => {
+    mockApi.getSummary.mockResolvedValue(mockSummary);
+  });
+
+  it('When cost values differ in length / Then every card uses the same fixed metrics column width', async () => {
+    mockApi.getAll.mockResolvedValue({
+      data: [
+        person('p1', 'Short Cost', { actual_cost: 5 }),
+        person('p2', 'Very Long Cost', { actual_cost: 1234567 }),
+      ],
+      period: { start: '2024-06-10', end: '2024-06-14' },
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Very Long Cost')).toBeInTheDocument());
+
+    const widths = ['Short Cost', 'Very Long Cost'].map(name => {
+      const metrics = cardFor(name).querySelector('.grid-cols-3') as HTMLElement;
+      return Array.from(metrics.classList).find(c => c.startsWith('w-['));
+    });
+    expect(widths[0]).toBeDefined();
+    expect(widths[0]).toBe(widths[1]);
+  });
+
+  it('When variance is zero / Then the footer row is still rendered so baselines match', async () => {
+    mockApi.getAll.mockResolvedValue({
+      data: [person('p1', 'Zero Variance', { variance_hours: 0 })],
+      period: { start: '2024-06-10', end: '2024-06-14' },
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Zero Variance')).toBeInTheDocument());
+
+    expect(screen.getByText('Variance:')).toBeInTheDocument();
+    expect(screen.getByText('0h vs planned')).toBeInTheDocument();
+  });
+
+  it('When a name is long / Then the status badge still sits in its own right-hand slot', async () => {
+    mockApi.getAll.mockResolvedValue({
+      data: [person('p1', 'Bartholomew Featherstonehaugh-Montgomery', { is_idle: true })],
+      period: { start: '2024-06-10', end: '2024-06-14' },
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getAllByText('Idle').length).toBeGreaterThan(0));
+
+    const badge = screen.getAllByText('Idle').find(el => el.className.includes('rounded'))!;
+    // ml-auto pins the badge group right, independent of the name's length.
+    expect((badge.parentElement as HTMLElement).className).toContain('ml-auto');
+  });
+
+  it('When the sort controls render / Then each option occupies the same fixed width', async () => {
+    mockApi.getAll.mockResolvedValue({ data: [person('p1', 'Alice Smith')], period: { start: '2024-06-10', end: '2024-06-14' } });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Sort by:')).toBeInTheDocument());
+
+    ['Utilization', 'Name', 'Cost'].forEach(label => {
+      const button = screen.getByRole('button', { name: new RegExp(`^${label}`) });
+      expect(button.className).toContain('min-w-[92px]');
+    });
+  });
+});

@@ -228,7 +228,7 @@ const UtilizationPage: React.FC = () => {
             </div>
 
             {/* Signals Row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className={`bg-slate-900 border rounded-xl p-4 ${idlePeople.length > 0 ? 'border-rose-500/30' : 'border-slate-800'}`}>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-slate-400">Idle Resources</span>
@@ -238,7 +238,7 @@ const UtilizationPage: React.FC = () => {
                         {idlePeople.length}
                     </div>
                     {idlePeople.length > 0 && (
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-slate-500 mt-1 line-clamp-2">
                             {idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ')}
                         </div>
                     )}
@@ -252,7 +252,7 @@ const UtilizationPage: React.FC = () => {
                         {overallocated.length}
                     </div>
                     {overallocated.length > 0 && (
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-slate-500 mt-1 line-clamp-2">
                             {overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ')}
                         </div>
                     )}
@@ -268,8 +268,8 @@ const UtilizationPage: React.FC = () => {
             </div>
 
             {/* Sort Controls */}
-            <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-500">Sort by:</span>
+            <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 mr-1">Sort by:</span>
                 {(['utilization', 'name', 'cost'] as const).map(key => (
                     <button
                         key={key}
@@ -277,10 +277,12 @@ const UtilizationPage: React.FC = () => {
                             if (sortBy === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
                             else { setSortBy(key); setSortDir('desc'); }
                         }}
-                        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                        // Border on both states keeps the buttons the same size,
+                        // so selecting one does not nudge the others sideways.
+                        className={`min-w-[92px] px-2.5 py-1 rounded text-xs text-center transition-colors border ${
                             sortBy === key
-                                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30'
-                                : 'text-slate-400 hover:text-slate-50'
+                                ? 'bg-teal-500/10 text-teal-400 border-teal-500/30'
+                                : 'text-slate-400 border-transparent hover:text-slate-50 hover:border-slate-700'
                         }`}
                     >
                         {key.charAt(0).toUpperCase() + key.slice(1)}
@@ -308,10 +310,12 @@ const UtilizationPage: React.FC = () => {
 
             {/* Idle Cost Signal */}
             {idlePeople.length > 0 && (
-                <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-4">
+                // p-5 matches the resource cards above so this panel shares
+                // their content width and left edge.
+                <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-5">
                     <div className="flex items-start gap-3">
                         <AlertTriangle size={18} className="text-rose-400 mt-0.5 flex-shrink-0" />
-                        <div>
+                        <div className="min-w-0">
                             <div className="text-sm font-medium text-rose-300">Idle Cost Signal</div>
                             <div className="text-xs text-slate-400 mt-1">
                                 {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
@@ -406,15 +410,20 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-slate-50 truncate">{person.full_name}</span>
-                        {person.job_title && <span className="text-xs text-slate-500">{person.job_title}</span>}
-                        {utilization.is_idle && (
-                            <span className="px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded text-xs">Idle</span>
-                        )}
-                        {utilization.is_overallocated && (
-                            <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded text-xs">Over</span>
-                        )}
+                    {/* Name + role share the elastic space and truncate; the status
+                        badges keep a fixed slot on the right so a long name never
+                        shifts them between cards. */}
+                    <div className="flex items-center gap-2 mb-1 h-6">
+                        <span className="text-sm font-medium text-slate-50 truncate max-w-[45%]">{person.full_name}</span>
+                        {person.job_title && <span className="text-xs text-slate-500 truncate min-w-0">{person.job_title}</span>}
+                        <span className="ml-auto flex items-center gap-2 flex-shrink-0">
+                            {utilization.is_idle && (
+                                <span className="px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded text-xs">Idle</span>
+                            )}
+                            {utilization.is_overallocated && (
+                                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded text-xs">Over</span>
+                            )}
+                        </span>
                     </div>
 
                     {/* Utilization Bar */}
@@ -427,7 +436,7 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                                     style={{ width: `${Math.min(utilizationPct, 100)}%` }}
                                 />
                             </div>
-                            <span className={`text-xs font-medium w-10 text-right ${getTextColor(utilizationPct)}`}>
+                            <span className={`text-xs font-medium w-10 text-right tabular-nums ${getTextColor(utilizationPct)}`}>
                                 {utilizationPct}%
                             </span>
                         </div>
@@ -439,45 +448,48 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                                     style={{ width: `${Math.min(allocationPct, 100)}%` }}
                                 />
                             </div>
-                            <span className={`text-xs font-medium w-10 text-right ${allocationPct > 100 ? 'text-amber-400' : 'text-slate-400'}`}>
+                            <span className={`text-xs font-medium w-10 text-right tabular-nums ${allocationPct > 100 ? 'text-amber-400' : 'text-slate-400'}`}>
                                 {allocationPct}%
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Metrics */}
-                <div className="flex-shrink-0 grid grid-cols-3 gap-4 text-center">
-                    <div>
+                {/* Metrics — fixed column widths so Available / Actual / Cost sit
+                    on the same vertical lines in every card regardless of value length. */}
+                <div className="flex-shrink-0 grid grid-cols-3 gap-4 w-[264px]">
+                    <div className="text-right">
                         <div className="text-xs text-slate-500">Available</div>
-                        <div className="text-sm font-medium text-slate-50">{utilization.available_hours}h</div>
+                        <div className="text-sm font-medium text-slate-50 tabular-nums">{utilization.available_hours}h</div>
                     </div>
-                    <div>
+                    <div className="text-right">
                         <div className="text-xs text-slate-500">Actual</div>
-                        <div className="text-sm font-medium text-slate-50">{utilization.actual_hours}h</div>
+                        <div className="text-sm font-medium text-slate-50 tabular-nums">{utilization.actual_hours}h</div>
                     </div>
-                    <div>
+                    <div className="text-right">
                         <div className="text-xs text-slate-500">Cost</div>
-                        <div className="text-sm font-medium text-slate-50">
+                        <div className="text-sm font-medium text-slate-50 tabular-nums truncate">
                             {cardFormatters.formatCurrency(Math.round(utilization.actual_cost || 0))}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Variance indicator */}
-            {utilization.variance_hours !== 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-800/50 flex items-center gap-2 text-xs">
-                    <span className="text-slate-500">Variance:</span>
-                    <span className={utilization.variance_hours > 0 ? 'text-emerald-400' : 'text-amber-400'}>
-                        {utilization.variance_hours > 0 ? '+' : ''}{utilization.variance_hours}h vs planned
-                    </span>
-                    <span className="text-slate-600">|</span>
-                    <span className="text-slate-500">
-                        Rate: {cardFormatters.formatCurrency(person.cost_rate || 0)}/{person.available_hours_per_day ? 'hour' : 'day'}
-                    </span>
-                </div>
-            )}
+            {/* Variance indicator — always rendered so every card keeps the same
+                footer baseline; a zero variance simply reads as 0h. */}
+            <div className="mt-3 pt-3 border-t border-slate-800/50 flex items-center gap-2 text-xs">
+                <span className="text-slate-500">Variance:</span>
+                <span className={
+                    utilization.variance_hours > 0 ? 'text-emerald-400' :
+                    utilization.variance_hours < 0 ? 'text-amber-400' : 'text-slate-400'
+                }>
+                    {utilization.variance_hours > 0 ? '+' : ''}{utilization.variance_hours ?? 0}h vs planned
+                </span>
+                <span className="text-slate-600">|</span>
+                <span className="text-slate-500">
+                    Rate: {cardFormatters.formatCurrency(person.cost_rate || 0)}/{person.available_hours_per_day ? 'hour' : 'day'}
+                </span>
+            </div>
         </div>
     );
 };

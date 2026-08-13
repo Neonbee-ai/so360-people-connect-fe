@@ -28,7 +28,7 @@ export interface LeaveRequest {
   updated_by?: string;
 
   // Relations
-  person?: { id: string; full_name: string; avatar_url?: string; email?: string; department_id?: string };
+  person?: { id: string; full_name: string; avatar_url?: string; email?: string; department_id?: string; department?: string };
   leave_type?: { id: string; name: string; code: string; color?: string };
   reviewer?: { id: string; full_name: string };
 }

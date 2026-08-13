@@ -258,3 +258,69 @@ describe('Given non-billable entries', () => {
     expect(screen.getByText('$0.00')).toBeInTheDocument();
   });
 });
+
+describe('Given the Employee Timesheets date range is invalid', () => {
+  // An end date before the start date previously rendered "No timesheet
+  // entries" — reading as an empty result rather than an impossible filter.
+  const setRange = (from: string, to: string) => {
+    fireEvent.change(screen.getByLabelText('From date'), { target: { value: from } });
+    fireEvent.change(screen.getByLabelText('To date'), { target: { value: to } });
+  };
+
+  it('When the end date precedes the start date / Then a validation message is shown', async () => {
+    renderPage();
+    await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
+
+    setRange('2026-08-18', '2024-01-30');
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('End Date cannot be earlier than Start Date.'),
+    );
+  });
+
+  it('When the range is invalid / Then the filter is NOT executed against the API', async () => {
+    renderPage();
+    await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
+    mockTimesheet.getEntries.mockClear();
+
+    setRange('2026-08-18', '2024-01-30');
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(mockTimesheet.getEntries).not.toHaveBeenCalled();
+  });
+
+  it('When the range is invalid / Then the misleading "No timesheet entries" empty state is replaced', async () => {
+    renderPage();
+    await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
+
+    setRange('2026-08-18', '2024-01-30');
+
+    await waitFor(() => expect(screen.getByText('Invalid date range')).toBeInTheDocument());
+    expect(screen.queryByText('No timesheet entries')).not.toBeInTheDocument();
+  });
+
+  it('When a start date is chosen / Then the end-date picker cannot go earlier than it', async () => {
+    renderPage();
+    await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByLabelText('From date'), { target: { value: '2026-08-18' } });
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('To date')).toHaveAttribute('min', '2026-08-18'),
+    );
+  });
+
+  it('When the range is corrected / Then the filter runs again', async () => {
+    renderPage();
+    await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
+
+    setRange('2026-08-18', '2024-01-30');
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    mockTimesheet.getEntries.mockClear();
+
+    fireEvent.change(screen.getByLabelText('To date'), { target: { value: '2026-08-20' } });
+
+    await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});

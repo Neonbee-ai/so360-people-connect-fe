@@ -58,7 +58,18 @@ const EmployeeTimesheetsPage: React.FC = () => {
             .catch(console.error);
     }, []);
 
+    // An end date before the start date is not a filter that can ever match —
+    // block the fetch and say so, instead of rendering a misleading "no entries".
+    const dateRangeError =
+        fromDate && toDate && toDate < fromDate
+            ? 'End Date cannot be earlier than Start Date.'
+            : '';
+
     const loadData = useCallback(async () => {
+        if (dateRangeError) {
+            setLoading(false);
+            return;
+        }
         try {
             setLoading(true);
             const [entriesResult, utilizationResult] = await Promise.all([
@@ -83,7 +94,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [personFilter, statusFilter, fromDate, toDate]);
+    }, [personFilter, statusFilter, fromDate, toDate, dateRangeError]);
 
     useEffect(() => {
         loadData();
@@ -165,16 +176,22 @@ const EmployeeTimesheetsPage: React.FC = () => {
                     type="date"
                     aria-label="From date"
                     value={fromDate}
+                    max={toDate || undefined}
                     onChange={(e) => setFromDate(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                    className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${
+                        dateRangeError ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'
+                    }`}
                 />
                 <span className="text-xs text-slate-500">to</span>
                 <input
                     type="date"
                     aria-label="To date"
                     value={toDate}
+                    min={fromDate || undefined}
                     onChange={(e) => setToDate(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                    className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${
+                        dateRangeError ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'
+                    }`}
                 />
                 {totals.cost > 0 && (
                     <div className="ml-auto flex items-center gap-1 text-xs text-slate-400">
@@ -184,8 +201,18 @@ const EmployeeTimesheetsPage: React.FC = () => {
                 )}
             </div>
 
+            {dateRangeError && (
+                <p role="alert" className="text-xs text-rose-400">{dateRangeError}</p>
+            )}
+
             {/* Entries Table */}
-            {loading ? (
+            {dateRangeError ? (
+                <EmptyState
+                    icon={Clock}
+                    title="Invalid date range"
+                    description="End Date cannot be earlier than Start Date. Adjust the range to see timesheet entries."
+                />
+            ) : loading ? (
                 <div className="space-y-2">
                     {[...Array(5)].map((_, i) => (
                         <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />

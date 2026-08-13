@@ -520,3 +520,111 @@ describe('Given an allocation card person link', () => {
     expect(mockNavigate).not.toHaveBeenCalledWith('/people/p1');
   });
 });
+
+/*
+ * Create Allocation — real-time validation.
+ *
+ * Previously the form only spoke up on submit: mandatory fields were silent,
+ * an end date before the start date was accepted, and Create Allocation stayed
+ * clickable on an empty form.
+ */
+describe('Given the Create Allocation form is open', () => {
+  const PERSON_UUID = '11111111-1111-4111-8111-111111111111';
+  const ENTITY_UUID = '550e8400-e29b-41d4-a716-446655440000';
+
+  beforeEach(() => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    mockPeopleApi.getAll.mockResolvedValue({
+      data: [{ id: PERSON_UUID, full_name: 'Alice', job_title: 'Dev', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }],
+    });
+    mockEntitiesApi.list.mockResolvedValue({ data: [{ id: ENTITY_UUID, name: 'Website Redesign' }] });
+    mockAllocApi.create.mockResolvedValue({ id: 'a-new' });
+  });
+
+  const openModal = async () => {
+    const view = renderPage();
+    await waitFor(() => expect(screen.getByText('No allocations')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Allocation'));
+    await waitFor(() => expect(screen.getByRole('option', { name: /Alice/ })).toBeInTheDocument());
+    return view;
+  };
+
+  // Scoped to the form: the page's empty-state CTA carries the same label.
+  const submitButton = (container: HTMLElement) =>
+    container.querySelector('form button[type="submit"]') as HTMLButtonElement;
+
+  const completeForm = async (container: HTMLElement) => {
+    fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
+    fireEvent.click(screen.getByText('Select project...'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2027-06-30' } });
+    fireEvent.change(container.querySelector('input[type="number"]')!, { target: { value: '60' } });
+  };
+
+  it('When mandatory fields are empty / Then Create Allocation is disabled', async () => {
+    const { container } = await openModal();
+    expect(submitButton(container)).toBeDisabled();
+  });
+
+  it('When every mandatory field is valid / Then Create Allocation becomes enabled', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+    await waitFor(() => expect(submitButton(container)).toBeEnabled());
+  });
+
+  it('When the end date precedes the start date / Then a field-level error appears immediately', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2020-01-01' } });
+
+    await waitFor(() =>
+      expect(screen.getByText('End date cannot be earlier than start date.')).toBeInTheDocument(),
+    );
+    expect(submitButton(container)).toBeDisabled();
+  });
+
+  it('When the end date is corrected / Then the error clears and submit re-enables', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2020-01-01' } });
+    await waitFor(() => expect(submitButton(container)).toBeDisabled());
+
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2027-06-30' } });
+
+    await waitFor(() => expect(submitButton(container)).toBeEnabled());
+    expect(screen.queryByText('End date cannot be earlier than start date.')).not.toBeInTheDocument();
+  });
+
+  it('When the percentage is out of range / Then the error shows without submitting', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+
+    fireEvent.change(container.querySelector('input[type="number"]')!, { target: { value: '150' } });
+
+    await waitFor(() => expect(screen.getByText(/whole number between 1 and 100/i)).toBeInTheDocument());
+    expect(submitButton(container)).toBeDisabled();
+    expect(mockAllocApi.create).not.toHaveBeenCalled();
+  });
+
+  it('When the percentage is cleared / Then it is reported as required, not silently allowed', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+
+    fireEvent.change(container.querySelector('input[type="number"]')!, { target: { value: '' } });
+
+    await waitFor(() => expect(screen.getByText(/percentage is required/i)).toBeInTheDocument());
+    expect(submitButton(container)).toBeDisabled();
+  });
+
+  it('When the form opens / Then the default start date is explained', async () => {
+    await openModal();
+    expect(screen.getByText(/Defaults to today/i)).toBeInTheDocument();
+  });
+
+  it('When the form opens / Then the percentage field explains its link to the capacity bar', async () => {
+    await openModal();
+    expect(screen.getByText(/bar below previews the value entered here/i)).toBeInTheDocument();
+  });
+});

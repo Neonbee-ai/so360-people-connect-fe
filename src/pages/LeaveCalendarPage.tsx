@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
@@ -33,11 +33,13 @@ const LeaveCalendarPage: React.FC = () => {
         }).catch(() => { /* ignore */ });
     }, []);
 
-    useEffect(() => {
-        loadLeaveRequests();
-    }, [year, month]);
+    // Monotonic token for the in-flight fetch. Clicking prev/next faster than
+    // the API responds would otherwise let an older month's response land last
+    // and repaint the grid with the wrong month's leave.
+    const requestIdRef = useRef(0);
 
-    const loadLeaveRequests = async () => {
+    const loadLeaveRequests = useCallback(async () => {
+        const requestId = ++requestIdRef.current;
         setLoading(true);
         setLoadError(false);
         // Drop the outgoing month's entries before the fetch — otherwise the
@@ -45,8 +47,12 @@ const LeaveCalendarPage: React.FC = () => {
         // response lands, which reads as data belonging to the new month.
         setLeaveRequests([]);
         try {
-            const firstDay = new Date(year, month, 1).toISOString().split('T')[0];
-            const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0];
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            // Build the bounds from local calendar parts — toISOString() shifts
+            // to UTC and can hand the API the neighbouring month's boundary day.
+            const firstDay = `${year}-${pad(month + 1)}-01`;
+            const lastDay = `${year}-${pad(month + 1)}-${pad(daysInMonth)}`;
             const [result, pendingResult] = await Promise.all([
                 leaveRequestsApi.getAll({
                     start_date: firstDay,
@@ -61,15 +67,55 @@ const LeaveCalendarPage: React.FC = () => {
                     limit: 200,
                 }),
             ]);
+            if (requestId !== requestIdRef.current) return; // superseded by a newer month
             setLeaveRequests([...(result.data || []), ...(pendingResult.data || [])]);
         } catch (error) {
+            if (requestId !== requestIdRef.current) return;
             console.error('Failed to load leave requests:', error);
             setLoadError(true);
             setLeaveRequests([]);
         } finally {
-            setLoading(false);
+            if (requestId === requestIdRef.current) setLoading(false);
         }
-    };
+    }, [year, month]);
+
+    useEffect(() => {
+        loadLeaveRequests();
+    }, [loadLeaveRequests]);
+
+    // A department selection covers that department AND everything beneath it,
+    // so leave taken by someone in a sub-department stays visible. Legacy people
+    // carry their unit only as free text, so match the department name too.
+    const departmentMatcher = useMemo(() => {
+        if (!departmentFilter) return null;
+        const ids = new Set<string>([departmentFilter]);
+        let grew = true;
+        while (grew) {
+            grew = false;
+            departments.forEach(d => {
+                if (d.parent_id && ids.has(d.parent_id) && !ids.has(d.id)) {
+                    ids.add(d.id);
+                    grew = true;
+                }
+            });
+        }
+        const names = new Set(
+            departments
+                .filter(d => ids.has(d.id))
+                .map(d => d.name.trim().toLowerCase()),
+        );
+        return (leave: LeaveRequest) => {
+            const deptId = leave.person?.department_id;
+            if (deptId) return ids.has(deptId);
+            const deptName = leave.person?.department?.trim().toLowerCase();
+            return !!deptName && names.has(deptName);
+        };
+    }, [departmentFilter, departments]);
+
+    const visibleLeaveRequests = useMemo(
+        () => (departmentMatcher ? leaveRequests.filter(departmentMatcher) : leaveRequests),
+        [leaveRequests, departmentMatcher],
+    );
 
     const calendarDays = useMemo(() => {
         const firstDayOfMonth = new Date(year, month, 1);
@@ -86,7 +132,7 @@ const LeaveCalendarPage: React.FC = () => {
         // Actual days
         for (let d = 1; d <= daysInMonth; d++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            const dayLeaves = leaveRequests.filter(lr => {
+            const dayLeaves = visibleLeaveRequests.filter(lr => {
                 const start = lr.start_date.split('T')[0];
                 const end = lr.end_date.split('T')[0];
                 return dateStr >= start && dateStr <= end;
@@ -95,13 +141,19 @@ const LeaveCalendarPage: React.FC = () => {
         }
 
         return days;
-    }, [year, month, leaveRequests]);
+    }, [year, month, visibleLeaveRequests]);
 
     const navigateMonth = (delta: number) => {
         setCurrentDate(new Date(year, month + delta, 1));
     };
 
-    const monthName = new Intl.DateTimeFormat(formatters.locale, { month: 'long', year: 'numeric', timeZone: formatters.timezone }).format(currentDate);
+    const selectedDepartmentName = departments.find(d => d.id === departmentFilter)?.name;
+
+    // Label the grid from the same local year/month the grid is built from.
+    // Formatting `currentDate` (local midnight on the 1st) in another timezone
+    // rolled the label back a month for any positive UTC offset.
+    const monthName = new Intl.DateTimeFormat(formatters.locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })
+        .format(new Date(Date.UTC(year, month, 1)));
 
     return (
         <div className="p-6 space-y-5">
@@ -171,6 +223,15 @@ const LeaveCalendarPage: React.FC = () => {
                 </div>
             )}
 
+            {/* Empty state — say why the grid is blank instead of silently showing nothing */}
+            {!loading && !loadError && visibleLeaveRequests.length === 0 && (
+                <div className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-400">
+                    {departmentFilter
+                        ? `No leave records for ${selectedDepartmentName || 'this department'} in ${monthName}.`
+                        : `No leave records in ${monthName}.`}
+                </div>
+            )}
+
             {/* Calendar Grid */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                 {/* Day headers */}
@@ -186,9 +247,7 @@ const LeaveCalendarPage: React.FC = () => {
                 <div className="grid grid-cols-7">
                     {calendarDays.map((day, i) => {
                         const isToday = day.date === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
-                        const filteredLeaves = departmentFilter
-                            ? day.leaves.filter(l => l.person?.department_id === departmentFilter)
-                            : day.leaves;
+                        const filteredLeaves = day.leaves;
 
                         return (
                             <div
