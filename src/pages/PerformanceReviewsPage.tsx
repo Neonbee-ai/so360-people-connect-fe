@@ -5,7 +5,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import PersonPicker from '../components/PersonPicker';
+import PersonPicker, { PickablePerson } from '../components/PersonPicker';
 import { toast, getErrorMessage } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -315,6 +315,11 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                 if (cancelled) return;
                 const list = result.data || [];
                 setEligibleReviewers(list);
+                if (list.length === 0) {
+                    // Unrestricted fallback (see reviewerOptions): keep whatever
+                    // is already selected rather than clearing a valid pick.
+                    return;
+                }
                 setFormData(prev => {
                     // Preselect the direct manager when there is one and nothing
                     // valid is already chosen; otherwise clear an ineligible pick.
@@ -372,6 +377,20 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
         }
     };
 
+    /**
+     * When the org has assigned no department heads there is no eligibility
+     * data to restrict against, and the backend stands its check down to match.
+     * Falling back to the full people list keeps review creation working for
+     * orgs that have not modelled their hierarchy yet — the banner below says
+     * why the field is unrestricted and how to restrict it.
+     */
+    const unrestrictedReviewers = reviewersLoaded && !reviewersLoading && eligibleReviewers.length === 0;
+    // Widened to the picker's structural type: the two branches are Person[]
+    // and EligibleReviewer[], and only the pickable fields are used here.
+    const reviewerOptions: PickablePerson[] = unrestrictedReviewers
+        ? people.filter(p => p.id !== formData.person_id)
+        : eligibleReviewers;
+
     const periodInvalid = Boolean(
         formData.review_period_start &&
         formData.review_period_end &&
@@ -419,20 +438,21 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Reviewer (Manager) *</label>
                     <PersonPicker
-                        options={eligibleReviewers}
+                        options={reviewerOptions}
                         value={formData.reviewer_id}
                         onChange={(id) => updateField('reviewer_id', id)}
-                        placeholder="Search eligible managers..."
-                        emptyMessage="No eligible managers found"
+                        placeholder={unrestrictedReviewers ? 'Search people...' : 'Search eligible managers...'}
+                        emptyMessage="No people available"
                         loading={reviewersLoading}
                         disabled={!formData.person_id}
                         disabledMessage="Select the person being reviewed first."
                         data-testid="reviewer-picker"
                     />
-                    {formData.person_id && reviewersLoaded && !reviewersLoading && eligibleReviewers.length === 0 && (
+                    {formData.person_id && unrestrictedReviewers && (
                         <p className="mt-1 text-xs text-amber-400">
-                            No eligible managers found for this employee. Assign a department head in
-                            People Connect → Departments before creating this review.
+                            No department heads are configured, so any employee can be selected as
+                            reviewer. Assign a department head in People Connect → Departments to
+                            restrict this list to managers.
                         </p>
                     )}
                     {eligibleReviewers.some(r => r.is_direct_manager && r.id === formData.reviewer_id) && (

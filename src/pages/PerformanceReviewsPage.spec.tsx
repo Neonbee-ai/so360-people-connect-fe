@@ -338,14 +338,44 @@ describe('Given the Create Performance Review modal', () => {
       expect(screen.getByText('Their reporting manager.')).toBeInTheDocument();
     });
 
-    it('When no eligible manager exists / Then it says so instead of listing unrelated employees', async () => {
+    // No department heads means no eligibility data to restrict against, and
+    // the backend stands its check down to match. Blocking here would take a
+    // working flow away from orgs that simply have not modelled a hierarchy.
+    it('When the org has no department heads / Then it warns rather than blocking', async () => {
       mockReviewsApi.getEligibleReviewers.mockResolvedValue({ data: [], direct_manager_id: null });
       await openCreateModal();
       await selectPerson('Alice');
 
       await waitFor(() =>
-        expect(screen.getByText(/No eligible managers found for this employee/i)).toBeInTheDocument(),
+        expect(screen.getByText(/No department heads are configured/i)).toBeInTheDocument(),
       );
+    });
+
+    it('When the org has no department heads / Then any employee can still be chosen', async () => {
+      mockReviewsApi.getEligibleReviewers.mockResolvedValue({ data: [], direct_manager_id: null });
+      await openCreateModal();
+      await selectPerson('Alice');
+      await waitFor(() =>
+        expect(screen.getByText(/No department heads are configured/i)).toBeInTheDocument(),
+      );
+
+      const reviewerField = screen.getByTestId('reviewer-picker').querySelector('input') as HTMLInputElement;
+      fireEvent.focus(reviewerField);
+
+      // Falls back to the full people list — minus the person under review,
+      // who must never be offered as their own reviewer.
+      await waitFor(() => expect(screen.getByText(/Aswin Shaji/)).toBeInTheDocument());
+      expect(screen.getByTestId('reviewer-picker').textContent).not.toContain('Alice');
+    });
+
+    it('When the org HAS department heads / Then the list stays restricted to them', async () => {
+      await openCreateModal();
+      await selectPerson('Alice');
+      await waitFor(() =>
+        expect(screen.getByTestId('reviewer-picker').textContent).toContain('Manager Bob'),
+      );
+
+      expect(screen.queryByText(/No department heads are configured/i)).not.toBeInTheDocument();
       expect(screen.getByTestId('reviewer-picker').textContent).not.toContain('Aswin Shaji');
     });
 
