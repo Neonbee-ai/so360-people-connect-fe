@@ -508,9 +508,10 @@ describe('Given the "Invite as New User" flow on create', () => {
     fireEvent.change(nameInput, { target: { value: 'New Hire' } });
     await waitFor(() => expect(nameInput).toHaveValue('New Hire'));
 
-    // Invite mode is the default; fill the invitation email + role.
-    const inviteEmail = screen.getByPlaceholderText('Email for invitation');
-    fireEvent.change(inviteEmail, { target: { value: 'hire@test.com' } });
+    // Invite mode is the default. The invitation always goes to the Identity email —
+    // the field inside "Invite as New User" is a read-only mirror of it.
+    fireEvent.change(screen.getByPlaceholderText('john@company.com'), { target: { value: 'hire@test.com' } });
+    await waitFor(() => expect(screen.getByPlaceholderText('Email for invitation')).toHaveValue('hire@test.com'));
 
     const roleSelect = screen.getAllByRole('combobox').find(s => within(s).queryByText('Select role...'))!;
     fireEvent.change(roleSelect, { target: { value: 'role-1' } });

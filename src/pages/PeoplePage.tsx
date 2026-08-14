@@ -241,7 +241,9 @@ const PeoplePage: React.FC = () => {
     const [joiningToFilter, setJoiningToFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
-    const [inviteResult, setInviteResult] = useState<{ link: string; email: string; emailSent: boolean } | null>(null);
+    // `emailRequested` distinguishes "admin opted out of the email" from "we tried to
+    // email it and it didn't go out" — the modal must not claim delivery either way.
+    const [inviteResult, setInviteResult] = useState<{ link: string; email: string; emailSent: boolean; emailRequested: boolean } | null>(null);
     const [currencies, setCurrencies] = useState<string[]>(DEFAULT_CURRENCIES);
     // Org's configured base currency (from Core business_settings), used as the
     // default selection for new-person currency. Empty until settings load.
@@ -360,14 +362,17 @@ const PeoplePage: React.FC = () => {
             // it via SES when requested) and surface the copyable link so it can be shared manually
             // if email delivery is unreliable.
             const invite = data as CreatePersonPayload & { userLinkageMode?: string; inviteEmail?: string; inviteRole?: string; sendInviteEmail?: boolean };
-            const inviteEmail = invite.inviteEmail || data.email;
+            // Single source of truth: the person's Identity email. Anything else would
+            // invite one address while the person record carries another, which leaves
+            // the invitee unlinked (Core resolves the person by email).
+            const inviteEmail = data.email;
             if (invite.userLinkageMode === 'invite' && inviteEmail && invite.inviteRole && created?.id) {
                 try {
                     const res = await peopleApi.inviteUser(created.id, inviteEmail, invite.inviteRole, invite.sendInviteEmail !== false);
                     if (res.invite_status === 'existing_user') {
                         toast.success(`${data.full_name} added — ${inviteEmail} already has an account and can sign in.`);
                     } else if (res.invite_link) {
-                        setInviteResult({ link: res.invite_link, email: inviteEmail, emailSent: !!res.email_sent });
+                        setInviteResult({ link: res.invite_link, email: inviteEmail, emailSent: !!res.email_sent, emailRequested: invite.sendInviteEmail !== false });
                     } else {
                         toast.success(`${data.full_name} has been invited`);
                     }
@@ -415,7 +420,7 @@ const PeoplePage: React.FC = () => {
             if (res.invite_status === 'existing_user') {
                 toast.success(`${email} already has an account and can sign in.`);
             } else if (res.invite_link) {
-                setInviteResult({ link: res.invite_link, email, emailSent: !!res.email_sent });
+                setInviteResult({ link: res.invite_link, email, emailSent: !!res.email_sent, emailRequested: true });
             } else {
                 toast.success(`${person.full_name} has been invited`);
             }
@@ -445,7 +450,7 @@ const PeoplePage: React.FC = () => {
             }
             const res = await peopleApi.inviteUser(person.id, email, defaultRole, true);
             if (res.invite_link) {
-                setInviteResult({ link: res.invite_link, email, emailSent: !!res.email_sent });
+                setInviteResult({ link: res.invite_link, email, emailSent: !!res.email_sent, emailRequested: true });
             } else {
                 toast.success(`Invitation resent to ${person.full_name}`);
             }
@@ -1012,7 +1017,9 @@ const PeoplePage: React.FC = () => {
                         <p className="text-sm text-slate-300">
                             {inviteResult.emailSent
                                 ? <>We've emailed the invitation to <span className="text-slate-100 font-medium">{inviteResult.email}</span>. If it doesn't arrive, copy and share this link directly:</>
-                                : <>Share this invite link with <span className="text-slate-100 font-medium">{inviteResult.email}</span> so they can set a password and sign in:</>}
+                                : inviteResult.emailRequested
+                                    ? <>The invitation for <span className="text-slate-100 font-medium">{inviteResult.email}</span> was created, but the email could not be sent. Share this link with them directly:</>
+                                    : <>Share this invite link with <span className="text-slate-100 font-medium">{inviteResult.email}</span> so they can set a password and sign in:</>}
                         </p>
                         <div className="flex gap-2">
                             <input
@@ -1206,8 +1213,14 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         const phoneError = validatePhone(data.phone);
         if (phoneError) next.phone = phoneError;
         if (data.userLinkageMode === 'invite') {
-            const inviteEmailError = validateEmail(data.inviteEmail || data.email, true);
-            if (inviteEmailError) next.inviteEmail = inviteEmailError;
+            // The Identity email IS the invitation email (the invite field is a
+            // read-only mirror), so validate that one and point the admin back to it.
+            const inviteEmailError = validateEmail(data.email, true);
+            if (inviteEmailError) {
+                next.inviteEmail = data.email
+                    ? inviteEmailError
+                    : 'Add an email in the Identity section — the invitation is sent to that address.';
+            }
             if (!data.inviteRole) next.inviteRole = 'Select a role for the invited user.';
         }
         if (data.userLinkageMode === 'link' && !data.existingUserId) {
@@ -1233,6 +1246,8 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         // triggered by an empty string.
         const payload: any = { ...formData, full_name: formData.full_name.trim() };
         payload.department_id = payload.department_id || undefined;
+        // The invitation always goes to the Identity email — never carry a separate value.
+        payload.inviteEmail = payload.email;
         if (Object.keys(customFieldValues).length > 0) {
             payload.customFieldValues = customFieldValues;
         }
@@ -1581,17 +1596,29 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 <div className="text-xs text-slate-500 mb-2">Send invitation email to create user account</div>
                                 {formData.userLinkageMode === 'invite' && (
                                     <div className="space-y-2">
+                                        {/* Read-only mirror of the Identity email — the single source of
+                                            truth for the invitation. It used to be editable with an
+                                            `inviteEmail || email` fallback, which forked the two values on
+                                            the first keystroke: the invite went to one address while the
+                                            person record carried another, and Core's ensurePersonLink (which
+                                            matches people by email) then created a SECOND, duplicate person
+                                            for the invitee instead of linking the one just added. */}
                                         <input
                                             data-field="inviteEmail"
                                             type="text"
+                                            readOnly
                                             aria-label="Email for invitation"
-                                            value={formData.inviteEmail || formData.email}
-                                            onChange={(e) => updateField('inviteEmail', e.target.value)}
+                                            aria-readonly="true"
+                                            value={formData.email || ''}
                                             aria-invalid={!!errors.inviteEmail}
-                                            className={`w-full px-3 py-2 bg-slate-900 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.inviteEmail ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                            className={`w-full px-3 py-2 bg-slate-900 border rounded-lg text-sm text-slate-400 cursor-not-allowed focus:outline-none ${errors.inviteEmail ? 'border-rose-500' : 'border-slate-700'}`}
                                             placeholder="Email for invitation"
                                         />
-                                        {errors.inviteEmail && <p role="alert" className="text-xs text-rose-400">{errors.inviteEmail}</p>}
+                                        {errors.inviteEmail
+                                            ? <p role="alert" className="text-xs text-rose-400">{errors.inviteEmail}</p>
+                                            : <p className="text-xs text-slate-500">
+                                                The invitation will be emailed to <span className="text-slate-300">{formData.email}</span>. To change it, edit the Email field in the Identity section.
+                                            </p>}
                                         <select
                                             data-field="inviteRole"
                                             aria-label="Invitation role"

@@ -238,6 +238,67 @@ describe('Given the Add Person modal', () => {
   });
 });
 
+// The invitation email used to be an editable field defaulting to `inviteEmail || email`.
+// The first keystroke forked the two values, so the invite went to one address while the
+// person record carried another — and Core, which resolves the invitee's person by email,
+// then created a duplicate person instead of linking the one just added. The field is now
+// a read-only mirror: the Identity email is the single source of truth.
+describe('Given the "Invite as New User" section', () => {
+  const inviteEmailInput = () => screen.getByLabelText('Email for invitation') as HTMLInputElement;
+
+  it('When an Identity email is typed / Then the invitation email mirrors it', async () => {
+    await openAddPerson();
+    fireEvent.change(emailInput(), { target: { value: 'henry@ford.com' } });
+
+    await waitFor(() => expect(inviteEmailInput()).toHaveValue('henry@ford.com'));
+  });
+
+  it('When the Identity email is changed again / Then the invitation email follows the new value', async () => {
+    await openAddPerson();
+    fireEvent.change(emailInput(), { target: { value: 'first@ford.com' } });
+    await waitFor(() => expect(inviteEmailInput()).toHaveValue('first@ford.com'));
+
+    fireEvent.change(emailInput(), { target: { value: 'second@ford.com' } });
+    await waitFor(() => expect(inviteEmailInput()).toHaveValue('second@ford.com'));
+  });
+
+  it('When the invitation email field is rendered / Then it is read-only so the two values can never diverge', async () => {
+    await openAddPerson();
+    expect(inviteEmailInput()).toHaveAttribute('readonly');
+  });
+
+  it('When an Identity email is present / Then the section states which address will receive the invitation', async () => {
+    await openAddPerson();
+    fireEvent.change(emailInput(), { target: { value: 'henry@ford.com' } });
+
+    expect(await screen.findByText(/The invitation will be emailed to/i)).toBeInTheDocument();
+  });
+
+  it('When the person is submitted / Then the invitation is sent to the Identity email', async () => {
+    mockApi.create.mockResolvedValue({ id: 'p2' });
+    await openAddPerson();
+    fireEvent.change(nameInput(), { target: { value: 'Henry Ford' } });
+    fireEvent.change(emailInput(), { target: { value: 'henry@ford.com' } });
+    satisfyInviteFields();
+
+    await waitFor(() => expect(addButton()).not.toBeDisabled());
+    fireEvent.click(addButton());
+
+    await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalledWith('p2', 'henry@ford.com', 'role-1', true));
+  });
+
+  it('When invite mode is on with no Identity email / Then the invite section says where to add one and submit stays blocked', async () => {
+    await openAddPerson();
+    fireEvent.change(nameInput(), { target: { value: 'Henry Ford' } });
+    satisfyInviteFields();
+
+    fireEvent.submit(nameInput().closest('form')!);
+
+    expect(await screen.findByText(/Add an email in the Identity section/i)).toBeInTheDocument();
+    expect(mockApi.create).not.toHaveBeenCalled();
+  });
+});
+
 describe('Given the People Registry filter bar', () => {
   it('When no filter is applied / Then no Clear Filters action is offered', async () => {
     renderPage();
