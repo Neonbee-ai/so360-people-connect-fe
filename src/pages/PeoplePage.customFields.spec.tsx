@@ -167,6 +167,9 @@ describe('Given active custom field definitions when adding a Person', () => {
     const vehicleTypeField = screen.getByTestId('custom-field-def-dropdown');
     fireEvent.change(vehicleTypeField.querySelector('select')!, { target: { value: 'Car' } });
 
+    // "Employee Only" — the default invite mode requires an email + role, which
+    // these custom-field scenarios are not about.
+    fireEvent.click(screen.getByText('Employee Only (No System Access)'));
     const form = nameInput.closest('form')!;
     fireEvent.submit(form);
 
@@ -192,6 +195,9 @@ describe('Given active custom field definitions when adding a Person', () => {
     fireEvent.change(nameInput, { target: { value: 'No Custom Values' } });
     await waitFor(() => expect(nameInput).toHaveValue('No Custom Values'));
 
+    // "Employee Only" — the default invite mode requires an email + role, which
+    // these custom-field scenarios are not about.
+    fireEvent.click(screen.getByText('Employee Only (No System Access)'));
     const form = nameInput.closest('form')!;
     fireEvent.submit(form);
 

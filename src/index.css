@@ -33,9 +33,19 @@ body {
 .light .text-cyan-300    { color: rgb( 21 148 180); }
 .light .text-violet-400  { color: rgb(109  40 217); }
 
-/* Muted / secondary text */
+/* Muted / secondary text.
+   slate-400 is the most-used "label / placeholder" tone. The inverted ramp maps
+   it to rgb(100 116 139), which is ~4.0:1 on the slate-800 control background —
+   below WCAG AA, and lighter than the slate-500 override below, inverting the
+   intended hierarchy. Pin it one step darker so 400 stays more prominent than
+   500 and both clear AA. */
+.light .text-slate-400 { color: rgb(51  65  85); }
 .light .text-slate-500 { color: rgb(71  85 105); }
 .light .text-slate-600 { color: rgb(51  65  85); }
+
+/* Placeholder text — same problem, and placeholders start out lighter still. */
+.light .placeholder-slate-400::placeholder { color: rgb(71  85 105); }
+.light .placeholder-slate-500::placeholder { color: rgb(71  85 105); }
 
 /* Badge / chip backgrounds — 10–20% tints near-invisible on white */
 .light .bg-blue-500\/10    { background-color: rgb(239 246 255); }

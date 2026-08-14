@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown, ChevronRight, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown, ChevronRight, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle, X } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
@@ -23,6 +23,7 @@ import {
 } from '../services/customFieldsService';
 import { usePeopleFormatters } from '../utils/formatters';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
+import { validatePersonName, validateEmail, validatePhone, focusFirstInvalid } from '../utils/validation';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 
@@ -268,6 +269,24 @@ const PeoplePage: React.FC = () => {
         const handle = setTimeout(() => setDebouncedSearch(search), 300);
         return () => clearTimeout(handle);
     }, [search]);
+
+    // Any non-default filter value — drives the "Clear Filters" affordance.
+    const hasActiveFilters = !!(
+        search || statusFilter || typeFilter || departmentFilter ||
+        employmentTypeFilter || joiningFromFilter || joiningToFilter
+    );
+
+    // Reset every control to its default. `loadPeople` re-runs off these state
+    // values, so the full list reloads without any extra user action.
+    const handleClearFilters = () => {
+        setSearch('');
+        setStatusFilter('');
+        setTypeFilter('');
+        setDepartmentFilter('');
+        setEmploymentTypeFilter('');
+        setJoiningFromFilter('');
+        setJoiningToFilter('');
+    };
 
     const loadPeople = useCallback(async () => {
         try {
@@ -549,7 +568,9 @@ const PeoplePage: React.FC = () => {
                         {/* Import Button */}
                         {canImportEmployees && (
                         <button
-                            onClick={() => navigate('/people/import-export')}
+                            // Land directly on the Import tab — clicking Import must
+                            // never drop the user on the Export section.
+                            onClick={() => navigate('/people/import-export?tab=import')}
                             className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
                         >
                             <Upload size={16} />
@@ -621,8 +642,18 @@ const PeoplePage: React.FC = () => {
                         placeholder="Search by name, email, or title..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                        className="w-full pl-9 pr-9 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
                     />
+                    {search && (
+                        <button
+                            type="button"
+                            onClick={() => setSearch('')}
+                            aria-label="Clear search"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-colors"
+                        >
+                            <X size={14} />
+                        </button>
+                    )}
                 </div>
                 <select
                     value={statusFilter}
@@ -672,23 +703,47 @@ const PeoplePage: React.FC = () => {
 
                 {/* Date of Joining Filter */}
                 <div className="flex items-center gap-2">
-                    <label className="text-xs text-slate-400">Joined:</label>
+                    <label htmlFor="joined-from" className="text-xs text-slate-400">Joined:</label>
                     <input
+                        id="joined-from"
                         type="date"
+                        aria-label="Joined from"
                         value={joiningFromFilter}
                         onChange={(e) => setJoiningFromFilter(e.target.value)}
                         className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        placeholder="From"
                     />
                     <span className="text-slate-600">-</span>
                     <input
                         type="date"
+                        aria-label="Joined to"
                         value={joiningToFilter}
                         onChange={(e) => setJoiningToFilter(e.target.value)}
                         className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        placeholder="To"
                     />
+                    {(joiningFromFilter || joiningToFilter) && (
+                        <button
+                            type="button"
+                            onClick={() => { setJoiningFromFilter(''); setJoiningToFilter(''); }}
+                            aria-label="Clear joined date range"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
+                        >
+                            <X size={14} />
+                        </button>
+                    )}
                 </div>
+
+                {/* Reset everything at once — previously the only way back to the
+                    default view was clearing six controls by hand or reloading. */}
+                {hasActiveFilters && (
+                    <button
+                        type="button"
+                        onClick={handleClearFilters}
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-300 hover:text-slate-50 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors"
+                    >
+                        <X size={14} />
+                        Clear Filters
+                    </button>
+                )}
             </div>
 
             {quotaData && (
@@ -729,6 +784,9 @@ const PeoplePage: React.FC = () => {
                             onClick={() => navigate(`/people/people/${person.id}`)}
                             className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 hover:bg-slate-800/50 cursor-pointer transition-all"
                         >
+                            {/* Every trailing section lives in a fixed-width cell, so
+                                the columns line up across rows no matter how long a
+                                name/role is or which optional controls a row has. */}
                             <div className="flex items-center gap-4">
                                 {/* Avatar */}
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
@@ -743,12 +801,14 @@ const PeoplePage: React.FC = () => {
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-0.5">
+                                    <div className="flex items-center gap-2 mb-0.5 min-w-0">
                                         <span className="text-sm font-medium text-slate-50 truncate">{person.full_name}</span>
-                                        <StatusBadge status={person.type} />
-                                        <StatusBadge status={person.status} />
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            <StatusBadge status={person.type} />
+                                            <StatusBadge status={person.status} />
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                                    <div className="flex items-center gap-4 text-xs text-slate-500 min-w-0 truncate">
                                         {person.job_title && (
                                             <span className="flex items-center gap-1">
                                                 <Briefcase size={12} />
@@ -774,8 +834,8 @@ const PeoplePage: React.FC = () => {
                                 </div>
 
                                 {/* Cost Info */}
-                                <div className="text-right flex-shrink-0">
-                                    <div className="text-sm font-medium text-slate-50">
+                                <div className="w-28 text-right flex-shrink-0">
+                                    <div className="text-sm font-medium text-slate-50 truncate">
                                         {formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}
                                     </div>
                                     {person.billing_rate && person.billing_rate > 0 && (
@@ -792,7 +852,7 @@ const PeoplePage: React.FC = () => {
                                         ? (INVITATION_LABEL[person.invitation_status] ?? '—')
                                         : '—';
                                     return (
-                                        <div className="hidden md:flex flex-col items-end gap-1 flex-shrink-0 min-w-[140px]" aria-label="System access">
+                                        <div className="hidden md:flex flex-col items-end gap-1 flex-shrink-0 w-36" aria-label="System access">
                                             {/* Access Status */}
                                             <span
                                                 aria-label="Access status"
@@ -801,7 +861,7 @@ const PeoplePage: React.FC = () => {
                                                 {accessBadge.label}
                                             </span>
                                             {/* System Role (Core login role — distinct from skill/people_roles) */}
-                                            <span className="text-xs text-slate-500" aria-label="System role">
+                                            <span className="text-xs text-slate-500 truncate max-w-full" aria-label="System role" title={person.system_role || undefined}>
                                                 Role: {person.system_role || '—'}
                                             </span>
                                             {/* Invitation Status */}
@@ -812,12 +872,16 @@ const PeoplePage: React.FC = () => {
                                     );
                                 })()}
 
-                                {/* Invite action — primarily for people without access */}
+                                {/* Invite action — primarily for people without access.
+                                    The cell is always rendered (even when the person
+                                    already has access) so the columns after it stay put. */}
+                                <div className="hidden sm:flex w-24 justify-end flex-shrink-0">
                                 {(() => {
                                     const isPending = person.access_status === 'pending' || person.invitation_status === 'pending';
                                     const hasAccess = person.access_status === 'active';
-                                    // Hide entirely once the person already has access; otherwise
-                                    // show Invite (no_access) or a disabled "Invited" (pending).
+                                    // Hide the control once the person already has access;
+                                    // otherwise show Invite (no_access) or a disabled
+                                    // "Invited" (pending).
                                     if (hasAccess) return null;
                                     return (
                                         <button
@@ -832,22 +896,23 @@ const PeoplePage: React.FC = () => {
                                         </button>
                                     );
                                 })()}
+                                </div>
 
                                 {/* Skills — capability tags (distinct from the System Role shown above) */}
-                                <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
+                                <div className="hidden lg:flex items-center justify-end gap-1 w-32 flex-shrink-0 overflow-hidden">
                                     {person.people_roles?.slice(0, 2).map((skill) => (
-                                        <span key={skill.id} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-400">
+                                        <span key={skill.id} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-400 truncate">
                                             {skill.role_name}
                                         </span>
                                     ))}
                                     {person.people_roles && person.people_roles.length > 2 && (
-                                        <span className="text-xs text-slate-600">+{person.people_roles.length - 2}</span>
+                                        <span className="text-xs text-slate-600 flex-shrink-0">+{person.people_roles.length - 2}</span>
                                     )}
                                 </div>
 
                                 {/* Actions (⋮) — Edit / Deactivate / Archive / Delete / Resend / Cancel */}
                                 {(canEditEmployee || canDeleteEmployee) && (
-                                    <div className="relative flex-shrink-0">
+                                    <div className="relative flex-shrink-0 w-8 flex justify-end">
                                         <button
                                             type="button"
                                             onClick={(e) => { e.stopPropagation(); setOpenActionsId(openActionsId === person.id ? null : person.id); }}
@@ -1118,17 +1183,55 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         sendInviteEmail: true,
     });
 
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const formRef = useRef<HTMLFormElement>(null);
+    // Submit-order of the validated fields — drives which field gets scrolled
+    // to and focused when a submit is rejected.
+    const FIELD_ORDER = ['full_name', 'email', 'phone', 'inviteEmail', 'inviteRole'];
+
     // Sync form currency whenever the resolved currency updates or the modal opens.
     useEffect(() => {
-        if (isOpen) setFormData(prev => ({ ...prev, currency: resolvedCurrency }));
+        if (isOpen) {
+            setErrors({});
+            setFormData(prev => ({ ...prev, currency: resolvedCurrency }));
+        }
     }, [isOpen, resolvedCurrency]);
+
+    const validate = (data: typeof formData): Record<string, string> => {
+        const next: Record<string, string> = {};
+        const nameError = validatePersonName(data.full_name);
+        if (nameError) next.full_name = nameError;
+        const emailError = validateEmail(data.email);
+        if (emailError) next.email = emailError;
+        const phoneError = validatePhone(data.phone);
+        if (phoneError) next.phone = phoneError;
+        if (data.userLinkageMode === 'invite') {
+            const inviteEmailError = validateEmail(data.inviteEmail || data.email, true);
+            if (inviteEmailError) next.inviteEmail = inviteEmailError;
+            if (!data.inviteRole) next.inviteRole = 'Select a role for the invited user.';
+        }
+        if (data.userLinkageMode === 'link' && !data.existingUserId) {
+            next.existingUserId = 'Select the user account to link.';
+        }
+        return next;
+    };
+
+    // Live validity — the primary action stays disabled until the form can
+    // actually be submitted, instead of firing a browser validation bubble
+    // anchored to a field the user may have scrolled past.
+    const isFormValid = Object.keys(validate(formData)).length === 0;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.full_name || !formData.type) return;
+        const validationErrors = validate(formData);
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            focusFirstInvalid(formRef.current, [...FIELD_ORDER, 'existingUserId'], validationErrors);
+            return;
+        }
         // Omit an unselected department so the backend @IsUUID validation is not
         // triggered by an empty string.
-        const payload: any = { ...formData };
+        const payload: any = { ...formData, full_name: formData.full_name.trim() };
         payload.department_id = payload.department_id || undefined;
         if (Object.keys(customFieldValues).length > 0) {
             payload.customFieldValues = customFieldValues;
@@ -1143,45 +1246,81 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
             available_days_per_week: 5, start_date: new Date().toISOString().split('T')[0],
             userLinkageMode: 'invite', sendInviteEmail: true,
         });
+        setErrors({});
     };
 
     const updateField = (field: string, value: unknown) => {
+        // Functional update: `currency` is resolved asynchronously from org
+        // settings, so merging into a captured snapshot could revert it.
         setFormData(prev => ({ ...prev, [field]: value }));
+        // Re-validate the touched field so a correction clears immediately.
+        // Validation only reads user-entered fields, so the snapshot is safe.
+        const nextData = { ...formData, [field]: value } as typeof formData;
+        const fieldErrors = validate(nextData);
+        setErrors(prev => ({
+            ...prev,
+            [field]: fieldErrors[field] || '',
+            // Switching linkage mode changes which invite fields are required.
+            ...(field === 'userLinkageMode'
+                ? { inviteEmail: fieldErrors.inviteEmail || '', inviteRole: fieldErrors.inviteRole || '', existingUserId: fieldErrors.existingUserId || '' }
+                : {}),
+            // The invite email defaults to the identity email — keep them in sync.
+            ...(field === 'email' ? { inviteEmail: fieldErrors.inviteEmail || '' } : {}),
+        }));
     };
+
+    // Summarises what is still missing when more than one field is invalid.
+    const errorCount = Object.values(errors).filter(Boolean).length;
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Add Person" size="lg">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {/* noValidate: browser-native bubbles anchor to the offending field even
+                when it is scrolled out of view, so a user at the bottom of this
+                modal saw nothing happen. Inline messages + scroll-to-first-invalid
+                replace them. */}
+            <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
                 {/* Basic Info */}
                 <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Identity</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
-                            <label className="block text-xs text-slate-400 mb-1">Full Name *</label>
+                            <label htmlFor="person-full-name" className="block text-xs text-slate-400 mb-1">Full Name *</label>
                             <input
-                                type="text" required value={formData.full_name}
+                                id="person-full-name"
+                                data-field="full_name"
+                                type="text" value={formData.full_name}
                                 onChange={(e) => updateField('full_name', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                aria-invalid={!!errors.full_name}
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.full_name ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                                 placeholder="John Doe"
                             />
+                            {errors.full_name && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.full_name}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Email</label>
+                            <label htmlFor="person-email" className="block text-xs text-slate-400 mb-1">Email</label>
                             <input
-                                type="email" value={formData.email || ''}
+                                id="person-email"
+                                data-field="email"
+                                type="text" value={formData.email || ''}
                                 onChange={(e) => updateField('email', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                aria-invalid={!!errors.email}
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.email ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                                 placeholder="john@company.com"
                             />
+                            {errors.email && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.email}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Phone</label>
+                            <label htmlFor="person-phone" className="block text-xs text-slate-400 mb-1">Phone</label>
                             <input
-                                type="text" value={formData.phone || ''}
+                                id="person-phone"
+                                data-field="phone"
+                                type="text" inputMode="tel" value={formData.phone || ''}
                                 onChange={(e) => updateField('phone', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                aria-invalid={!!errors.phone}
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                                 placeholder="+1-555-0100"
                             />
+                            {errors.phone && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
                         </div>
                     </div>
                 </div>
@@ -1414,13 +1553,16 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 <div className="text-sm font-medium text-slate-50">Link to Existing User</div>
                                 <div className="text-xs text-slate-500 mb-2">Select an existing user account to link</div>
                                 {formData.userLinkageMode === 'link' && (
-                                    <UserSelector
-                                        value={formData.existingUserId}
-                                        onChange={(userId: string | null) => updateField('existingUserId', userId)}
-                                        orgId={orgId}
-                                        tenantId={tenantId}
-                                        placeholder="Select user..."
-                                    />
+                                    <div data-field="existingUserId" tabIndex={-1}>
+                                        <UserSelector
+                                            value={formData.existingUserId}
+                                            onChange={(userId: string | null) => updateField('existingUserId', userId)}
+                                            orgId={orgId}
+                                            tenantId={tenantId}
+                                            placeholder="Select user..."
+                                        />
+                                        {errors.existingUserId && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.existingUserId}</p>}
+                                    </div>
                                 )}
                             </div>
                         </label>
@@ -1440,24 +1582,30 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 {formData.userLinkageMode === 'invite' && (
                                     <div className="space-y-2">
                                         <input
-                                            type="email"
+                                            data-field="inviteEmail"
+                                            type="text"
+                                            aria-label="Email for invitation"
                                             value={formData.inviteEmail || formData.email}
                                             onChange={(e) => updateField('inviteEmail', e.target.value)}
-                                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                            aria-invalid={!!errors.inviteEmail}
+                                            className={`w-full px-3 py-2 bg-slate-900 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.inviteEmail ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                                             placeholder="Email for invitation"
-                                            required={formData.userLinkageMode === 'invite'}
                                         />
+                                        {errors.inviteEmail && <p role="alert" className="text-xs text-rose-400">{errors.inviteEmail}</p>}
                                         <select
+                                            data-field="inviteRole"
+                                            aria-label="Invitation role"
                                             value={formData.inviteRole || ''}
                                             onChange={(e) => updateField('inviteRole', e.target.value)}
-                                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                                            required={formData.userLinkageMode === 'invite'}
+                                            aria-invalid={!!errors.inviteRole}
+                                            className={`w-full px-3 py-2 bg-slate-900 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.inviteRole ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                                         >
                                             <option value="">Select role...</option>
                                             {orgRoles.map(role => (
                                                 <option key={role.id} value={role.id}>{role.name}</option>
                                             ))}
                                         </select>
+                                        {errors.inviteRole && <p role="alert" className="text-xs text-rose-400">{errors.inviteRole}</p>}
                                         <label className="flex items-center gap-2 text-xs text-slate-400">
                                             <input
                                                 type="checkbox"
@@ -1474,6 +1622,13 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                     </div>
                 </div>
 
+                {/* Validation summary — visible wherever the user has scrolled to. */}
+                {errorCount > 1 && (
+                    <div role="alert" className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-400">
+                        {errorCount} fields need attention before this person can be added.
+                    </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
                     <button
@@ -1484,7 +1639,9 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                     </button>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        disabled={!isFormValid}
+                        title={isFormValid ? undefined : 'Complete all required fields with valid values.'}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Add Person
                     </button>
@@ -1557,6 +1714,8 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
     const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
     const [employmentTypesError, setEmploymentTypesError] = useState(false);
     const [formData, setFormData] = useState<Partial<Person>>({});
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const formRef = useRef<HTMLFormElement>(null);
     const [customFields, setCustomFields] = useState<PersonCustomFieldValue[]>([]);
     const [customFieldsError, setCustomFieldsError] = useState(false);
     const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
@@ -1580,6 +1739,7 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
     // Reload the form whenever a different person is opened for edit.
     useEffect(() => {
         if (!person) return;
+        setErrors({});
         setFormData({
             full_name: person.full_name,
             email: person.email,
@@ -1617,8 +1777,27 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
             .catch(() => setCustomFieldsError(true));
     }, [isOpen, person?.id]);
 
+    // Same identity rules as Add Person — the backend applies them on update
+    // too, so without this an edit would fail with a raw 400.
+    const validate = (data: Partial<Person>): Record<string, string> => {
+        const next: Record<string, string> = {};
+        const nameError = validatePersonName(data.full_name);
+        if (nameError) next.full_name = nameError;
+        const emailError = validateEmail(data.email);
+        if (emailError) next.email = emailError;
+        const phoneError = validatePhone(data.phone);
+        if (phoneError) next.phone = phoneError;
+        return next;
+    };
+
+    const isFormValid = Object.keys(validate(formData)).length === 0;
+
     const updateField = (field: string, value: unknown) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        if (field === 'full_name' || field === 'email' || field === 'phone') {
+            const fieldErrors = validate({ ...formData, [field]: value });
+            setErrors(prev => ({ ...prev, [field]: fieldErrors[field] || '' }));
+        }
     };
 
     const updateCustomFieldValue = (fieldDefId: string, value: unknown) => {
@@ -1627,8 +1806,14 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!person || !formData.full_name) return;
-        const payload: any = { ...formData };
+        if (!person) return;
+        const validationErrors = validate(formData);
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            focusFirstInvalid(formRef.current, ['full_name', 'email', 'phone'], validationErrors);
+            return;
+        }
+        const payload: any = { ...formData, full_name: (formData.full_name || '').trim() };
         // Empty select value means "clear it". Send null rather than '' so the
         // backend @IsUUID / @IsEnum validators are not tripped by an empty string.
         payload.default_labor_category_id = payload.default_labor_category_id || null;
@@ -1670,33 +1855,45 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Edit ${person.full_name}`} size="lg">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
                 <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Identity</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
-                            <label className="block text-xs text-slate-400 mb-1">Full Name *</label>
+                            <label htmlFor="edit-person-full-name" className="block text-xs text-slate-400 mb-1">Full Name *</label>
                             <input
-                                type="text" required value={formData.full_name || ''}
+                                id="edit-person-full-name"
+                                data-field="full_name"
+                                type="text" value={formData.full_name || ''}
                                 onChange={(e) => updateField('full_name', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                aria-invalid={!!errors.full_name}
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.full_name ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             />
+                            {errors.full_name && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.full_name}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Email</label>
+                            <label htmlFor="edit-person-email" className="block text-xs text-slate-400 mb-1">Email</label>
                             <input
-                                type="email" value={formData.email || ''}
+                                id="edit-person-email"
+                                data-field="email"
+                                type="text" value={formData.email || ''}
                                 onChange={(e) => updateField('email', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                aria-invalid={!!errors.email}
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.email ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             />
+                            {errors.email && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.email}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Phone</label>
+                            <label htmlFor="edit-person-phone" className="block text-xs text-slate-400 mb-1">Phone</label>
                             <input
-                                type="text" value={formData.phone || ''}
+                                id="edit-person-phone"
+                                data-field="phone"
+                                type="text" inputMode="tel" value={formData.phone || ''}
                                 onChange={(e) => updateField('phone', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                aria-invalid={!!errors.phone}
+                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             />
+                            {errors.phone && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Employee ID</label>
@@ -1969,7 +2166,8 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                         Cancel
                     </button>
                     <button
-                        type="submit" disabled={busy}
+                        type="submit" disabled={busy || !isFormValid}
+                        title={isFormValid ? undefined : 'Fix the highlighted fields before saving.'}
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                     >
                         {busy && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}

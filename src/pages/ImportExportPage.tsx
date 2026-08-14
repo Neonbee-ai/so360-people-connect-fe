@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Download, Upload, FileDown, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import { toast } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
 
+type BulkTab = 'export' | 'import';
+
 const ImportExportPage: React.FC = () => {
+    // Import and Export are separate workflows on one Data Management page.
+    // The entry point decides which one opens (`?tab=import` from the People
+    // Registry's Import button) so the user never lands on the other section.
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab: BulkTab = searchParams.get('tab') === 'import' ? 'import' : 'export';
+    const setActiveTab = (tab: BulkTab) => setSearchParams({ tab }, { replace: true });
     const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('csv');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [typeFilter, setTypeFilter] = useState<string>('');
@@ -122,11 +131,33 @@ const ImportExportPage: React.FC = () => {
     return (
         <div className="p-6 space-y-5">
             <PageHeader
-                title="Import/Export"
-                subtitle="Bulk operations for people data"
+                title="Data Management"
+                subtitle="Bulk import and export for people data"
             />
 
+            {/* Workflow tabs — only one workflow is ever on screen, so Import
+                never shows Export controls and vice versa. */}
+            <div className="flex items-center gap-1 border-b border-slate-800" role="tablist">
+                {(['export', 'import'] as BulkTab[]).map(tab => (
+                    <button
+                        key={tab}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors ${
+                            activeTab === tab
+                                ? 'border-teal-500 text-teal-400'
+                                : 'border-transparent text-slate-400 hover:text-slate-50'
+                        }`}
+                    >
+                        {tab === 'export' ? 'Export People' : 'Import People'}
+                    </button>
+                ))}
+            </div>
+
             {/* Export Section */}
+            {activeTab === 'export' && (
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Download size={20} className="text-teal-400" />
@@ -206,8 +237,10 @@ const ImportExportPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Import Section */}
+            {activeTab === 'import' && (
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Upload size={20} className="text-teal-400" />
@@ -215,10 +248,22 @@ const ImportExportPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                    {/* File Upload */}
+                    {/* File Upload — compact drop zone. The old p-8 + h-12 icon
+                        pushed the Validate button below the fold on a standard
+                        desktop viewport. */}
                     <div>
-                        <label className="block text-xs text-slate-400 mb-2">Upload File</label>
-                        <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center hover:border-slate-600 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                            <label htmlFor="file-upload" className="text-xs text-slate-400">Upload File</label>
+                            <button
+                                type="button"
+                                onClick={handleDownloadTemplate}
+                                className="flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                            >
+                                <FileDown size={13} />
+                                Download Template
+                            </button>
+                        </div>
+                        <div className="border-2 border-dashed border-slate-700 rounded-lg px-4 py-5 text-center hover:border-slate-600 transition-colors">
                             <input
                                 type="file"
                                 accept=".csv,.xlsx,.xls"
@@ -230,8 +275,8 @@ const ImportExportPage: React.FC = () => {
                                 htmlFor="file-upload"
                                 className="cursor-pointer flex flex-col items-center"
                             >
-                                <Upload className="h-12 w-12 text-slate-600 mb-3" />
-                                <p className="text-sm text-slate-300 mb-1">
+                                <Upload className="h-7 w-7 text-slate-600 mb-2" />
+                                <p className="text-sm text-slate-300">
                                     {importFile ? importFile.name : 'Click to browse or drag and drop'}
                                 </p>
                                 <p className="text-xs text-slate-500">
@@ -320,6 +365,7 @@ const ImportExportPage: React.FC = () => {
                     )}
                 </div>
             </div>
+            )}
 
         </div>
     );

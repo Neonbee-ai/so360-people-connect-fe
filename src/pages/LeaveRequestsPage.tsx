@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Plus, Calendar } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
@@ -11,6 +11,7 @@ import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance
 import { leaveTypesApi, LeaveType } from '../services/leaveTypesService';
 import { apiContext } from '../services/apiClient';
 import { peopleApi } from '../services/peopleService';
+import { todayIso, focusFirstInvalid } from '../utils/validation';
 
 const LeaveRequestsPage: React.FC = () => {
     const { recordActivity } = useActivity();
@@ -219,11 +220,14 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
     const [balances, setBalances] = useState<LeaveBalance[]>([]);
     const [personError, setPersonError] = useState<string | null>(null);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const formRef = useRef<HTMLFormElement>(null);
+    const today = todayIso();
     const [formData, setFormData] = useState<CreateLeaveRequestPayload>({
         person_id: '',
         leave_type_id: '',
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date().toISOString().split('T')[0],
+        start_date: today,
+        end_date: today,
         is_half_day_start: false,
         is_half_day_end: false,
         reason: '',
@@ -231,6 +235,7 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
 
     useEffect(() => {
         if (isOpen) {
+            setErrors({});
             resolveCurrentPerson();
             loadLeaveTypes();
         }
@@ -274,53 +279,123 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
         }
     };
 
-    const calculateTotalDays = () => {
-        const start = new Date(formData.start_date);
-        const end = new Date(formData.end_date);
-        const diffTime = Math.abs(end.getTime() - start.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const selectedLeaveType = leaveTypes.find(t => t.id === formData.leave_type_id);
+    // Backdating is opt-in per leave type (e.g. sick leave recorded after the
+    // fact). Everything else must start today or later.
+    const allowsBackdating = selectedLeaveType?.allow_backdated_requests === true;
+    // A single-day request has only one day to halve, so the end-date checkbox
+    // would be ambiguous (both boxes on a 1-day request = 0 days).
+    const isSingleDay = formData.start_date === formData.end_date;
+
+    const validate = (data: CreateLeaveRequestPayload, backdatingAllowed: boolean): Record<string, string> => {
+        const next: Record<string, string> = {};
+        if (!data.leave_type_id) next.leave_type_id = 'Select a leave type.';
+        if (!data.start_date) {
+            next.start_date = 'Start date is required.';
+        } else if (!backdatingAllowed && data.start_date < today) {
+            next.start_date = 'Start date cannot be in the past.';
+        }
+        if (!data.end_date) {
+            next.end_date = 'End date is required.';
+        } else if (data.start_date && data.end_date < data.start_date) {
+            next.end_date = 'End date cannot be earlier than start date.';
+        }
+        if (!data.reason || !data.reason.trim()) next.reason = 'Reason is required.';
+        return next;
+    };
+
+    const validationErrors = validate(formData, allowsBackdating);
+    const hasValidRange = !validationErrors.start_date && !validationErrors.end_date;
+    const isFormValid = Object.keys(validationErrors).length === 0 && !!formData.person_id && !personError;
+
+    /**
+     * Total days for the selected window. Returns null for an invalid range so
+     * the UI shows "—" rather than a nonsense figure (the old version used
+     * Math.abs, which happily reported 518 days for a reversed pair).
+     */
+    const calculateTotalDays = (): number | null => {
+        if (!hasValidRange || !formData.start_date || !formData.end_date) return null;
+        const start = new Date(`${formData.start_date}T00:00:00`);
+        const end = new Date(`${formData.end_date}T00:00:00`);
+        const diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
         let total = diffDays;
         if (formData.is_half_day_start) total -= 0.5;
-        if (formData.is_half_day_end) total -= 0.5;
+        // On a single-day request only the start half-day applies.
+        if (!isSingleDay && formData.is_half_day_end) total -= 0.5;
 
         return total;
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.leave_type_id || !formData.reason || !formData.person_id) return;
+        const nextErrors = validate(formData, allowsBackdating);
+        if (Object.keys(nextErrors).length > 0 || !formData.person_id) {
+            setErrors(nextErrors);
+            focusFirstInvalid(formRef.current, ['leave_type_id', 'start_date', 'end_date', 'reason'], nextErrors);
+            return;
+        }
 
-        onCreate(formData);
+        onCreate({
+            ...formData,
+            // Never send an end half-day for a one-day request.
+            is_half_day_end: isSingleDay ? false : formData.is_half_day_end,
+        });
     };
 
     const updateField = (field: keyof CreateLeaveRequestPayload, value: unknown) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        // Functional update: `person_id` is filled in asynchronously by
+        // resolveCurrentPerson, so merging into a captured `formData` snapshot
+        // could wipe it out mid-flight.
+        setFormData(prev => {
+            const merged = { ...prev, [field]: value } as CreateLeaveRequestPayload;
+            // Moving the start date past the end date drags the end date along
+            // instead of leaving an invalid pair on screen.
+            if (field === 'start_date' && typeof value === 'string' && merged.end_date < value) {
+                merged.end_date = value;
+            }
+            return merged;
+        });
+        // Errors depend only on user-entered fields, so the local snapshot is
+        // safe here.
+        const nextData = { ...formData, [field]: value } as CreateLeaveRequestPayload;
+        if (field === 'start_date' && typeof value === 'string' && nextData.end_date < value) {
+            nextData.end_date = value;
+        }
+        const nextErrors = validate(nextData, allowsBackdating);
+        setErrors(prev => ({
+            ...prev,
+            [field]: nextErrors[field] || '',
+            ...(field === 'start_date' ? { end_date: nextErrors.end_date || '' } : {}),
+        }));
     };
 
     const selectedBalance = balances.find(b => b.leave_type_id === formData.leave_type_id);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Request Leave">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
                 {personError && (
                     <div className="p-3 rounded-lg bg-red-900/30 border border-red-700/50 text-sm text-red-300">
                         {personError}
                     </div>
                 )}
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Leave Type *</label>
+                    <label htmlFor="leave-type" className="block text-xs text-slate-400 mb-1">Leave Type *</label>
                     <select
-                        required
+                        id="leave-type"
+                        data-field="leave_type_id"
                         value={formData.leave_type_id}
                         onChange={(e) => updateField('leave_type_id', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        aria-invalid={!!errors.leave_type_id}
+                        className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.leave_type_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                     >
                         <option value="">Select leave type</option>
                         {leaveTypes.map(type => (
                             <option key={type.id} value={type.id}>{type.name}</option>
                         ))}
                     </select>
+                    {errors.leave_type_id && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.leave_type_id}</p>}
                     {selectedBalance && (
                         <div className="mt-2 grid grid-cols-3 gap-2 p-2 bg-slate-800/50 rounded-lg text-center">
                             <div>
@@ -343,61 +418,91 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Start Date *</label>
+                        <label htmlFor="leave-start-date" className="block text-xs text-slate-400 mb-1">Start Date *</label>
                         <input
+                            id="leave-start-date"
+                            data-field="start_date"
                             type="date"
-                            required
                             value={formData.start_date}
+                            // `min` blocks calendar picking; validate() blocks typed input.
+                            min={allowsBackdating ? undefined : today}
                             onChange={(e) => updateField('start_date', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            aria-invalid={!!errors.start_date}
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.start_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                         />
-                        <label className="flex items-center gap-2 mt-2">
+                        {errors.start_date && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.start_date}</p>}
+                        <label className="flex items-center gap-2 mt-2" title="Tick when you are only taking the second half of the first day off.">
                             <input
                                 type="checkbox"
+                                aria-label="Start Date – Half Day"
                                 checked={formData.is_half_day_start}
                                 onChange={(e) => updateField('is_half_day_start', e.target.checked)}
                                 className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
                             />
-                            <span className="text-xs text-slate-400">Half Day</span>
+                            <span className="text-xs text-slate-400">
+                                {isSingleDay ? 'Half Day (this day only)' : 'Start Date – Half Day'}
+                            </span>
                         </label>
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">End Date *</label>
+                        <label htmlFor="leave-end-date" className="block text-xs text-slate-400 mb-1">End Date *</label>
                         <input
+                            id="leave-end-date"
+                            data-field="end_date"
                             type="date"
-                            required
                             value={formData.end_date}
+                            // Minimum end date tracks the chosen start date.
+                            min={formData.start_date || (allowsBackdating ? undefined : today)}
                             onChange={(e) => updateField('end_date', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            aria-invalid={!!errors.end_date}
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.end_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                         />
-                        <label className="flex items-center gap-2 mt-2">
-                            <input
-                                type="checkbox"
-                                checked={formData.is_half_day_end}
-                                onChange={(e) => updateField('is_half_day_end', e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
-                            />
-                            <span className="text-xs text-slate-400">Half Day</span>
-                        </label>
+                        {errors.end_date && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.end_date}</p>}
+                        {/* Hidden for single-day requests: with start == end there is
+                            only one day to halve, so a second checkbox is ambiguous. */}
+                        {!isSingleDay && (
+                            <label className="flex items-center gap-2 mt-2" title="Tick when you are only taking the first half of the last day off.">
+                                <input
+                                    type="checkbox"
+                                    aria-label="End Date – Half Day"
+                                    checked={formData.is_half_day_end}
+                                    onChange={(e) => updateField('is_half_day_end', e.target.checked)}
+                                    className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                                />
+                                <span className="text-xs text-slate-400">End Date – Half Day</span>
+                            </label>
+                        )}
                     </div>
                 </div>
 
+                <p className="text-xs text-slate-500 -mt-2">
+                    Each half-day option applies only to its own date — tick “Start Date – Half Day”
+                    when you work the morning of your first day off, and “End Date – Half Day”
+                    when you return for the afternoon of your last day.
+                </p>
+
                 <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
                     <p className="text-sm text-slate-300">
-                        Total Days: <span className="text-teal-400 font-medium">{calculateTotalDays()}</span>
+                        Total Days: <span className="text-teal-400 font-medium">{calculateTotalDays() ?? '—'}</span>
                     </p>
+                    {!hasValidRange && (
+                        <p className="mt-1 text-xs text-slate-500">Fix the dates above to see the total.</p>
+                    )}
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Reason *</label>
+                    <label htmlFor="leave-reason" className="block text-xs text-slate-400 mb-1">Reason *</label>
                     <textarea
-                        required
+                        id="leave-reason"
+                        data-field="reason"
                         value={formData.reason || ''}
                         onChange={(e) => updateField('reason', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        aria-invalid={!!errors.reason}
+                        className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.reason ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                         rows={3}
                         placeholder="Reason for leave..."
                     />
+                    {errors.reason && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.reason}</p>}
                 </div>
 
                 {/* Actions */}
@@ -411,7 +516,8 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                     </button>
                     <button
                         type="submit"
-                        disabled={!!personError || !formData.person_id}
+                        disabled={!isFormValid}
+                        title={isFormValid ? undefined : 'Complete all required fields with valid dates to submit.'}
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Submit Request

@@ -17,6 +17,7 @@ import type { TimesheetEntry } from '../services/timesheetApi';
 import { goalsApi, Goal } from '../services/goalsService';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import DepartmentSelector from '../components/DepartmentSelector';
+import UserSelector from '../components/UserSelector';
 import type { Person, Allocation, PersonRole } from '../types/people';
 
 const PersonDetailPage: React.FC = () => {
@@ -159,6 +160,18 @@ const PersonDetailPage: React.FC = () => {
         } catch (error) {
             toast.error('Failed to update system role');
         }
+    };
+
+    // Link this person to an existing platform user account. The button used to
+    // only flip `showLinkUserModal`, which nothing rendered — clicking it did
+    // nothing at all. The modal below is the missing half.
+    const handleLinkUser = async (userId: string) => {
+        if (!id) return;
+        const updated = await peopleApi.linkUser(id, userId);
+        setPerson(prev => (prev ? { ...prev, ...updated, user_id: updated?.user_id ?? userId } : prev));
+        setShowLinkUserModal(false);
+        toast.success(`${person?.full_name ?? 'Person'} is now linked to a user account`);
+        recordActivity({ eventType: 'people.person.user_linked', eventCategory: 'identity', description: `${person?.full_name ?? 'Person'} was linked to a user account`, resourceType: 'person', resourceId: id }).catch(() => {});
     };
 
     const loadEmploymentHistory = async () => {
@@ -782,7 +795,81 @@ const PersonDetailPage: React.FC = () => {
                 onSave={handleUpdateSystemRole}
             />
 
+            {/* Link User Modal */}
+            <LinkUserModal
+                isOpen={showLinkUserModal}
+                onClose={() => setShowLinkUserModal(false)}
+                personName={person.full_name || 'This person'}
+                onLink={handleLinkUser}
+            />
+
         </div>
+    );
+};
+
+// Link User Modal — picks an existing platform user and links it to the person.
+const LinkUserModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    personName: string;
+    onLink: (userId: string) => Promise<void>;
+}> = ({ isOpen, onClose, personName, onLink }) => {
+    const [userId, setUserId] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) { setUserId(null); setError(''); setSaving(false); }
+    }, [isOpen]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!userId) { setError('Select a user account to link.'); return; }
+        setSaving(true);
+        setError('');
+        try {
+            await onLink(userId);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to link the user account. Please try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Link User Account" size="md">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                <p className="text-sm text-slate-400">
+                    Link <span className="text-slate-200 font-medium">{personName}</span> to an existing
+                    platform user so they can sign in and see their own records.
+                </p>
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1">User Account *</label>
+                    <UserSelector
+                        value={userId}
+                        onChange={(next) => { setUserId(next); setError(''); }}
+                        placeholder="Search users by name or email..."
+                    />
+                    {error && <p role="alert" className="mt-1 text-xs text-rose-400">{error}</p>}
+                </div>
+                <p className="text-xs text-slate-500">
+                    Don't see the person here? They don't have an account yet — use
+                    <span className="text-slate-300"> Invite</span> from the People Registry instead.
+                </p>
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={saving || !userId}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {saving ? 'Linking…' : 'Link Account'}
+                    </button>
+                </div>
+            </form>
+        </Modal>
     );
 };
 

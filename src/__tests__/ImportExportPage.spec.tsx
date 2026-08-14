@@ -18,7 +18,14 @@ import { departmentsApi } from '../services/departmentsService';
 const mockPeople = peopleApi as any;
 const mockDepts = departmentsApi as any;
 
-const renderPage = () => render(<MemoryRouter><ImportExportPage /></MemoryRouter>);
+// Import and Export are now separate tabs on one Data Management page; the
+// active tab comes from the `tab` query parameter.
+const renderPage = (tab?: 'import' | 'export') =>
+  render(
+    <MemoryRouter initialEntries={[tab ? `/people/import-export?tab=${tab}` : '/people/import-export']}>
+      <ImportExportPage />
+    </MemoryRouter>
+  );
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -27,10 +34,10 @@ beforeEach(() => {
 
 describe('ImportExportPage', () => {
   describe('Given the page loads', () => {
-    it('When rendered / Then it shows export and import sections', async () => {
+    it('When rendered / Then both workflows are reachable as tabs', async () => {
       renderPage();
-      expect(screen.getAllByText('Export People').length).toBeGreaterThan(0);
-      expect(screen.getByText('Import People')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Export People' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Import People' })).toBeInTheDocument();
     });
 
     it('When rendered / Then it loads departments for filter', async () => {
@@ -47,9 +54,11 @@ describe('ImportExportPage', () => {
       const revokeObjectURL = vi.fn();
       vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
 
-      renderPage();
-      const buttons = screen.getAllByText('Export People');
-      const exportBtn = buttons.find(el => el.closest('button'));
+      renderPage('export');
+      // Exclude the tab control, which shares the label.
+      const exportBtn = screen
+        .getAllByRole('button', { name: /export people/i })
+        .find(btn => btn.getAttribute('role') !== 'tab');
       fireEvent.click(exportBtn!);
       await waitFor(() => expect(mockPeople.export).toHaveBeenCalled());
     });
@@ -62,7 +71,7 @@ describe('ImportExportPage', () => {
         errors: [{ row: 2, field: 'email', message: 'Invalid email' }],
       });
 
-      renderPage();
+      renderPage('import');
 
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       const file = new File(['test'], 'test.csv', { type: 'text/csv' });

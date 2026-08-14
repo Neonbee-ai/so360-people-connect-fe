@@ -83,6 +83,15 @@ const mockMastersApi = mastersApi as any;
 
 const renderPage = () => render(<MemoryRouter><PeoplePage /></MemoryRouter>);
 
+/**
+ * Switch the create form to "Employee Only" so the invite email/role fields —
+ * which are mandatory in the default invite mode — do not block submission in
+ * tests that are about something else.
+ */
+const selectNoSystemAccess = () =>
+  fireEvent.click(screen.getByText('Employee Only (No System Access)'));
+
+
 const mockPerson = {
   id: 'p1',
   full_name: 'Alice Smith',
@@ -149,11 +158,12 @@ describe('Given the "Import" button on the People Registry', () => {
     mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
   });
 
-  it('When clicked / Then it navigates to /people/import-export', async () => {
+  it('When clicked / Then it navigates straight to the Import workflow', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Import'));
-    expect(mockNavigate).toHaveBeenCalledWith('/people/import-export');
+    // ?tab=import so the Import button never lands the user on Export.
+    expect(mockNavigate).toHaveBeenCalledWith('/people/import-export?tab=import');
   });
 
   it('When clicked / Then it does NOT navigate to bare /import-export (regression guard: was hitting the shell 404)', async () => {
@@ -451,6 +461,8 @@ describe('Given the Department field in the create modal', () => {
     // Wait for dropdown to close — ensures department_id state is committed in same React batch
     await waitFor(() => expect(screen.queryByPlaceholderText('Select department...')).not.toBeInTheDocument());
 
+    selectNoSystemAccess();
+
     // Submit via form element to avoid jsdom click→submit edge cases
     const form = nameInput.closest('form')!;
     fireEvent.submit(form);
@@ -467,6 +479,8 @@ describe('Given the Department field in the create modal', () => {
     fireEvent.change(nameInput, { target: { value: 'No Dept' } });
     // Wait for React 18 batched state to commit before submitting
     await waitFor(() => expect(nameInput).toHaveValue('No Dept'));
+
+    selectNoSystemAccess();
 
     // Submit via form element to avoid jsdom click→submit edge cases
     const form = nameInput.closest('form')!;
@@ -757,6 +771,7 @@ describe('Given PeoplePage mutates an employee', () => {
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
     const nameInput = screen.getByPlaceholderText('John Doe');
     fireEvent.change(nameInput, { target: { value: 'Bob Jones' } });
+    selectNoSystemAccess();
     const form = nameInput.closest('form')!;
     fireEvent.submit(form);
     await waitFor(() => expect(mockApi.create).toHaveBeenCalled());

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, ChevronDown, ChevronRight, Users } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import { QuotaBar, QuotaGate, toast } from '@so360/design-system';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
+import { validateDepartmentCode, validateDepartmentName, focusFirstInvalid } from '../utils/validation';
 
 const DepartmentsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -271,8 +272,11 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
         head_person_id: undefined,
         is_active: true,
     });
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const formRef = useRef<HTMLFormElement>(null);
 
     useEffect(() => {
+        setErrors({});
         if (department) {
             setFormData({
                 code: department.code,
@@ -294,23 +298,56 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
         }
     }, [department]);
 
+    // Flatten the full tree so any department at any depth is selectable as a parent.
+    const flatList = useMemo(() => flattenDepartmentTree(departments), [departments]);
+
+    // Code/name are business master data: format-check them, and catch a
+    // duplicate code locally so the user sees it inline instead of as a 409
+    // toast after a round trip. The backend re-checks both (see
+    // CreateDepartmentDto / departments.service).
+    const validate = useCallback((data: CreateDepartmentPayload): Record<string, string> => {
+        const next: Record<string, string> = {};
+        const codeError = validateDepartmentCode(data.code);
+        if (codeError) {
+            next.code = codeError;
+        } else if (
+            flatList.some(
+                d => d.id !== department?.id && d.code?.trim().toLowerCase() === data.code.trim().toLowerCase(),
+            )
+        ) {
+            next.code = 'This department code already exists.';
+        }
+        const nameError = validateDepartmentName(data.name);
+        if (nameError) next.name = nameError;
+        return next;
+    }, [flatList, department?.id]);
+
+    const isFormValid = Object.keys(validate(formData)).length === 0;
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.code || !formData.name) return;
+        const validationErrors = validate(formData);
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            focusFirstInvalid(formRef.current, ['code', 'name'], validationErrors);
+            return;
+        }
 
+        const payload = { ...formData, code: formData.code.trim(), name: formData.name.trim() };
         if (department) {
-            onUpdate(department.id, formData);
+            onUpdate(department.id, payload);
         } else {
-            onCreate(formData);
+            onCreate(payload);
         }
     };
 
     const updateField = (field: keyof CreateDepartmentPayload, value: unknown) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        if (field === 'code' || field === 'name') {
+            const fieldErrors = validate({ ...formData, [field]: value } as CreateDepartmentPayload);
+            setErrors(prev => ({ ...prev, [field]: fieldErrors[field] || '' }));
+        }
     };
-
-    // Flatten the full tree so any department at any depth is selectable as a parent.
-    const flatList = useMemo(() => flattenDepartmentTree(departments), [departments]);
 
     // A department can't become its own parent, nor can any of its descendants
     // (that would create a cycle) — exclude those from the selector entirely.
@@ -328,29 +365,41 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={department ? 'Edit Department' : 'Create Department'}>
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {/* noValidate: application-level inline messages replace the browser's
+                native validation bubbles, which are inconsistent across browsers. */}
+            <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Code *</label>
+                        <label htmlFor="dept-code" className="block text-xs text-slate-400 mb-1">Code *</label>
                         <input
+                            id="dept-code"
+                            data-field="code"
                             type="text"
-                            required
                             value={formData.code}
                             onChange={(e) => updateField('code', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            aria-invalid={!!errors.code}
+                            aria-describedby={errors.code ? 'dept-code-error' : undefined}
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.code ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             placeholder="ENG"
                         />
+                        {errors.code
+                            ? <p id="dept-code-error" role="alert" className="mt-1 text-xs text-rose-400">{errors.code}</p>
+                            : <p className="mt-1 text-xs text-slate-500">2–20 letters/numbers, e.g. ENG or HR-01.</p>}
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Name *</label>
+                        <label htmlFor="dept-name" className="block text-xs text-slate-400 mb-1">Name *</label>
                         <input
+                            id="dept-name"
+                            data-field="name"
                             type="text"
-                            required
                             value={formData.name}
                             onChange={(e) => updateField('name', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            aria-invalid={!!errors.name}
+                            aria-describedby={errors.name ? 'dept-name-error' : undefined}
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.name ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             placeholder="Engineering"
                         />
+                        {errors.name && <p id="dept-name-error" role="alert" className="mt-1 text-xs text-rose-400">{errors.name}</p>}
                     </div>
                 </div>
 
@@ -408,7 +457,9 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                     </button>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        disabled={!isFormValid}
+                        title={isFormValid ? undefined : 'Enter a valid department code and name.'}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {department ? 'Update' : 'Create'}
                     </button>

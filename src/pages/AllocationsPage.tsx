@@ -131,8 +131,10 @@ const AllocationsPage: React.FC = () => {
                 ) : undefined}
             />
 
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3">
+            {/* Filters — controls and summary share one row and one baseline, so
+                the stats never float away from the filter group. */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
@@ -169,9 +171,10 @@ const AllocationsPage: React.FC = () => {
                         </option>
                     ))}
                 </select>
+                </div>
 
                 {/* Summary Stats */}
-                <div className="ml-auto flex items-center gap-4 text-xs text-slate-400">
+                <div className="flex items-center gap-4 text-xs text-slate-400">
                     <span>{allocations.length} allocation{allocations.length !== 1 ? 's' : ''}</span>
                     <span>{allocations.filter(a => a.status === 'active').length} active</span>
                     <span className="text-amber-400">
@@ -209,7 +212,11 @@ const AllocationsPage: React.FC = () => {
                                         : 'border-slate-800 hover:border-slate-700'
                                 }`}
                             >
-                                <div className="flex items-center gap-4">
+                                {/* Fixed column track so every row lines up: avatar |
+                                    info (flexes) | % | status | actions. The trailing
+                                    columns are sized, not content-driven, so a long
+                                    entity name can never push them out of alignment. */}
+                                <div className="grid items-center gap-4 grid-cols-[2.5rem_minmax(0,1fr)_5.5rem_6rem_4.5rem]">
                                     {/* Person Avatar */}
                                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
                                         <span className="text-xs font-medium text-teal-400">
@@ -218,53 +225,57 @@ const AllocationsPage: React.FC = () => {
                                     </div>
 
                                     {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-0.5">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5 min-w-0">
                                             <span
                                                 onClick={() => navigate(`/people/people/${alloc.person_id}`)}
                                                 className="text-sm font-medium text-slate-50 hover:text-teal-400 cursor-pointer truncate"
                                             >
                                                 {alloc.person?.full_name || 'Unknown Person'}
                                             </span>
-                                            <ArrowRight size={12} className="text-slate-600" />
+                                            <ArrowRight size={12} className="text-slate-600 flex-shrink-0" />
                                             <span className="text-sm text-slate-300 truncate">
                                                 {alloc.entity_name || alloc.entity_id}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-xs text-slate-500">
-                                            <span className="flex items-center gap-1">
+                                        <div className="flex items-center gap-3 text-xs text-slate-500 min-w-0">
+                                            <span className="flex items-center gap-1 flex-shrink-0">
                                                 <Calendar size={11} />
                                                 {alloc.start_date} to {alloc.end_date}
                                             </span>
-                                            <span className="text-slate-600">{alloc.entity_type}</span>
-                                            {alloc.notes && <span className="truncate max-w-[200px]">{alloc.notes}</span>}
+                                            <span className="text-slate-600 flex-shrink-0 capitalize">{alloc.entity_type}</span>
+                                            {alloc.notes && <span className="truncate">{alloc.notes}</span>}
                                         </div>
                                     </div>
 
                                     {/* Allocation Value */}
-                                    <div className="text-right flex-shrink-0">
-                                        <div className="text-lg font-bold text-slate-50">
+                                    <div className="text-right">
+                                        <div className="text-lg font-bold text-slate-50 leading-tight">
                                             {alloc.allocation_value}
                                             <span className="text-sm text-slate-400 ml-0.5">%</span>
                                         </div>
                                         {isOverallocated && alloc.status === 'active' && (
-                                            <div className="text-xs text-amber-400">
-                                                Total: {personData.totalPct}% allocated
+                                            <div className="text-xs text-amber-400 leading-tight">
+                                                Total: {personData.totalPct}%
                                             </div>
                                         )}
                                     </div>
 
                                     {/* Status */}
-                                    <StatusBadge status={alloc.status} />
+                                    <div className="flex justify-start">
+                                        <StatusBadge status={alloc.status} />
+                                    </div>
 
-                                    {/* Actions */}
-                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                    {/* Actions — always occupies its column so rows without
+                                        actions keep the same track widths. */}
+                                    <div className="flex items-center justify-end gap-1">
                                         {alloc.status !== 'cancelled' && alloc.status !== 'completed' && (
                                             <>
                                                 <button
                                                     onClick={() => setEditingAllocation(alloc)}
                                                     className="p-1.5 rounded-lg text-slate-500 hover:text-slate-50 hover:bg-slate-800 transition-colors"
                                                     title="Edit"
+                                                    aria-label="Edit allocation"
                                                 >
                                                     <Edit2 size={14} />
                                                 </button>
@@ -272,6 +283,7 @@ const AllocationsPage: React.FC = () => {
                                                     onClick={() => handleCancel(alloc.id)}
                                                     className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
                                                     title="Cancel"
+                                                    aria-label="Cancel allocation"
                                                 >
                                                     <XCircle size={14} />
                                                 </button>
@@ -280,19 +292,22 @@ const AllocationsPage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Allocation Bar */}
-                                {alloc.status === 'active' && (
-                                    <div className="mt-3 pt-3 border-t border-slate-800/50">
-                                        <div className="w-full bg-slate-800 rounded-full h-1.5">
+                                {/* Capacity bar — rendered on every card (empty track for
+                                    non-active allocations) so each row is the same height
+                                    and the bar always sits the same distance from the
+                                    card edge. */}
+                                <div className="mt-3 pt-3 border-t border-slate-800/50">
+                                    <div className="w-full bg-slate-800 rounded-full h-1.5" role="presentation">
+                                        {alloc.status === 'active' && (
                                             <div
                                                 className={`h-1.5 rounded-full transition-all ${
                                                     (alloc.allocation_value ?? 0) > 80 ? 'bg-amber-500' : 'bg-teal-500'
                                                 }`}
                                                 style={{ width: `${Math.min(alloc.allocation_value ?? 0, 100)}%` }}
                                             />
-                                        </div>
+                                        )}
                                     </div>
-                                )}
+                                </div>
                             </div>
                         );
                     })}

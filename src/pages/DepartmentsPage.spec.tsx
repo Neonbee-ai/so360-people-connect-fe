@@ -261,7 +261,7 @@ describe('Given DepartmentsPage create/update failure surfaces the backend error
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Create Department'));
     await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
-    fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'X' } });
+    fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'XD' } });
     fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'X Dept' } });
     fireEvent.click(screen.getByText('Create'));
     await waitFor(() =>

@@ -104,7 +104,7 @@ describe('AllocationsPage', () => {
 
     it('When a person is overallocated / Then a warning is shown', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getAllByText(/120% allocated/).length).toBeGreaterThan(0));
+      await waitFor(() => expect(screen.getAllByText(/Total: 120%/).length).toBeGreaterThan(0));
     });
 
     it('When the status filter is changed / Then allocations are re-fetched', async () => {
