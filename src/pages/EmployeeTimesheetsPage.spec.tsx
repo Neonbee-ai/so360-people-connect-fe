@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
@@ -262,6 +262,21 @@ describe('Given non-billable entries', () => {
 describe('Given the Employee Timesheets date range is invalid', () => {
   // An end date before the start date previously rendered "No timesheet
   // entries" — reading as an empty result rather than an impossible filter.
+
+  // Freeze the clock (Date only — real setTimeout keeps waitFor/debounce working)
+  // to a fixed day. These tests type a hardcoded "From date" (2026-08-18); when
+  // the real calendar happened to be that same day it equalled the page's default
+  // From value, so the fireEvent.change was a no-op and the default fetch leaked
+  // through — making the suite fail only on 2026-08-18. Pinning "today" makes the
+  // From change a real transition on every run.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-03-10T00:00:00Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const setRange = (from: string, to: string) => {
     fireEvent.change(screen.getByLabelText('From date'), { target: { value: from } });
     fireEvent.change(screen.getByLabelText('To date'), { target: { value: to } });
