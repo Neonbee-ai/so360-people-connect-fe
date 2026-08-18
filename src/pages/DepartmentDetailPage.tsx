@@ -347,7 +347,11 @@ const DepartmentDetailPage: React.FC = () => {
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canEdit = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:departments:create') ?? true);
+    // Gate on the user's ROLE permission, fail-closed until entitlements resolve.
+    // Edit actions need departments.update; Archive is a soft-delete → departments.delete.
+    const permsReady = shell?.permissionsLoaded === true;
+    const canEdit = permsReady && (shell?.hasPermission?.('departments.update') ?? false);
+    const canArchive = permsReady && (shell?.hasPermission?.('departments.delete') ?? false);
 
     const [department, setDepartment] = useState<Department | null>(null);
     const [employees, setEmployees] = useState<DepartmentEmployee[]>([]);
@@ -596,7 +600,7 @@ const DepartmentDetailPage: React.FC = () => {
                             >
                                 <UserPlus size={13} /> Assign Manager
                             </button>
-                            {department.is_active && (
+                            {department.is_active && canArchive && (
                                 <button
                                     onClick={handleArchive}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-400 hover:text-amber-300 border border-amber-500/30 hover:border-amber-500/50 rounded-lg transition-colors"

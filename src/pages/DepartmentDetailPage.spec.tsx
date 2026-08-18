@@ -44,7 +44,7 @@ vi.mock('../services/apiClient', () => ({
 
 vi.mock('@so360/shell-context', () => ({
     useActivity: () => ({ recordActivity: async () => {} }),
-    useShellBridge: () => ({
+    useShellBridge: () => ({ permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true,
         effectiveFlagsLoaded: true,
         isFeatureEnabled: () => true,
         currentTenant: { id: 'tenant-1' },

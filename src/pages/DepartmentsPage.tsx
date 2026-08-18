@@ -14,7 +14,16 @@ const DepartmentsPage: React.FC = () => {
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
     const shell = useShellBridge();
-    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:departments:create') ?? true);
+    // Department structure is org master-data. Gate management actions on the
+    // user's ROLE permission — not just the plan feature flag, which every member
+    // of an entitled org would pass. Fail closed: until entitlements resolve, and
+    // for anyone lacking the code, the action is hidden. The feature flag is kept
+    // as the plan-tier ceiling (both must hold), and an owner/admin resolves the
+    // wildcard so retains full access.
+    const permsReady = shell?.permissionsLoaded === true;
+    const planAllowsCreate = shell?.effectiveFlagsLoaded !== false && (shell?.isFeatureEnabled?.('action:people:departments:create') ?? true);
+    const canCreate = permsReady && (shell?.hasPermission?.('departments.create') ?? false) && planAllowsCreate;
+    const canEdit = permsReady && (shell?.hasPermission?.('departments.update') ?? false);
     const quotaChecks = useMemo(() => [{ module_code: 'people', quota_key: 'max_departments' }], []);
     const { getQuota, refresh: refreshQuota } = useQuota({ checks: quotaChecks, orgId: shell?.currentOrg?.id || '' });
     const quotaData = getQuota('max_departments');
@@ -131,7 +140,7 @@ const DepartmentsPage: React.FC = () => {
                         </div>
 
                         {/* Actions */}
-                        {canCreate && <button
+                        {canEdit && <button
                             onClick={() => setEditingDepartment(dept)}
                             className="px-3 py-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors"
                         >
