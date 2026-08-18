@@ -8,7 +8,7 @@ vi.mock('../services/leaveRequestsService', () => ({
 }));
 
 
-let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
@@ -38,7 +38,7 @@ const renderPage = () => render(<MemoryRouter><LeaveApprovalsPage /></MemoryRout
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 });
 
 describe('LeaveApprovalsPage', () => {
@@ -84,7 +84,7 @@ describe('LeaveApprovalsPage', () => {
 
 describe('LeaveApprovalsPage — effectiveFlagsLoaded gate', () => {
   it('When effectiveFlagsLoaded is false / Then Approve button is absent', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getPendingApprovals.mockResolvedValue({
       data: [{
         id: 'lr1', start_date: '2025-06-01', end_date: '2025-06-05', total_days: 5, submitted_at: '2025-05-28',
@@ -98,7 +98,7 @@ describe('LeaveApprovalsPage — effectiveFlagsLoaded gate', () => {
   });
 
   it('When effectiveFlagsLoaded is true / Then Approve button is present', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getPendingApprovals.mockResolvedValue({
       data: [{
         id: 'lr1', start_date: '2025-06-01', end_date: '2025-06-05', total_days: 5, submitted_at: '2025-05-28',

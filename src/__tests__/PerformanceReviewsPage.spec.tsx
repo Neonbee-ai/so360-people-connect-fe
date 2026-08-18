@@ -30,7 +30,7 @@ vi.mock('../services/peopleService', () => ({
 }));
 
 
-let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
@@ -65,7 +65,7 @@ const renderPage = () =>
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
   // The Create Review modal resolves eligible reviewers on open; without a
   // default every spec that opens it would reject on an undefined mock.
   mockApi.getEligibleReviewers.mockResolvedValue({ data: [], direct_manager_id: null });
@@ -168,7 +168,7 @@ describe('PerformanceReviewsPage — Create Review template empty state', () => 
 
 describe('PerformanceReviewsPage — effectiveFlagsLoaded gate', () => {
   it('When effectiveFlagsLoaded is false / Then Create Review button is absent', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No performance reviews found')).toBeInTheDocument());
@@ -176,7 +176,7 @@ describe('PerformanceReviewsPage — effectiveFlagsLoaded gate', () => {
   });
 
   it('When effectiveFlagsLoaded is true / Then Create Review button is present', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No performance reviews found')).toBeInTheDocument());

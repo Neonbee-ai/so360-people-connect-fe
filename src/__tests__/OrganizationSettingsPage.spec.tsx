@@ -11,8 +11,8 @@ vi.mock('../services/orgSettingsService', () => ({
 
 vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({
-    effectiveFlagsLoaded: true,
-    isFeatureEnabled: () => true,
+    permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, effectiveFlagsLoaded: true,
+    permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true,
   }),
 }));
 

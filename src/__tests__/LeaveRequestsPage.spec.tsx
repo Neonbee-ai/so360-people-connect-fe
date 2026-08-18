@@ -23,7 +23,7 @@ vi.mock('../services/peopleService', () => ({
 }));
 
 
-let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
@@ -57,7 +57,7 @@ const renderPage = () => render(<MemoryRouter><LeaveRequestsPage /></MemoryRoute
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
   // Re-initialize leave types and people mocks after vi.resetAllMocks() so the
   // modal doesn't get undefined.data when it calls leaveTypesApi.getAll().
   mockLeaveTypesApi.getAll.mockResolvedValue({ data: [] });
@@ -122,7 +122,7 @@ describe('LeaveRequestsPage', () => {
 
 describe('LeaveRequestsPage — effectiveFlagsLoaded gate', () => {
   it('When effectiveFlagsLoaded is false / Then Request Leave button is absent', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No leave requests found')).toBeInTheDocument());
@@ -130,7 +130,7 @@ describe('LeaveRequestsPage — effectiveFlagsLoaded gate', () => {
   });
 
   it('When effectiveFlagsLoaded is true / Then Request Leave button is present', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No leave requests found')).toBeInTheDocument());

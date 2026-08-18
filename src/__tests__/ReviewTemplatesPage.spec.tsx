@@ -9,7 +9,7 @@ vi.mock('../services/reviewTemplatesService', () => ({
 }));
 
 
-let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
@@ -27,7 +27,7 @@ const renderPage = () => render(<MemoryRouter><ReviewTemplatesPage /></MemoryRou
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 });
 
 describe('ReviewTemplatesPage', () => {
@@ -79,7 +79,7 @@ describe('ReviewTemplatesPage', () => {
 
 describe('ReviewTemplatesPage — effectiveFlagsLoaded gate', () => {
   it('When effectiveFlagsLoaded is false / Then Create Template button is absent', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No review templates found')).toBeInTheDocument());
@@ -87,7 +87,7 @@ describe('ReviewTemplatesPage — effectiveFlagsLoaded gate', () => {
   });
 
   it('When effectiveFlagsLoaded is true / Then Create Template button is present', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No review templates found')).toBeInTheDocument());

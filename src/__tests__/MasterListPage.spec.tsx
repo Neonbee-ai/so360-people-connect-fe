@@ -6,7 +6,7 @@ vi.mock('../services/mastersService', () => ({
   mastersApi: { getAll: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
 }));
 
-let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({ ...mockShellFlags }),
@@ -23,7 +23,7 @@ const renderPage = (node: React.ReactElement) => render(<MemoryRouter>{node}</Me
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 });
 
 // ============================================================================
@@ -163,7 +163,7 @@ describe('Given MasterListPage generic behavior', () => {
 // ============================================================================
 describe('Given MasterListPage — effectiveFlagsLoaded gate', () => {
   it('When effectiveFlagsLoaded is false / Then the Add button is absent', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage(<MasterListPage masterType="skill" label="Skill" pluralLabel="Skills" />);
     await waitFor(() => expect(screen.queryByText('No skills')).toBeInTheDocument());
@@ -171,7 +171,7 @@ describe('Given MasterListPage — effectiveFlagsLoaded gate', () => {
   });
 
   it('When effectiveFlagsLoaded is true / Then the Add button is present', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage(<MasterListPage masterType="skill" label="Skill" pluralLabel="Skills" />);
     await waitFor(() => expect(screen.queryByText('No skills')).toBeInTheDocument());

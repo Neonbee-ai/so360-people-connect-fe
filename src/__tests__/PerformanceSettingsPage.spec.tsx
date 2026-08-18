@@ -10,7 +10,7 @@ vi.mock('../services/orgSettingsService', () => ({
 }));
 
 vi.mock('@so360/shell-context', () => ({
-  useShellBridge: () => ({ effectiveFlagsLoaded: true, isFeatureEnabled: () => true }),
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true }),
 }));
 
 const { toastMock } = vi.hoisted(() => ({

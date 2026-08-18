@@ -38,7 +38,7 @@ vi.mock('../services/departmentsService', () => ({
 }));
 
 
-let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
@@ -75,7 +75,7 @@ const renderPage = () =>
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
   mockPeopleApi.getOrgRoles.mockResolvedValue({ data: [] });
   // resetAllMocks() above clears the module-level default, so re-establish it:
   // the Edit modal loads labor categories on open.
@@ -191,7 +191,7 @@ describe('PeoplePage', () => {
 
 describe('PeoplePage — effectiveFlagsLoaded gate', () => {
   it('When effectiveFlagsLoaded is false / Then Add Person / Import / Export buttons are absent', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockPeopleApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No people found')).toBeInTheDocument());
@@ -201,7 +201,7 @@ describe('PeoplePage — effectiveFlagsLoaded gate', () => {
   });
 
   it('When effectiveFlagsLoaded is true / Then Add Person / Import / Export buttons are present', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockPeopleApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No people found')).toBeInTheDocument());
@@ -228,13 +228,13 @@ describe('PeoplePage — Add Person currency default', () => {
   });
 
   it('Given the org base currency is INR / When the Add Person modal opens / Then Currency defaults to INR', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, businessSettings: { currency: 'INR' } } as any;
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, businessSettings: { currency: 'INR' } } as any;
     await openCreateModal();
     expect((screen.getByDisplayValue('INR') as HTMLSelectElement).value).toBe('INR');
   });
 
   it('Given the org base currency is AED (not in the built-in list) / When the modal opens / Then AED is an option and is pre-selected', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true, businessSettings: { base_currency: 'AED' } } as any;
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, businessSettings: { base_currency: 'AED' } } as any;
     await openCreateModal();
     const select = screen.getByDisplayValue('AED') as HTMLSelectElement;
     expect(select.value).toBe('AED');
@@ -242,7 +242,7 @@ describe('PeoplePage — Add Person currency default', () => {
   });
 
   it('Given no org currency is configured / When the modal opens / Then Currency falls back to USD and is never blank', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true } as any;
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true } as any;
     await openCreateModal();
     expect((screen.getByDisplayValue('USD') as HTMLSelectElement).value).toBe('USD');
   });

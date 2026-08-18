@@ -55,8 +55,8 @@ vi.mock('../services/departmentsService', () => ({
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: mockRecordActivity }),
   useShellBridge: () => ({
-    effectiveFlagsLoaded: true,
-    isFeatureEnabled: () => true,
+    permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, effectiveFlagsLoaded: true,
+    permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true,
     isFeatureHidden: () => false,
     currentTenant: { id: 'tenant-1' },
     currentOrg: { id: 'org-1' },

@@ -37,8 +37,8 @@ import { departmentsApi } from '../services/departmentsService';
 const mockApi = departmentsApi as any;
 
 const makeShell = (permissions: string[], permissionsLoaded = true) => ({
-  effectiveFlagsLoaded: true,
-  isFeatureEnabled: () => true,
+  permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, effectiveFlagsLoaded: true,
+  permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true,
   isFeatureHidden: () => false,
   currentTenant: { id: 'tenant-1' },
   currentOrg: { id: 'org-1' },

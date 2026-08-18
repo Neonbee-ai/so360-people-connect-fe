@@ -27,7 +27,7 @@ vi.mock('../services/departmentsService', () => ({
   },
 }));
 
-let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
@@ -76,7 +76,7 @@ const mockAllocation = {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
   mockPeopleApi.getAll.mockResolvedValue({ data: [] });
   mockEntitiesApi.list.mockResolvedValue({ data: [] });
   mockDeptApi.getTree.mockResolvedValue({ data: [] });
@@ -199,7 +199,7 @@ describe('AllocationsPage', () => {
 // ============================================================================
 describe('AllocationsPage — effectiveFlagsLoaded gate', () => {
   it('When effectiveFlagsLoaded is false / Then New Allocation button is absent', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockAllocApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No allocations')).toBeInTheDocument());
@@ -207,7 +207,7 @@ describe('AllocationsPage — effectiveFlagsLoaded gate', () => {
   });
 
   it('When effectiveFlagsLoaded is true / Then New Allocation button is present', async () => {
-    mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
     mockAllocApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No allocations')).toBeInTheDocument());

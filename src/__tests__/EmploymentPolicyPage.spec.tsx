@@ -14,8 +14,8 @@ vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({
     currentTenant: { id: '3cf1c619-c8f6-49ac-9207-447418d5beee' },
     currentOrg: { id: '8317fe18-6ac4-4ac4-b71d-dc13122a905d' },
-    effectiveFlagsLoaded: true,
-    getFeatureState: () => 'enabled',
+    permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, effectiveFlagsLoaded: true,
+    permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, getFeatureState: () => 'enabled',
   }),
 }));
 

@@ -6,7 +6,7 @@ vi.mock('../services/shiftsService', () => ({
   shiftsApi: { getAll: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
 }));
 
-let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({ ...mockShellFlags }),
@@ -25,7 +25,7 @@ const renderPage = () => render(<MemoryRouter><ShiftsPage /></MemoryRouter>);
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 });
 
 describe('ShiftsPage', () => {
@@ -110,7 +110,7 @@ describe('ShiftsPage', () => {
 
   describe('Given effectiveFlagsLoaded is false', () => {
     it('When the page loads / Then Add Shift button is absent', async () => {
-      mockShellFlags = { effectiveFlagsLoaded: false, isFeatureEnabled: () => true };
+      mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
       mockApi.getAll.mockResolvedValue({ data: [] });
       renderPage();
       await waitFor(() => expect(screen.queryByText('No shifts')).toBeInTheDocument());

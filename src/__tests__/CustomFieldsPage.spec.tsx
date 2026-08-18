@@ -7,7 +7,7 @@ vi.mock('../services/customFieldsService', () => ({
   CHOICE_FIELD_TYPES: ['dropdown', 'multi_select'],
 }));
 
-let mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({ ...mockShellFlags }),
@@ -22,7 +22,7 @@ const renderPage = () => render(<MemoryRouter><CustomFieldsPage /></MemoryRouter
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockShellFlags = { effectiveFlagsLoaded: true, isFeatureEnabled: () => true };
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 });
 
 // ============================================================================
