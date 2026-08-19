@@ -72,6 +72,11 @@ const mockShell = {
   currentOrg: { id: 'o1', name: 'Org A' },
   user: { id: 'u1', email: 'user@test.com', full_name: 'Test User' },
   accessToken: 'token-123',
+  // Entitlements default to unrestricted so the routing/flag specs below exercise
+  // those behaviours alone; the permission specs drive this down to a real code set.
+  permissionsLoaded: true,
+  hasPermission: () => true,
+  hasAnyPermission: () => true,
 };
 
 const renderApp = (initialPath = '/dashboard') =>
@@ -136,6 +141,55 @@ describe('Given App root redirect', () => {
   it('When navigating to / (root) / Then it redirects to dashboard', async () => {
     renderApp('/');
     await waitFor(() => expect(screen.getByText('DashboardPage')).toBeInTheDocument());
+  });
+});
+
+describe('Given a page gated on role permissions', () => {
+  const bridgeWith = (codes: string[], permissionsLoaded = true) => ({
+    ...mockShell,
+    permissionsLoaded,
+    hasPermission: (c: string) => codes.includes(c),
+    hasAnyPermission: (...cs: string[]) => cs.some((c) => codes.includes(c)),
+  });
+
+  it('When the user holds the page code / Then the page renders', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['employees.read']));
+    renderApp('/people');
+    await waitFor(() => expect(screen.getByText('PeoplePage')).toBeInTheDocument());
+  });
+
+  it('When the user lacks the page code / Then the page is withheld with a notice', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['goals.read']));
+    renderApp('/people');
+    await waitFor(() => expect(screen.getByText(/don't have access to this page/i)).toBeInTheDocument());
+    expect(screen.queryByText('PeoplePage')).not.toBeInTheDocument();
+  });
+
+  it('When a page lists two codes / Then holding either one is enough', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['leave.request']));
+    renderApp('/leaves/requests');
+    await waitFor(() => expect(screen.getByText('LeaveRequestsPage')).toBeInTheDocument());
+  });
+
+  it('When entitlements have not resolved / Then no denial flashes', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith([], false));
+    renderApp('/people');
+    await waitFor(() => expect(screen.queryByText('PeoplePage')).not.toBeInTheDocument());
+    expect(screen.queryByText(/don't have access/i)).not.toBeInTheDocument();
+  });
+
+  it('When the dashboard is opened with no page codes / Then it stays reachable', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith([]));
+    renderApp('/dashboard');
+    await waitFor(() => expect(screen.getByText('DashboardPage')).toBeInTheDocument());
+    expect(screen.queryByText(/don't have access/i)).not.toBeInTheDocument();
+  });
+
+  it('When the plan flag is locked AND the code is missing / Then the permission notice wins over the upgrade prompt', async () => {
+    mockUseShellBridge.mockReturnValue({ ...bridgeWith([]), getFeatureState: () => 'locked' });
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText(/don't have access to this page/i)).toBeInTheDocument());
+    expect(screen.queryByText(/upgrade plan/i)).not.toBeInTheDocument();
   });
 });
 

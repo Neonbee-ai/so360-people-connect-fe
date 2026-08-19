@@ -53,8 +53,35 @@ const FeatureGate = ({ flagKey, children }: { flagKey: string; children: React.R
     );
 };
 
+// Guards a route on the signed-in user's ROLE PERMISSIONS — the page-level
+// counterpart to FeatureGate. A plan flag answers "is this feature in the plan";
+// this answers "may this user open it". Both must pass, so the two compose
+// rather than replace one another.
+//
+// Fail-closed: while entitlements resolve (or with no bridge at all) the page is
+// withheld rather than flashed. Denial renders an explanatory notice instead of
+// a blank screen so "not allowed" is distinguishable from "broken". Codes are
+// wildcard-aware via the shell bridge, matching the backend resolver exactly.
+const PermissionGuard = ({ permission, children }: { permission: string | string[]; children: React.ReactNode }) => {
+    const shell = useShellBridge();
+    if (!shell || !shell.permissionsLoaded) return null;
+    const codes = Array.isArray(permission) ? permission : [permission];
+    const allowed = shell.hasAnyPermission
+        ? shell.hasAnyPermission(...codes)
+        : codes.some((c: string) => shell.hasPermission?.(c) ?? false);
+    if (allowed) return <>{children}</>;
+    return (
+        <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">You don&apos;t have access to this page</h2>
+            <p className="mt-2 max-w-md text-sm text-slate-600 dark:text-slate-400">
+                Your role doesn&apos;t include permission for this page. Ask an administrator if you need it.
+            </p>
+        </div>
+    );
+};
+
 // Shell Context Synchronizer
-const PeopleShellInitializer = ({ children }: { children: React.ReactNode }) => {
+const PeopleShellInitializer =({ children }: { children: React.ReactNode }) => {
     const shell = useShellBridge();
     const [isSynced, setIsSynced] = React.useState(false);
 
@@ -182,65 +209,65 @@ const App = () => {
                     <Route path="dashboard" element={<DashboardPage />} />
 
                     {/* People */}
-                    <Route path="people" element={<PeoplePage />} />
-                    <Route path="people/:id" element={<PersonDetailPage />} />
+                    <Route path="people" element={<PermissionGuard permission="employees.read"><PeoplePage /></PermissionGuard>} />
+                    <Route path="people/:id" element={<PermissionGuard permission="employees.read"><PersonDetailPage /></PermissionGuard>} />
 
                     {/* Departments */}
-                    <Route path="departments" element={<DepartmentsPage />} />
-                    <Route path="departments/:id" element={<DepartmentDetailPage />} />
+                    <Route path="departments" element={<PermissionGuard permission="departments.read"><DepartmentsPage /></PermissionGuard>} />
+                    <Route path="departments/:id" element={<PermissionGuard permission="departments.read"><DepartmentDetailPage /></PermissionGuard>} />
 
                     {/* Allocations & Time */}
-                    <Route path="allocations" element={<FeatureGate flagKey="submodule:people:allocations"><AllocationsPage /></FeatureGate>} />
-                    <Route path="attendance" element={<FeatureGate flagKey="submodule:people:attendance"><AttendanceRegisterPage /></FeatureGate>} />
+                    <Route path="allocations" element={<PermissionGuard permission="allocations.read"><FeatureGate flagKey="submodule:people:allocations"><AllocationsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="attendance" element={<PermissionGuard permission="attendance.read"><FeatureGate flagKey="submodule:people:attendance"><AttendanceRegisterPage /></FeatureGate></PermissionGuard>} />
                     {/* Read-only Employee Timesheets (time logging lives in the Timesheets module) */}
-                    <Route path="time" element={<EmployeeTimesheetsPage />} />
-                    <Route path="utilization" element={<FeatureGate flagKey="submodule:people:utilization"><UtilizationPage /></FeatureGate>} />
+                    <Route path="time" element={<PermissionGuard permission="attendance.read"><EmployeeTimesheetsPage /></PermissionGuard>} />
+                    <Route path="utilization" element={<PermissionGuard permission="utilization.read"><FeatureGate flagKey="submodule:people:utilization"><UtilizationPage /></FeatureGate></PermissionGuard>} />
 
                     {/* Leave Management */}
-                    <Route path="leaves/types" element={<LeaveTypesPage />} />
-                    <Route path="leaves/requests" element={<LeaveRequestsPage />} />
-                    <Route path="leaves/calendar" element={<LeaveCalendarPage />} />
-                    <Route path="leaves/approvals" element={<LeaveApprovalsPage />} />
-                    <Route path="leaves/balances" element={<LeaveBalancesPage />} />
+                    <Route path="leaves/types" element={<PermissionGuard permission="leave.configure"><LeaveTypesPage /></PermissionGuard>} />
+                    <Route path="leaves/requests" element={<PermissionGuard permission={['leave.read', 'leave.request']}><LeaveRequestsPage /></PermissionGuard>} />
+                    <Route path="leaves/calendar" element={<PermissionGuard permission="leave.read"><LeaveCalendarPage /></PermissionGuard>} />
+                    <Route path="leaves/approvals" element={<PermissionGuard permission="leave.approve"><LeaveApprovalsPage /></PermissionGuard>} />
+                    <Route path="leaves/balances" element={<PermissionGuard permission="leave.read"><LeaveBalancesPage /></PermissionGuard>} />
 
                     {/* Performance Reviews */}
-                    <Route path="reviews/templates" element={<FeatureGate flagKey="submodule:people:reviews"><ReviewTemplatesPage /></FeatureGate>} />
-                    <Route path="reviews" element={<FeatureGate flagKey="submodule:people:reviews"><PerformanceReviewsPage /></FeatureGate>} />
-                    <Route path="reviews/:id" element={<FeatureGate flagKey="submodule:people:reviews"><ReviewDetailPage /></FeatureGate>} />
+                    <Route path="reviews/templates" element={<PermissionGuard permission="reviews.create"><FeatureGate flagKey="submodule:people:reviews"><ReviewTemplatesPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="reviews" element={<PermissionGuard permission="reviews.read"><FeatureGate flagKey="submodule:people:reviews"><PerformanceReviewsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="reviews/:id" element={<PermissionGuard permission="reviews.read"><FeatureGate flagKey="submodule:people:reviews"><ReviewDetailPage /></FeatureGate></PermissionGuard>} />
 
                     {/* Goals & Performance */}
-                    <Route path="goals" element={<GoalsPage />} />
-                    <Route path="team-performance" element={<TeamPerformancePage />} />
-                    <Route path="feedback" element={<FeedbackPage />} />
+                    <Route path="goals" element={<PermissionGuard permission="goals.read"><GoalsPage /></PermissionGuard>} />
+                    <Route path="team-performance" element={<PermissionGuard permission={['reviews.read', 'utilization.read']}><TeamPerformancePage /></PermissionGuard>} />
+                    <Route path="feedback" element={<PermissionGuard permission="feedback.read"><FeedbackPage /></PermissionGuard>} />
 
-                    {/* Settings */}
-                    <Route path="settings" element={<SettingsHubPage />} />
-                    <Route path="settings/organization" element={<OrganizationSettingsPage />} />
-                    <Route path="settings/attendance" element={<AttendanceSettingsPage />} />
-                    <Route path="settings/numbering" element={<NumberingSettingsPage />} />
-                    <Route path="settings/leave-configuration" element={<LeaveSettingsPage />} />
-                    <Route path="settings/resource-allocation" element={<ResourceAllocationSettingsPage />} />
-                    <Route path="settings/performance" element={<PerformanceSettingsPage />} />
-                    <Route path="settings/notifications" element={<NotificationSettingsPage />} />
-                    <Route path="settings/utilization-settings" element={<UtilizationSettingsPage />} />
-                    <Route path="settings/timesheet-settings" element={<TimesheetSettingsPage />} />
-                    <Route path="settings/work-locations" element={<WorkLocationsPage />} />
-                    <Route path="settings/holidays" element={<FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate>} />
-                    <Route path="settings/shifts" element={<FeatureGate flagKey="submodule:people:shifts"><ShiftsPage /></FeatureGate>} />
-                    <Route path="settings/approval-chains" element={<FeatureGate flagKey="submodule:people:approval_chains"><ApprovalChainsPage /></FeatureGate>} />
-                    <Route path="settings/employment-policy" element={<FeatureGate flagKey="submodule:people:employment_policy"><EmploymentPolicyPage /></FeatureGate>} />
+                    {/* Settings — every screen here writes org-wide policy, so they all sit behind org_policy.read */}
+                    <Route path="settings" element={<PermissionGuard permission="org_policy.read"><SettingsHubPage /></PermissionGuard>} />
+                    <Route path="settings/organization" element={<PermissionGuard permission="org_policy.read"><OrganizationSettingsPage /></PermissionGuard>} />
+                    <Route path="settings/attendance" element={<PermissionGuard permission="org_policy.read"><AttendanceSettingsPage /></PermissionGuard>} />
+                    <Route path="settings/numbering" element={<PermissionGuard permission="org_policy.read"><NumberingSettingsPage /></PermissionGuard>} />
+                    <Route path="settings/leave-configuration" element={<PermissionGuard permission="leave.configure"><LeaveSettingsPage /></PermissionGuard>} />
+                    <Route path="settings/resource-allocation" element={<PermissionGuard permission="org_policy.read"><ResourceAllocationSettingsPage /></PermissionGuard>} />
+                    <Route path="settings/performance" element={<PermissionGuard permission="org_policy.read"><PerformanceSettingsPage /></PermissionGuard>} />
+                    <Route path="settings/notifications" element={<PermissionGuard permission="org_policy.read"><NotificationSettingsPage /></PermissionGuard>} />
+                    <Route path="settings/utilization-settings" element={<PermissionGuard permission="org_policy.read"><UtilizationSettingsPage /></PermissionGuard>} />
+                    <Route path="settings/timesheet-settings" element={<PermissionGuard permission="org_policy.read"><TimesheetSettingsPage /></PermissionGuard>} />
+                    <Route path="settings/work-locations" element={<PermissionGuard permission="org_policy.read"><WorkLocationsPage /></PermissionGuard>} />
+                    <Route path="settings/holidays" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/shifts" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:shifts"><ShiftsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/approval-chains" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:approval_chains"><ApprovalChainsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/employment-policy" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:employment_policy"><EmploymentPolicyPage /></FeatureGate></PermissionGuard>} />
 
                     {/* Master Data — Designations, Employment Types, Skills, Employee Status, Document Types. */}
-                    <Route path="settings/designations" element={<FeatureGate flagKey="submodule:people:masters"><DesignationsPage /></FeatureGate>} />
-                    <Route path="settings/employment-types" element={<FeatureGate flagKey="submodule:people:masters"><EmploymentTypesPage /></FeatureGate>} />
-                    <Route path="settings/skills" element={<FeatureGate flagKey="submodule:people:masters"><SkillsPage /></FeatureGate>} />
-                    <Route path="settings/labor-categories" element={<FeatureGate flagKey="submodule:people:labor_categories"><LaborCategoriesPage /></FeatureGate>} />
-                    <Route path="settings/employee-status" element={<FeatureGate flagKey="submodule:people:masters"><EmployeeStatusPage /></FeatureGate>} />
-                    <Route path="settings/document-types" element={<FeatureGate flagKey="submodule:people:masters"><DocumentTypesPage /></FeatureGate>} />
-                    <Route path="settings/custom-fields" element={<FeatureGate flagKey="submodule:people:employee_custom_fields"><CustomFieldsPage /></FeatureGate>} />
+                    <Route path="settings/designations" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:masters"><DesignationsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/employment-types" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:masters"><EmploymentTypesPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/skills" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:masters"><SkillsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/labor-categories" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:labor_categories"><LaborCategoriesPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/employee-status" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:masters"><EmployeeStatusPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/document-types" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:masters"><DocumentTypesPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/custom-fields" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:employee_custom_fields"><CustomFieldsPage /></FeatureGate></PermissionGuard>} />
 
                     {/* Import/Export */}
-                    <Route path="import-export" element={<ImportExportPage />} />
+                    <Route path="import-export" element={<PermissionGuard permission="employees.import"><ImportExportPage /></PermissionGuard>} />
 
 
                 </Routes>
