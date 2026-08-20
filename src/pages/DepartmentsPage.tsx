@@ -8,6 +8,8 @@ import Modal from '../components/Modal';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import { QuotaBar, QuotaGate, toast } from '@so360/design-system';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
+import { peopleApi } from '../services/peopleService';
+import type { Person } from '../types/people';
 import { validateDepartmentCode, validateDepartmentName, focusFirstInvalid } from '../utils/validation';
 
 const DepartmentsPage: React.FC = () => {
@@ -282,7 +284,19 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
         is_active: true,
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [people, setPeople] = useState<Person[]>([]);
     const formRef = useRef<HTMLFormElement>(null);
+
+    // The head is what makes the reporting graph exist. Without it every
+    // manager-scoped feature — leave approver routing, reviewer eligibility,
+    // "my team" views — has no edge to walk and silently resolves to nobody.
+    useEffect(() => {
+        if (!isOpen) return;
+        peopleApi
+            .getAll({ status: 'active', limit: 200 })
+            .then(res => setPeople(res.data))
+            .catch(() => undefined);
+    }, [isOpen]);
 
     useEffect(() => {
         setErrors({});
@@ -442,6 +456,25 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                             Reporting Path: {reportingPath.join(' → ')}
                         </p>
                     )}
+                </div>
+
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1">Department Head</label>
+                    <select
+                        value={formData.head_person_id || ''}
+                        onChange={(e) => updateField('head_person_id', e.target.value || undefined)}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                    >
+                        <option value="">Not assigned</option>
+                        {people.map(person => (
+                            <option key={person.id} value={person.id}>
+                                {person.full_name}{person.job_title ? ` — ${person.job_title}` : ''}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="mt-1.5 text-xs text-slate-500">
+                        Approvals and reviews for this department route to its head.
+                    </p>
                 </div>
 
                 <div className="flex items-center gap-2">
