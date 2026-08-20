@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Plus } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
-import Modal from '../../components/Modal';
 import EmptyState from '../../components/EmptyState';
-import { toast } from '@so360/design-system';
+import { toast, Drawer } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance } from '../../services/meService';
 import type { LeaveRequest } from '../../services/leaveRequestsService';
 import { leaveTypesApi, LeaveType } from '../../services/leaveTypesService';
+import { MyCard, StatTile, StatusPill, Skeleton, primaryBtn, secondaryBtn, inputCls, labelCls } from './myUi';
 
 /**
  * My Leave — the employee's own balances, history and request form.
@@ -19,14 +19,6 @@ import { leaveTypesApi, LeaveType } from '../../services/leaveTypesService';
  * your account". Here the person is never named by the client at all — the
  * backend takes it from the session.
  */
-
-const STATUS_STYLES: Record<string, string> = {
-    draft: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
-    pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-    approved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-    rejected: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300',
-    cancelled: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-};
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -101,48 +93,33 @@ const MyLeavePage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="p-6 space-y-5">
             <PageHeader
                 title="My Leave"
                 subtitle="Your balances and requests"
                 actions={
-                    <button
-                        onClick={() => setFormOpen(true)}
-                        className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                    >
+                    <button onClick={() => setFormOpen(true)} className={primaryBtn}>
                         <Plus size={16} /> Request leave
                     </button>
                 }
             />
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {balances.map(b => (
-                    <div
-                        key={b.id}
-                        className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
-                    >
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {b.leave_type?.name ?? 'Leave'}
-                        </p>
-                        <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                            {b.available}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            days available · {b.used} used
-                        </p>
-                    </div>
-                ))}
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-                <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        My requests
-                    </h2>
+            {balances.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {balances.map(b => (
+                        <StatTile
+                            key={b.id}
+                            label={b.leave_type?.name ?? 'Leave'}
+                            value={b.available}
+                            hint={`days available · ${b.used} used`}
+                        />
+                    ))}
                 </div>
+            )}
 
+            <MyCard title="My requests" icon={<CalendarDays size={14} />} flush>
                 {loading ? (
-                    <div className="py-10 text-center text-sm text-slate-500">Loading…</div>
+                    <Skeleton rows={3} className="p-4" />
                 ) : requests.length === 0 ? (
                     <EmptyState
                         icon={CalendarDays}
@@ -150,45 +127,48 @@ const MyLeavePage: React.FC = () => {
                         description="When you request time off it will appear here."
                     />
                 ) : (
-                    <ul className="divide-y divide-slate-200 dark:divide-slate-700">
+                    <ul className="divide-y divide-slate-800">
                         {requests.map(r => (
                             <li key={r.id} className="flex items-center justify-between px-4 py-3">
                                 <div>
-                                    <p className="text-sm text-slate-800 dark:text-slate-100">
+                                    <p className="text-sm text-slate-50">
                                         {r.leave_type?.name ?? 'Leave'}
                                     </p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    <p className="text-xs text-slate-500">
                                         {r.start_date} → {r.end_date}
                                         {r.total_days ? ` · ${r.total_days} day(s)` : ''}
                                     </p>
                                 </div>
-                                <span
-                                    className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${
-                                        STATUS_STYLES[r.status] ?? STATUS_STYLES.draft
-                                    }`}
-                                >
-                                    {r.status}
-                                </span>
+                                <StatusPill status={r.status} />
                             </li>
                         ))}
                     </ul>
                 )}
-            </div>
+            </MyCard>
 
-            <Modal
+            <Drawer
                 isOpen={formOpen}
                 onClose={() => setFormOpen(false)}
                 title="Request leave"
+                size="sm"
+                footer={
+                    <div className="flex justify-end gap-3">
+                        <button onClick={() => setFormOpen(false)} className={secondaryBtn}>
+                            Cancel
+                        </button>
+                        <button onClick={submit} disabled={submitting} className={primaryBtn}>
+                            {submitting ? 'Submitting…' : 'Submit request'}
+                        </button>
+                    </div>
+                }
             >
-                <div className="space-y-3">
+                <div className="space-y-4">
                     <div>
-                        <label className="mb-1 block text-sm text-slate-600 dark:text-slate-300">
-                            Leave type
-                        </label>
+                        <label className={labelCls}>Leave type</label>
                         <select
                             value={form.leave_type_id}
                             onChange={e => setForm({ ...form, leave_type_id: e.target.value })}
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                            className={inputCls}
                         >
                             <option value="">Select…</option>
                             {leaveTypes.map(t => (
@@ -199,58 +179,36 @@ const MyLeavePage: React.FC = () => {
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="mb-1 block text-sm text-slate-600 dark:text-slate-300">
-                                From
-                            </label>
+                            <label className={labelCls}>From</label>
                             <input
                                 type="date"
                                 value={form.start_date}
                                 onChange={e => setForm({ ...form, start_date: e.target.value })}
-                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                                className={inputCls}
                             />
                         </div>
                         <div>
-                            <label className="mb-1 block text-sm text-slate-600 dark:text-slate-300">
-                                To
-                            </label>
+                            <label className={labelCls}>To</label>
                             <input
                                 type="date"
                                 value={form.end_date}
                                 onChange={e => setForm({ ...form, end_date: e.target.value })}
-                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                                className={inputCls}
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="mb-1 block text-sm text-slate-600 dark:text-slate-300">
-                            Reason (optional)
-                        </label>
+                        <label className={labelCls}>Reason (optional)</label>
                         <textarea
                             value={form.reason}
                             onChange={e => setForm({ ...form, reason: e.target.value })}
                             rows={3}
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                            className={inputCls}
                         />
                     </div>
-
-                    <div className="flex justify-end gap-2 pt-2">
-                        <button
-                            onClick={() => setFormOpen(false)}
-                            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:text-slate-200"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={submit}
-                            disabled={submitting}
-                            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-                        >
-                            {submitting ? 'Submitting…' : 'Submit request'}
-                        </button>
-                    </div>
                 </div>
-            </Modal>
+            </Drawer>
         </div>
     );
 };

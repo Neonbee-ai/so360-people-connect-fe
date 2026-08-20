@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { CalendarDays, Target, Users, ArrowRight } from 'lucide-react';
+import { CalendarDays, Target, Users, Inbox } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance, MyGoal, WhosOutEntry } from '../../services/meService';
 import type { LeaveRequest } from '../../services/leaveRequestsService';
+import { MyCard, StatusPill, ProgressBar, Avatar, Skeleton } from './myUi';
 
 /**
  * The employee's landing page.
@@ -25,31 +25,6 @@ const inDays = (days: number) => {
     d.setDate(d.getDate() + days);
     return d.toISOString().slice(0, 10);
 };
-
-const Card: React.FC<{
-    title: string;
-    icon: React.ReactNode;
-    to?: string;
-    children: React.ReactNode;
-}> = ({ title, icon, to, children }) => (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
-        <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                {icon}
-                <h2 className="text-sm font-semibold">{title}</h2>
-            </div>
-            {to && (
-                <Link
-                    to={to}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:underline dark:text-blue-400"
-                >
-                    View all <ArrowRight size={12} />
-                </Link>
-            )}
-        </div>
-        {children}
-    </div>
-);
 
 const MyHomePage: React.FC = () => {
     const [balances, setBalances] = useState<MyLeaveBalance[]>([]);
@@ -81,107 +56,110 @@ const MyHomePage: React.FC = () => {
     const pending = requests.filter(r => r.status === 'pending');
 
     return (
-        <div className="space-y-4">
+        <div className="p-6 space-y-5">
             <PageHeader title="My Work" subtitle="Your leave, goals and team at a glance" />
 
             {loading ? (
-                <div className="py-12 text-center text-sm text-slate-500">Loading…</div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <Skeleton rows={2} />
+                    <Skeleton rows={2} />
+                </div>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                    <Card
+                    <MyCard
                         title="My leave balance"
-                        icon={<CalendarDays size={16} />}
+                        icon={<CalendarDays size={14} />}
                         to="/people/my/leave"
                     >
                         {balances.length === 0 ? (
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-sm text-slate-500">
                                 No leave balances have been set up for you yet.
                             </p>
                         ) : (
-                            <ul className="space-y-2">
+                            <ul className="space-y-2.5">
                                 {balances.map(b => (
-                                    <li key={b.id} className="flex items-center justify-between text-sm">
-                                        <span className="text-slate-600 dark:text-slate-300">
+                                    <li key={b.id} className="flex items-center justify-between">
+                                        <span className="text-sm text-slate-300">
                                             {b.leave_type?.name ?? 'Leave'}
                                         </span>
-                                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                                        <span className="text-sm font-semibold text-slate-50">
                                             {b.available} days
                                         </span>
                                     </li>
                                 ))}
                             </ul>
                         )}
-                    </Card>
+                    </MyCard>
 
-                    <Card
+                    <MyCard
                         title="My requests"
-                        icon={<CalendarDays size={16} />}
+                        icon={<Inbox size={14} />}
                         to="/people/my/leave"
                     >
                         {requests.length === 0 ? (
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-sm text-slate-500">
                                 You haven&apos;t requested any leave yet.
                             </p>
                         ) : (
                             <>
                                 {pending.length > 0 && (
-                                    <p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
+                                    <p className="mb-2.5 text-xs text-amber-400">
                                         {pending.length} awaiting approval
                                     </p>
                                 )}
-                                <ul className="space-y-2">
+                                <ul className="space-y-2.5">
                                     {requests.slice(0, 4).map(r => (
-                                        <li key={r.id} className="flex items-center justify-between text-sm">
-                                            <span className="text-slate-600 dark:text-slate-300">
+                                        <li key={r.id} className="flex items-center justify-between gap-3">
+                                            <span className="text-sm text-slate-300">
                                                 {r.start_date} → {r.end_date}
                                             </span>
-                                            <span className="text-xs capitalize text-slate-500 dark:text-slate-400">
-                                                {r.status}
-                                            </span>
+                                            <StatusPill status={r.status} />
                                         </li>
                                     ))}
                                 </ul>
                             </>
                         )}
-                    </Card>
+                    </MyCard>
 
-                    <Card title="My goals" icon={<Target size={16} />} to="/people/my/goals">
+                    <MyCard title="My goals" icon={<Target size={14} />} to="/people/my/goals">
                         {goals.length === 0 ? (
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                No active goals.
-                            </p>
+                            <p className="text-sm text-slate-500">No active goals.</p>
                         ) : (
-                            <ul className="space-y-2">
+                            <ul className="space-y-3">
                                 {goals.slice(0, 4).map(g => (
-                                    <li key={g.id} className="text-sm">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-slate-600 dark:text-slate-300">{g.title}</span>
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                    <li key={g.id}>
+                                        <div className="mb-1 flex items-center justify-between gap-3">
+                                            <span className="truncate text-sm text-slate-300">{g.title}</span>
+                                            <span className="text-xs text-slate-500">
                                                 {g.progress_percentage ?? 0}%
                                             </span>
                                         </div>
+                                        <ProgressBar percent={g.progress_percentage ?? 0} />
                                     </li>
                                 ))}
                             </ul>
                         )}
-                    </Card>
+                    </MyCard>
 
-                    <Card title="Who's out this week" icon={<Users size={16} />}>
+                    <MyCard title="Who's out this week" icon={<Users size={14} />}>
                         {whosOut.length === 0 ? (
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-sm text-slate-500">
                                 Nobody is scheduled to be away.
                             </p>
                         ) : (
-                            <ul className="space-y-2">
+                            <ul className="space-y-2.5">
                                 {whosOut.slice(0, 6).map(w => (
                                     <li
                                         key={`${w.person_id}-${w.start_date}`}
-                                        className="flex items-center justify-between text-sm"
+                                        className="flex items-center justify-between gap-3"
                                     >
-                                        <span className="text-slate-600 dark:text-slate-300">
-                                            {w.full_name ?? 'A colleague'}
+                                        <span className="flex min-w-0 items-center gap-2.5">
+                                            <Avatar name={w.full_name} />
+                                            <span className="truncate text-sm text-slate-300">
+                                                {w.full_name ?? 'A colleague'}
+                                            </span>
                                         </span>
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                        <span className="shrink-0 text-xs text-slate-500">
                                             {w.start_date === w.end_date
                                                 ? w.start_date
                                                 : `${w.start_date} → ${w.end_date}`}
@@ -190,7 +168,7 @@ const MyHomePage: React.FC = () => {
                                 ))}
                             </ul>
                         )}
-                    </Card>
+                    </MyCard>
                 </div>
             )}
         </div>

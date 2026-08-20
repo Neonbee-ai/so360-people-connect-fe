@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Users, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { meService } from '../../services/meService';
 import type { WhosOutEntry, DirectoryEntry } from '../../services/meService';
+import { Avatar, Skeleton, inputCls } from './myUi';
 
 /**
  * My Team — Who's Out and the colleague directory.
@@ -48,18 +49,18 @@ const MyTeamPage: React.FC = () => {
     );
 
     return (
-        <div className="space-y-4">
+        <div className="p-6 space-y-5">
             <PageHeader title="My Team" subtitle="Who's away, and who to contact" />
 
-            <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex gap-1 border-b border-slate-800">
                 {(['out', 'directory'] as const).map(t => (
                     <button
                         key={t}
                         onClick={() => setTab(t)}
-                        className={`px-3 py-2 text-sm font-medium ${
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${
                             tab === t
-                                ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
-                                : 'text-slate-500 dark:text-slate-400'
+                                ? 'border-b-2 border-teal-500 text-teal-400'
+                                : 'text-slate-500 hover:text-slate-300'
                         }`}
                     >
                         {t === 'out' ? "Who's out" : 'Directory'}
@@ -68,30 +69,33 @@ const MyTeamPage: React.FC = () => {
             </div>
 
             {loading ? (
-                <div className="py-12 text-center text-sm text-slate-500">Loading…</div>
+                <Skeleton rows={3} />
             ) : tab === 'out' ? (
                 whosOut.length === 0 ? (
-                    <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                    <p className="py-10 text-center text-sm text-slate-500">
                         Nobody is scheduled to be away in the next 30 days.
                     </p>
                 ) : (
-                    <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white dark:divide-slate-700 dark:border-slate-700 dark:bg-slate-800">
+                    <ul className="divide-y divide-slate-800 rounded-xl border border-slate-800 bg-slate-900">
                         {whosOut.map(w => (
                             <li
                                 key={`${w.person_id}-${w.start_date}`}
-                                className="flex items-center justify-between px-4 py-3"
+                                className="flex items-center justify-between gap-3 px-4 py-3"
                             >
-                                <div>
-                                    <p className="text-sm text-slate-800 dark:text-slate-100">
-                                        {w.full_name ?? 'A colleague'}
-                                    </p>
-                                    {w.job_title && (
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                                            {w.job_title}
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <Avatar name={w.full_name} />
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm text-slate-50">
+                                            {w.full_name ?? 'A colleague'}
                                         </p>
-                                    )}
+                                        {w.job_title && (
+                                            <p className="truncate text-xs text-slate-500">
+                                                {w.job_title}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
-                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                <span className="shrink-0 text-xs text-slate-500">
                                     {w.start_date === w.end_date
                                         ? w.start_date
                                         : `${w.start_date} → ${w.end_date}`}
@@ -105,34 +109,32 @@ const MyTeamPage: React.FC = () => {
                     <div className="relative">
                         <Search
                             size={16}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
                         />
                         <input
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             placeholder="Search colleagues"
-                            className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                            className={`${inputCls} pl-9`}
                         />
                     </div>
 
                     {filtered.length === 0 ? (
-                        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                        <p className="py-10 text-center text-sm text-slate-500">
                             No colleagues found.
                         </p>
                     ) : (
-                        <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white dark:divide-slate-700 dark:border-slate-700 dark:bg-slate-800">
+                        <ul className="divide-y divide-slate-800 rounded-xl border border-slate-800 bg-slate-900">
                             {filtered.map(p => (
-                                <li key={p.id} className="flex items-center justify-between px-4 py-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                                            {p.full_name?.slice(0, 1).toUpperCase() ?? '?'}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-slate-800 dark:text-slate-100">
+                                <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <Avatar name={p.full_name} />
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm text-slate-50">
                                                 {p.full_name}
                                             </p>
                                             {p.job_title && (
-                                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                <p className="truncate text-xs text-slate-500">
                                                     {p.job_title}
                                                 </p>
                                             )}
@@ -141,7 +143,7 @@ const MyTeamPage: React.FC = () => {
                                     {p.email && (
                                         <a
                                             href={`mailto:${p.email}`}
-                                            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                                            className="shrink-0 text-xs text-teal-400 hover:text-teal-300"
                                         >
                                             {p.email}
                                         </a>

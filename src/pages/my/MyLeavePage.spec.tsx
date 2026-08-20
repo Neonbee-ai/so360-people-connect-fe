@@ -26,9 +26,25 @@ vi.mock('../../services/leaveTypesService', () => ({
     LeaveType: {},
 }));
 
-vi.mock('@so360/design-system', () => ({
-    toast: { success: vi.fn(), error: vi.fn() },
-}));
+vi.mock('@so360/design-system', async () => {
+    const React = (await import('react')).default;
+    return {
+        toast: { success: vi.fn(), error: vi.fn() },
+        // Faithful-enough Drawer: renders only when open, children + footer
+        // present — mirrors src/test/__mocks__/design-system.ts.
+        Drawer: ({ isOpen, onClose, title, footer, children }: any) =>
+            isOpen
+                ? React.createElement(
+                      'div',
+                      { role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+                      React.createElement('h2', null, title),
+                      React.createElement('button', { type: 'button', 'aria-label': 'Close', onClick: onClose }),
+                      children,
+                      footer ?? null,
+                  )
+                : null,
+    };
+});
 
 import MyLeavePage from './MyLeavePage';
 import { meService } from '../../services/meService';

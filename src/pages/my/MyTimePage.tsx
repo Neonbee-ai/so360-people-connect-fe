@@ -4,6 +4,7 @@ import PageHeader from '../../components/PageHeader';
 import { toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyOpenSession, MyAttendanceRecord, MyAllocation } from '../../services/meService';
+import { MyCard, StatusPill, Skeleton, primaryBtn, secondaryBtn, dangerBtn, inputCls, labelCls } from './myUi';
 
 /**
  * My Time — clock in, breaks, clock out, and my own attendance history.
@@ -73,28 +74,43 @@ const MyTimePage: React.FC = () => {
     const onBreak = !!session?.break_started_at;
 
     if (loading) {
-        return <div className="py-12 text-center text-sm text-slate-500">Loading…</div>;
+        return (
+            <div className="p-6 space-y-5">
+                <PageHeader title="My Time" subtitle="Clock in, take breaks, clock out" />
+                <Skeleton rows={3} />
+            </div>
+        );
     }
 
     return (
-        <div className="space-y-4">
+        <div className="p-6 space-y-5">
             <PageHeader title="My Time" subtitle="Clock in, take breaks, clock out" />
 
-            <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
+            {/* Hero clock card — the one thing this page is for. */}
+            <section className="rounded-xl border border-slate-800 bg-slate-900 p-6">
                 {session ? (
-                    <>
-                        <div className="mb-4 flex items-center gap-3">
-                            <span
-                                className={`inline-block h-2.5 w-2.5 rounded-full ${
-                                    onBreak ? 'bg-amber-500' : 'bg-emerald-500'
-                                }`}
-                            />
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <span className="relative flex h-3 w-3">
+                                <span
+                                    className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
+                                        onBreak ? 'bg-amber-400' : 'bg-emerald-400'
+                                    }`}
+                                />
+                                <span
+                                    className={`relative inline-flex h-3 w-3 rounded-full ${
+                                        onBreak ? 'bg-amber-500' : 'bg-emerald-500'
+                                    }`}
+                                />
+                            </span>
                             <div>
-                                <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                                <p className="text-lg font-semibold text-slate-50">
                                     {onBreak ? 'On break' : 'Clocked in'}
-                                    {session.entity_name ? ` · ${session.entity_name}` : ''}
+                                    {session.entity_name ? (
+                                        <span className="font-normal text-slate-400"> · {session.entity_name}</span>
+                                    ) : ''}
                                 </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                <p className="text-sm text-slate-400">
                                     Started {elapsed(session.started_at, now)} ago
                                 </p>
                             </div>
@@ -105,7 +121,7 @@ const MyTimePage: React.FC = () => {
                                 <button
                                     disabled={busy}
                                     onClick={() => act(() => meService.endBreak(), 'Break ended')}
-                                    className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                                    className={primaryBtn}
                                 >
                                     <Play size={16} /> Resume work
                                 </button>
@@ -113,7 +129,7 @@ const MyTimePage: React.FC = () => {
                                 <button
                                     disabled={busy}
                                     onClick={() => act(() => meService.startBreak(), 'Break started')}
-                                    className="flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                                    className={secondaryBtn}
                                 >
                                     <Coffee size={16} /> Take a break
                                 </button>
@@ -122,17 +138,17 @@ const MyTimePage: React.FC = () => {
                             <button
                                 disabled={busy}
                                 onClick={() => act(() => meService.clockOut(), 'Clocked out')}
-                                className="flex items-center gap-2 rounded-md bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60"
+                                className={dangerBtn}
                             >
                                 <LogOut size={16} /> Clock out
                             </button>
                         </div>
-                    </>
+                    </div>
                 ) : (
                     <div>
                         <div className="mb-4 flex items-center gap-3">
-                            <span className="inline-block h-2.5 w-2.5 rounded-full bg-slate-400" />
-                            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <span className="inline-block h-3 w-3 rounded-full bg-slate-600" />
+                            <p className="text-lg font-semibold text-slate-50">
                                 You&apos;re not clocked in
                             </p>
                         </div>
@@ -141,20 +157,18 @@ const MyTimePage: React.FC = () => {
                             // A job session must book time against a work unit, so with no
                             // assignment there is genuinely nothing to clock in to. Say that
                             // plainly rather than offering a button that cannot work.
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-sm text-slate-500">
                                 You have no active work assignments. Ask your supervisor to
                                 assign one, then clock in here.
                             </p>
                         ) : (
-                            <div className="flex flex-wrap items-end gap-2">
+                            <div className="flex flex-wrap items-end gap-3">
                                 <div className="min-w-[220px] flex-1">
-                                    <label className="mb-1 block text-xs text-slate-500 dark:text-slate-400">
-                                        What are you working on?
-                                    </label>
+                                    <label className={labelCls}>What are you working on?</label>
                                     <select
                                         value={picked}
                                         onChange={e => setPicked(e.target.value)}
-                                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                                        className={inputCls}
                                     >
                                         <option value="">Select a job…</option>
                                         {allocations.map(a => (
@@ -178,7 +192,7 @@ const MyTimePage: React.FC = () => {
                                             'Clocked in',
                                         );
                                     }}
-                                    className="flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                                    className={primaryBtn}
                                 >
                                     <Play size={16} /> Clock in
                                 </button>
@@ -186,33 +200,26 @@ const MyTimePage: React.FC = () => {
                         )}
                     </div>
                 )}
-            </div>
+            </section>
 
-            <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-                <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        My attendance
-                    </h2>
-                </div>
+            <MyCard title="My attendance" icon={<Clock size={14} />} flush>
                 {history.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                    <p className="py-8 text-center text-sm text-slate-500">
                         No attendance recorded yet.
                     </p>
                 ) : (
-                    <ul className="divide-y divide-slate-200 dark:divide-slate-700">
+                    <ul className="divide-y divide-slate-800">
                         {history.slice(0, 30).map(r => (
                             <li key={r.id} className="flex items-center justify-between px-4 py-2.5">
-                                <span className="text-sm text-slate-700 dark:text-slate-200">
+                                <span className="text-sm text-slate-300">
                                     {r.attendance_date}
                                 </span>
-                                <span className="text-xs capitalize text-slate-500 dark:text-slate-400">
-                                    {r.status}
-                                </span>
+                                <StatusPill status={r.status} />
                             </li>
                         ))}
                     </ul>
                 )}
-            </div>
+            </MyCard>
         </div>
     );
 };
