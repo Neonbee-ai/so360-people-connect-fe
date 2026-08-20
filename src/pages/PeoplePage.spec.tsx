@@ -752,6 +752,76 @@ describe('Given "Delete Employee" is clicked from the Actions menu', () => {
     await waitFor(() => expect(mockApi.delete).toHaveBeenCalledWith('p1'));
     await waitFor(() => expect(toastInfoSpy).toHaveBeenCalledWith('Person deactivated successfully'));
   });
+
+  it('When a delete really removes the employee / Then the success message is toasted', async () => {
+    mockApi.delete.mockResolvedValue({ message: 'Alice Smith was permanently deleted', hard_deleted: true, blockers: [] });
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Delete Employee'));
+    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Employee' }));
+
+    await waitFor(() => expect(toastSuccessSpy).toHaveBeenCalledWith('Alice Smith was permanently deleted'));
+  });
+
+  it('When the delete is blocked by linked records / Then the blocking tables are surfaced to the admin', async () => {
+    mockApi.delete.mockResolvedValue({
+      message: 'Alice Smith has linked business records (time_entries) and cannot be permanently deleted. They have been deactivated instead and can no longer sign in.',
+      hard_deleted: false,
+      blockers: ['time_entries'],
+    });
+    const toastInfoSpy = vi.spyOn(toast, 'info');
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Delete Employee'));
+    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Employee' }));
+
+    await waitFor(() => expect(toastInfoSpy).toHaveBeenCalledWith(expect.stringContaining('time_entries')));
+  });
+});
+
+/*
+ * The three lifecycle actions are distinct outcomes, and the confirmation is
+ * the only place the admin learns which one they are about to trigger. These
+ * specs pin the promises that copy makes.
+ */
+describe('Given the lifecycle confirmation dialogs', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockPerson], total: 1 });
+  });
+
+  it('When Deactivate is chosen / Then the dialog warns that platform access is lost', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Deactivate'));
+    await waitFor(() => expect(screen.getByText('Deactivate Employee')).toBeInTheDocument());
+    expect(screen.getByText(/Deactivate Alice Smith\? They will immediately lose access to the platform/i)).toBeInTheDocument();
+  });
+
+  it('When Archive is chosen / Then the dialog promises history is preserved and access is revoked', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Archive'));
+    await waitFor(() => expect(screen.getByText('Archive Employee')).toBeInTheDocument());
+    expect(screen.getByText(/historical records are preserved/i)).toBeInTheDocument();
+    expect(screen.getByText(/lose platform access/i)).toBeInTheDocument();
+  });
+
+  it('When Delete is chosen / Then the dialog names the employee and states the action is destructive and irreversible', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Delete Employee'));
+    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
+    expect(screen.getByText(/Permanently delete Alice Smith/)).toBeInTheDocument();
+    expect(screen.getByText(/cannot be undone/i)).toBeInTheDocument();
+  });
+
+  it('When Delete is dismissed / Then nothing is deleted', async () => {
+    await openRowActionsMenu();
+    fireEvent.click(screen.getByText('Delete Employee'));
+    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(screen.queryByText('Delete Employee', { selector: 'h2' })).not.toBeInTheDocument());
+    expect(mockApi.delete).not.toHaveBeenCalled();
+  });
 });
 
 /*
