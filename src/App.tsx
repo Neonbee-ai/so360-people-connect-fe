@@ -138,6 +138,12 @@ const PeopleShellInitializer =({ children }: { children: React.ReactNode }) => {
 
 // Lazy-loaded pages
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const MyHomePage = lazy(() => import('./pages/my/MyHomePage'));
+const MyLeavePage = lazy(() => import('./pages/my/MyLeavePage'));
+const MyTimePage = lazy(() => import('./pages/my/MyTimePage'));
+const MyGoalsPage = lazy(() => import('./pages/my/MyGoalsPage'));
+const MyProfilePage = lazy(() => import('./pages/my/MyProfilePage'));
+const MyTeamPage = lazy(() => import('./pages/my/MyTeamPage'));
 const PeoplePage = lazy(() => import('./pages/PeoplePage'));
 const PersonDetailPage = lazy(() => import('./pages/PersonDetailPage'));
 const AllocationsPage = lazy(() => import('./pages/AllocationsPage'));
@@ -207,6 +213,18 @@ const App = () => {
                 <Routes>
                     <Route path="/" element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<DashboardPage />} />
+
+                    {/* Employee self-service. Deliberately ungated: these routes
+                        show only the caller's own records (the backend resolves
+                        the person from the session), so requiring an
+                        administrator's read permission here is exactly the
+                        inversion that left employees with no usable surface. */}
+                    <Route path="my" element={<MyHomePage />} />
+                    <Route path="my/leave" element={<MyLeavePage />} />
+                    <Route path="my/time" element={<MyTimePage />} />
+                    <Route path="my/goals" element={<MyGoalsPage />} />
+                    <Route path="my/profile" element={<MyProfilePage />} />
+                    <Route path="my/team" element={<MyTeamPage />} />
 
                     {/* People */}
                     <Route path="people" element={<PermissionGuard permission="employees.read"><PeoplePage /></PermissionGuard>} />

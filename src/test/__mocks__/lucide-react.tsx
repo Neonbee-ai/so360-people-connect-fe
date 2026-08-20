@@ -90,3 +90,6 @@ export const ArrowUp = createIcon('ArrowUp');
 export const ArrowDown = createIcon('ArrowDown');
 export const UserCog = createIcon('UserCog');
 export type LucideIcon = React.FC<any>;
+export const Coffee = createIcon('Coffee');
+export const LogOut = createIcon('LogOut');
+export const Play = createIcon('Play');
