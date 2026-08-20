@@ -35,7 +35,9 @@ const WorkLocationsPage: React.FC = () => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await workLocationsApi.getAll();
+      // Management view: inactive locations must stay visible, otherwise
+      // deactivating one removes the only way to edit or reactivate it.
+      const result = await workLocationsApi.getAll(true);
       setLocations(result.data);
     } catch {
       toast.error('Failed to load work locations');
@@ -52,8 +54,10 @@ const WorkLocationsPage: React.FC = () => {
       setShowModal(false);
       toast.success(`Work location "${data.name}" created`);
       load();
-    } catch {
-      toast.error('Failed to create work location');
+    } catch (err) {
+      // Surface the server's reason — a duplicate-name rejection is only
+      // actionable if the admin can read it.
+      toast.error((err as Error)?.message || 'Failed to create work location');
     }
   };
 
@@ -63,8 +67,8 @@ const WorkLocationsPage: React.FC = () => {
       setEditing(null);
       toast.success('Work location updated');
       load();
-    } catch {
-      toast.error('Failed to update work location');
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Failed to update work location');
     }
   };
 

@@ -44,6 +44,19 @@ describe('WorkLocationsPage', () => {
       expect(screen.getByText('Factory A')).toBeInTheDocument();
     });
 
+    it('When the page loads / Then it requests inactive locations too, so deactivated ones stay manageable', async () => {
+      renderPage();
+      await waitFor(() => expect(mockApi.getAll).toHaveBeenCalled());
+      expect(mockApi.getAll).toHaveBeenCalledWith(true);
+    });
+
+    it('When a location is deactivated / Then it remains listed and can be reactivated', async () => {
+      renderPage();
+      // wl2 is inactive and must still be rendered by the management table.
+      await waitFor(() => expect(screen.getByText('Factory A')).toBeInTheDocument());
+      expect(screen.getByTitle('Activate')).toBeInTheDocument();
+    });
+
     it('When Add Location is clicked / Then the modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Head Office')).toBeInTheDocument());

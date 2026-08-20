@@ -251,7 +251,10 @@ const App = () => {
                     <Route path="settings/notifications" element={<PermissionGuard permission="org_policy.read"><NotificationSettingsPage /></PermissionGuard>} />
                     <Route path="settings/utilization-settings" element={<PermissionGuard permission="org_policy.read"><UtilizationSettingsPage /></PermissionGuard>} />
                     <Route path="settings/timesheet-settings" element={<PermissionGuard permission="org_policy.read"><TimesheetSettingsPage /></PermissionGuard>} />
-                    <Route path="settings/work-locations" element={<PermissionGuard permission="org_policy.read"><WorkLocationsPage /></PermissionGuard>} />
+                    {/* Guarded on employees.read to match the backend, which enforces
+                        PEOPLE_PERMISSIONS.EMPLOYEES.* on /locations. org_policy.read
+                        let through users the API would then reject. */}
+                    <Route path="settings/work-locations" element={<PermissionGuard permission="employees.read"><WorkLocationsPage /></PermissionGuard>} />
                     <Route path="settings/holidays" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings/shifts" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:shifts"><ShiftsPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings/approval-chains" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:approval_chains"><ApprovalChainsPage /></FeatureGate></PermissionGuard>} />

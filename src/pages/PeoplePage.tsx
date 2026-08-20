@@ -1071,12 +1071,12 @@ const PeoplePage: React.FC = () => {
                     }
                     message={
                         confirmAction.type === 'delete'
-                            ? `Are you sure you want to delete ${confirmAction.person.full_name}? If they have linked business data or an active account, they will be deactivated instead of permanently removed.`
+                            ? `Permanently delete ${confirmAction.person.full_name}? This cannot be undone — their employee record is destroyed and their platform access is revoked. If they have linked timesheets, leave, allocations, reviews, goals, feedback or attendance, that history is protected: they will be deactivated instead and you'll be told which records blocked the delete.`
                             : confirmAction.type === 'archive'
-                                ? `Archive ${confirmAction.person.full_name}? They will be hidden from active-resource views but their records are preserved and can be reactivated later.`
+                                ? `Archive ${confirmAction.person.full_name}? They will be removed from active-resource views and selectors and will lose platform access. All historical records are preserved and they can be reactivated later.`
                                 : confirmAction.type === 'cancel-invite'
                                     ? `Cancel the pending invitation for ${confirmAction.person.full_name}? They will not be able to use the invite link afterward.`
-                                    : `Deactivate ${confirmAction.person.full_name}? Their records are preserved and they can be reactivated later.`
+                                    : `Deactivate ${confirmAction.person.full_name}? They will immediately lose access to the platform. Their records are preserved and access is restored if you reactivate them.`
                     }
                     confirmLabel={confirmAction.type === 'delete' ? 'Delete Employee' : confirmAction.type === 'archive' ? 'Archive' : confirmAction.type === 'cancel-invite' ? 'Cancel Invitation' : 'Deactivate'}
                     danger={confirmAction.type === 'delete' || confirmAction.type === 'cancel-invite'}
@@ -1430,20 +1430,24 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                                 ))}
                             </select>
-                            {workLocationsError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load work locations. Try reopening this form.</p>
-                            ) : workLocations.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
-                                    No work locations configured.{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/people/settings/work-locations')}
-                                        className="text-teal-400 hover:text-teal-300 underline"
-                                    >
-                                        Create Work Location
-                                    </button>
-                                </p>
-                            ) : null}
+                            {/* The manage link is unconditional. It used to render only
+                                when zero locations existed, so it vanished the moment the
+                                first one was created — leaving no route to the management
+                                page from here. */}
+                            <p className="text-xs text-slate-500 mt-1">
+                                {workLocationsError
+                                    ? <span className="text-rose-400">Couldn't load work locations. </span>
+                                    : workLocations.length === 0
+                                        ? 'No work locations configured. '
+                                        : null}
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/settings/work-locations')}
+                                    className="text-teal-400 hover:text-teal-300 underline"
+                                >
+                                    Manage Work Locations
+                                </button>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -2018,24 +2022,36 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="">Select Work Location</option>
+                                {/* The dropdown only lists active locations, so an existing
+                                    assignment to a since-deactivated location would silently
+                                    reset to blank on the next save. Keep it selectable for
+                                    the person who already has it, flagged as inactive. */}
+                                {formData.work_location_id
+                                    && !workLocations.some(loc => loc.id === formData.work_location_id) && (
+                                    <option value={formData.work_location_id}>
+                                        {(person as any)?.work_location?.name
+                                            ? `${(person as any).work_location.name} (inactive)`
+                                            : 'Current location (inactive)'}
+                                    </option>
+                                )}
                                 {workLocations.map(loc => (
                                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                                 ))}
                             </select>
-                            {workLocationsError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load work locations. Try reopening this form.</p>
-                            ) : workLocations.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
-                                    No work locations configured.{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/people/settings/work-locations')}
-                                        className="text-teal-400 hover:text-teal-300 underline"
-                                    >
-                                        Create Work Location
-                                    </button>
-                                </p>
-                            ) : null}
+                            <p className="text-xs text-slate-500 mt-1">
+                                {workLocationsError
+                                    ? <span className="text-rose-400">Couldn't load work locations. </span>
+                                    : workLocations.length === 0
+                                        ? 'No work locations configured. '
+                                        : null}
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/settings/work-locations')}
+                                    className="text-teal-400 hover:text-teal-300 underline"
+                                >
+                                    Manage Work Locations
+                                </button>
+                            </p>
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Joining Date</label>

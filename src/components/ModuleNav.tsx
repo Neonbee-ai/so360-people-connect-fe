@@ -22,6 +22,7 @@ import {
     Briefcase,
     Sparkles,
     UserCheck,
+    MapPin,
 } from 'lucide-react';
 
 interface NavItem {
@@ -49,6 +50,7 @@ const navigationItems: NavSection[] = [
         items: [
             { path: '/people', label: 'People Registry', icon: Users },
             { path: '/departments', label: 'Departments', icon: Building2 },
+            { path: '/settings/work-locations', label: 'Work Locations', icon: MapPin, adminOnly: true },
         ]
     },
     {
@@ -84,7 +86,6 @@ const navigationItems: NavSection[] = [
         items: [
             { path: '/import-export', label: 'Import/Export', icon: Upload },
             { path: '/settings', label: 'Settings', icon: Settings, adminOnly: true },
-            { path: '/settings/work-locations', label: 'Work Locations', icon: Settings, adminOnly: true },
             { path: '/settings/approval-chains', label: 'Hierarchy', icon: Building2, adminOnly: true, flagKey: 'submodule:people:approval_chains' },
             { path: '/settings/employment-policy', label: 'Overtime Rules', icon: TrendingUp, adminOnly: true, flagKey: 'submodule:people:employment_policy' },
             // Master Data — Designations, Employment Types, Skills, Employee Status, Document Types.

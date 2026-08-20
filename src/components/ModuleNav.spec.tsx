@@ -186,6 +186,14 @@ describe('Given ModuleNav Work Locations item', () => {
     expect(screen.getByText('Work Locations')).toBeInTheDocument();
   });
 
+  it('When user is admin / Then Work Locations sits in the People & Organization section, next to Departments', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    const section = screen.getByText('People & Organization').parentElement!;
+    expect(section.textContent).toContain('Work Locations');
+    expect(section.textContent).toContain('Departments');
+  });
+
   it('When user is admin / Then Work Locations link points to /settings/work-locations', () => {
     mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
     renderNav('/settings/work-locations');
