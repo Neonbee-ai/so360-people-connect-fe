@@ -60,6 +60,18 @@ export interface WhosOutEntry {
     is_half_day_end: boolean;
 }
 
+/** A work unit the employee is assigned to — the pickable job for clock-in. */
+export interface MyAllocation {
+    id: string;
+    entity_type: string;
+    entity_id: string;
+    entity_name: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    allocation_value: number | null;
+    status: string;
+}
+
 export interface DirectoryEntry {
     id: string;
     full_name: string;
@@ -122,6 +134,9 @@ export const meService = {
     // Work session. The backend forces the person from the token, so none of
     // these carries a person_id even though the underlying job-sessions API
     // requires one.
+    myAllocations: (all = false) =>
+        api.get<{ data: MyAllocation[] }>('/me/allocations', all ? { all: 'true' } : undefined),
+
     myOpenSession: () =>
         api.get<{ session: MyOpenSession | null }>('/me/session'),
 

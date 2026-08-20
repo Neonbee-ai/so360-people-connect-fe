@@ -15,6 +15,8 @@ vi.mock('../../services/meService', () => ({
     meService: {
         myOpenSession: vi.fn(),
         myAttendance: vi.fn(),
+        myAllocations: vi.fn(),
+        clockIn: vi.fn(),
         clockOut: vi.fn(),
         startBreak: vi.fn(),
         endBreak: vi.fn(),
@@ -43,6 +45,8 @@ beforeEach(() => {
     vi.clearAllMocks();
     (meService.myOpenSession as any).mockResolvedValue({ session: null });
     (meService.myAttendance as any).mockResolvedValue({ data: [] });
+    (meService.myAllocations as any).mockResolvedValue({ data: [] });
+    (meService.clockIn as any).mockResolvedValue({});
     (meService.clockOut as any).mockResolvedValue({});
     (meService.startBreak as any).mockResolvedValue({});
     (meService.endBreak as any).mockResolvedValue({});
@@ -177,5 +181,64 @@ describe('Given a session with no job name', () => {
 
         await waitFor(() => expect(screen.getByText(/Clocked in/)).toBeInTheDocument());
         expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
+    });
+});
+
+describe('Given an employee with active work assignments', () => {
+    beforeEach(() => {
+        (meService.myAllocations as any).mockResolvedValue({
+            data: [
+                { id: 'al1', entity_type: 'project_task', entity_id: 'e-1',
+                  entity_name: 'Fit-out L3', start_date: '2026-08-01', end_date: null,
+                  allocation_value: 100, status: 'active' },
+            ],
+        });
+    });
+
+    it('When not clocked in / Then a job picker is offered', async () => {
+        render(<MyTimePage />);
+
+        await waitFor(() =>
+            expect(screen.getByText(/What are you working on/i)).toBeInTheDocument(),
+        );
+        expect(screen.getByRole('button', { name: /clock in/i })).toBeInTheDocument();
+    });
+
+    it('When no job is chosen / Then Clock in stays disabled', async () => {
+        render(<MyTimePage />);
+        await waitFor(() => expect(screen.getByRole('combobox')).toBeInTheDocument());
+
+        expect(screen.getByRole('button', { name: /clock in/i })).toBeDisabled();
+    });
+
+    it('When a job is chosen and clocked in / Then the work unit is sent, never a person', async () => {
+        render(<MyTimePage />);
+        await waitFor(() => expect(screen.getByRole('combobox')).toBeInTheDocument());
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'al1' } });
+        fireEvent.click(screen.getByRole('button', { name: /clock in/i }));
+
+        await waitFor(() => expect(meService.clockIn).toHaveBeenCalled());
+        const payload = (meService.clockIn as any).mock.calls[0][0];
+
+        expect(payload).toEqual({
+            entity_type: 'project_task',
+            entity_id: 'e-1',
+            entity_name: 'Fit-out L3',
+        });
+        expect(payload).not.toHaveProperty('person_id');
+    });
+});
+
+describe('Given an employee with no assignments', () => {
+    it('When not clocked in / Then it explains why rather than offering a dead button', async () => {
+        // A job session must book time against a work unit; with none there is
+        // genuinely nothing to clock in to.
+        render(<MyTimePage />);
+
+        await waitFor(() =>
+            expect(screen.getByText(/no active work assignments/i)).toBeInTheDocument(),
+        );
+        expect(screen.queryByRole('button', { name: /clock in/i })).not.toBeInTheDocument();
     });
 });

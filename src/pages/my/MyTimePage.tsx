@@ -3,7 +3,7 @@ import { Clock, Coffee, LogOut, Play } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
-import type { MyOpenSession, MyAttendanceRecord } from '../../services/meService';
+import type { MyOpenSession, MyAttendanceRecord, MyAllocation } from '../../services/meService';
 
 /**
  * My Time — clock in, breaks, clock out, and my own attendance history.
@@ -29,18 +29,22 @@ const elapsed = (fromIso: string, now: number): string => {
 
 const MyTimePage: React.FC = () => {
     const [session, setSession] = useState<MyOpenSession | null>(null);
+    const [allocations, setAllocations] = useState<MyAllocation[]>([]);
+    const [picked, setPicked] = useState('');
     const [history, setHistory] = useState<MyAttendanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
     const [now, setNow] = useState(Date.now());
 
     const load = useCallback(async () => {
-        const [s, a] = await Promise.allSettled([
+        const [s, a, al] = await Promise.allSettled([
             meService.myOpenSession(),
             meService.myAttendance(),
+            meService.myAllocations(),
         ]);
         if (s.status === 'fulfilled') setSession(s.value.session);
         if (a.status === 'fulfilled') setHistory(a.value.data);
+        if (al.status === 'fulfilled') setAllocations(al.value.data);
         setLoading(false);
     }, []);
 
@@ -125,16 +129,61 @@ const MyTimePage: React.FC = () => {
                         </div>
                     </>
                 ) : (
-                    <div className="text-center">
-                        <Clock size={28} className="mx-auto mb-2 text-slate-400" />
-                        <p className="mb-1 text-sm font-medium text-slate-800 dark:text-slate-100">
-                            You&apos;re not clocked in
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Clocking in from the web needs a job to book time against. Use the
-                            Neonbee Crew app to start a job, or ask your supervisor to assign
-                            one.
-                        </p>
+                    <div>
+                        <div className="mb-4 flex items-center gap-3">
+                            <span className="inline-block h-2.5 w-2.5 rounded-full bg-slate-400" />
+                            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                                You&apos;re not clocked in
+                            </p>
+                        </div>
+
+                        {allocations.length === 0 ? (
+                            // A job session must book time against a work unit, so with no
+                            // assignment there is genuinely nothing to clock in to. Say that
+                            // plainly rather than offering a button that cannot work.
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                You have no active work assignments. Ask your supervisor to
+                                assign one, then clock in here.
+                            </p>
+                        ) : (
+                            <div className="flex flex-wrap items-end gap-2">
+                                <div className="min-w-[220px] flex-1">
+                                    <label className="mb-1 block text-xs text-slate-500 dark:text-slate-400">
+                                        What are you working on?
+                                    </label>
+                                    <select
+                                        value={picked}
+                                        onChange={e => setPicked(e.target.value)}
+                                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                                    >
+                                        <option value="">Select a job…</option>
+                                        {allocations.map(a => (
+                                            <option key={a.id} value={a.id}>
+                                                {a.entity_name || `${a.entity_type} ${a.entity_id.slice(0, 8)}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button
+                                    disabled={busy || !picked}
+                                    onClick={() => {
+                                        const a = allocations.find(x => x.id === picked);
+                                        if (!a) return;
+                                        void act(
+                                            () => meService.clockIn({
+                                                entity_type: a.entity_type,
+                                                entity_id: a.entity_id,
+                                                entity_name: a.entity_name ?? undefined,
+                                            }),
+                                            'Clocked in',
+                                        );
+                                    }}
+                                    className="flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                                >
+                                    <Play size={16} /> Clock in
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
