@@ -221,6 +221,8 @@ describe('PeoplePage — Add Person currency default', () => {
     await waitFor(() => expect(screen.getByText('Add Person')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Add Person'));
     await waitFor(() => expect(screen.getByText('Identity')).toBeInTheDocument());
+    // Currency lives behind the Cost & Billing disclosure now.
+    fireEvent.click(screen.getByText('Cost & Billing'));
   };
 
   beforeEach(() => {

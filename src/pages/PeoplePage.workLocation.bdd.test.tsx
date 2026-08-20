@@ -21,7 +21,10 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../services/workLocationsService', () => ({
-  workLocationsApi: { getAll: vi.fn().mockResolvedValue({ data: [] }) },
+  workLocationsApi: {
+    getAll: vi.fn().mockResolvedValue({ data: [] }),
+    create: vi.fn(),
+  },
 }));
 
 vi.mock('../services/mastersService', () => ({
@@ -198,6 +201,72 @@ describe('Given the Add Person modal and at least one work location configured',
     await waitFor(() => expect(screen.getByText('Head Office')).toBeInTheDocument());
     // The assignment dropdown must never ask for inactive locations.
     expect(mockWorkLocationsApi.getAll).toHaveBeenCalledWith();
+  });
+});
+
+describe('Given the in-drawer quick-add location flow (no stacked surfaces, no navigation)', () => {
+  beforeEach(() => {
+    mockWorkLocationsApi.getAll.mockResolvedValue({ data: [HQ] });
+  });
+
+  it('When "+ New Location" is clicked / Then the drawer content is replaced — the person form survives hidden, nothing navigates', async () => {
+    await openCreateModal();
+    fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'New Hire' } });
+    fireEvent.click(screen.getByText('+ New Location'));
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    // Replaced content: quick-add panel with a Back affordance.
+    expect(screen.getByText('New Work Location')).toBeInTheDocument();
+    expect(screen.getByLabelText('Back')).toBeInTheDocument();
+    // The form is still mounted (hidden), so what was typed is not lost.
+    expect(screen.getByPlaceholderText('John Doe')).toHaveValue('New Hire');
+  });
+
+  it('When the quick location is saved / Then it is created, pre-selected on the person, and the form returns', async () => {
+    mockWorkLocationsApi.create.mockResolvedValue({ id: 'wl-new', name: 'Depot 9', location_type: 'store', is_active: true });
+    await openCreateModal();
+    fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'New Hire' } });
+    fireEvent.click(screen.getByText('+ New Location'));
+
+    const quickName = document.getElementById('quick-location-name') as HTMLInputElement;
+    fireEvent.change(quickName, { target: { value: 'Depot 9' } });
+    fireEvent.submit(quickName.closest('form')!);
+
+    await waitFor(() => expect(mockWorkLocationsApi.create).toHaveBeenCalledWith({ name: 'Depot 9', location_type: 'office' }));
+    // Back on the person form with the new location selected.
+    await waitFor(() => expect(screen.queryByText('New Work Location')).not.toBeInTheDocument());
+    expect((screen.getByDisplayValue('Depot 9') as HTMLSelectElement)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('John Doe')).toHaveValue('New Hire');
+  });
+
+  it('When Back is pressed instead / Then the person form returns untouched with no location created', async () => {
+    await openCreateModal();
+    fireEvent.click(screen.getByText('+ New Location'));
+    fireEvent.click(screen.getByLabelText('Back'));
+
+    expect(mockWorkLocationsApi.create).not.toHaveBeenCalled();
+    expect(screen.queryByText('New Work Location')).not.toBeInTheDocument();
+    expect(screen.getByText('Select Work Location')).toBeInTheDocument();
+  });
+});
+
+describe('Given progressive disclosure in the Add Person drawer', () => {
+  it('When the drawer opens / Then advanced sections are collapsed and their fields hidden', async () => {
+    await openCreateModal();
+    // Toggles present…
+    expect(screen.getByText('Employment Details')).toBeInTheDocument();
+    expect(screen.getByText('Cost & Billing')).toBeInTheDocument();
+    expect(screen.getByText('Availability')).toBeInTheDocument();
+    // …contents hidden until expanded.
+    expect(screen.queryByText('Select Designation')).not.toBeInTheDocument();
+    expect(screen.queryByText('Rate Unit')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hours/Day')).not.toBeInTheDocument();
+  });
+
+  it('When a section is expanded / Then its fields appear', async () => {
+    await openCreateModal();
+    fireEvent.click(screen.getByText('Cost & Billing'));
+    expect(screen.getByText('Rate Unit')).toBeInTheDocument();
   });
 });
 

@@ -11,7 +11,7 @@ import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { QuotaBar, QuotaGate, toast } from '@so360/design-system';
+import { QuotaBar, QuotaGate, toast, Drawer } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import { mastersApi, MasterRow } from '../services/mastersService';
 import {
@@ -1122,7 +1122,13 @@ const WorkLocationFieldHelp: React.FC<{
     hasError: boolean;
     isEmpty: boolean;
     isDirty: boolean;
-}> = ({ hasError, isEmpty, isDirty }) => {
+    /**
+     * When provided, offers an in-drawer quick-add that replaces the drawer
+     * content (no navigation, nothing typed is at risk). The full management
+     * page link stays for heavier work.
+     */
+    onQuickAdd?: () => void;
+}> = ({ hasError, isEmpty, isDirty, onQuickAdd }) => {
     const navigate = useNavigate();
     const [confirmingLeave, setConfirmingLeave] = useState(false);
 
@@ -1158,6 +1164,18 @@ const WorkLocationFieldHelp: React.FC<{
                 : isEmpty
                     ? 'No work locations configured. '
                     : null}
+            {onQuickAdd && (
+                <>
+                    <button
+                        type="button"
+                        onClick={onQuickAdd}
+                        className="text-teal-400 hover:text-teal-300 underline"
+                    >
+                        + New Location
+                    </button>
+                    {' · '}
+                </>
+            )}
             <button
                 type="button"
                 onClick={() => (isDirty ? setConfirmingLeave(true) : go())}
@@ -1166,6 +1184,96 @@ const WorkLocationFieldHelp: React.FC<{
                 Manage Work Locations
             </button>
         </p>
+    );
+};
+
+// =============================================================================
+// Collapsible form section — progressive disclosure (UX guide: complete the
+// common task with a handful of fields; everything else behind Advanced).
+// =============================================================================
+
+const Section: React.FC<{
+    title: string;
+    defaultOpen?: boolean;
+    children: React.ReactNode;
+}> = ({ title, defaultOpen = false, children }) => {
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+        <div className="border border-slate-800 rounded-lg">
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                aria-expanded={open}
+                className="w-full flex items-center justify-between px-4 py-3 text-left"
+            >
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</span>
+                <ChevronDown size={14} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+            {open && <div className="px-4 pb-4 space-y-5">{children}</div>}
+        </div>
+    );
+};
+
+// =============================================================================
+// Quick-add Work Location panel — replaces the person drawer's content (never
+// stacks a second surface); Back returns to the form with the new location
+// selected.
+// =============================================================================
+
+const QuickAddLocationPanel: React.FC<{
+    onCreated: (loc: WorkLocation) => void;
+}> = ({ onCreated }) => {
+    const [name, setName] = useState('');
+    const [locationType, setLocationType] = useState<'office' | 'factory' | 'store' | 'remote'>('office');
+    const [busy, setBusy] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name.trim() || busy) return;
+        setBusy(true);
+        try {
+            const loc = await workLocationsApi.create({ name: name.trim(), location_type: locationType });
+            toast.success(`Work location "${loc.name}" created`);
+            onCreated(loc);
+        } catch (err) {
+            toast.error((err as Error)?.message || 'Failed to create work location');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <form id="quick-add-location-form" onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label htmlFor="quick-location-name" className="block text-xs text-slate-400 mb-1">Name <span className="text-red-400">*</span></label>
+                <input
+                    id="quick-location-name"
+                    autoFocus
+                    required
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="e.g. Main Factory, Head Office"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                />
+            </div>
+            <div>
+                <label htmlFor="quick-location-type" className="block text-xs text-slate-400 mb-1">Type</label>
+                <select
+                    id="quick-location-type"
+                    value={locationType}
+                    onChange={e => setLocationType(e.target.value as typeof locationType)}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                >
+                    <option value="office">Office</option>
+                    <option value="factory">Factory</option>
+                    <option value="store">Store</option>
+                    <option value="remote">Remote</option>
+                </select>
+            </div>
+            <p className="text-xs text-slate-500">
+                Address and status can be set later from Work Locations.
+            </p>
+        </form>
     );
 };
 
@@ -1361,13 +1469,69 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     // Summarises what is still missing when more than one field is invalid.
     const errorCount = Object.values(errors).filter(Boolean).length;
 
+    // Drawer content view — 'newLocation' replaces the form with the quick-add
+    // location panel (UX guide: replace drawer content, never stack surfaces).
+    // Form state lives here, not in the form DOM, so nothing typed is lost.
+    const [view, setView] = useState<'form' | 'newLocation'>('form');
+    useEffect(() => { if (isOpen) setView('form'); }, [isOpen]);
+
+    const handleLocationCreated = (loc: WorkLocation) => {
+        setWorkLocations(prev => [...prev, loc].sort((a, b) => a.name.localeCompare(b.name)));
+        updateField('work_location_id', loc.id);
+        setView('form');
+    };
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Add Person" size="lg">
+        <Drawer
+            isOpen={isOpen}
+            onClose={onClose}
+            title={view === 'form' ? 'Add Person' : 'New Work Location'}
+            size="lg"
+            onBack={view === 'newLocation' ? () => setView('form') : undefined}
+            footer={
+                view === 'form' ? (
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button" onClick={onClose}
+                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            form="create-person-form"
+                            disabled={!isFormValid}
+                            title={isFormValid ? undefined : 'Complete all required fields with valid values.'}
+                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Add Person
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button" onClick={() => setView('form')}
+                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        >
+                            Back
+                        </button>
+                        <button
+                            type="submit"
+                            form="quick-add-location-form"
+                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                            Add Location
+                        </button>
+                    </div>
+                )
+            }
+        >
+            {view === 'newLocation' && <QuickAddLocationPanel onCreated={handleLocationCreated} />}
             {/* noValidate: browser-native bubbles anchor to the offending field even
                 when it is scrolled out of view, so a user at the bottom of this
                 modal saw nothing happen. Inline messages + scroll-to-first-invalid
                 replace them. */}
-            <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
+            <form ref={formRef} id="create-person-form" onSubmit={handleSubmit} noValidate className={`space-y-5 ${view === 'newLocation' ? 'hidden' : ''}`}>
                 {/* Basic Info */}
                 <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Identity</h4>
@@ -1414,7 +1578,10 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                     </div>
                 </div>
 
-                {/* Classification */}
+                {/* Classification — the ≤5-field primary screen: Type, Department,
+                    Work Location. Designation/employment type/joining date and the
+                    cost/availability numbers live behind the sections below
+                    (progressive disclosure), all pre-filled with sensible defaults. */}
                 <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Classification</h4>
                     <div className="grid grid-cols-3 gap-4">
@@ -1438,6 +1605,35 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 allowClear
                             />
                         </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Work Location</label>
+                            <select
+                                value={(formData as any).work_location_id || ''}
+                                onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            >
+                                <option value="">Select Work Location</option>
+                                {workLocations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                            </select>
+                            {/* The manage link is unconditional. It used to render only
+                                when zero locations existed, so it vanished the moment the
+                                first one was created — leaving no route to the management
+                                page from here. */}
+                            <WorkLocationFieldHelp
+                                hasError={workLocationsError}
+                                isEmpty={workLocations.length === 0}
+                                isDirty={!!(formData.full_name?.trim() || formData.email?.trim() || formData.phone?.trim())}
+                                onQuickAdd={() => setView('newLocation')}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Employment details — Advanced */}
+                <Section title="Employment Details">
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Job Title (Designation)</label>
                             <select
@@ -1492,34 +1688,11 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 </p>
                             ) : null}
                         </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Work Location</label>
-                            <select
-                                value={(formData as any).work_location_id || ''}
-                                onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Work Location</option>
-                                {workLocations.map(loc => (
-                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                ))}
-                            </select>
-                            {/* The manage link is unconditional. It used to render only
-                                when zero locations existed, so it vanished the moment the
-                                first one was created — leaving no route to the management
-                                page from here. */}
-                            <WorkLocationFieldHelp
-                                hasError={workLocationsError}
-                                isEmpty={workLocations.length === 0}
-                                isDirty={!!(formData.full_name?.trim() || formData.email?.trim() || formData.phone?.trim())}
-                            />
-                        </div>
                     </div>
-                </div>
+                </Section>
 
-                {/* Cost */}
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Cost & Billing</h4>
+                {/* Cost — Advanced (defaults: 0 @ hourly in the org currency) */}
+                <Section title="Cost & Billing">
                     <div className="grid grid-cols-4 gap-4">
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Cost Rate *</label>
@@ -1561,12 +1734,10 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             </select>
                         </div>
                     </div>
+                </Section>
 
-                </div>
-
-                {/* Availability */}
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Availability</h4>
+                {/* Availability — Advanced (defaults: 8h × 5d, starting today) */}
+                <Section title="Availability">
                     <div className="grid grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Hours/Day</label>
@@ -1593,7 +1764,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             />
                         </div>
                     </div>
-                </div>
+                </Section>
 
                 {/* Custom Fields */}
                 <CustomFieldsSection
@@ -1724,26 +1895,8 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                         {errorCount} fields need attention before this person can be added.
                     </div>
                 )}
-
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button
-                        type="button" onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={!isFormValid}
-                        title={isFormValid ? undefined : 'Complete all required fields with valid values.'}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Add Person
-                    </button>
-                </div>
             </form>
-        </Modal>
+        </Drawer>
     );
 };
 
@@ -1957,11 +2110,65 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
         if (isOpen && missingCostingCount > 0) setShowCosting(true);
     }, [isOpen, missingCostingCount]);
 
+    // Quick-add work location replaces the drawer content (never a stacked
+    // surface); the form stays mounted so nothing being edited is lost.
+    const [editView, setEditView] = useState<'form' | 'newLocation'>('form');
+    useEffect(() => { if (isOpen) setEditView('form'); }, [isOpen]);
+
+    const handleEditLocationCreated = (loc: WorkLocation) => {
+        setWorkLocations(prev => [...prev, loc].sort((a, b) => a.name.localeCompare(b.name)));
+        updateField('work_location_id', loc.id);
+        setEditView('form');
+    };
+
     if (!person) return null;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Edit ${person.full_name}`} size="lg">
-            <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
+        <Drawer
+            isOpen={isOpen}
+            onClose={onClose}
+            title={editView === 'form' ? `Edit ${person.full_name}` : 'New Work Location'}
+            size="lg"
+            onBack={editView === 'newLocation' ? () => setEditView('form') : undefined}
+            footer={
+                editView === 'form' ? (
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button" onClick={onClose} disabled={busy}
+                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit" form="edit-person-form" disabled={busy || !isFormValid}
+                            title={isFormValid ? undefined : 'Fix the highlighted fields before saving.'}
+                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                        >
+                            {busy && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
+                            Save Changes
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button" onClick={() => setEditView('form')}
+                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        >
+                            Back
+                        </button>
+                        <button
+                            type="submit"
+                            form="quick-add-location-form"
+                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                            Add Location
+                        </button>
+                    </div>
+                )
+            }
+        >
+            {editView === 'newLocation' && <QuickAddLocationPanel onCreated={handleEditLocationCreated} />}
+            <form ref={formRef} id="edit-person-form" onSubmit={handleSubmit} noValidate className={`space-y-5 ${editView === 'newLocation' ? 'hidden' : ''}`}>
                 <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Identity</h4>
                     <div className="grid grid-cols-2 gap-4">
@@ -2119,6 +2326,7 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                 hasError={workLocationsError}
                                 isEmpty={workLocations.length === 0}
                                 isDirty
+                                onQuickAdd={() => setEditView('newLocation')}
                             />
                         </div>
                         <div>
@@ -2268,25 +2476,8 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                 <p className="text-xs text-slate-500">
                     Role &amp; System Permissions are managed from the employee's detail page.
                 </p>
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button
-                        type="button" onClick={onClose} disabled={busy}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit" disabled={busy || !isFormValid}
-                        title={isFormValid ? undefined : 'Fix the highlighted fields before saving.'}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-                    >
-                        {busy && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
-                        Save Changes
-                    </button>
-                </div>
             </form>
-        </Modal>
+        </Drawer>
     );
 };
 

@@ -333,6 +333,8 @@ describe('Given the Designation (Job Title) field in the create modal', () => {
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Add Person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
+    // Designation lives behind the Employment Details disclosure now.
+    fireEvent.click(screen.getByText('Employment Details'));
   };
 
   it('When designations exist / Then they populate the dropdown', async () => {
@@ -378,6 +380,8 @@ describe('Given the Employment Type field in the create modal', () => {
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Add Person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
+    // Employment Type lives behind the Employment Details disclosure now.
+    fireEvent.click(screen.getByText('Employment Details'));
   };
 
   it('When employment types exist / Then they populate the dropdown', async () => {

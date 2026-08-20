@@ -2,8 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { MapPin, Plus, Edit2, Trash2 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
-import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, Drawer, DataTable, DeleteConfirmDialog, type DataTableColumn } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import { workLocationsApi, WorkLocation, CreateWorkLocationPayload, LocationType } from '../services/workLocationsService';
 
@@ -29,7 +28,7 @@ const WorkLocationsPage: React.FC = () => {
 
   const [locations, setLocations] = useState<WorkLocation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
   const [editing, setEditing] = useState<WorkLocation | null>(null);
   // Delete is destructive (or silently deactivates when people are assigned) —
   // never fire it straight off a single icon click.
@@ -55,7 +54,7 @@ const WorkLocationsPage: React.FC = () => {
   const handleCreate = async (data: CreateWorkLocationPayload) => {
     try {
       await workLocationsApi.create(data);
-      setShowModal(false);
+      setShowDrawer(false);
       toast.success(`Work location "${data.name}" created`);
       load();
     } catch (err) {
@@ -94,6 +93,63 @@ const WorkLocationsPage: React.FC = () => {
     }
   };
 
+  const columns: DataTableColumn<WorkLocation>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      render: loc => <span className="font-medium text-slate-50">{loc.name}</span>,
+    },
+    {
+      key: 'location_type',
+      header: 'Type',
+      render: loc => <LocationTypeBadge type={loc.location_type} />,
+    },
+    {
+      key: 'address',
+      header: 'Address',
+      render: loc => <span className="text-slate-400">{loc.address || '—'}</span>,
+    },
+    {
+      key: 'is_active',
+      header: 'Active',
+      render: loc => canManage ? (
+        <button
+          onClick={() => handleToggleActive(loc)}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${loc.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
+          title={loc.is_active ? 'Deactivate' : 'Activate'}
+        >
+          <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${loc.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
+        </button>
+      ) : (
+        <span className={`text-xs ${loc.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
+          {loc.is_active ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    ...(canManage ? [{
+      key: 'actions',
+      header: 'Actions',
+      render: (loc: WorkLocation) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditing(loc)}
+            className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
+            title="Edit"
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            onClick={() => setConfirmDelete(loc)}
+            className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ),
+    }] : []),
+  ];
+
   return (
     <div className="p-6 space-y-5">
       <PageHeader
@@ -102,7 +158,7 @@ const WorkLocationsPage: React.FC = () => {
         actions={
           canManage && (
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => setShowDrawer(true)}
               className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Plus size={16} />
@@ -112,133 +168,48 @@ const WorkLocationsPage: React.FC = () => {
         }
       />
 
-      {loading ? (
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
-          ))}
-        </div>
-      ) : locations.length === 0 ? (
-        <EmptyState
-          icon={MapPin}
-          title="No work locations"
-          description="Add locations like Factory, Store, Office, or Remote to assign to employees."
-          action={canManage ? { label: 'Add Location', onClick: () => setShowModal(true) } : undefined}
-        />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-800">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-800/50 text-left">
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Address</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Active</th>
-                {canManage && <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {locations.map(loc => (
-                <tr key={loc.id} className="bg-slate-900 hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-50">{loc.name}</td>
-                  <td className="px-4 py-3">
-                    <LocationTypeBadge type={loc.location_type} />
-                  </td>
-                  <td className="px-4 py-3 text-slate-400">{loc.address || '—'}</td>
-                  <td className="px-4 py-3">
-                    {canManage ? (
-                      <button
-                        onClick={() => handleToggleActive(loc)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${loc.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
-                        title={loc.is_active ? 'Deactivate' : 'Activate'}
-                      >
-                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${loc.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
-                    ) : (
-                      <span className={`text-xs ${loc.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
-                        {loc.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    )}
-                  </td>
-                  {canManage && (
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setEditing(loc)}
-                          className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(loc)}
-                          className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        rows={locations}
+        rowKey={loc => loc.id}
+        loading={loading}
+        emptyState={
+          <EmptyState
+            icon={MapPin}
+            title="No work locations"
+            description="Add locations like Factory, Store, Office, or Remote to assign to employees."
+            action={canManage ? { label: 'Add Location', onClick: () => setShowDrawer(true) } : undefined}
+          />
+        }
+      />
 
-      <WorkLocationModal
-        isOpen={showModal || !!editing}
-        onClose={() => { setShowModal(false); setEditing(null); }}
+      <WorkLocationDrawer
+        isOpen={showDrawer || !!editing}
+        onClose={() => { setShowDrawer(false); setEditing(null); }}
         onCreate={handleCreate}
         onUpdate={handleUpdate}
         location={editing}
       />
 
-      {confirmDelete && (
-        <Modal
-          isOpen
-          onClose={() => setConfirmDelete(null)}
-          title="Delete Work Location"
-          size="sm"
-        >
-          <p className="text-sm text-slate-400">
-            Delete &quot;{confirmDelete.name}&quot;? This cannot be undone.
-          </p>
-          <p className="text-xs text-slate-500 mt-2">
-            If employees are assigned to it, it will be deactivated instead so
-            their records stay intact.
-          </p>
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(null)}
-              disabled={deleteBusy}
-              className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDeleteConfirmed(confirmDelete)}
-              disabled={deleteBusy}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              Delete Location
-            </button>
-          </div>
-        </Modal>
-      )}
+      <DeleteConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => confirmDelete && handleDeleteConfirmed(confirmDelete)}
+        title="Delete Work Location"
+        message={confirmDelete ? `Delete "${confirmDelete.name}"? This cannot be undone. If employees are assigned to it, it will be deactivated instead so their records stay intact.` : ''}
+        confirmText="Delete Location"
+        isLoading={deleteBusy}
+      />
 
     </div>
   );
 };
 
 // =============================================================================
-// Work Location Modal
+// Work Location Drawer — create / edit form
 // =============================================================================
 
-interface WorkLocationModalProps {
+interface WorkLocationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onCreate: (data: CreateWorkLocationPayload) => void;
@@ -248,7 +219,7 @@ interface WorkLocationModalProps {
 
 const BLANK: CreateWorkLocationPayload = { name: '', location_type: 'office', address: '', is_active: true };
 
-const WorkLocationModal: React.FC<WorkLocationModalProps> = ({ isOpen, onClose, onCreate, onUpdate, location }) => {
+const WorkLocationDrawer: React.FC<WorkLocationDrawerProps> = ({ isOpen, onClose, onCreate, onUpdate, location }) => {
   const [form, setForm] = useState<CreateWorkLocationPayload>(BLANK);
 
   useEffect(() => {
@@ -257,7 +228,7 @@ const WorkLocationModal: React.FC<WorkLocationModalProps> = ({ isOpen, onClose, 
     } else {
       setForm(BLANK);
     }
-  }, [location]);
+  }, [location, isOpen]);
 
   const set = (field: keyof CreateWorkLocationPayload, value: unknown) =>
     setForm(prev => ({ ...prev, [field]: value }));
@@ -273,13 +244,31 @@ const WorkLocationModal: React.FC<WorkLocationModalProps> = ({ isOpen, onClose, 
   };
 
   return (
-    <Modal
+    <Drawer
       isOpen={isOpen}
       onClose={onClose}
       title={location ? 'Edit Work Location' : 'Add Work Location'}
       size="sm"
+      footer={
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="work-location-form"
+            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {location ? 'Save Changes' : 'Add Location'}
+          </button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="work-location-form" onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs text-slate-400 mb-1">Name <span className="text-red-400">*</span></label>
           <input
@@ -324,23 +313,8 @@ const WorkLocationModal: React.FC<WorkLocationModalProps> = ({ isOpen, onClose, 
             </button>
           </div>
         )}
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            {location ? 'Save Changes' : 'Add Location'}
-          </button>
-        </div>
       </form>
-    </Modal>
+    </Drawer>
   );
 };
 

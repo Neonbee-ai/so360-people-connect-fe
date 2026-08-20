@@ -111,8 +111,9 @@ const openAddPerson = async () => {
 const nameInput = () => screen.getByLabelText('Full Name *') as HTMLInputElement;
 const emailInput = () => screen.getByLabelText('Email') as HTMLInputElement;
 const phoneInput = () => screen.getByLabelText('Phone') as HTMLInputElement;
-// The page header also has an "Add Person" button — scope to the modal's form.
-const addButton = () => within(nameInput().closest('form')!).getByRole('button', { name: 'Add Person' });
+// The page header also has an "Add Person" button — scope to the drawer, whose
+// footer (outside the <form>, wired via the form attribute) holds the submit.
+const addButton = () => within(screen.getByRole('dialog')).getByRole('button', { name: 'Add Person' });
 
 /** Satisfies the "Invite as New User" defaults so only identity fields matter. */
 const satisfyInviteFields = () => {

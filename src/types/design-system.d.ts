@@ -94,4 +94,53 @@ declare module '@so360/design-system' {
         id?: string;
     }
     export const Alert: React.FC<AlertProps>;
+
+    // Right-hand slide-over — the platform's primary create/edit surface.
+    // Mirror of so360-shell-fe/packages/design-system/src/components/Drawer.tsx.
+    export interface DrawerProps {
+        isOpen: boolean;
+        onClose: () => void;
+        title: string;
+        subtitle?: string;
+        size?: 'sm' | 'md' | 'lg';
+        footer?: React.ReactNode;
+        onBack?: () => void;
+        children: React.ReactNode;
+    }
+    export const Drawer: React.FC<DrawerProps>;
+
+    // Standard master-data table. Mirror of
+    // so360-shell-fe/packages/design-system/src/components/DataTable.tsx.
+    export interface DataTableColumn<T> {
+        key: string;
+        header: string;
+        render?: (row: T) => React.ReactNode;
+        widthClassName?: string;
+    }
+    export interface DataTableProps<T> {
+        columns: DataTableColumn<T>[];
+        rows: T[];
+        rowKey: (row: T) => string;
+        loading?: boolean;
+        emptyState?: React.ReactNode;
+        onRowClick?: (row: T) => void;
+        skeletonRows?: number;
+    }
+    export function DataTable<T>(props: DataTableProps<T>): React.ReactElement;
+
+    // Mirror of design-system DeleteConfirmDialog.
+    export interface DeleteConfirmDialogProps {
+        isOpen: boolean;
+        onClose: () => void;
+        onConfirm: () => void;
+        title?: string;
+        message?: string;
+        entityName?: string;
+        entityType?: string;
+        confirmText?: string;
+        cancelText?: string;
+        isLoading?: boolean;
+        variant?: 'danger' | 'warning';
+    }
+    export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps>;
 }
