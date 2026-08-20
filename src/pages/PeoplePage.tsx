@@ -1070,13 +1070,25 @@ const PeoplePage: React.FC = () => {
                                     : 'Deactivate Employee'
                     }
                     message={
+                        // One sentence each; consequences live in `detail`
+                        // behind a disclosure (UX guide: one-sentence confirms,
+                        // progressive disclosure for the fine print).
                         confirmAction.type === 'delete'
-                            ? `Permanently delete ${confirmAction.person.full_name}? This cannot be undone — their employee record is destroyed and their platform access is revoked. If they have linked timesheets, leave, allocations, reviews, goals, feedback or attendance, that history is protected: they will be deactivated instead and you'll be told which records blocked the delete.`
+                            ? `Permanently delete ${confirmAction.person.full_name}? This cannot be undone.`
                             : confirmAction.type === 'archive'
-                                ? `Archive ${confirmAction.person.full_name}? They will be removed from active-resource views and selectors and will lose platform access. All historical records are preserved and they can be reactivated later.`
+                                ? `Archive ${confirmAction.person.full_name}? They will be removed from active use and lose platform access.`
                                 : confirmAction.type === 'cancel-invite'
                                     ? `Cancel the pending invitation for ${confirmAction.person.full_name}? They will not be able to use the invite link afterward.`
-                                    : `Deactivate ${confirmAction.person.full_name}? They will immediately lose access to the platform. Their records are preserved and access is restored if you reactivate them.`
+                                    : `Deactivate ${confirmAction.person.full_name}? They will immediately lose access to the platform.`
+                    }
+                    detail={
+                        confirmAction.type === 'delete'
+                            ? 'Their employee record and platform access are removed. If they have linked records (timesheets, leave, allocations, reviews, goals, feedback, attendance), history is protected: they are deactivated instead and the blocking records are listed.'
+                            : confirmAction.type === 'archive'
+                                ? 'All historical records are preserved and they can be reactivated later.'
+                                : confirmAction.type === 'deactivate'
+                                    ? 'Their records are preserved; access is restored if you reactivate them.'
+                                    : undefined
                     }
                     confirmLabel={confirmAction.type === 'delete' ? 'Delete Employee' : confirmAction.type === 'archive' ? 'Archive' : confirmAction.type === 'cancel-invite' ? 'Cancel Invitation' : 'Deactivate'}
                     danger={confirmAction.type === 'delete' || confirmAction.type === 'cancel-invite'}
@@ -1092,6 +1104,68 @@ const PeoplePage: React.FC = () => {
             )}
 
         </div>
+    );
+};
+
+// =============================================================================
+// Work Location field help — shared by the Create and Edit Person modals
+// =============================================================================
+
+/**
+ * The "Manage Work Locations" link leaves this form for a different page, which
+ * silently discards anything already typed. Rather than stack a confirm modal
+ * on top of the person modal, the warning replaces this line in place: one tap
+ * to leave, one to stay. A pristine form navigates straight through, since
+ * there is nothing to lose.
+ */
+const WorkLocationFieldHelp: React.FC<{
+    hasError: boolean;
+    isEmpty: boolean;
+    isDirty: boolean;
+}> = ({ hasError, isEmpty, isDirty }) => {
+    const navigate = useNavigate();
+    const [confirmingLeave, setConfirmingLeave] = useState(false);
+
+    const go = () => navigate('/settings/work-locations');
+
+    if (confirmingLeave) {
+        return (
+            <p className="text-xs text-amber-400 mt-1">
+                Leaving discards what you&apos;ve entered.{' '}
+                <button
+                    type="button"
+                    onClick={go}
+                    className="text-amber-300 hover:text-amber-200 underline"
+                >
+                    Leave anyway
+                </button>
+                {' · '}
+                <button
+                    type="button"
+                    onClick={() => setConfirmingLeave(false)}
+                    className="text-slate-400 hover:text-slate-200 underline"
+                >
+                    Stay
+                </button>
+            </p>
+        );
+    }
+
+    return (
+        <p className="text-xs text-slate-500 mt-1">
+            {hasError
+                ? <span className="text-rose-400">Couldn&apos;t load work locations. </span>
+                : isEmpty
+                    ? 'No work locations configured. '
+                    : null}
+            <button
+                type="button"
+                onClick={() => (isDirty ? setConfirmingLeave(true) : go())}
+                className="text-teal-400 hover:text-teal-300 underline"
+            >
+                Manage Work Locations
+            </button>
+        </p>
     );
 };
 
@@ -1434,20 +1508,11 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 when zero locations existed, so it vanished the moment the
                                 first one was created — leaving no route to the management
                                 page from here. */}
-                            <p className="text-xs text-slate-500 mt-1">
-                                {workLocationsError
-                                    ? <span className="text-rose-400">Couldn't load work locations. </span>
-                                    : workLocations.length === 0
-                                        ? 'No work locations configured. '
-                                        : null}
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/settings/work-locations')}
-                                    className="text-teal-400 hover:text-teal-300 underline"
-                                >
-                                    Manage Work Locations
-                                </button>
-                            </p>
+                            <WorkLocationFieldHelp
+                                hasError={workLocationsError}
+                                isEmpty={workLocations.length === 0}
+                                isDirty={!!(formData.full_name?.trim() || formData.email?.trim() || formData.phone?.trim())}
+                            />
                         </div>
                     </div>
                 </div>
@@ -1690,6 +1755,8 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
 interface ConfirmDialogProps {
     title: string;
     message: string;
+    /** Fine print behind a "What happens?" disclosure — keeps `message` to one sentence. */
+    detail?: string;
     confirmLabel: string;
     danger?: boolean;
     busy?: boolean;
@@ -1697,11 +1764,19 @@ interface ConfirmDialogProps {
     onConfirm: () => void;
 }
 
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ title, message, confirmLabel, danger, busy, onCancel, onConfirm }) => (
+const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ title, message, detail, confirmLabel, danger, busy, onCancel, onConfirm }) => (
     <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div className="bg-slate-900 border border-slate-700/50 rounded-lg shadow-2xl w-full max-w-md p-6">
             <h2 className="text-xl font-semibold text-slate-100 mb-2">{title}</h2>
             <p className="text-slate-400 mb-6">{message}</p>
+            {detail && (
+                <details className="-mt-4 mb-6">
+                    <summary className="text-sm text-slate-500 hover:text-slate-300 cursor-pointer select-none">
+                        What happens?
+                    </summary>
+                    <p className="text-sm text-slate-500 mt-2">{detail}</p>
+                </details>
+            )}
             <div className="flex justify-end gap-3">
                 <button
                     onClick={onCancel}
@@ -2038,20 +2113,13 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                                 ))}
                             </select>
-                            <p className="text-xs text-slate-500 mt-1">
-                                {workLocationsError
-                                    ? <span className="text-rose-400">Couldn't load work locations. </span>
-                                    : workLocations.length === 0
-                                        ? 'No work locations configured. '
-                                        : null}
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/settings/work-locations')}
-                                    className="text-teal-400 hover:text-teal-300 underline"
-                                >
-                                    Manage Work Locations
-                                </button>
-                            </p>
+                            {/* Edit form is prefilled, so a cheap dirty check can't
+                                tell edits from initial values — always guard the exit. */}
+                            <WorkLocationFieldHelp
+                                hasError={workLocationsError}
+                                isEmpty={workLocations.length === 0}
+                                isDirty
+                            />
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Joining Date</label>

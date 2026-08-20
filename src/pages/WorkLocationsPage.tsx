@@ -31,6 +31,10 @@ const WorkLocationsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<WorkLocation | null>(null);
+  // Delete is destructive (or silently deactivates when people are assigned) —
+  // never fire it straight off a single icon click.
+  const [confirmDelete, setConfirmDelete] = useState<WorkLocation | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -76,13 +80,17 @@ const WorkLocationsPage: React.FC = () => {
     await handleUpdate(loc.id, { is_active: !loc.is_active });
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteConfirmed = async (loc: WorkLocation) => {
+    setDeleteBusy(true);
     try {
-      const result = await workLocationsApi.delete(id);
+      const result = await workLocationsApi.delete(loc.id);
       toast.success(result.message);
       load();
-    } catch {
-      toast.error('Failed to delete work location');
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Failed to delete work location');
+    } finally {
+      setDeleteBusy(false);
+      setConfirmDelete(null);
     }
   };
 
@@ -163,7 +171,7 @@ const WorkLocationsPage: React.FC = () => {
                           <Edit2 size={14} />
                         </button>
                         <button
-                          onClick={() => handleDelete(loc.id)}
+                          onClick={() => setConfirmDelete(loc)}
                           className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
                           title="Delete"
                         >
@@ -186,6 +194,41 @@ const WorkLocationsPage: React.FC = () => {
         onUpdate={handleUpdate}
         location={editing}
       />
+
+      {confirmDelete && (
+        <Modal
+          isOpen
+          onClose={() => setConfirmDelete(null)}
+          title="Delete Work Location"
+          size="sm"
+        >
+          <p className="text-sm text-slate-400">
+            Delete &quot;{confirmDelete.name}&quot;? This cannot be undone.
+          </p>
+          <p className="text-xs text-slate-500 mt-2">
+            If employees are assigned to it, it will be deactivated instead so
+            their records stay intact.
+          </p>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(null)}
+              disabled={deleteBusy}
+              className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDeleteConfirmed(confirmDelete)}
+              disabled={deleteBusy}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              Delete Location
+            </button>
+          </div>
+        </Modal>
+      )}
 
     </div>
   );

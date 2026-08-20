@@ -63,6 +63,38 @@ describe('WorkLocationsPage', () => {
       fireEvent.click(screen.getByText('Add Location'));
       await waitFor(() => expect(screen.getByText('Add Work Location')).toBeInTheDocument());
     });
+
+    it('When Delete is clicked / Then a confirmation names the location and nothing is deleted yet', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Head Office')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByTitle('Delete')[0]);
+
+      await waitFor(() => expect(screen.getByText('Delete Work Location')).toBeInTheDocument());
+      expect(screen.getByText(/Delete "Head Office"\? This cannot be undone\./)).toBeInTheDocument();
+      expect(mockApi.delete).not.toHaveBeenCalled();
+    });
+
+    it('When the deletion is confirmed / Then the API is called and the result is toasted', async () => {
+      mockApi.delete.mockResolvedValue({ message: 'Work location deleted' });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Head Office')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByTitle('Delete')[0]);
+      await waitFor(() => expect(screen.getByText('Delete Work Location')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Delete Location'));
+
+      await waitFor(() => expect(mockApi.delete).toHaveBeenCalledWith('wl1'));
+    });
+
+    it('When the confirmation is cancelled / Then the location survives', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Head Office')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByTitle('Delete')[0]);
+      await waitFor(() => expect(screen.getByText('Delete Work Location')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Cancel'));
+
+      await waitFor(() => expect(screen.queryByText('Delete Work Location')).not.toBeInTheDocument());
+      expect(mockApi.delete).not.toHaveBeenCalled();
+    });
   });
 
   describe('Given no work locations exist', () => {

@@ -162,11 +162,35 @@ describe('Given the Add Person modal and at least one work location configured',
     expect(screen.getByText('Manage Work Locations')).toBeInTheDocument();
   });
 
-  it('When the manage link is clicked / Then it navigates to the module route that actually exists', async () => {
+  it('When the manage link is clicked on a pristine form / Then it navigates straight through (nothing to lose)', async () => {
     await openCreateModal();
     await waitFor(() => expect(screen.getByText('Manage Work Locations')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Manage Work Locations'));
     expect(mockNavigate).toHaveBeenCalledWith('/settings/work-locations');
+  });
+
+  it('When the form has data / Then the manage link warns in place instead of silently discarding it', async () => {
+    await openCreateModal();
+    fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'New Hire' } });
+    fireEvent.click(screen.getByText('Manage Work Locations'));
+
+    // No navigation yet — the warning replaces the help line (no stacked modal).
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByText(/Leaving discards/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Leave anyway'));
+    expect(mockNavigate).toHaveBeenCalledWith('/settings/work-locations');
+  });
+
+  it('When the user chooses Stay / Then the form is untouched and no navigation happens', async () => {
+    await openCreateModal();
+    fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'New Hire' } });
+    fireEvent.click(screen.getByText('Manage Work Locations'));
+    fireEvent.click(screen.getByText('Stay'));
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByPlaceholderText('John Doe')).toHaveValue('New Hire');
+    expect(screen.getByText('Manage Work Locations')).toBeInTheDocument();
   });
 
   it('When the modal opens / Then only active locations are offered for assignment', async () => {
