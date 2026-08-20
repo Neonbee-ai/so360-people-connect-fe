@@ -11,6 +11,17 @@ export const QuotaGate = ({ children }: any) => React.createElement(React.Fragme
 export const QuotaBar = () => null;
 export const Pagination = () => null;
 
+// 5-state feature route, mirroring the real contract: enabled (and while
+// loading — fail-open) renders children; locked/disabled/hidden render their
+// fallbacks. Without this, any route wrapped in the App's FeatureGate renders
+// `undefined` and the whole tree crashes.
+export const FeatureRoute = ({ state, loading, children, hiddenFallback, lockedFallback, disabledFallback }: any) => {
+    if (!loading && state === 'locked') return lockedFallback ?? null;
+    if (!loading && state === 'disabled') return disabledFallback ?? null;
+    if (!loading && state === 'hidden') return hiddenFallback ?? null;
+    return React.createElement(React.Fragment, null, children);
+};
+
 // Faithful enough for assertions: dialog only exists when open, shows its
 // title/message, and Cancel/confirm are real buttons — or the "delete needs a
 // confirmation" specs would test nothing.

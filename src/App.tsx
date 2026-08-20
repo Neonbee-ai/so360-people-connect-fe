@@ -237,17 +237,21 @@ const App = () => {
                     <Route path="/" element={<ModuleLanding />} />
                     <Route path="dashboard" element={<DashboardPage />} />
 
-                    {/* Employee self-service. Deliberately ungated: these routes
-                        show only the caller's own records (the backend resolves
-                        the person from the session), so requiring an
+                    {/* Employee self-service. Deliberately permission-free: these
+                        routes show only the caller's own records (the backend
+                        resolves the person from the session), so requiring an
                         administrator's read permission here is exactly the
-                        inversion that left employees with no usable surface. */}
-                    <Route path="my" element={<MyHomePage />} />
-                    <Route path="my/leave" element={<MyLeavePage />} />
-                    <Route path="my/time" element={<MyTimePage />} />
-                    <Route path="my/goals" element={<MyGoalsPage />} />
-                    <Route path="my/profile" element={<MyProfilePage />} />
-                    <Route path="my/team" element={<MyTeamPage />} />
+                        inversion that left employees with no usable surface.
+                        They ARE plan-gated: submodule:people:self_service is the
+                        tier switch for the whole surface (mirrored class-level on
+                        the /me controller); per-domain flags (leave_requests,
+                        job_sessions, …) continue to govern the data inside. */}
+                    <Route path="my" element={<FeatureGate flagKey="submodule:people:self_service"><MyHomePage /></FeatureGate>} />
+                    <Route path="my/leave" element={<FeatureGate flagKey="submodule:people:self_service"><MyLeavePage /></FeatureGate>} />
+                    <Route path="my/time" element={<FeatureGate flagKey="submodule:people:self_service"><MyTimePage /></FeatureGate>} />
+                    <Route path="my/goals" element={<FeatureGate flagKey="submodule:people:self_service"><MyGoalsPage /></FeatureGate>} />
+                    <Route path="my/profile" element={<FeatureGate flagKey="submodule:people:self_service"><MyProfilePage /></FeatureGate>} />
+                    <Route path="my/team" element={<FeatureGate flagKey="submodule:people:self_service"><MyTeamPage /></FeatureGate>} />
 
                     {/* People */}
                     <Route path="people" element={<PermissionGuard permission="employees.read"><PeoplePage /></PermissionGuard>} />

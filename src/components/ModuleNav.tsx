@@ -31,6 +31,13 @@ interface NavItem {
     icon: React.FC<{ size?: number; className?: string }>;
     adminOnly?: boolean;
     flagKey?: string;
+    /**
+     * Role-permission gate, matching the route's PermissionGuard code. Opt-in
+     * per item: the menu should never advertise a page whose guard will refuse
+     * the click. Items stay visible while permissions load (no empty-nav
+     * flash); once loaded, missing the code hides the item.
+     */
+    permKey?: string;
 }
 
 interface NavSection {
@@ -40,9 +47,25 @@ interface NavSection {
 
 const navigationItems: NavSection[] = [
     {
+        // Employee self-service — the landing surface for everyone without
+        // workforce permissions. Plan-gated as one feature; the pages inside
+        // degrade per-domain via the /me endpoints' own flags.
+        section: 'My Work',
+        items: [
+            { path: '/my', label: 'My Work', icon: LayoutDashboard, flagKey: 'submodule:people:self_service' },
+            { path: '/my/time', label: 'My Time', icon: Clock, flagKey: 'submodule:people:self_service' },
+            { path: '/my/leave', label: 'My Leave', icon: CalendarDays, flagKey: 'submodule:people:self_service' },
+            { path: '/my/goals', label: 'My Goals', icon: Target, flagKey: 'submodule:people:self_service' },
+            { path: '/my/team', label: 'My Team', icon: Users, flagKey: 'submodule:people:self_service' },
+            { path: '/my/profile', label: 'My Profile', icon: UserCheck, flagKey: 'submodule:people:self_service' },
+        ]
+    },
+    {
         section: 'Overview',
         items: [
-            { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            // The workforce overview is an empty page without employees.read —
+            // don't advertise it to people whose role can't populate it.
+            { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permKey: 'employees.read' },
         ]
     },
     {
@@ -56,10 +79,12 @@ const navigationItems: NavSection[] = [
     {
         section: 'Resource Management',
         items: [
-            { path: '/allocations', label: 'Allocations', icon: Calendar, flagKey: 'submodule:people:allocations' },
-            { path: '/attendance', label: 'Attendance', icon: ClipboardCheck, flagKey: 'submodule:people:attendance' },
-            { path: '/time', label: 'Employee Timesheets', icon: Clock },
-            { path: '/utilization', label: 'Utilization', icon: Activity, flagKey: 'submodule:people:utilization' },
+            // permKeys mirror each route's PermissionGuard — the section only
+            // renders for roles whose clicks the guards would actually admit.
+            { path: '/allocations', label: 'Allocations', icon: Calendar, flagKey: 'submodule:people:allocations', permKey: 'allocations.read' },
+            { path: '/attendance', label: 'Attendance', icon: ClipboardCheck, flagKey: 'submodule:people:attendance', permKey: 'attendance.read' },
+            { path: '/time', label: 'Employee Timesheets', icon: Clock, permKey: 'attendance.read' },
+            { path: '/utilization', label: 'Utilization', icon: Activity, flagKey: 'submodule:people:utilization', permKey: 'utilization.read' },
         ]
     },
     {
@@ -115,6 +140,10 @@ const ModuleNav: React.FC = () => {
                     const visibleItems = section.items.filter((item) => {
                         if (item.adminOnly && !isAdmin) return false;
                         if (item.flagKey && !((shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.(item.flagKey) ?? true))) return false;
+                        // Fail-open while permissions load (no empty-nav flash),
+                        // fail-closed once they have: the guard would refuse the
+                        // click, so the menu doesn't offer it.
+                        if (item.permKey && shell?.permissionsLoaded && !(shell?.hasPermission?.(item.permKey) ?? true)) return false;
                         return true;
                     });
                     if (visibleItems.length === 0) return null;

@@ -171,6 +171,60 @@ describe('Given ModuleNav adminOnly filter', () => {
   });
 });
 
+// ─── permKey filtering + My Work section ─────────────────────────────────────
+
+describe('Given permission-gated nav items (permKey)', () => {
+    it('When the user lacks employees.read / Then the Dashboard item is hidden', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => c !== 'employees.read', hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+    });
+
+    it('When the user holds employees.read / Then the Dashboard item shows', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    });
+
+    it('When the user lacks the manager read codes / Then Allocations, Attendance, Employee Timesheets and Utilization are hidden', () => {
+        const managerCodes = ['allocations.read', 'attendance.read', 'utilization.read'];
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => !managerCodes.includes(c), hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.queryByText('Allocations')).not.toBeInTheDocument();
+        expect(screen.queryByText('Attendance')).not.toBeInTheDocument();
+        expect(screen.queryByText('Employee Timesheets')).not.toBeInTheDocument();
+        expect(screen.queryByText('Utilization')).not.toBeInTheDocument();
+    });
+
+    it('When permissions are still loading / Then permKey items stay visible (no empty-nav flash)', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: false, hasPermission: () => false, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.getByText('Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Allocations')).toBeInTheDocument();
+    });
+});
+
+describe('Given the My Work section', () => {
+    it('When the self-service flag is enabled / Then all six employee items render for a non-admin', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => false, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        // 'My Work' is both the section header and the home item's label.
+        expect(screen.getAllByText('My Work').length).toBeGreaterThanOrEqual(2);
+        expect(screen.getByText('My Time')).toBeInTheDocument();
+        expect(screen.getByText('My Leave')).toBeInTheDocument();
+        expect(screen.getByText('My Goals')).toBeInTheDocument();
+        expect(screen.getByText('My Team')).toBeInTheDocument();
+        expect(screen.getByText('My Profile')).toBeInTheDocument();
+    });
+
+    it('When the self-service flag is off / Then the whole section disappears', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: (k: string) => k !== 'submodule:people:self_service', isAdmin: true };
+        renderNav();
+        expect(screen.queryByText('My Time')).not.toBeInTheDocument();
+        expect(screen.queryByText('My Leave')).not.toBeInTheDocument();
+    });
+});
+
 // ─── Work Locations (adminOnly, no flagKey) ───────────────────────────────────
 
 describe('Given ModuleNav Work Locations item', () => {
