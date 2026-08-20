@@ -132,3 +132,50 @@ describe('Given an employee already on a break', () => {
         await waitFor(() => expect(meService.endBreak).toHaveBeenCalled());
     });
 });
+
+describe('Given recorded attendance', () => {
+    it('When the page loads / Then my own attendance history is listed', async () => {
+        (meService.myAttendance as any).mockResolvedValue({
+            data: [
+                { id: 'a1', attendance_date: '2026-08-19', status: 'present' },
+                { id: 'a2', attendance_date: '2026-08-18', status: 'absent' },
+            ],
+        });
+
+        render(<MyTimePage />);
+
+        await waitFor(() => expect(screen.getByText('2026-08-19')).toBeInTheDocument());
+        expect(screen.getByText('absent')).toBeInTheDocument();
+    });
+
+    it('When there is none / Then it says so rather than showing an empty box', async () => {
+        render(<MyTimePage />);
+
+        await waitFor(() =>
+            expect(screen.getByText(/No attendance recorded yet/i)).toBeInTheDocument(),
+        );
+    });
+
+    it('When the session lookup fails / Then the page still renders as not clocked in', async () => {
+        (meService.myOpenSession as any).mockRejectedValue(new Error('down'));
+
+        render(<MyTimePage />);
+
+        await waitFor(() =>
+            expect(screen.getByText(/not clocked in/i)).toBeInTheDocument(),
+        );
+    });
+});
+
+describe('Given a session with no job name', () => {
+    it('When it renders / Then the status line omits the job rather than showing undefined', async () => {
+        (meService.myOpenSession as any).mockResolvedValue({
+            session: { ...openSession, entity_name: null },
+        });
+
+        render(<MyTimePage />);
+
+        await waitFor(() => expect(screen.getByText(/Clocked in/)).toBeInTheDocument());
+        expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
+    });
+});

@@ -180,3 +180,68 @@ describe('Given an employee requesting leave', () => {
         expect((meService.myLeaveRequests as any).mock.calls.length).toBeGreaterThan(1);
     });
 });
+
+describe('Given the request form is dismissed', () => {
+    it('When cancel is pressed / Then nothing is submitted and the form closes', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Leave type/i)).toBeInTheDocument());
+
+        fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+        await waitFor(() =>
+            expect(screen.queryByRole('button', { name: /submit request/i })).not.toBeInTheDocument(),
+        );
+        expect(meService.requestLeave).not.toHaveBeenCalled();
+    });
+
+    it('When dates and a reason are edited / Then the values are carried into the payload', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Leave type/i)).toBeInTheDocument());
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        const dates = screen.getAllByDisplayValue(new Date().toISOString().slice(0, 10));
+        fireEvent.change(dates[0], { target: { value: '2026-12-01' } });
+        fireEvent.change(dates[1], { target: { value: '2026-12-05' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Family event' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() => expect(meService.requestLeave).toHaveBeenCalled());
+        const payload = (meService.requestLeave as any).mock.calls[0][0];
+        expect(payload.start_date).toBe('2026-12-01');
+        expect(payload.end_date).toBe('2026-12-05');
+        expect(payload.reason).toBe('Family event');
+    });
+
+    it('When no reason is typed / Then the field is omitted rather than sent empty', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Leave type/i)).toBeInTheDocument());
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() => expect(meService.requestLeave).toHaveBeenCalled());
+        expect((meService.requestLeave as any).mock.calls[0][0].reason).toBeUndefined();
+    });
+});
+
+describe('Given no balances have been set up', () => {
+    it('When the page loads / Then the requests list still renders', async () => {
+        (meService.myLeaveBalances as any).mockResolvedValue({ data: [] });
+        renderPage();
+
+        await waitFor(() => expect(screen.getByText(/My requests/i)).toBeInTheDocument());
+    });
+
+    it('When leave types cannot be loaded / Then the page still opens', async () => {
+        (leaveTypesApi.getAll as any).mockRejectedValue(new Error('types down'));
+        renderPage();
+
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+    });
+});
