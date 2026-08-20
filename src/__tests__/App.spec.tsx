@@ -73,9 +73,22 @@ describe('App', () => {
       };
     });
 
-    it('When navigating to / / Then it redirects to dashboard', async () => {
+    // The landing route branches on who is looking: the admin Dashboard is a
+    // workforce overview an employee holds no permissions to populate, so they
+    // get My Work instead. See ModuleLanding in App.tsx.
+    it('When an admin navigates to / / Then it redirects to dashboard', async () => {
+      mockShellData = { ...mockShellData, permissionsLoaded: true, hasPermission: (c: string) => c === 'employees.read' };
       render(<MemoryRouter initialEntries={['/']}><App /></MemoryRouter>);
       await waitFor(() => expect(screen.getByText('People Connect')).toBeInTheDocument(), { timeout: 5000 });
+    });
+
+    it('When an employee navigates to / / Then they are not sent to the admin dashboard', async () => {
+      mockShellData = { ...mockShellData, permissionsLoaded: true, hasPermission: () => false };
+      render(<MemoryRouter initialEntries={['/']}><App /></MemoryRouter>);
+      await waitFor(
+        () => expect(screen.queryByText('People Connect')).not.toBeInTheDocument(),
+        { timeout: 5000 },
+      );
     });
 
     it('When context syncs / Then it sets context on peopleService', async () => {

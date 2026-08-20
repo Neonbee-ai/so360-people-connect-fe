@@ -8,7 +8,7 @@ import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
-import { apiContext } from '../services/apiClient';
+import { peopleApi } from '../services/peopleService';
 
 const GoalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
@@ -331,7 +331,9 @@ interface GoalModalProps {
 
 const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpdate, goal }) => {
     const [formData, setFormData] = useState<CreateGoalPayload>({
-        person_id: apiContext.getUserId() || '',
+        // Resolved from the caller's employee record below — NEVER the auth
+        // user id, which is a different identifier entirely.
+        person_id: '',
         title: '',
         description: '',
         goal_type: 'individual',
@@ -344,6 +346,19 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
         priority: 'medium',
         status: 'draft',
     });
+
+    // A goal belongs to a PERSON, not to a login. This used to default to
+    // the auth USER uuid — a different identifier — so every goal an employee
+    // created was written against a person_id matching no employee record.
+    useEffect(() => {
+        if (goal || !isOpen) return;
+        let cancelled = false;
+        peopleApi
+            .getMe()
+            .then(me => { if (!cancelled) setFormData(prev => ({ ...prev, person_id: me.id })); })
+            .catch(() => undefined);
+        return () => { cancelled = true; };
+    }, [goal, isOpen]);
 
     useEffect(() => {
         if (goal) {
@@ -367,6 +382,11 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.title || !formData.target_date) return;
+        if (!formData.person_id) {
+            // Better to refuse than to write a goal nobody owns.
+            toast.error('Could not identify your employee record. Contact your administrator.');
+            return;
+        }
 
         if (goal) {
             onUpdate(goal.id, formData);

@@ -206,12 +206,35 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     );
 };
 
+/**
+ * Where the module opens depends on who you are.
+ *
+ * The admin Dashboard is a workforce overview — for someone without
+ * `employees.read` it is an empty or near-empty page, and it was the first
+ * thing every employee saw. They get My Work instead; administrators are
+ * unaffected.
+ *
+ * Falls back to the dashboard while entitlements resolve rather than guessing,
+ * so a slow permission fetch cannot bounce an admin into the employee view.
+ */
+const ModuleLanding: React.FC = () => {
+    const shell = useShellBridge() as any;
+
+    if (shell && shell.permissionsLoaded === false) return null;
+
+    const isAdminViewer = shell?.hasPermission?.('employees.read')
+        || shell?.hasPermission?.('departments.read')
+        || shell?.hasPermission?.('*');
+
+    return <Navigate to={isAdminViewer ? 'dashboard' : 'my'} replace />;
+};
+
 const App = () => {
     return (
         <Layout>
             <PeopleShellInitializer>
                 <Routes>
-                    <Route path="/" element={<Navigate to="dashboard" replace />} />
+                    <Route path="/" element={<ModuleLanding />} />
                     <Route path="dashboard" element={<DashboardPage />} />
 
                     {/* Employee self-service. Deliberately ungated: these routes
