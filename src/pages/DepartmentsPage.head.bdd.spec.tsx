@@ -43,3 +43,19 @@ describe('Given the department create/edit form', () => {
         expect(source()).toMatch(/route to its head/i);
     });
 });
+
+describe('Given a department with no head assigned', () => {
+    it('When the list is rendered / Then it is called out rather than shown as normal', () => {
+        // Silent absence is how the platform reached 32 departments with 0
+        // heads and every manager-scoped feature resolving to nobody.
+        expect(source()).toContain('No head assigned');
+    });
+
+    it('When it is called out / Then it says what breaks, not just that it is missing', () => {
+        expect(source()).toMatch(/nobody to route to/i);
+    });
+
+    it('When the department is inactive / Then it is not nagged about', () => {
+        expect(source()).toMatch(/!dept\.head_person_id && dept\.is_active/);
+    });
+});

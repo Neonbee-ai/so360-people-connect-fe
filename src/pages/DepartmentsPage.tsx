@@ -129,6 +129,18 @@ const DepartmentsPage: React.FC = () => {
                                 <StatusBadge status={dept.is_active ? 'active' : 'inactive'} />
                             </div>
                             <div className="flex items-center gap-4 text-xs text-slate-500">
+                                {/* A department without a head has no reporting edge, so leave
+                                    approvals and reviewer eligibility for everyone in it resolve
+                                    to nobody. Silent until now, which is how the platform reached
+                                    32 departments with 0 heads. */}
+                                {!dept.head_person_id && dept.is_active && (
+                                    <span
+                                        className="text-amber-400"
+                                        title="Leave approvals and reviews for this department have nobody to route to"
+                                    >
+                                        No head assigned
+                                    </span>
+                                )}
                                 {dept.head_person && (
                                     <span>Head: {dept.head_person.full_name}</span>
                                 )}
