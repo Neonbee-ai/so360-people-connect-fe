@@ -66,8 +66,8 @@ export const peopleApi = {
     return api.patch<Person>(`/people/${id}`, data);
   },
 
-  delete: async (id: string): Promise<{ message: string; hard_deleted: boolean }> => {
-    return api.delete<{ message: string; hard_deleted: boolean }>(`/people/${id}`);
+  delete: async (id: string): Promise<{ message: string; hard_deleted: boolean; blockers?: string[] }> => {
+    return api.delete<{ message: string; hard_deleted: boolean; blockers?: string[] }>(`/people/${id}`);
   },
 
   cancelInvite: async (id: string): Promise<{ message: string }> => {

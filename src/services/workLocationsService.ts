@@ -22,8 +22,16 @@ export interface CreateWorkLocationPayload {
 }
 
 export const workLocationsApi = {
-  getAll: async (): Promise<{ data: WorkLocation[] }> => {
-    return api.get<{ data: WorkLocation[] }>('/locations');
+  /**
+   * `includeInactive` is for the Work Locations management page only — it needs
+   * to see deactivated locations in order to edit or reactivate them. Every
+   * assignment surface (Add/Edit Person) must leave it off so inactive
+   * locations can never be assigned.
+   */
+  getAll: async (includeInactive = false): Promise<{ data: WorkLocation[] }> => {
+    return api.get<{ data: WorkLocation[] }>(
+      includeInactive ? '/locations?include_inactive=true' : '/locations'
+    );
   },
 
   create: async (data: CreateWorkLocationPayload): Promise<WorkLocation> => {

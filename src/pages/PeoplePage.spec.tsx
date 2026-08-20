@@ -304,14 +304,16 @@ describe('Given the Work Location field in the create modal', () => {
     expect(screen.getByText('Select Work Location')).toBeInTheDocument();
   });
 
-  it('When no work locations are configured / Then an empty state with a "Create Work Location" action is shown, not a bare "None"', async () => {
+  it('When no work locations are configured / Then an empty state with a "Manage Work Locations" action is shown, not a bare "None"', async () => {
     mockWorkLocationsApi.getAll.mockResolvedValue({ data: [] });
     await openModal();
     await waitFor(() => expect(screen.getByText(/No work locations configured/i)).toBeInTheDocument());
     expect(screen.queryByText('None')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Create Work Location'));
-    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/work-locations');
+    fireEvent.click(screen.getByText('Manage Work Locations'));
+    // The module router serves this at the root of the People Connect remote;
+    // the previous '/people/...' prefix was a dead route.
+    expect(mockNavigate).toHaveBeenCalledWith('/settings/work-locations');
   });
 
   it('When the work locations fetch fails / Then an error message is shown instead of silently rendering an empty dropdown', async () => {
