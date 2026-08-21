@@ -122,8 +122,8 @@ const navigationItems: NavSection[] = [
             { path: '/payroll', label: 'Payroll Dashboard', icon: Wallet, flagKey: 'submodule:people:payroll', permKey: 'payroll.read' },
             { path: '/payroll/runs', label: 'Payroll Runs', icon: Play, flagKey: 'submodule:people:payroll', permKey: 'payroll.read' },
             { path: '/payroll/payslips', label: 'Payslips', icon: Receipt, flagKey: 'submodule:people:payroll', permKey: 'payroll.read' },
-            { path: '/payroll/tax-declarations', label: 'Tax Declarations', icon: ClipboardCheck, flagKey: 'submodule:people:payroll', permKey: 'payroll.tax_manage' },
-            { path: '/payroll/reports', label: 'Reports', icon: BarChart3, flagKey: 'submodule:people:payroll', permKey: 'payroll.reports' },
+            { path: '/payroll/tax-declarations', label: 'Tax Declarations', icon: ClipboardCheck, flagKey: 'submodule:people:payroll', permKey: ['payroll.tax_manage', 'payroll.read'] },
+            { path: '/payroll/reports', label: 'Reports', icon: BarChart3, flagKey: 'submodule:people:payroll', permKey: ['payroll.reports', 'payroll.read'] },
             { path: '/payroll/configuration', label: 'Payroll Configuration', icon: Settings, adminOnly: true, flagKey: 'submodule:people:payroll', permKey: 'payroll.config' },
         ]
     },

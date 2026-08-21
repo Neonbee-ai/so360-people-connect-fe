@@ -303,8 +303,8 @@ const App = () => {
                     <Route path="payroll/runs" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><PayrollRunsPage /></FeatureGate></PermissionGuard>} />
                     <Route path="payroll/runs/:id" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><PayrollRunDetailPage /></FeatureGate></PermissionGuard>} />
                     <Route path="payroll/payslips" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><PayslipsPage /></FeatureGate></PermissionGuard>} />
-                    <Route path="payroll/tax-declarations" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><TaxDeclarationsPage /></FeatureGate></PermissionGuard>} />
-                    <Route path="payroll/reports" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><PayrollReportsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="payroll/tax-declarations" element={<PermissionGuard permission={['payroll.tax_manage', 'payroll.read']}><FeatureGate flagKey="submodule:people:payroll"><TaxDeclarationsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="payroll/reports" element={<PermissionGuard permission={['payroll.reports', 'payroll.read']}><FeatureGate flagKey="submodule:people:payroll"><PayrollReportsPage /></FeatureGate></PermissionGuard>} />
                     <Route path="payroll/configuration" element={<PermissionGuard permission="payroll.config"><FeatureGate flagKey="submodule:people:payroll"><PayrollConfigurationPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings" element={<PermissionGuard permission="org_policy.read"><SettingsHubPage /></PermissionGuard>} />
                     <Route path="settings/organization" element={<PermissionGuard permission="org_policy.read"><OrganizationSettingsPage /></PermissionGuard>} />
