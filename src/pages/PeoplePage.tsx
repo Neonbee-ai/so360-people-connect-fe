@@ -10,6 +10,7 @@ import type { Person, CreatePersonPayload, PersonStatus, AccessStatus, Invitatio
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
+import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import { QuotaBar, QuotaGate, toast, Drawer } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
@@ -212,6 +213,8 @@ const PeoplePage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { orgId, tenantId } = usePeopleContext();
+    // Compensation privacy tier — rate columns hidden without compensation.read.
+    const canViewCompensation = useCanViewCompensation();
     const { recordActivity } = useActivity();
     const formatters = usePeopleFormatters();
     const shell = useShellBridge();
@@ -838,17 +841,19 @@ const PeoplePage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Cost Info */}
-                                <div className="w-28 text-right flex-shrink-0">
-                                    <div className="text-sm font-medium text-slate-50 truncate">
-                                        {formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}
-                                    </div>
-                                    {person.billing_rate && person.billing_rate > 0 && (
-                                        <div className="text-xs text-slate-500">
-                                            Bill: {formatters.formatCurrency(person.billing_rate)}/{person.cost_rate_unit}
+                                {/* Cost Info — compensation-gated */}
+                                {canViewCompensation && (
+                                    <div className="w-28 text-right flex-shrink-0">
+                                        <div className="text-sm font-medium text-slate-50 truncate">
+                                            {formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}
                                         </div>
-                                    )}
-                                </div>
+                                        {person.billing_rate && person.billing_rate > 0 && (
+                                            <div className="text-xs text-slate-500">
+                                                Bill: {formatters.formatCurrency(person.billing_rate)}/{person.cost_rate_unit}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* System Access (access status / system role / invitation) */}
                                 {(() => {

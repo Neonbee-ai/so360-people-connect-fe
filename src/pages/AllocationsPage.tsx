@@ -15,6 +15,7 @@ import { departmentsApi, Department } from '../services/departmentsService';
 import { isUuid } from '../utils/validation';
 import EntitySelector from '../components/EntitySelector';
 import { usePeopleFormatters } from '../utils/formatters';
+import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import type { Allocation, CreateAllocationPayload, UpdateAllocationPayload, Person, AllocationStatus, EntityOption, LookupEntityType } from '../types/people';
 
 interface FlatDepartment extends Department {
@@ -346,6 +347,8 @@ interface CreateAllocationModalProps {
 
 const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, onClose, onCreate }) => {
     const formatters = usePeopleFormatters();
+    // Compensation privacy tier — person rates hidden without compensation.read.
+    const canViewCompensation = useCanViewCompensation();
     const [people, setPeople] = useState<Person[]>([]);
     const [loadingPeople, setLoadingPeople] = useState(false);
     const emptyForm: CreateAllocationPayload = {
@@ -479,7 +482,8 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                             <option value="">Select a person...</option>
                             {people.map(p => (
                                 <option key={p.id} value={p.id}>
-                                    {p.full_name} - {p.job_title || p.type} ({formatters.formatCurrency(p.cost_rate)}/{p.cost_rate_unit})
+                                    {p.full_name} - {p.job_title || p.type}
+                                    {canViewCompensation ? ` (${formatters.formatCurrency(p.cost_rate)}/${p.cost_rate_unit})` : ''}
                                 </option>
                             ))}
                         </select>

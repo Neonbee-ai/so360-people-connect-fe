@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Mail, Phone, Calendar, DollarSign, Clock, Target,
     Tag, Plus, Trash2, Edit2, Save, X, History, User, UserCheck, UserPlus,
-    Briefcase, Shield,
+    Briefcase, Shield, Wallet,
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
+import PayrollProfileTab from '../components/payroll/PayrollProfileTab';
 import Modal from '../components/Modal';
 import { toast } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
@@ -18,6 +19,7 @@ import { goalsApi, Goal } from '../services/goalsService';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
+import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import type { Person, Allocation, PersonRole } from '../types/people';
 
 const PersonDetailPage: React.FC = () => {
@@ -25,6 +27,9 @@ const PersonDetailPage: React.FC = () => {
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
     const formatters = usePeopleFormatters();
+    // Compensation privacy tier — rate/salary fields are hidden unless the
+    // user holds compensation.read (fail open while permissions load).
+    const canViewCompensation = useCanViewCompensation();
     const [person, setPerson] = useState<Person | null>(null);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [timeEntries, setTimeEntries] = useState<TimesheetEntry[]>([]);
@@ -39,7 +44,9 @@ const PersonDetailPage: React.FC = () => {
     const [showSystemRoleModal, setShowSystemRoleModal] = useState(false);
     const [showLinkUserModal, setShowLinkUserModal] = useState(false);
     const [showUpdateRateModal, setShowUpdateRateModal] = useState(false);
-    const [activeTab, setActiveTab] = useState<string>('overview');
+    // Deep links (e.g. payroll alert "Fix" flow) may land with ?tab=payroll.
+    const [searchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState<string>(searchParams.get('tab') ?? 'overview');
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
 
     useEffect(() => {
@@ -334,22 +341,26 @@ const PersonDetailPage: React.FC = () => {
                                 allowClear
                             />
                         </div>
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">Cost Rate</label>
-                            <input
-                                type="number" value={editData.cost_rate || 0}
-                                onChange={e => setEditData(d => ({ ...d, cost_rate: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">Billing Rate</label>
-                            <input
-                                type="number" value={editData.billing_rate || 0}
-                                onChange={e => setEditData(d => ({ ...d, billing_rate: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
+                        {canViewCompensation && (
+                            <div>
+                                <label className="block text-xs text-slate-500 mb-1">Cost Rate</label>
+                                <input
+                                    type="number" value={editData.cost_rate || 0}
+                                    onChange={e => setEditData(d => ({ ...d, cost_rate: parseFloat(e.target.value) }))}
+                                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                />
+                            </div>
+                        )}
+                        {canViewCompensation && (
+                            <div>
+                                <label className="block text-xs text-slate-500 mb-1">Billing Rate</label>
+                                <input
+                                    type="number" value={editData.billing_rate || 0}
+                                    onChange={e => setEditData(d => ({ ...d, billing_rate: parseFloat(e.target.value) }))}
+                                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                />
+                            </div>
+                        )}
                         <div>
                             <label className="block text-xs text-slate-500 mb-1">Status</label>
                             <select
@@ -389,13 +400,15 @@ const PersonDetailPage: React.FC = () => {
 
             {/* Stats Row */}
             <div className="grid grid-cols-4 gap-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                        <DollarSign size={14} className="text-emerald-400" />
-                        <span className="text-xs text-slate-400">Cost Rate</span>
+                {canViewCompensation && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <DollarSign size={14} className="text-emerald-400" />
+                            <span className="text-xs text-slate-400">Cost Rate</span>
+                        </div>
+                        <div className="text-lg font-bold text-slate-50">{formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}</div>
                     </div>
-                    <div className="text-lg font-bold text-slate-50">{formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}</div>
-                </div>
+                )}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                         <Target size={14} className="text-blue-400" />
@@ -549,17 +562,19 @@ const PersonDetailPage: React.FC = () => {
                             <History size={14} className="inline mr-1.5" />
                             Employment History
                         </button>
-                        <button
-                            onClick={() => setActiveTab('rate-history')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'rate-history'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                            }`}
-                        >
-                            <DollarSign size={14} className="inline mr-1.5" />
-                            Rate History
-                        </button>
+                        {canViewCompensation && (
+                            <button
+                                onClick={() => setActiveTab('rate-history')}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                    activeTab === 'rate-history'
+                                        ? 'bg-teal-500/10 text-teal-400'
+                                        : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                }`}
+                            >
+                                <DollarSign size={14} className="inline mr-1.5" />
+                                Rate History
+                            </button>
+                        )}
                         <button
                             onClick={() => setActiveTab('goals')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -570,6 +585,17 @@ const PersonDetailPage: React.FC = () => {
                         >
                             <Target size={14} className="inline mr-1.5" />
                             Goals
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('payroll')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                activeTab === 'payroll'
+                                    ? 'bg-teal-500/10 text-teal-400'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                            }`}
+                        >
+                            <Wallet size={14} className="inline mr-1.5" />
+                            Payroll
                         </button>
                     </div>
                 </div>
@@ -692,8 +718,8 @@ const PersonDetailPage: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Rate History Tab */}
-                    {activeTab === 'rate-history' && (
+                    {/* Rate History Tab — compensation-gated */}
+                    {activeTab === 'rate-history' && canViewCompensation && (
                         <div className="space-y-3">
                             {rateHistory.map((event) => (
                                 <div key={event.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
@@ -741,6 +767,9 @@ const PersonDetailPage: React.FC = () => {
                             </button>
                         </div>
                     )}
+
+                    {/* Payroll Tab */}
+                    {activeTab === 'payroll' && person && <PayrollProfileTab person={person} />}
 
                     {/* Goals Tab */}
                     {activeTab === 'goals' && (

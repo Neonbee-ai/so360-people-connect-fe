@@ -12,7 +12,13 @@ import React from 'react';
  */
 
 vi.mock('../../services/meService', () => ({
-    meService: { whosOut: vi.fn(), directory: vi.fn() },
+    meService: {
+        whosOut: vi.fn(),
+        directory: vi.fn(),
+        myTeamLeaveRequests: vi.fn(),
+        approveTeamLeaveRequest: vi.fn(),
+        rejectTeamLeaveRequest: vi.fn(),
+    },
 }));
 
 import MyTeamPage from './MyTeamPage';
@@ -45,6 +51,107 @@ beforeEach(() => {
                 avatar_url: null,
             },
         ],
+    });
+    // Default: the caller heads no department — the backend answers [] and
+    // the Team Leave card must simply not exist.
+    (meService.myTeamLeaveRequests as any).mockResolvedValue({ data: [], total: 0 });
+    (meService.approveTeamLeaveRequest as any).mockResolvedValue({ status: 'approved' });
+    (meService.rejectTeamLeaveRequest as any).mockResolvedValue({ status: 'rejected' });
+});
+
+const pendingTeamRequest = (over: Record<string, unknown> = {}) => ({
+    id: 'lr1',
+    person_id: 'p9',
+    leave_type_id: 'lt1',
+    start_date: '2026-09-10',
+    end_date: '2026-09-12',
+    status: 'pending',
+    reason: 'Family event',
+    person: {
+        id: 'p9',
+        full_name: 'Manu Member',
+        job_title: 'Engineer',
+        department_id: 'd1',
+        avatar_url: null,
+    },
+    leave_type: { id: 'lt1', name: 'Annual', code: 'AL' },
+    ...over,
+});
+
+describe('Given the Team Leave section (manager tier)', () => {
+    it('When the caller heads no department (backend returns []) / Then the section is not rendered at all', async () => {
+        render(<MyTeamPage />);
+
+        await waitFor(() => expect(screen.getByText('Priya R')).toBeInTheDocument());
+        expect(meService.myTeamLeaveRequests).toHaveBeenCalledWith({ status: 'pending' });
+        expect(screen.queryByText(/Team leave approvals/i)).not.toBeInTheDocument();
+    });
+
+    it('When the caller heads a department with pending requests / Then rows render with name, dates and actions', async () => {
+        (meService.myTeamLeaveRequests as any).mockResolvedValue({
+            data: [pendingTeamRequest()],
+            total: 1,
+        });
+
+        render(<MyTeamPage />);
+
+        await waitFor(() =>
+            expect(screen.getByText('Team leave approvals')).toBeInTheDocument(),
+        );
+        expect(screen.getByText('Manu Member')).toBeInTheDocument();
+        expect(screen.getByText(/2026-09-10 → 2026-09-12/)).toBeInTheDocument();
+        expect(screen.getByText('Family event')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /approve/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^reject$/i })).toBeInTheDocument();
+    });
+
+    it('When Approve is clicked / Then the API is called and the row disappears', async () => {
+        (meService.myTeamLeaveRequests as any).mockResolvedValue({
+            data: [pendingTeamRequest()],
+            total: 1,
+        });
+
+        render(<MyTeamPage />);
+        await waitFor(() => expect(screen.getByText('Manu Member')).toBeInTheDocument());
+
+        fireEvent.click(screen.getByRole('button', { name: /approve/i }));
+
+        await waitFor(() =>
+            expect(meService.approveTeamLeaveRequest).toHaveBeenCalledWith('lr1'),
+        );
+        await waitFor(() =>
+            expect(screen.queryByText('Manu Member')).not.toBeInTheDocument(),
+        );
+        expect(screen.queryByText(/Team leave approvals/i)).not.toBeInTheDocument();
+    });
+
+    it('When rejecting / Then a reason is required before the API is called', async () => {
+        (meService.myTeamLeaveRequests as any).mockResolvedValue({
+            data: [pendingTeamRequest()],
+            total: 1,
+        });
+
+        render(<MyTeamPage />);
+        await waitFor(() => expect(screen.getByText('Manu Member')).toBeInTheDocument());
+
+        fireEvent.click(screen.getByRole('button', { name: /^reject$/i }));
+
+        const confirmBtn = screen.getByRole('button', { name: /confirm reject/i });
+        expect(confirmBtn).toBeDisabled();
+        fireEvent.click(confirmBtn);
+        expect(meService.rejectTeamLeaveRequest).not.toHaveBeenCalled();
+
+        fireEvent.change(screen.getByLabelText('Rejection reason'), {
+            target: { value: 'Coverage gap' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /confirm reject/i }));
+
+        await waitFor(() =>
+            expect(meService.rejectTeamLeaveRequest).toHaveBeenCalledWith('lr1', 'Coverage gap'),
+        );
+        await waitFor(() =>
+            expect(screen.queryByText('Manu Member')).not.toBeInTheDocument(),
+        );
     });
 });
 

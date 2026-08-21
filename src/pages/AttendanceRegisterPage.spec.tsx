@@ -25,13 +25,21 @@ vi.mock('../services/attendanceService', () => ({
     delete: vi.fn(),
     getHistory: vi.fn(),
   },
+  attendanceCorrectionsApi: {
+    createMine: vi.fn(),
+    listMine: vi.fn(),
+    list: vi.fn(),
+    approve: vi.fn(),
+    reject: vi.fn(),
+  },
 }));
 
 import AttendanceRegisterPage from './AttendanceRegisterPage';
-import { attendanceApi } from '../services/attendanceService';
+import { attendanceApi, attendanceCorrectionsApi } from '../services/attendanceService';
 import { toast } from '@so360/design-system';
 
 const mockAttendanceApi = attendanceApi as any;
+const mockCorrectionsApi = attendanceCorrectionsApi as any;
 
 const aliceUnmarked = {
   person_id: 'p1',
@@ -66,6 +74,7 @@ const renderPage = () => render(<AttendanceRegisterPage />);
 beforeEach(() => {
   vi.resetAllMocks();
   mockAttendanceApi.getSummary.mockResolvedValue(summaryFixture);
+  mockCorrectionsApi.list.mockResolvedValue({ data: [], total: 0 });
 });
 
 describe('Given AttendanceRegisterPage loads the register for the default (today) date', () => {
@@ -254,5 +263,114 @@ describe('Given AttendanceRegisterPage register fetch fails', () => {
     const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
     await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load attendance register'));
+  });
+});
+
+// ===========================================================================
+// Corrections tab — attendance regularization review
+// ===========================================================================
+
+const pendingCorrection = {
+  id: 'c1',
+  person_id: 'p1',
+  person_name: 'Alice',
+  designation: 'Engineer',
+  attendance_date: '2026-08-10',
+  requested_check_in: '09:00',
+  requested_check_out: '18:00',
+  requested_status: 'present',
+  reason: 'Forgot to punch in',
+  status: 'pending',
+  reviewed_by: null,
+  review_note: null,
+  created_at: '2026-08-11T00:00:00Z',
+  updated_at: '2026-08-11T00:00:00Z',
+};
+
+const openCorrectionsTab = async () => {
+  mockAttendanceApi.getRegister.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
+  renderPage();
+  fireEvent.click(screen.getByRole('tab', { name: 'Corrections' }));
+};
+
+describe('Given the Corrections tab', () => {
+  it('When opened / Then pending requests load by default with person info and requested values', async () => {
+    mockCorrectionsApi.list.mockResolvedValue({ data: [pendingCorrection], total: 1 });
+    await openCorrectionsTab();
+
+    await waitFor(() =>
+      expect(mockCorrectionsApi.list).toHaveBeenCalledWith({ status: 'pending' }),
+    );
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    expect(screen.getByText('Forgot to punch in')).toBeInTheDocument();
+    expect(screen.getByText('09:00 – 18:00')).toBeInTheDocument();
+  });
+
+  it('When there are no requests / Then an empty state renders', async () => {
+    await openCorrectionsTab();
+
+    await waitFor(() =>
+      expect(screen.getByText(/No correction requests/i)).toBeInTheDocument(),
+    );
+  });
+
+  it('When Approve is clicked / Then the approve call fires and the list reloads', async () => {
+    mockCorrectionsApi.list.mockResolvedValue({ data: [pendingCorrection], total: 1 });
+    mockCorrectionsApi.approve.mockResolvedValue({ ...pendingCorrection, status: 'approved' });
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
+    await openCorrectionsTab();
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /approve correction for alice/i }));
+
+    await waitFor(() => expect(mockCorrectionsApi.approve).toHaveBeenCalledWith('c1'));
+    expect(toastSuccessSpy).toHaveBeenCalledWith('Correction approved for Alice');
+    // list() is called again after approval (initial load + reload)
+    expect(mockCorrectionsApi.list.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it('When Reject is clicked / Then a note is REQUIRED before the reject call fires', async () => {
+    mockCorrectionsApi.list.mockResolvedValue({ data: [pendingCorrection], total: 1 });
+    mockCorrectionsApi.reject.mockResolvedValue({ ...pendingCorrection, status: 'rejected' });
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
+    await openCorrectionsTab();
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /reject correction for alice/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/Reason for rejection/i)).toBeInTheDocument(),
+    );
+
+    // Empty note — the confirm button stays disabled and no call is made.
+    const confirmBtn = screen.getByRole('button', { name: 'Reject Request' });
+    expect(confirmBtn).toBeDisabled();
+    expect(mockCorrectionsApi.reject).not.toHaveBeenCalled();
+
+    fireEvent.change(
+      screen.getByPlaceholderText(/why is this request being rejected/i),
+      { target: { value: 'Register already shows leave' } },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reject Request' }));
+
+    await waitFor(() =>
+      expect(mockCorrectionsApi.reject).toHaveBeenCalledWith('c1', 'Register already shows leave'),
+    );
+    expect(toastSuccessSpy).toHaveBeenCalledWith('Correction rejected for Alice');
+  });
+
+  it('When approval fails / Then the server reason is surfaced', async () => {
+    mockCorrectionsApi.list.mockResolvedValue({ data: [pendingCorrection], total: 1 });
+    mockCorrectionsApi.approve.mockRejectedValue(
+      new Error('You cannot approve your own correction request'),
+    );
+    const toastErrorSpy = vi.spyOn(toast, 'error');
+    await openCorrectionsTab();
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /approve correction for alice/i }));
+
+    await waitFor(() =>
+      expect(toastErrorSpy).toHaveBeenCalledWith('You cannot approve your own correction request'),
+    );
   });
 });

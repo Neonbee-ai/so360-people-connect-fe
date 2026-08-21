@@ -9,7 +9,7 @@ vi.mock('./apiClient', () => ({
   },
 }));
 
-import { attendanceApi } from './attendanceService';
+import { attendanceApi, attendanceCorrectionsApi } from './attendanceService';
 import { api } from './apiClient';
 
 const mockApi = api as any;
@@ -86,5 +86,46 @@ describe('Given attendanceApi.getHistory', () => {
     const result = await attendanceApi.getHistory('a1');
     expect(mockApi.get).toHaveBeenCalledWith('/attendance/a1/history');
     expect(result).toEqual({ data: [], total: 0 });
+  });
+});
+
+describe('Given attendanceCorrectionsApi self-service calls', () => {
+  it('When createMine is called / Then it POSTs /attendance/corrections/mine with the payload (no person_id)', async () => {
+    mockApi.post.mockResolvedValue({ id: 'c1' });
+    const payload = {
+      attendance_date: '2026-08-10',
+      requested_check_in: '09:00',
+      requested_check_out: '18:00',
+      requested_status: 'present' as const,
+      reason: 'Forgot to punch in',
+    };
+    await attendanceCorrectionsApi.createMine(payload);
+    expect(mockApi.post).toHaveBeenCalledWith('/attendance/corrections/mine', payload);
+  });
+
+  it('When listMine is called / Then it GETs /attendance/corrections/mine', async () => {
+    mockApi.get.mockResolvedValue({ data: [], total: 0 });
+    await attendanceCorrectionsApi.listMine();
+    expect(mockApi.get).toHaveBeenCalledWith('/attendance/corrections/mine');
+  });
+});
+
+describe('Given attendanceCorrectionsApi review calls', () => {
+  it('When list is called with a status / Then it GETs /attendance/corrections with the filter', async () => {
+    mockApi.get.mockResolvedValue({ data: [], total: 0 });
+    await attendanceCorrectionsApi.list({ status: 'pending' });
+    expect(mockApi.get).toHaveBeenCalledWith('/attendance/corrections', { status: 'pending' });
+  });
+
+  it('When approve is called / Then it POSTs /attendance/corrections/:id/approve', async () => {
+    mockApi.post.mockResolvedValue({ id: 'c1', status: 'approved' });
+    await attendanceCorrectionsApi.approve('c1');
+    expect(mockApi.post).toHaveBeenCalledWith('/attendance/corrections/c1/approve', {});
+  });
+
+  it('When reject is called / Then it POSTs the required review_note', async () => {
+    mockApi.post.mockResolvedValue({ id: 'c1', status: 'rejected' });
+    await attendanceCorrectionsApi.reject('c1', 'Register shows leave');
+    expect(mockApi.post).toHaveBeenCalledWith('/attendance/corrections/c1/reject', { review_note: 'Register shows leave' });
   });
 });

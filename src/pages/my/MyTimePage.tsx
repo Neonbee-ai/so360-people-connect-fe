@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Clock, Coffee, LogOut, Play } from 'lucide-react';
+import { CalendarClock, Clock, Coffee, LogOut, Play, Send } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyOpenSession, MyAttendanceRecord, MyAllocation } from '../../services/meService';
+import { attendanceCorrectionsApi } from '../../services/attendanceService';
+import type { AttendanceCorrectionRequest, AttendanceStatus } from '../../services/attendanceService';
 import { MyCard, StatusPill, Skeleton, primaryBtn, secondaryBtn, dangerBtn, inputCls, labelCls } from './myUi';
 
 /**
@@ -33,19 +35,22 @@ const MyTimePage: React.FC = () => {
     const [allocations, setAllocations] = useState<MyAllocation[]>([]);
     const [picked, setPicked] = useState('');
     const [history, setHistory] = useState<MyAttendanceRecord[]>([]);
+    const [corrections, setCorrections] = useState<AttendanceCorrectionRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
     const [now, setNow] = useState(Date.now());
 
     const load = useCallback(async () => {
-        const [s, a, al] = await Promise.allSettled([
+        const [s, a, al, c] = await Promise.allSettled([
             meService.myOpenSession(),
             meService.myAttendance(),
             meService.myAllocations(),
+            attendanceCorrectionsApi.listMine(),
         ]);
         if (s.status === 'fulfilled') setSession(s.value.session);
         if (a.status === 'fulfilled') setHistory(a.value.data);
         if (al.status === 'fulfilled') setAllocations(al.value.data);
+        if (c.status === 'fulfilled') setCorrections(c.value.data);
         setLoading(false);
     }, []);
 
@@ -202,6 +207,11 @@ const MyTimePage: React.FC = () => {
                 )}
             </section>
 
+            <CorrectionRequestsCard
+                corrections={corrections}
+                onFiled={load}
+            />
+
             <MyCard title="My attendance" icon={<Clock size={14} />} flush>
                 {history.length === 0 ? (
                     <p className="py-8 text-center text-sm text-slate-500">
@@ -221,6 +231,163 @@ const MyTimePage: React.FC = () => {
                 )}
             </MyCard>
         </div>
+    );
+};
+
+// =============================================================================
+// Attendance correction requests — "I was there, the register is wrong"
+// =============================================================================
+
+const todayIso = () => new Date().toISOString().split('T')[0];
+
+const CORRECTION_STATUSES: AttendanceStatus[] = ['present', 'half_day', 'wfh', 'on_duty'];
+
+const CorrectionRequestsCard: React.FC<{
+    corrections: AttendanceCorrectionRequest[];
+    onFiled: () => Promise<void> | void;
+}> = ({ corrections, onFiled }) => {
+    const [open, setOpen] = useState(false);
+    const [date, setDate] = useState(todayIso());
+    const [checkIn, setCheckIn] = useState('');
+    const [checkOut, setCheckOut] = useState('');
+    const [status, setStatus] = useState<AttendanceStatus>('present');
+    const [reason, setReason] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    const submit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!reason.trim()) return;
+        setSaving(true);
+        try {
+            await attendanceCorrectionsApi.createMine({
+                attendance_date: date,
+                requested_check_in: checkIn || undefined,
+                requested_check_out: checkOut || undefined,
+                requested_status: status,
+                reason: reason.trim(),
+            });
+            toast.success('Correction request submitted');
+            setOpen(false);
+            setCheckIn('');
+            setCheckOut('');
+            setReason('');
+            await onFiled();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to submit correction request');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <MyCard
+            title="Attendance corrections"
+            icon={<CalendarClock size={14} />}
+            actions={
+                <button
+                    type="button"
+                    onClick={() => setOpen(v => !v)}
+                    className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                >
+                    {open ? 'Close' : 'Request correction'}
+                </button>
+            }
+            flush
+        >
+            {open && (
+                <form onSubmit={submit} className="space-y-4 border-b border-slate-800 p-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label htmlFor="correction-date" className={labelCls}>Date *</label>
+                            <input
+                                id="correction-date"
+                                type="date"
+                                max={todayIso()}
+                                value={date}
+                                onChange={e => setDate(e.target.value)}
+                                className={inputCls}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="correction-status" className={labelCls}>Correct status</label>
+                            <select
+                                id="correction-status"
+                                value={status}
+                                onChange={e => setStatus(e.target.value as AttendanceStatus)}
+                                className={inputCls}
+                            >
+                                {CORRECTION_STATUSES.map(s => (
+                                    <option key={s} value={s}>
+                                        {s.replace(/_/g, ' ')}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="correction-check-in" className={labelCls}>Check in</label>
+                            <input
+                                id="correction-check-in"
+                                type="time"
+                                value={checkIn}
+                                onChange={e => setCheckIn(e.target.value)}
+                                className={inputCls}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="correction-check-out" className={labelCls}>Check out</label>
+                            <input
+                                id="correction-check-out"
+                                type="time"
+                                value={checkOut}
+                                onChange={e => setCheckOut(e.target.value)}
+                                className={inputCls}
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="correction-reason" className={labelCls}>Reason *</label>
+                        <textarea
+                            id="correction-reason"
+                            rows={2}
+                            value={reason}
+                            onChange={e => setReason(e.target.value)}
+                            placeholder="e.g. I was on site but forgot to punch in"
+                            className={inputCls}
+                        />
+                    </div>
+                    <div className="flex justify-end">
+                        <button type="submit" disabled={saving || !reason.trim()} className={primaryBtn}>
+                            <Send size={16} /> Submit request
+                        </button>
+                    </div>
+                </form>
+            )}
+
+            {corrections.length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-500">
+                    No correction requests yet. Spotted a wrong or missing day? Request a correction.
+                </p>
+            ) : (
+                <ul className="divide-y divide-slate-800">
+                    {corrections.slice(0, 30).map(c => (
+                        <li key={c.id} className="px-4 py-2.5">
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm text-slate-300">{c.attendance_date}</span>
+                                <span className="text-xs text-slate-500">
+                                    {[c.requested_check_in, c.requested_check_out].filter(Boolean).join(' – ') || c.requested_status || ''}
+                                </span>
+                                <StatusPill status={c.status} />
+                            </div>
+                            <p className="mt-0.5 text-xs text-slate-500">{c.reason}</p>
+                            {c.status === 'rejected' && c.review_note && (
+                                <p className="mt-0.5 text-xs text-rose-400">Rejected: {c.review_note}</p>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </MyCard>
     );
 };
 

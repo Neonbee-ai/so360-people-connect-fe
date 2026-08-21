@@ -12,6 +12,7 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import { toast } from '@so360/design-system';
 import { utilizationApi } from '../services/peopleService';
+import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import type { UtilizationData, UtilizationSummary } from '../types/people';
 
 const UtilizationPage: React.FC = () => {
@@ -365,6 +366,8 @@ const UtilizationPage: React.FC = () => {
 // =============================================================================
 
 const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
+    // Compensation privacy tier — rate line hidden without compensation.read.
+    const canViewCompensation = useCanViewCompensation();
     const { settings: cardSettings } = useBusinessSettings();
     const cardFormatters = useFormatters({
         currency: cardSettings?.base_currency || 'USD',
@@ -485,10 +488,14 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                 }>
                     {utilization.variance_hours > 0 ? '+' : ''}{utilization.variance_hours ?? 0}h vs planned
                 </span>
-                <span className="text-slate-600">|</span>
-                <span className="text-slate-500">
-                    Rate: {cardFormatters.formatCurrency(person.cost_rate || 0)}/{person.available_hours_per_day ? 'hour' : 'day'}
-                </span>
+                {canViewCompensation && (
+                    <>
+                        <span className="text-slate-600">|</span>
+                        <span className="text-slate-500">
+                            Rate: {cardFormatters.formatCurrency(person.cost_rate || 0)}/{person.available_hours_per_day ? 'hour' : 'day'}
+                        </span>
+                    </>
+                )}
             </div>
         </div>
     );

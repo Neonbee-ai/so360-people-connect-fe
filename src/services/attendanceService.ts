@@ -89,6 +89,38 @@ export interface AttendanceHistoryEntry {
 }
 
 // =============================================================================
+// Correction Requests (attendance regularization)
+// =============================================================================
+
+export type CorrectionStatus = 'pending' | 'approved' | 'rejected';
+
+export interface AttendanceCorrectionRequest {
+  id: string;
+  person_id: string;
+  // Present on the admin list only — enriched server-side.
+  person_name?: string | null;
+  designation?: string | null;
+  attendance_date: string;
+  requested_check_in: string | null;
+  requested_check_out: string | null;
+  requested_status: AttendanceStatus | null;
+  reason: string;
+  status: CorrectionStatus;
+  reviewed_by: string | null;
+  review_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCorrectionPayload {
+  attendance_date: string;
+  requested_check_in?: string;
+  requested_check_out?: string;
+  requested_status?: AttendanceStatus;
+  reason: string;
+}
+
+// =============================================================================
 // ATTENDANCE API
 // =============================================================================
 
@@ -122,5 +154,36 @@ export const attendanceApi = {
 
   getHistory: async (id: string): Promise<{ data: AttendanceHistoryEntry[]; total: number }> => {
     return api.get<{ data: AttendanceHistoryEntry[]; total: number }>(`/attendance/${id}/history`);
+  },
+};
+
+// =============================================================================
+// CORRECTIONS API — self-service (/mine) + review (attendance.read/update)
+// =============================================================================
+
+export const attendanceCorrectionsApi = {
+  /** File a correction for MYSELF — the server resolves the person from the session. */
+  createMine: async (data: CreateCorrectionPayload): Promise<AttendanceCorrectionRequest> => {
+    return api.post<AttendanceCorrectionRequest>('/attendance/corrections/mine', data);
+  },
+
+  /** My own correction requests, newest first. */
+  listMine: async (): Promise<{ data: AttendanceCorrectionRequest[]; total: number }> => {
+    return api.get<{ data: AttendanceCorrectionRequest[]; total: number }>('/attendance/corrections/mine');
+  },
+
+  /** Org-wide list for reviewers (attendance.read). */
+  list: async (params?: { status?: CorrectionStatus }): Promise<{ data: AttendanceCorrectionRequest[]; total: number }> => {
+    return api.get<{ data: AttendanceCorrectionRequest[]; total: number }>('/attendance/corrections', params);
+  },
+
+  /** Approve — upserts the attendance record server-side (attendance.update). */
+  approve: async (id: string, review_note?: string): Promise<AttendanceCorrectionRequest> => {
+    return api.post<AttendanceCorrectionRequest>(`/attendance/corrections/${id}/approve`, review_note ? { review_note } : {});
+  },
+
+  /** Reject — a review note is required (attendance.update). */
+  reject: async (id: string, review_note: string): Promise<AttendanceCorrectionRequest> => {
+    return api.post<AttendanceCorrectionRequest>(`/attendance/corrections/${id}/reject`, { review_note });
   },
 };

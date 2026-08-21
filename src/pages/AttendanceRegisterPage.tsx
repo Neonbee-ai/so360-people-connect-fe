@@ -8,9 +8,12 @@ import Modal from '../components/Modal';
 import { toast } from '@so360/design-system';
 import {
     attendanceApi,
+    attendanceCorrectionsApi,
     AttendanceRegisterRow,
     AttendanceSummary,
     AttendanceStatus,
+    AttendanceCorrectionRequest,
+    CorrectionStatus,
 } from '../services/attendanceService';
 
 const todayIso = () => new Date().toISOString().split('T')[0];
@@ -27,6 +30,7 @@ const QUICK_ACTIONS: { status: AttendanceStatus; label: string; icon: React.FC<{
 ];
 
 const AttendanceRegisterPage: React.FC = () => {
+    const [tab, setTab] = useState<'register' | 'corrections'>('register');
     const [date, setDate] = useState(todayIso());
     const [rows, setRows] = useState<AttendanceRegisterRow[]>([]);
     const [summary, setSummary] = useState<AttendanceSummary | null>(null);
@@ -100,6 +104,38 @@ const AttendanceRegisterPage: React.FC = () => {
         <div className="p-6 space-y-5">
             <PageHeader title="Attendance Register" subtitle="Daily attendance for your organization" />
 
+            {/* Tabs */}
+            <div className="flex items-center gap-1 border-b border-slate-800" role="tablist">
+                {([
+                    { id: 'register', label: 'Register' },
+                    { id: 'corrections', label: 'Corrections' },
+                ] as const).map((t) => (
+                    <button
+                        key={t.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={tab === t.id}
+                        onClick={() => setTab(t.id)}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                            tab === t.id
+                                ? 'border-teal-500 text-teal-400'
+                                : 'border-transparent text-slate-400 hover:text-slate-50'
+                        }`}
+                    >
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {tab === 'corrections' ? (
+                <CorrectionsSection
+                    onChanged={() => {
+                        loadRegister(date);
+                        loadSummary(date);
+                    }}
+                />
+            ) : (
+            <>
             {/* Date Picker */}
             <div className="flex items-center gap-3">
                 <label htmlFor="attendance-date" className="text-xs text-slate-400">
@@ -211,8 +247,233 @@ const AttendanceRegisterPage: React.FC = () => {
 
             {/* Edit Modal */}
             <AttendanceEditModal row={editingRow} date={date} onClose={() => setEditingRow(null)} onSaved={handleSaved} />
+            </>
+            )}
 
         </div>
+    );
+};
+
+// =============================================================================
+// Corrections tab — review employee regularization requests
+// =============================================================================
+
+const CORRECTION_FILTERS: { id: CorrectionStatus | 'all'; label: string }[] = [
+    { id: 'pending', label: 'Pending' },
+    { id: 'approved', label: 'Approved' },
+    { id: 'rejected', label: 'Rejected' },
+    { id: 'all', label: 'All' },
+];
+
+const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
+    const [filter, setFilter] = useState<CorrectionStatus | 'all'>('pending');
+    const [requests, setRequests] = useState<AttendanceCorrectionRequest[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [busyId, setBusyId] = useState<string | null>(null);
+    const [rejecting, setRejecting] = useState<AttendanceCorrectionRequest | null>(null);
+
+    const load = useCallback(async () => {
+        try {
+            setLoading(true);
+            const result = await attendanceCorrectionsApi.list(
+                filter === 'all' ? undefined : { status: filter },
+            );
+            setRequests(result.data);
+        } catch (error) {
+            console.error('Failed to load correction requests:', error);
+            toast.error('Failed to load correction requests');
+        } finally {
+            setLoading(false);
+        }
+    }, [filter]);
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    const handleApprove = async (request: AttendanceCorrectionRequest) => {
+        setBusyId(request.id);
+        try {
+            await attendanceCorrectionsApi.approve(request.id);
+            toast.success(`Correction approved for ${request.person_name || 'employee'}`);
+            await load();
+            onChanged();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to approve correction');
+        } finally {
+            setBusyId(null);
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            {/* Status filter */}
+            <div className="flex items-center gap-2">
+                {CORRECTION_FILTERS.map((f) => (
+                    <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setFilter(f.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            filter === f.id
+                                ? 'bg-teal-500/20 text-teal-400'
+                                : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                        }`}
+                    >
+                        {f.label}
+                    </button>
+                ))}
+            </div>
+
+            {loading ? (
+                <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+                    ))}
+                </div>
+            ) : requests.length === 0 ? (
+                <EmptyState
+                    icon={ClipboardCheck}
+                    title="No correction requests"
+                    description="Employee attendance correction requests will appear here for review."
+                />
+            ) : (
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-slate-800/50 border-b border-slate-800">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Employee</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Requested</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Reason</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                            {requests.map((r) => (
+                                <tr key={r.id} className="hover:bg-slate-800/50 transition-colors">
+                                    <td className="px-4 py-3">
+                                        <div className="text-sm text-slate-50">{r.person_name || '—'}</div>
+                                        <div className="text-xs text-slate-500">{r.designation || ''}</div>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-slate-400">{r.attendance_date}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-400">
+                                        {r.requested_status ? statusLabel(r.requested_status) : '—'}
+                                        <div className="text-xs text-slate-500">
+                                            {[r.requested_check_in, r.requested_check_out].filter(Boolean).join(' – ') || ''}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-slate-400 max-w-[240px] truncate" title={r.reason}>
+                                        {r.reason}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <StatusBadge status={r.status} />
+                                        {r.review_note && (
+                                            <div className="text-xs text-slate-500 mt-0.5 max-w-[160px] truncate" title={r.review_note}>
+                                                {r.review_note}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {r.status === 'pending' && (
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={busyId === r.id}
+                                                    onClick={() => handleApprove(r)}
+                                                    aria-label={`Approve correction for ${r.person_name || 'employee'}`}
+                                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white transition-colors disabled:opacity-50"
+                                                >
+                                                    Approve
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={busyId === r.id}
+                                                    onClick={() => setRejecting(r)}
+                                                    aria-label={`Reject correction for ${r.person_name || 'employee'}`}
+                                                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-rose-400 transition-colors disabled:opacity-50"
+                                                >
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            <RejectCorrectionModal
+                request={rejecting}
+                onClose={() => setRejecting(null)}
+                onRejected={async () => {
+                    setRejecting(null);
+                    await load();
+                }}
+            />
+        </div>
+    );
+};
+
+const RejectCorrectionModal: React.FC<{
+    request: AttendanceCorrectionRequest | null;
+    onClose: () => void;
+    onRejected: () => void;
+}> = ({ request, onClose, onRejected }) => {
+    const [note, setNote] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (request) setNote('');
+    }, [request]);
+
+    if (!request) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!note.trim()) return;
+        setSaving(true);
+        try {
+            await attendanceCorrectionsApi.reject(request.id, note.trim());
+            toast.success(`Correction rejected for ${request.person_name || 'employee'}`);
+            onRejected();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to reject correction');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={!!request} onClose={onClose} title={`Reject Correction — ${request.person_name || 'Employee'}`}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1">Reason for rejection *</label>
+                    <textarea
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        placeholder="Shown to the employee — why is this request being rejected?"
+                    />
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={saving || !note.trim()}
+                        className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Reject Request
+                    </button>
+                </div>
+            </form>
+        </Modal>
     );
 };
 

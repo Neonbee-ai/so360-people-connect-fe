@@ -72,6 +72,22 @@ export interface MyAllocation {
     status: string;
 }
 
+/**
+ * A leave request as seen by the department HEAD. Unlike WhosOutEntry this is
+ * not redacted — a head needs reason and type to decide — which is why the
+ * backend only returns rows for departments where departments.head_person_id
+ * is the caller, and returns [] (not 403) for everyone else.
+ */
+export interface TeamLeaveRequest extends Omit<LeaveRequest, 'person'> {
+    person: {
+        id: string;
+        full_name: string | null;
+        job_title: string | null;
+        department_id: string | null;
+        avatar_url: string | null;
+    } | null;
+}
+
 export interface DirectoryEntry {
     id: string;
     full_name: string;
@@ -124,6 +140,19 @@ export const meService = {
 
     whosOut: (from: string, to: string) =>
         api.get<{ data: WhosOutEntry[] }>('/me/team/whos-out', { from, to }),
+
+    // Manager tier — only meaningful for department heads; everyone else
+    // receives an empty list and the UI hides the section.
+    myTeamLeaveRequests: (params?: { status?: string; limit?: number }) =>
+        api.get<{ data: TeamLeaveRequest[]; total: number }>('/me/team/leave-requests', params),
+
+    approveTeamLeaveRequest: (id: string, decisionNotes?: string) =>
+        api.post<LeaveRequest>(`/me/team/leave-requests/${id}/approve`,
+            decisionNotes ? { decision_notes: decisionNotes } : {}),
+
+    rejectTeamLeaveRequest: (id: string, rejectionReason: string) =>
+        api.post<LeaveRequest>(`/me/team/leave-requests/${id}/reject`,
+            { rejection_reason: rejectionReason }),
 
     directory: (params?: { search?: string; department_id?: string }) =>
         api.get<{ data: DirectoryEntry[] }>('/me/team/directory', params),

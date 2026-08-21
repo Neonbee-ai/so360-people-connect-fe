@@ -27,8 +27,19 @@ vi.mock('@so360/design-system', () => ({
     toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+vi.mock('../../services/attendanceService', () => ({
+    attendanceCorrectionsApi: {
+        createMine: vi.fn(),
+        listMine: vi.fn(),
+        list: vi.fn(),
+        approve: vi.fn(),
+        reject: vi.fn(),
+    },
+}));
+
 import MyTimePage from './MyTimePage';
 import { meService } from '../../services/meService';
+import { attendanceCorrectionsApi } from '../../services/attendanceService';
 import { toast } from '@so360/design-system';
 
 const openSession = {
@@ -50,6 +61,8 @@ beforeEach(() => {
     (meService.clockOut as any).mockResolvedValue({});
     (meService.startBreak as any).mockResolvedValue({});
     (meService.endBreak as any).mockResolvedValue({});
+    (attendanceCorrectionsApi.listMine as any).mockResolvedValue({ data: [], total: 0 });
+    (attendanceCorrectionsApi.createMine as any).mockResolvedValue({ id: 'c-new', status: 'pending' });
 });
 
 describe('Given an employee who is not clocked in', () => {
@@ -240,5 +253,105 @@ describe('Given an employee with no assignments', () => {
             expect(screen.getByText(/no active work assignments/i)).toBeInTheDocument(),
         );
         expect(screen.queryByRole('button', { name: /clock in/i })).not.toBeInTheDocument();
+    });
+});
+
+// ===========================================================================
+// Attendance corrections (regularization)
+// ===========================================================================
+
+describe('Given my correction requests', () => {
+    it('When the page loads / Then my requests are listed with their status', async () => {
+        (attendanceCorrectionsApi.listMine as any).mockResolvedValue({
+            data: [
+                {
+                    id: 'c1', attendance_date: '2026-08-10',
+                    requested_check_in: '09:00', requested_check_out: '18:00',
+                    requested_status: 'present', reason: 'Forgot to punch in',
+                    status: 'pending', review_note: null,
+                },
+                {
+                    id: 'c2', attendance_date: '2026-08-05',
+                    requested_check_in: null, requested_check_out: null,
+                    requested_status: 'present', reason: 'Badge failed',
+                    status: 'rejected', review_note: 'Register shows leave',
+                },
+            ],
+            total: 2,
+        });
+
+        render(<MyTimePage />);
+
+        await waitFor(() => expect(screen.getByText('2026-08-10')).toBeInTheDocument());
+        expect(screen.getByText('Forgot to punch in')).toBeInTheDocument();
+        expect(screen.getByText('pending')).toBeInTheDocument();
+        // Rejection note is surfaced to the employee
+        expect(screen.getByText(/Register shows leave/)).toBeInTheDocument();
+    });
+
+    it('When there are none / Then it invites a request rather than showing an empty box', async () => {
+        render(<MyTimePage />);
+
+        await waitFor(() =>
+            expect(screen.getByText(/No correction requests yet/i)).toBeInTheDocument(),
+        );
+    });
+});
+
+describe('Given an employee filing a correction', () => {
+    const openForm = async () => {
+        render(<MyTimePage />);
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: /request correction/i })).toBeInTheDocument(),
+        );
+        fireEvent.click(screen.getByRole('button', { name: /request correction/i }));
+        await waitFor(() => expect(screen.getByLabelText(/reason/i)).toBeInTheDocument());
+    };
+
+    it('When the reason is empty / Then submit stays disabled', async () => {
+        await openForm();
+
+        expect(screen.getByRole('button', { name: /submit request/i })).toBeDisabled();
+    });
+
+    it('When submitted / Then the self-scoped create is called with the fields and NO person id', async () => {
+        await openForm();
+
+        fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2026-08-10' } });
+        fireEvent.change(screen.getByLabelText(/check in/i), { target: { value: '09:00' } });
+        fireEvent.change(screen.getByLabelText(/check out/i), { target: { value: '18:00' } });
+        fireEvent.change(screen.getByLabelText(/reason/i), { target: { value: 'Forgot to punch in' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() => expect(attendanceCorrectionsApi.createMine).toHaveBeenCalled());
+        const payload = (attendanceCorrectionsApi.createMine as any).mock.calls[0][0];
+        expect(payload).toMatchObject({
+            attendance_date: '2026-08-10',
+            requested_check_in: '09:00',
+            requested_check_out: '18:00',
+            requested_status: 'present',
+            reason: 'Forgot to punch in',
+        });
+        // Safety property: the client never names a person.
+        expect(payload).not.toHaveProperty('person_id');
+        await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Correction request submitted'));
+        // The list is refreshed after filing
+        expect((attendanceCorrectionsApi.listMine as any).mock.calls.length).toBeGreaterThan(1);
+    });
+
+    it('When the server refuses / Then the reason is surfaced', async () => {
+        (attendanceCorrectionsApi.createMine as any).mockRejectedValue(
+            new Error('You already have a pending correction request for this date'),
+        );
+        await openForm();
+
+        fireEvent.change(screen.getByLabelText(/reason/i), { target: { value: 'dup' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() =>
+            expect(toast.error).toHaveBeenCalledWith(
+                'You already have a pending correction request for this date',
+            ),
+        );
     });
 });
