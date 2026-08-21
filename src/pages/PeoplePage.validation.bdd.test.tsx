@@ -330,10 +330,16 @@ describe('Given the People Registry filter bar', () => {
     expect((screen.getByLabelText('Joined from') as HTMLInputElement).value).toBe('');
     await waitFor(() => expect(screen.queryByRole('button', { name: /clear filters/i })).not.toBeInTheDocument());
     // The list query re-runs off the reset state — no extra user action needed.
-    await waitFor(() => expect(mockApi.getAll).toHaveBeenCalled());
-    const lastCall = mockApi.getAll.mock.calls[mockApi.getAll.mock.calls.length - 1][0];
-    expect(lastCall.search).toBeUndefined();
-    expect(lastCall.date_of_joining_from).toBeUndefined();
+    // Waited for, not sampled once: the search box is debounced, so the fetch
+    // scheduled by typing "ali" can still land after the clear on a loaded
+    // machine. Sampling the last call immediately made this pass locally and
+    // fail on CI; waiting asserts the settled state and still fails for real
+    // if the reset never triggers a refetch.
+    await waitFor(() => {
+      const lastCall = mockApi.getAll.mock.calls[mockApi.getAll.mock.calls.length - 1][0];
+      expect(lastCall.search).toBeUndefined();
+      expect(lastCall.date_of_joining_from).toBeUndefined();
+    });
   });
 
   it('When the search box has text / Then a per-field clear control is offered', async () => {
