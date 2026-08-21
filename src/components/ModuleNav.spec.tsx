@@ -204,6 +204,69 @@ describe('Given permission-gated nav items (permKey)', () => {
     });
 });
 
+// ─── Employee (self-service only) sees NO org-wide workforce sections ─────────
+
+describe('Given an employee whose role has no workforce read grants (post-migration-145 Employee)', () => {
+    // The employee keeps only self-service creates; every org-wide read
+    // (leave.read, goals.read, reviews.read, employees.read, ...) is denied.
+    beforeEach(() => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => false, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+    });
+
+    it('When rendered / Then the entire Leave Management section is hidden', () => {
+        renderNav();
+        expect(screen.queryByText('Leave Management')).not.toBeInTheDocument();
+        expect(screen.queryByText('Leave Requests')).not.toBeInTheDocument();
+        expect(screen.queryByText('Leave Calendar')).not.toBeInTheDocument();
+        expect(screen.queryByText('Pending Approvals')).not.toBeInTheDocument();
+        expect(screen.queryByText('Leave Types')).not.toBeInTheDocument();
+        expect(screen.queryByText('Leave Balances')).not.toBeInTheDocument();
+    });
+
+    it('When rendered / Then People Registry, Departments, Performance and Import/Export are hidden', () => {
+        renderNav();
+        expect(screen.queryByText('People Registry')).not.toBeInTheDocument();
+        expect(screen.queryByText('Departments')).not.toBeInTheDocument();
+        expect(screen.queryByText('Reviews')).not.toBeInTheDocument();
+        expect(screen.queryByText('Goals')).not.toBeInTheDocument();
+        expect(screen.queryByText('Team Performance')).not.toBeInTheDocument();
+        expect(screen.queryByText('Import/Export')).not.toBeInTheDocument();
+    });
+
+    it('When rendered / Then the My Work self-service section still shows (its data comes from /me)', () => {
+        renderNav();
+        expect(screen.getByText('My Leave')).toBeInTheDocument();
+        expect(screen.getByText('My Time')).toBeInTheDocument();
+    });
+});
+
+describe('Given an HR/manager holding the workforce read grants', () => {
+    it('When rendered / Then the Leave Management section shows', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+        renderNav();
+        expect(screen.getByText('Leave Requests')).toBeInTheDocument();
+        expect(screen.getByText('Leave Calendar')).toBeInTheDocument();
+        expect(screen.getByText('Pending Approvals')).toBeInTheDocument();
+    });
+});
+
+describe('Given an array permKey (ANY-of semantics, mirroring OR route guards)', () => {
+    it('When the user holds only utilization.read / Then Team Performance still shows', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => c === 'utilization.read', hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.getByText('Team Performance')).toBeInTheDocument();
+        // ...while single-code items gated on other permissions stay hidden.
+        expect(screen.queryByText('Reviews')).not.toBeInTheDocument();
+    });
+
+    it('When the user holds only leave.request / Then Leave Requests shows but Leave Calendar stays hidden', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => c === 'leave.request', hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.getByText('Leave Requests')).toBeInTheDocument();
+        expect(screen.queryByText('Leave Calendar')).not.toBeInTheDocument();
+    });
+});
+
 describe('Given the My Work section', () => {
     it('When the self-service flag is enabled / Then all six employee items render for a non-admin', () => {
         mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => false, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };

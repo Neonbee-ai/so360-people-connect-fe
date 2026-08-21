@@ -37,7 +37,9 @@ interface NavItem {
      * the click. Items stay visible while permissions load (no empty-nav
      * flash); once loaded, missing the code hides the item.
      */
-    permKey?: string;
+    // Single code or ANY-of list — mirrors the route's PermissionGuard exactly
+    // (guards use OR logic for arrays).
+    permKey?: string | string[];
 }
 
 interface NavSection {
@@ -71,8 +73,8 @@ const navigationItems: NavSection[] = [
     {
         section: 'People & Organization',
         items: [
-            { path: '/people', label: 'People Registry', icon: Users },
-            { path: '/departments', label: 'Departments', icon: Building2 },
+            { path: '/people', label: 'People Registry', icon: Users, permKey: 'employees.read' },
+            { path: '/departments', label: 'Departments', icon: Building2, permKey: 'departments.read' },
             { path: '/settings/work-locations', label: 'Work Locations', icon: MapPin, adminOnly: true },
         ]
     },
@@ -90,26 +92,29 @@ const navigationItems: NavSection[] = [
     {
         section: 'Leave Management',
         items: [
-            { path: '/leaves/requests', label: 'Leave Requests', icon: CalendarDays },
-            { path: '/leaves/calendar', label: 'Leave Calendar', icon: CalendarRange },
-            { path: '/leaves/approvals', label: 'Pending Approvals', icon: CheckCircle },
-            { path: '/leaves/types', label: 'Leave Types', icon: Settings },
-            { path: '/leaves/balances', label: 'Leave Balances', icon: DollarSign, adminOnly: true },
+            // permKeys mirror each route's PermissionGuard. Employees manage
+            // their own leave under /my/leave — this section is the HR/manager
+            // org-wide surface and hides entirely without workforce grants.
+            { path: '/leaves/requests', label: 'Leave Requests', icon: CalendarDays, permKey: ['leave.read', 'leave.request'] },
+            { path: '/leaves/calendar', label: 'Leave Calendar', icon: CalendarRange, permKey: 'leave.read' },
+            { path: '/leaves/approvals', label: 'Pending Approvals', icon: CheckCircle, permKey: 'leave.approve' },
+            { path: '/leaves/types', label: 'Leave Types', icon: Settings, permKey: 'leave.configure' },
+            { path: '/leaves/balances', label: 'Leave Balances', icon: DollarSign, adminOnly: true, permKey: 'leave.read' },
         ]
     },
     {
         section: 'Performance',
         items: [
-            { path: '/reviews', label: 'Reviews', icon: TrendingUp, flagKey: 'submodule:people:reviews' },
-            { path: '/goals', label: 'Goals', icon: Target },
-            { path: '/team-performance', label: 'Team Performance', icon: Users },
-            { path: '/reviews/templates', label: 'Review Templates', icon: FileText, adminOnly: true, flagKey: 'submodule:people:reviews' },
+            { path: '/reviews', label: 'Reviews', icon: TrendingUp, flagKey: 'submodule:people:reviews', permKey: 'reviews.read' },
+            { path: '/goals', label: 'Goals', icon: Target, permKey: 'goals.read' },
+            { path: '/team-performance', label: 'Team Performance', icon: Users, permKey: ['reviews.read', 'utilization.read'] },
+            { path: '/reviews/templates', label: 'Review Templates', icon: FileText, adminOnly: true, flagKey: 'submodule:people:reviews', permKey: 'reviews.create' },
         ]
     },
     {
         section: 'Administration',
         items: [
-            { path: '/import-export', label: 'Import/Export', icon: Upload },
+            { path: '/import-export', label: 'Import/Export', icon: Upload, permKey: 'employees.import' },
             { path: '/settings', label: 'Settings', icon: Settings, adminOnly: true },
             { path: '/settings/approval-chains', label: 'Hierarchy', icon: Building2, adminOnly: true, flagKey: 'submodule:people:approval_chains' },
             { path: '/settings/employment-policy', label: 'Overtime Rules', icon: TrendingUp, adminOnly: true, flagKey: 'submodule:people:employment_policy' },
@@ -143,7 +148,10 @@ const ModuleNav: React.FC = () => {
                         // Fail-open while permissions load (no empty-nav flash),
                         // fail-closed once they have: the guard would refuse the
                         // click, so the menu doesn't offer it.
-                        if (item.permKey && shell?.permissionsLoaded && !(shell?.hasPermission?.(item.permKey) ?? true)) return false;
+                        if (item.permKey && shell?.permissionsLoaded) {
+                            const keys = Array.isArray(item.permKey) ? item.permKey : [item.permKey];
+                            if (!keys.some((k) => shell?.hasPermission?.(k) ?? true)) return false;
+                        }
                         return true;
                     });
                     if (visibleItems.length === 0) return null;
