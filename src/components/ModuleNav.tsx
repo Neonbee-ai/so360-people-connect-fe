@@ -23,6 +23,10 @@ import {
     Sparkles,
     UserCheck,
     MapPin,
+    Wallet,
+    Play,
+    Receipt,
+    BarChart3,
 } from 'lucide-react';
 
 interface NavItem {
@@ -58,6 +62,7 @@ const navigationItems: NavSection[] = [
             { path: '/my/time', label: 'My Time', icon: Clock, flagKey: 'submodule:people:self_service' },
             { path: '/my/leave', label: 'My Leave', icon: CalendarDays, flagKey: 'submodule:people:self_service' },
             { path: '/my/goals', label: 'My Goals', icon: Target, flagKey: 'submodule:people:self_service' },
+            { path: '/my/payslips', label: 'My Payslips', icon: Receipt, flagKey: 'submodule:people:payroll' },
             { path: '/my/team', label: 'My Team', icon: Users, flagKey: 'submodule:people:self_service' },
             { path: '/my/profile', label: 'My Profile', icon: UserCheck, flagKey: 'submodule:people:self_service' },
         ]
@@ -109,6 +114,17 @@ const navigationItems: NavSection[] = [
             { path: '/goals', label: 'Goals', icon: Target, permKey: 'goals.read' },
             { path: '/team-performance', label: 'Team Performance', icon: Users, permKey: ['reviews.read', 'utilization.read'] },
             { path: '/reviews/templates', label: 'Review Templates', icon: FileText, adminOnly: true, flagKey: 'submodule:people:reviews', permKey: 'reviews.create' },
+        ]
+    },
+    {
+        section: 'Payroll',
+        items: [
+            { path: '/payroll', label: 'Payroll Dashboard', icon: Wallet, flagKey: 'submodule:people:payroll', permKey: 'payroll.read' },
+            { path: '/payroll/runs', label: 'Payroll Runs', icon: Play, flagKey: 'submodule:people:payroll', permKey: 'payroll.read' },
+            { path: '/payroll/payslips', label: 'Payslips', icon: Receipt, flagKey: 'submodule:people:payroll', permKey: 'payroll.read' },
+            { path: '/payroll/tax-declarations', label: 'Tax Declarations', icon: ClipboardCheck, flagKey: 'submodule:people:payroll', permKey: 'payroll.tax_manage' },
+            { path: '/payroll/reports', label: 'Reports', icon: BarChart3, flagKey: 'submodule:people:payroll', permKey: 'payroll.reports' },
+            { path: '/payroll/configuration', label: 'Payroll Configuration', icon: Settings, adminOnly: true, flagKey: 'submodule:people:payroll', permKey: 'payroll.config' },
         ]
     },
     {

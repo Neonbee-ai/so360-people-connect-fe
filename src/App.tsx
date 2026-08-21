@@ -187,6 +187,15 @@ const NotificationSettingsPage = lazy(() => import('./pages/settings/Notificatio
 const UtilizationSettingsPage = lazy(() => import('./pages/settings/UtilizationSettingsPage'));
 const TimesheetSettingsPage = lazy(() => import('./pages/settings/TimesheetSettingsPage'));
 const CustomFieldsPage = lazy(() => import('./pages/settings/CustomFieldsPage'));
+const PayrollDashboardPage = lazy(() => import('./pages/payroll/PayrollDashboardPage'));
+const PayrollConfigurationPage = lazy(() => import('./pages/payroll/PayrollConfigurationPage'));
+const PayrollRunsPage = lazy(() => import('./pages/payroll/PayrollRunsPage'));
+const PayrollRunDetailPage = lazy(() => import('./pages/payroll/PayrollRunDetailPage'));
+const PayslipsPage = lazy(() => import('./pages/payroll/PayslipsPage'));
+const MyPayslipsPage = lazy(() => import('./pages/payroll/MyPayslipsPage'));
+const TaxDeclarationsPage = lazy(() => import('./pages/payroll/TaxDeclarationsPage'));
+const MyTaxDeclarationPage = lazy(() => import('./pages/payroll/MyTaxDeclarationPage'));
+const PayrollReportsPage = lazy(() => import('./pages/payroll/PayrollReportsPage'));
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -251,6 +260,8 @@ const App = () => {
                     <Route path="my/time" element={<FeatureGate flagKey="submodule:people:self_service"><MyTimePage /></FeatureGate>} />
                     <Route path="my/goals" element={<FeatureGate flagKey="submodule:people:self_service"><MyGoalsPage /></FeatureGate>} />
                     <Route path="my/profile" element={<FeatureGate flagKey="submodule:people:self_service"><MyProfilePage /></FeatureGate>} />
+                    <Route path="my/payslips" element={<FeatureGate flagKey="submodule:people:self_service"><FeatureGate flagKey="submodule:people:payroll"><MyPayslipsPage /></FeatureGate></FeatureGate>} />
+                    <Route path="my/tax-declaration" element={<FeatureGate flagKey="submodule:people:self_service"><FeatureGate flagKey="submodule:people:payroll"><MyTaxDeclarationPage /></FeatureGate></FeatureGate>} />
                     <Route path="my/team" element={<FeatureGate flagKey="submodule:people:self_service"><MyTeamPage /></FeatureGate>} />
 
                     {/* People */}
@@ -286,6 +297,14 @@ const App = () => {
                     <Route path="feedback" element={<PermissionGuard permission="feedback.read"><FeedbackPage /></PermissionGuard>} />
 
                     {/* Settings — every screen here writes org-wide policy, so they all sit behind org_policy.read */}
+                    {/* Payroll */}
+                    <Route path="payroll" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><PayrollDashboardPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="payroll/runs" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><PayrollRunsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="payroll/runs/:id" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><PayrollRunDetailPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="payroll/payslips" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><PayslipsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="payroll/tax-declarations" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><TaxDeclarationsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="payroll/reports" element={<PermissionGuard permission="payroll.read"><FeatureGate flagKey="submodule:people:payroll"><PayrollReportsPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="payroll/configuration" element={<PermissionGuard permission="payroll.config"><FeatureGate flagKey="submodule:people:payroll"><PayrollConfigurationPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings" element={<PermissionGuard permission="org_policy.read"><SettingsHubPage /></PermissionGuard>} />
                     <Route path="settings/organization" element={<PermissionGuard permission="org_policy.read"><OrganizationSettingsPage /></PermissionGuard>} />
                     <Route path="settings/attendance" element={<PermissionGuard permission="org_policy.read"><AttendanceSettingsPage /></PermissionGuard>} />

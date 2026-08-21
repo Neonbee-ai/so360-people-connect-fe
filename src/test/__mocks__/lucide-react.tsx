@@ -95,3 +95,11 @@ export type LucideIcon = React.FC<any>;
 export const Coffee = createIcon('Coffee');
 export const LogOut = createIcon('LogOut');
 export const Play = createIcon('Play');
+// Payroll module icons
+export const HelpCircle = createIcon('HelpCircle');
+export const Wallet = createIcon('Wallet');
+export const Landmark = createIcon('Landmark');
+export const RotateCcw = createIcon('RotateCcw');
+export const Layers = createIcon('Layers');
+export const FileSpreadsheet = createIcon('FileSpreadsheet');
+export const CreditCard = createIcon('CreditCard');
