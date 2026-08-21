@@ -187,6 +187,7 @@ const NotificationSettingsPage = lazy(() => import('./pages/settings/Notificatio
 const UtilizationSettingsPage = lazy(() => import('./pages/settings/UtilizationSettingsPage'));
 const TimesheetSettingsPage = lazy(() => import('./pages/settings/TimesheetSettingsPage'));
 const CustomFieldsPage = lazy(() => import('./pages/settings/CustomFieldsPage'));
+const OnboardingTemplatesPage = lazy(() => import('./pages/settings/OnboardingTemplatesPage'));
 const PayrollDashboardPage = lazy(() => import('./pages/payroll/PayrollDashboardPage'));
 const PayrollConfigurationPage = lazy(() => import('./pages/payroll/PayrollConfigurationPage'));
 const PayrollRunsPage = lazy(() => import('./pages/payroll/PayrollRunsPage'));
@@ -332,6 +333,10 @@ const App = () => {
                     <Route path="settings/employee-status" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:masters"><EmployeeStatusPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings/document-types" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:masters"><DocumentTypesPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings/custom-fields" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:employee_custom_fields"><CustomFieldsPage /></FeatureGate></PermissionGuard>} />
+                    {/* Onboarding templates — guarded on the onboarding codes (ANY-of)
+                        to match the backend, which admits onboarding.read OR
+                        onboarding.manage on the templates routes. */}
+                    <Route path="settings/onboarding" element={<PermissionGuard permission={['onboarding.read', 'onboarding.manage']}><FeatureGate flagKey="submodule:people:onboarding"><OnboardingTemplatesPage /></FeatureGate></PermissionGuard>} />
 
                     {/* Import/Export */}
                     <Route path="import-export" element={<PermissionGuard permission="employees.import"><ImportExportPage /></PermissionGuard>} />

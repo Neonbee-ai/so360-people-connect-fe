@@ -140,6 +140,7 @@ const navigationItems: NavSection[] = [
             { path: '/settings/skills', label: 'Skills', icon: Sparkles, adminOnly: true, flagKey: 'submodule:people:masters' },
             { path: '/settings/employee-status', label: 'Employee Status', icon: UserCheck, adminOnly: true, flagKey: 'submodule:people:masters' },
             { path: '/settings/document-types', label: 'Document Types', icon: FileText, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/onboarding', label: 'Onboarding', icon: ClipboardCheck, adminOnly: true, flagKey: 'submodule:people:onboarding', permKey: ['onboarding.read', 'onboarding.manage'] },
         ]
     },
 ];

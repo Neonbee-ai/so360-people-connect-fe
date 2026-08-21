@@ -5,6 +5,7 @@ import { meService } from '../../services/meService';
 import type { MyLeaveBalance, MyGoal, WhosOutEntry } from '../../services/meService';
 import type { LeaveRequest } from '../../services/leaveRequestsService';
 import { MyCard, StatusPill, ProgressBar, Avatar, Skeleton } from './myUi';
+import MyOnboardingCard from './MyOnboardingCard';
 
 /**
  * The employee's landing page.
@@ -58,6 +59,10 @@ const MyHomePage: React.FC = () => {
     return (
         <div className="p-6 space-y-5">
             <PageHeader title="My Work" subtitle="Your leave, goals and team at a glance" />
+
+            {/* Only renders while an onboarding instance is active — fetches
+                independently so it can never degrade the panels below. */}
+            <MyOnboardingCard />
 
             {loading ? (
                 <div className="grid gap-4 md:grid-cols-2">

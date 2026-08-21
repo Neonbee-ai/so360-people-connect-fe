@@ -3,10 +3,11 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Mail, Phone, Calendar, DollarSign, Clock, Target,
     Tag, Plus, Trash2, Edit2, Save, X, History, User, UserCheck, UserPlus,
-    Briefcase, Shield, Wallet,
+    Briefcase, Shield, Wallet, ClipboardCheck,
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import PayrollProfileTab from '../components/payroll/PayrollProfileTab';
+import PersonOnboardingTab from '../components/PersonOnboardingTab';
 import Modal from '../components/Modal';
 import { toast } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
@@ -587,6 +588,17 @@ const PersonDetailPage: React.FC = () => {
                             Goals
                         </button>
                         <button
+                            onClick={() => setActiveTab('onboarding')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                activeTab === 'onboarding'
+                                    ? 'bg-teal-500/10 text-teal-400'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                            }`}
+                        >
+                            <ClipboardCheck size={14} className="inline mr-1.5" />
+                            Onboarding
+                        </button>
+                        <button
                             onClick={() => setActiveTab('payroll')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'payroll'
@@ -767,6 +779,9 @@ const PersonDetailPage: React.FC = () => {
                             </button>
                         </div>
                     )}
+
+                    {/* Onboarding Tab */}
+                    {activeTab === 'onboarding' && id && <PersonOnboardingTab personId={id} />}
 
                     {/* Payroll Tab */}
                     {activeTab === 'payroll' && person && <PayrollProfileTab person={person} />}
