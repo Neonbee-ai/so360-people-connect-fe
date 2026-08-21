@@ -180,6 +180,15 @@ export const peopleApi = {
     return api.get<any[]>(`/people/${personId}/rate-history`);
   },
 
+  // Creates a new effective-dated rate entry (employment_history record) —
+  // never edits an existing history row.
+  updateRate: async (
+    personId: string,
+    dto: { cost_rate: number; billing_rate?: number; effective_date?: string; reason?: string },
+  ): Promise<any> => {
+    return api.post<any>(`/people/${personId}/update-rate`, dto);
+  },
+
   // User Linkage
   linkUser: async (personId: string, userId: string): Promise<Person> => {
     return api.post<Person>(`/people/${personId}/link-user`, { user_id: userId });

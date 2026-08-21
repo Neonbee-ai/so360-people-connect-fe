@@ -365,6 +365,89 @@ describe('Given the People Registry filter bar', () => {
     await waitFor(() => expect((screen.getByLabelText('Joined from') as HTMLInputElement).value).toBe(''));
     expect((screen.getByLabelText('Joined to') as HTMLInputElement).value).toBe('');
   });
+
+  it('When From Date is earlier than To Date / Then the filter executes normally', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    mockApi.getAll.mockClear();
+
+    fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '2026-01-01' } });
+    fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '2026-06-01' } });
+
+    await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledWith(
+      expect.objectContaining({ date_of_joining_from: '2026-01-01', date_of_joining_to: '2026-06-01' })
+    ));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('When From Date equals To Date / Then the filter executes normally', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    mockApi.getAll.mockClear();
+
+    fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '2026-03-15' } });
+    fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '2026-03-15' } });
+
+    await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledWith(
+      expect.objectContaining({ date_of_joining_from: '2026-03-15', date_of_joining_to: '2026-03-15' })
+    ));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('When From Date is later than To Date / Then a validation message is shown and no search runs', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '2026-06-01' } });
+    await waitFor(() => expect(mockApi.getAll).toHaveBeenCalled());
+    mockApi.getAll.mockClear();
+
+    fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '2026-01-01' } });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('From Date cannot be later than To Date.');
+    expect(screen.getByLabelText('Joined from')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Joined to')).toHaveAttribute('aria-invalid', 'true');
+    expect(mockApi.getAll).not.toHaveBeenCalled();
+  });
+
+  it('When an invalid range is corrected / Then the validation message clears and the search runs', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '2026-06-01' } });
+    fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '2026-01-01' } });
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    mockApi.getAll.mockClear();
+    fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '2026-12-01' } });
+
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledWith(
+      expect.objectContaining({ date_of_joining_from: '2026-06-01', date_of_joining_to: '2026-12-01' })
+    ));
+  });
+
+  it('When clearing the joined date range after an invalid selection / Then validation resets', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '2026-06-01' } });
+    fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '2026-01-01' } });
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Clear joined date range'));
+
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  });
+
+  it('When a From Date is selected / Then the To Date picker is constrained to not precede it', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '2026-06-01' } });
+
+    expect(screen.getByLabelText('Joined to')).toHaveAttribute('min', '2026-06-01');
+  });
 });
 
 describe('Given the People Registry Import action', () => {

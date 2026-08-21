@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Printer, Download } from 'lucide-react';
 import { toast } from '@so360/design-system';
 import { payrollApi, PayslipTemplate, PayslipLayout, PayslipTableStyle } from '../../../services/payrollApi';
+import { openPrintableDocument, previewPayslipFileName } from '../../../utils/printableDocument';
+
+const PREVIEW_PAYSLIP_NUMBER = 'PS-PREVIEW-0001';
 
 const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
 const labelCls = 'block text-xs text-slate-400 mb-1';
@@ -63,6 +66,12 @@ const PayslipTemplateTab: React.FC = () => {
 
     const update = (patch: Partial<PayslipTemplate>) =>
         setTemplate(prev => (prev ? { ...prev, ...patch } : prev));
+
+    const openPrintWindow = () => {
+        if (!previewHtml) return;
+        const opened = openPrintableDocument(previewHtml, previewPayslipFileName(PREVIEW_PAYSLIP_NUMBER));
+        if (!opened) toast.error('Enable pop-ups to print or download the payslip');
+    };
 
     const handleSave = async () => {
         if (!template) return;
@@ -189,7 +198,25 @@ const PayslipTemplateTab: React.FC = () => {
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
                     <h4 className="text-sm font-semibold text-slate-50">Live Preview</h4>
-                    {previewLoading && <span className="text-xs text-slate-500">Refreshing…</span>}
+                    <div className="flex items-center gap-3">
+                        {previewLoading && <span className="text-xs text-slate-500">Refreshing…</span>}
+                        <button
+                            type="button"
+                            onClick={openPrintWindow}
+                            disabled={!previewHtml}
+                            className="flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-teal-400 disabled:opacity-40 disabled:hover:text-slate-300 transition-colors"
+                        >
+                            <Printer size={13} /> Print
+                        </button>
+                        <button
+                            type="button"
+                            onClick={openPrintWindow}
+                            disabled={!previewHtml}
+                            className="flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-teal-400 disabled:opacity-40 disabled:hover:text-slate-300 transition-colors"
+                        >
+                            <Download size={13} /> Download PDF
+                        </button>
+                    </div>
                 </div>
                 <div className="p-4 bg-slate-800/30 min-h-96 overflow-auto">
                     {previewHtml ? (

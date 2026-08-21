@@ -182,6 +182,18 @@ const PersonDetailPage: React.FC = () => {
         recordActivity({ eventType: 'people.person.user_linked', eventCategory: 'identity', description: `${person?.full_name ?? 'Person'} was linked to a user account`, resourceType: 'person', resourceId: id }).catch(() => {});
     };
 
+    // Records a new effective-dated rate (employment_history row). The Update Rate
+    // button used to only flip `showUpdateRateModal`, which nothing rendered —
+    // clicking it did nothing at all. The modal below is the missing half.
+    const handleAddNewRate = async (dto: { cost_rate: number; billing_rate?: number; effective_date?: string; reason?: string }) => {
+        if (!id) return;
+        await peopleApi.updateRate(id, dto);
+        setShowUpdateRateModal(false);
+        toast.success('New rate recorded');
+        loadRateHistory();
+        recordActivity({ eventType: 'people.person.rate_changed', eventCategory: 'compensation', description: `${person?.full_name ?? 'Person'} rate changed`, resourceType: 'person', resourceId: id }).catch(() => {});
+    };
+
     const loadEmploymentHistory = async () => {
         if (!id) return;
         try {
@@ -770,13 +782,18 @@ const PersonDetailPage: React.FC = () => {
                                     description="Rate changes will appear here"
                                 />
                             )}
-                            <button
-                                onClick={() => setShowUpdateRateModal(true)}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm text-slate-50 transition-colors"
-                            >
-                                <DollarSign size={16} />
-                                Update Rate
-                            </button>
+                            <div className="border-t border-slate-800 pt-3">
+                                <button
+                                    onClick={() => setShowUpdateRateModal(true)}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm text-slate-50 transition-colors"
+                                >
+                                    <DollarSign size={16} />
+                                    Add New Rate
+                                </button>
+                                <p className="mt-2 text-xs text-slate-500">
+                                    This records a new effective-dated rate. Records above are read-only history and are never edited.
+                                </p>
+                            </div>
                         </div>
                     )}
 
@@ -847,6 +864,14 @@ const PersonDetailPage: React.FC = () => {
                 onLink={handleLinkUser}
             />
 
+            {/* Add New Rate Modal — creates a new employment_history entry, never edits history */}
+            <AddNewRateModal
+                isOpen={showUpdateRateModal}
+                onClose={() => setShowUpdateRateModal(false)}
+                personName={person.full_name || 'This person'}
+                onSave={handleAddNewRate}
+            />
+
         </div>
     );
 };
@@ -910,6 +935,102 @@ const LinkUserModal: React.FC<{
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {saving ? 'Linking…' : 'Link Account'}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+// Add New Rate Modal — records a new effective-dated rate. Rate History rows
+// above are read-only; this always creates a new employment_history entry,
+// it never edits an existing one.
+const AddNewRateModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    personName: string;
+    onSave: (dto: { cost_rate: number; billing_rate?: number; effective_date?: string; reason?: string }) => Promise<void>;
+}> = ({ isOpen, onClose, personName, onSave }) => {
+    const [costRate, setCostRate] = useState('');
+    const [billingRate, setBillingRate] = useState('');
+    const [effectiveDate, setEffectiveDate] = useState('');
+    const [reason, setReason] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setCostRate(''); setBillingRate(''); setEffectiveDate(''); setReason('');
+            setError(''); setSaving(false);
+        }
+    }, [isOpen]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const parsedCostRate = Number(costRate);
+        if (!costRate || Number.isNaN(parsedCostRate) || parsedCostRate <= 0) {
+            setError('Enter a valid cost rate.');
+            return;
+        }
+        setSaving(true);
+        setError('');
+        try {
+            await onSave({
+                cost_rate: parsedCostRate,
+                billing_rate: billingRate ? Number(billingRate) : undefined,
+                effective_date: effectiveDate || undefined,
+                reason: reason || undefined,
+            });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to record the new rate. Please try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Add New Rate" size="md">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                <p className="text-sm text-slate-400">
+                    Records a new effective-dated rate for <span className="text-slate-200 font-medium">{personName}</span>.
+                    Previous rate history is preserved and never edited.
+                </p>
+                <div>
+                    <label htmlFor="add-rate-cost" className="block text-xs text-slate-400 mb-1">Cost Rate *</label>
+                    <input id="add-rate-cost" type="number" min="0" step="0.01" required value={costRate}
+                        onChange={e => { setCostRate(e.target.value); setError(''); }}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                </div>
+                <div>
+                    <label htmlFor="add-rate-billing" className="block text-xs text-slate-400 mb-1">Billing Rate</label>
+                    <input id="add-rate-billing" type="number" min="0" step="0.01" value={billingRate}
+                        onChange={e => setBillingRate(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                </div>
+                <div>
+                    <label htmlFor="add-rate-effective-date" className="block text-xs text-slate-400 mb-1">Effective Date</label>
+                    <input id="add-rate-effective-date" type="date" value={effectiveDate}
+                        onChange={e => setEffectiveDate(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                    <p className="mt-1 text-xs text-slate-500">Defaults to today if left blank.</p>
+                </div>
+                <div>
+                    <label htmlFor="add-rate-reason" className="block text-xs text-slate-400 mb-1">Reason</label>
+                    <input id="add-rate-reason" type="text" value={reason} onChange={e => setReason(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        placeholder="e.g., Annual review, Promotion" />
+                </div>
+                {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {saving ? 'Saving…' : 'Add Rate'}
                     </button>
                 </div>
             </form>

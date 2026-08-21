@@ -10,6 +10,7 @@ vi.mock('../../../services/payrollApi', () => ({
 
 import PayslipTemplateTab from './PayslipTemplateTab';
 import { payrollApi } from '../../../services/payrollApi';
+import { toast } from '@so360/design-system';
 
 const mockApi = payrollApi as any;
 
@@ -117,5 +118,53 @@ describe('GIVEN the payslip template tab', () => {
     mockApi.template.get.mockRejectedValue(new Error('down'));
     render(<PayslipTemplateTab />);
     await waitFor(() => expect(screen.getByText('Payslip template is not available yet.')).toBeInTheDocument());
+  });
+});
+
+describe('GIVEN the payslip template preview Print / Download actions', () => {
+  it('WHEN the preview has not loaded THEN Print and Download are disabled', async () => {
+    mockApi.template.preview.mockImplementation(() => new Promise(() => {}));
+    render(<PayslipTemplateTab />);
+    await waitFor(() => expect(screen.getByText('Print')).toBeInTheDocument());
+    expect(screen.getByText('Print').closest('button')).toBeDisabled();
+    expect(screen.getByText('Download PDF').closest('button')).toBeDisabled();
+  });
+
+  it('WHEN Print is clicked THEN a print window opens with the preview HTML titled for the payslip', async () => {
+    const printWindow = { document: { open: vi.fn(), write: vi.fn(), close: vi.fn() }, print: vi.fn(), focus: vi.fn(), onload: null as any };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(printWindow as any);
+    render(<PayslipTemplateTab />);
+    await waitFor(() => expect(screen.getByTestId('payslip-preview')).toBeInTheDocument(), { timeout: 3000 });
+
+    fireEvent.click(screen.getByText('Print'));
+
+    expect(openSpy).toHaveBeenCalledWith('', '_blank', expect.stringContaining('noopener'));
+    expect(printWindow.document.write).toHaveBeenCalledWith(expect.stringContaining('Payslip_PS-PREVIEW-0001'));
+    openSpy.mockRestore();
+  });
+
+  it('WHEN Download PDF is clicked THEN it opens the same printable payslip window', async () => {
+    const printWindow = { document: { open: vi.fn(), write: vi.fn(), close: vi.fn() }, print: vi.fn(), focus: vi.fn(), onload: null as any };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(printWindow as any);
+    render(<PayslipTemplateTab />);
+    await waitFor(() => expect(screen.getByTestId('payslip-preview')).toBeInTheDocument(), { timeout: 3000 });
+
+    fireEvent.click(screen.getByText('Download PDF'));
+
+    expect(printWindow.document.write).toHaveBeenCalledWith(expect.stringContaining('Payslip_PS-PREVIEW-0001'));
+    openSpy.mockRestore();
+  });
+
+  it('WHEN pop-ups are blocked THEN a helpful error toast is shown instead of failing silently', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+    const toastErrorSpy = vi.spyOn(toast, 'error');
+    render(<PayslipTemplateTab />);
+    await waitFor(() => expect(screen.getByTestId('payslip-preview')).toBeInTheDocument(), { timeout: 3000 });
+
+    fireEvent.click(screen.getByText('Print'));
+
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith(expect.stringContaining('pop-ups')), { timeout: 3000 });
+    openSpy.mockRestore();
+    toastErrorSpy.mockRestore();
   });
 });

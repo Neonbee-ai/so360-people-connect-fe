@@ -242,6 +242,9 @@ const PeoplePage: React.FC = () => {
     const [employmentTypeFilter, setEmploymentTypeFilter] = useState<string>('');
     const [joiningFromFilter, setJoiningFromFilter] = useState<string>('');
     const [joiningToFilter, setJoiningToFilter] = useState<string>('');
+    // From > To is invalid input, not "zero matches" — surfaced inline instead
+    // of silently querying and showing a misleading "No people found".
+    const joinedRangeInvalid = !!(joiningFromFilter && joiningToFilter && joiningFromFilter > joiningToFilter);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
     // `emailRequested` distinguishes "admin opted out of the email" from "we tried to
@@ -294,6 +297,12 @@ const PeoplePage: React.FC = () => {
     };
 
     const loadPeople = useCallback(async () => {
+        if (joinedRangeInvalid) {
+            // Invalid filter input, not a real empty result — don't query and
+            // don't clear the previously loaded list out from under the user.
+            setLoading(false);
+            return;
+        }
         try {
             setLoading(true);
             const result = await peopleApi.getAll({
@@ -312,7 +321,7 @@ const PeoplePage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearch, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter]);
+    }, [debouncedSearch, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter, joinedRangeInvalid]);
 
     useEffect(() => {
         loadPeople();
@@ -710,33 +719,42 @@ const PeoplePage: React.FC = () => {
                 </select>
 
                 {/* Date of Joining Filter */}
-                <div className="flex items-center gap-2">
-                    <label htmlFor="joined-from" className="text-xs text-slate-400">Joined:</label>
-                    <input
-                        id="joined-from"
-                        type="date"
-                        aria-label="Joined from"
-                        value={joiningFromFilter}
-                        onChange={(e) => setJoiningFromFilter(e.target.value)}
-                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                    />
-                    <span className="text-slate-600">-</span>
-                    <input
-                        type="date"
-                        aria-label="Joined to"
-                        value={joiningToFilter}
-                        onChange={(e) => setJoiningToFilter(e.target.value)}
-                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                    />
-                    {(joiningFromFilter || joiningToFilter) && (
-                        <button
-                            type="button"
-                            onClick={() => { setJoiningFromFilter(''); setJoiningToFilter(''); }}
-                            aria-label="Clear joined date range"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
-                        >
-                            <X size={14} />
-                        </button>
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="joined-from" className="text-xs text-slate-400">Joined:</label>
+                        <input
+                            id="joined-from"
+                            type="date"
+                            aria-label="Joined from"
+                            aria-invalid={joinedRangeInvalid}
+                            max={joiningToFilter || undefined}
+                            value={joiningFromFilter}
+                            onChange={(e) => setJoiningFromFilter(e.target.value)}
+                            className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 ${joinedRangeInvalid ? 'border-red-500' : 'border-slate-700'}`}
+                        />
+                        <span className="text-slate-600">-</span>
+                        <input
+                            type="date"
+                            aria-label="Joined to"
+                            aria-invalid={joinedRangeInvalid}
+                            min={joiningFromFilter || undefined}
+                            value={joiningToFilter}
+                            onChange={(e) => setJoiningToFilter(e.target.value)}
+                            className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 ${joinedRangeInvalid ? 'border-red-500' : 'border-slate-700'}`}
+                        />
+                        {(joiningFromFilter || joiningToFilter) && (
+                            <button
+                                type="button"
+                                onClick={() => { setJoiningFromFilter(''); setJoiningToFilter(''); }}
+                                aria-label="Clear joined date range"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+                    {joinedRangeInvalid && (
+                        <span role="alert" className="text-xs text-red-400">From Date cannot be later than To Date.</span>
                     )}
                 </div>
 
