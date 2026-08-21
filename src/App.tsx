@@ -188,6 +188,7 @@ const UtilizationSettingsPage = lazy(() => import('./pages/settings/UtilizationS
 const TimesheetSettingsPage = lazy(() => import('./pages/settings/TimesheetSettingsPage'));
 const CustomFieldsPage = lazy(() => import('./pages/settings/CustomFieldsPage'));
 const OnboardingTemplatesPage = lazy(() => import('./pages/settings/OnboardingTemplatesPage'));
+const NotificationSenderPage = lazy(() => import('./pages/settings/NotificationSenderPage'));
 const PayrollDashboardPage = lazy(() => import('./pages/payroll/PayrollDashboardPage'));
 const PayrollConfigurationPage = lazy(() => import('./pages/payroll/PayrollConfigurationPage'));
 const PayrollRunsPage = lazy(() => import('./pages/payroll/PayrollRunsPage'));
@@ -337,6 +338,7 @@ const App = () => {
                         to match the backend, which admits onboarding.read OR
                         onboarding.manage on the templates routes. */}
                     <Route path="settings/onboarding" element={<PermissionGuard permission={['onboarding.read', 'onboarding.manage']}><FeatureGate flagKey="submodule:people:onboarding"><OnboardingTemplatesPage /></FeatureGate></PermissionGuard>} />
+                    <Route path="settings/notification-sender" element={<PermissionGuard permission="org_policy.read"><NotificationSenderPage /></PermissionGuard>} />
 
                     {/* Import/Export */}
                     <Route path="import-export" element={<PermissionGuard permission="employees.import"><ImportExportPage /></PermissionGuard>} />

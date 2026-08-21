@@ -27,6 +27,7 @@ import {
     Play,
     Receipt,
     BarChart3,
+    Mail,
 } from 'lucide-react';
 
 interface NavItem {
@@ -141,6 +142,7 @@ const navigationItems: NavSection[] = [
             { path: '/settings/employee-status', label: 'Employee Status', icon: UserCheck, adminOnly: true, flagKey: 'submodule:people:masters' },
             { path: '/settings/document-types', label: 'Document Types', icon: FileText, adminOnly: true, flagKey: 'submodule:people:masters' },
             { path: '/settings/onboarding', label: 'Onboarding', icon: ClipboardCheck, adminOnly: true, flagKey: 'submodule:people:onboarding', permKey: ['onboarding.read', 'onboarding.manage'] },
+            { path: '/settings/notification-sender', label: 'Notification Sender', icon: Mail, adminOnly: true, permKey: 'org_policy.read' },
         ]
     },
 ];
