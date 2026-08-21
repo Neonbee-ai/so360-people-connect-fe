@@ -601,7 +601,7 @@ describe('GIVEN the Documents section', () => {
     renderTab();
     fireEvent.click(await screen.findByText('Documents'));
     await waitFor(() => expect(screen.getByText('Open documents')).toBeInTheDocument());
-    expect(screen.getByText('Open documents').closest('a')).toHaveAttribute('href', '/people/p1?tab=overview');
+    expect(screen.getByText('Open documents').closest('a')).toHaveAttribute('href', '/people/people/p1?tab=overview');
   });
 });
 

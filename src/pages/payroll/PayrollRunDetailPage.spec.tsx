@@ -48,9 +48,9 @@ const mockEmployees = [
 
 const renderPage = () =>
   render(
-    <MemoryRouter initialEntries={['/payroll/runs/run-1']}>
+    <MemoryRouter initialEntries={['/people/payroll/runs/run-1']}>
       <Routes>
-        <Route path="/payroll/runs/:id" element={<PayrollRunDetailPage />} />
+        <Route path="/people/payroll/runs/:id" element={<PayrollRunDetailPage />} />
       </Routes>
     </MemoryRouter>
   );

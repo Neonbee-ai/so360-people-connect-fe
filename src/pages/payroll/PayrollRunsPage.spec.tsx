@@ -35,10 +35,10 @@ const mockPeriod = {
 
 const renderPage = () =>
   render(
-    <MemoryRouter initialEntries={['/payroll/runs']}>
+    <MemoryRouter initialEntries={['/people/payroll/runs']}>
       <Routes>
-        <Route path="/payroll/runs" element={<PayrollRunsPage />} />
-        <Route path="/payroll/runs/:id" element={<div>Run detail page</div>} />
+        <Route path="/people/payroll/runs" element={<PayrollRunsPage />} />
+        <Route path="/people/payroll/runs/:id" element={<div>Run detail page</div>} />
       </Routes>
     </MemoryRouter>
   );

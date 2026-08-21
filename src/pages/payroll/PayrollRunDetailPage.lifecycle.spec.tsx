@@ -52,10 +52,10 @@ const employees = [
 
 const renderPage = () =>
   render(
-    <MemoryRouter initialEntries={['/payroll/runs/run-1']}>
+    <MemoryRouter initialEntries={['/people/payroll/runs/run-1']}>
       <Routes>
-        <Route path="/payroll/runs/:id" element={<PayrollRunDetailPage />} />
-        <Route path="/payroll/runs" element={<div>Runs list page</div>} />
+        <Route path="/people/payroll/runs/:id" element={<PayrollRunDetailPage />} />
+        <Route path="/people/payroll/runs" element={<div>Runs list page</div>} />
       </Routes>
     </MemoryRouter>
   );

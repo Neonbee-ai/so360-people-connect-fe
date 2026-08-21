@@ -145,7 +145,7 @@ const PayrollRunDetailPage: React.FC = () => {
                 subtitle={`${run.period_start ? formatters.formatDate(run.period_start) : ''} – ${run.period_end ? formatters.formatDate(run.period_end) : ''} · Pay date ${formatters.formatDate(run.pay_date)}`}
                 actions={
                     <div className="flex items-center gap-2">
-                        <button onClick={() => navigate('/payroll/runs')} className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+                        <button onClick={() => navigate('/people/payroll/runs')} className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
                             <ArrowLeft size={14} /> All Runs
                         </button>
                         <StatusChip status={run.status} />

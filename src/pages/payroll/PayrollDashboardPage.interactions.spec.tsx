@@ -32,11 +32,11 @@ const dashboard = {
 
 const renderPage = () =>
   render(
-    <MemoryRouter initialEntries={['/payroll']}>
+    <MemoryRouter initialEntries={['/people/payroll']}>
       <Routes>
-        <Route path="/payroll" element={<PayrollDashboardPage />} />
-        <Route path="/payroll/runs" element={<div>Runs list page</div>} />
-        <Route path="/payroll/runs/:id" element={<div>Run detail page</div>} />
+        <Route path="/people/payroll" element={<PayrollDashboardPage />} />
+        <Route path="/people/payroll/runs" element={<div>Runs list page</div>} />
+        <Route path="/people/payroll/runs/:id" element={<div>Run detail page</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -92,7 +92,7 @@ describe('GIVEN the alert drawer lifecycle', () => {
     fireEvent.click(screen.getByText(/Review employees/));
     await waitFor(() => expect(screen.getByText('Asha Nair')).toBeInTheDocument());
     expect(screen.getByText('No account on file')).toBeInTheDocument();
-    expect(screen.getByText('Fix').closest('a')).toHaveAttribute('href', '/people/p1?tab=payroll');
+    expect(screen.getByText('Fix').closest('a')).toHaveAttribute('href', '/people/people/p1?tab=payroll');
     fireEvent.click(screen.getByLabelText('Close'));
     await waitFor(() => expect(mockApi.dashboard.get.mock.calls.length).toBeGreaterThanOrEqual(2));
   });

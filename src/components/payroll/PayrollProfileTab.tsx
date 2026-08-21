@@ -108,7 +108,7 @@ const PayrollProfileTab: React.FC<PayrollProfileTabProps> = ({ person }) => {
                             {key === 'documents' && (
                                 <p className="text-sm text-slate-400">
                                     Payroll documents (proofs, contracts) live with the person's documents.{' '}
-                                    <Link to={`/people/${person.id}?tab=overview`} className="text-teal-400 hover:text-teal-300">Open documents</Link>
+                                    <Link to={`/people/people/${person.id}?tab=overview`} className="text-teal-400 hover:text-teal-300">Open documents</Link>
                                 </p>
                             )}
                             {key === 'history' && <HistorySection personId={person.id} />}

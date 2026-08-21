@@ -94,7 +94,7 @@ const PayrollRunsPage: React.FC = () => {
                                     <td className="px-4 py-3 text-right text-sm text-slate-200">{formatters.formatCurrency(run.net_total || 0)}</td>
                                     <td className="px-4 py-3 text-sm text-slate-400">{formatters.formatDate(run.pay_date)}</td>
                                     <td className="px-4 py-3 text-right">
-                                        <button onClick={() => navigate(`/payroll/runs/${run.id}`)} className="text-xs text-teal-400 hover:text-teal-300 transition-colors">Open</button>
+                                        <button onClick={() => navigate(`/people/payroll/runs/${run.id}`)} className="text-xs text-teal-400 hover:text-teal-300 transition-colors">Open</button>
                                     </td>
                                 </tr>
                             ))}
@@ -106,7 +106,7 @@ const PayrollRunsPage: React.FC = () => {
             <NewRunDialog
                 isOpen={showNewRunDialog}
                 onClose={() => setShowNewRunDialog(false)}
-                onCreated={run => { setShowNewRunDialog(false); navigate(`/payroll/runs/${run.id}`); }}
+                onCreated={run => { setShowNewRunDialog(false); navigate(`/people/payroll/runs/${run.id}`); }}
             />
         </div>
     );

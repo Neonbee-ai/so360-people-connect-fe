@@ -65,7 +65,7 @@ const AlertDrawer: React.FC<AlertDrawerProps> = ({ alert, onClose }) => {
                                     {emp.detail && <div className="text-xs text-amber-400/80 mt-0.5">{emp.detail}</div>}
                                 </div>
                                 <Link
-                                    to={`/people/${emp.person_id}?tab=payroll`}
+                                    to={`/people/people/${emp.person_id}?tab=payroll`}
                                     className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors"
                                 >
                                     Fix <ExternalLink size={12} />

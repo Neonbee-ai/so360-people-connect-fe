@@ -51,7 +51,7 @@ const PayrollDashboardPage: React.FC = () => {
                 subtitle="Current pay run at a glance, with anything blocking it"
                 actions={run && (
                     <button
-                        onClick={() => navigate(`/payroll/runs/${run.id}`)}
+                        onClick={() => navigate(`/people/payroll/runs/${run.id}`)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
                         Open Current Run <ArrowRight size={14} />
@@ -68,7 +68,7 @@ const PayrollDashboardPage: React.FC = () => {
                     icon={Wallet}
                     title="No payroll run in progress"
                     description="Start your first payroll run to begin processing salaries for this organization."
-                    action={{ label: 'Start your first payroll run', onClick: () => navigate('/payroll/runs') }}
+                    action={{ label: 'Start your first payroll run', onClick: () => navigate('/people/payroll/runs') }}
                 />
             ) : (
                 <>
