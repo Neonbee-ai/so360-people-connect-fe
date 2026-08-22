@@ -64,9 +64,23 @@ describe('Given leaveRequestsApi.create', () => {
 });
 
 describe('Given leaveRequestsApi.submit', () => {
-  it('When called with id / Then it calls POST /leave-requests/:id/submit', async () => {
+  it('When called with id only / Then it calls POST /leave-requests/:id/submit with an empty body', async () => {
     mockApi.post.mockResolvedValue({ id: 'lr1', status: 'pending' });
     await leaveRequestsApi.submit('lr1');
+    expect(mockApi.post).toHaveBeenCalledWith('/leave-requests/lr1/submit', {});
+  });
+
+  it('When called with approver ids / Then they are sent as approver_ids', async () => {
+    mockApi.post.mockResolvedValue({ id: 'lr1', status: 'pending' });
+    await leaveRequestsApi.submit('lr1', ['mgr-1', 'mgr-2']);
+    expect(mockApi.post).toHaveBeenCalledWith('/leave-requests/lr1/submit', {
+      approver_ids: ['mgr-1', 'mgr-2'],
+    });
+  });
+
+  it('When called with an empty approver id array / Then it falls back to an empty body', async () => {
+    mockApi.post.mockResolvedValue({ id: 'lr1', status: 'pending' });
+    await leaveRequestsApi.submit('lr1', []);
     expect(mockApi.post).toHaveBeenCalledWith('/leave-requests/lr1/submit', {});
   });
 });

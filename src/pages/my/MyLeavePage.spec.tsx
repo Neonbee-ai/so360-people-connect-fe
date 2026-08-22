@@ -26,6 +26,14 @@ vi.mock('../../services/leaveTypesService', () => ({
     LeaveType: {},
 }));
 
+vi.mock('../../services/leaveRequestsService', () => ({
+    leaveRequestsApi: { submit: vi.fn() },
+}));
+
+vi.mock('../../services/peopleService', () => ({
+    peopleApi: { getAll: vi.fn() },
+}));
+
 vi.mock('@so360/design-system', async () => {
     const React = (await import('react')).default;
     return {
@@ -49,6 +57,8 @@ vi.mock('@so360/design-system', async () => {
 import MyLeavePage from './MyLeavePage';
 import { meService } from '../../services/meService';
 import { leaveTypesApi } from '../../services/leaveTypesService';
+import { leaveRequestsApi } from '../../services/leaveRequestsService';
+import { peopleApi } from '../../services/peopleService';
 import { toast } from '@so360/design-system';
 
 const renderPage = () =>
@@ -92,6 +102,13 @@ beforeEach(() => {
         data: [{ id: 'lt-1', name: 'Annual Leave', code: 'AL', is_active: true }],
     });
     (meService.requestLeave as any).mockResolvedValue({ id: 'new-request' });
+    (leaveRequestsApi.submit as any).mockResolvedValue({ id: 'new-request', status: 'pending' });
+    (peopleApi.getAll as any).mockResolvedValue({
+        data: [
+            { id: 'mgr-1', full_name: 'Bhaskar R N', job_title: 'Director of Operations', status: 'active' },
+            { id: 'mgr-2', full_name: 'Arjun Prince', job_title: 'Founder / Director', status: 'active' },
+        ],
+    });
 });
 
 describe('Given an employee opening My Leave', () => {
@@ -194,6 +211,64 @@ describe('Given an employee requesting leave', () => {
         await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Leave requested'));
         // Once on mount, once after the successful submit.
         expect((meService.myLeaveRequests as any).mock.calls.length).toBeGreaterThan(1);
+    });
+});
+
+describe('Given an employee selecting a manager to approve their leave', () => {
+    const openForm = async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Manager \/ Approver/i)).toBeInTheDocument());
+    };
+
+    it('When the form opens / Then active people from the registry are listed as candidates', async () => {
+        await openForm();
+        await waitFor(() => expect(peopleApi.getAll).toHaveBeenCalledWith({ status: 'active', limit: 200 }));
+        expect(screen.getByText('Bhaskar R N')).toBeInTheDocument();
+        expect(screen.getByText('Arjun Prince')).toBeInTheDocument();
+    });
+
+    it('When they select managers and submit / Then the request is created then submitted with those approver ids', async () => {
+        await openForm();
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.click(screen.getByText('Bhaskar R N'));
+        fireEvent.click(screen.getByText('Arjun Prince'));
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() => expect(leaveRequestsApi.submit).toHaveBeenCalled());
+        expect(leaveRequestsApi.submit).toHaveBeenCalledWith('new-request', ['mgr-1', 'mgr-2']);
+    });
+
+    it('When no manager is selected / Then submit still routes via the department-head fallback (empty list)', async () => {
+        await openForm();
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() => expect(leaveRequestsApi.submit).toHaveBeenCalledWith('new-request', []));
+    });
+
+    it('When a selected manager is clicked again / Then it is deselected', async () => {
+        await openForm();
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.click(screen.getByText('Bhaskar R N'));
+        fireEvent.click(screen.getByText('Bhaskar R N'));
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() => expect(leaveRequestsApi.submit).toHaveBeenCalledWith('new-request', []));
+    });
+
+    it('When searching by name / Then non-matching people are filtered out', async () => {
+        await openForm();
+
+        const search = screen.getByPlaceholderText(/search by name/i);
+        fireEvent.change(search, { target: { value: 'bha' } });
+
+        expect(screen.getByText('Bhaskar R N')).toBeInTheDocument();
+        expect(screen.queryByText('Arjun Prince')).not.toBeInTheDocument();
     });
 });
 

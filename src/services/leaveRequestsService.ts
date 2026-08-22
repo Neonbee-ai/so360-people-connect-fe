@@ -84,8 +84,8 @@ export const leaveRequestsApi = {
     return api.delete<{ message: string }>(`/leave-requests/${id}`);
   },
 
-  submit: async (id: string): Promise<LeaveRequest> => {
-    return api.post<LeaveRequest>(`/leave-requests/${id}/submit`, {});
+  submit: async (id: string, approverIds?: string[]): Promise<LeaveRequest> => {
+    return api.post<LeaveRequest>(`/leave-requests/${id}/submit`, approverIds?.length ? { approver_ids: approverIds } : {});
   },
 
   approve: async (id: string): Promise<LeaveRequest> => {
