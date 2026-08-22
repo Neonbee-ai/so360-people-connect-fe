@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Users, CalendarRange } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, getErrorMessage } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import Modal from '../../Modal';
 import EmptyState from '../../EmptyState';
 import StatusChip from '../StatusChip';
-import { payrollApi, PayrollGroup, PayrollPeriod } from '../../../services/payrollApi';
+import { payrollApi, toFromMonth, PayrollGroup, PayrollPeriod } from '../../../services/payrollApi';
 
 const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
 const labelCls = 'block text-xs text-slate-400 mb-1';
@@ -67,14 +67,34 @@ const GroupsPeriodsTab: React.FC = () => {
         }
     };
 
-    const handleGenerate = async (from: string, count: number) => {
+    // `from_month` arrives already narrowed to YYYY-MM by the dialog — the API
+    // rejects a full calendar date.
+    const handleGenerate = async (from_month: string, count: number) => {
         try {
-            await payrollApi.periods.generate({ payroll_group_id: selectedGroupId, from, count });
-            toast.success(`Generated ${count} period${count === 1 ? '' : 's'}`);
+            const result = await payrollApi.periods.generate({
+                payroll_group_id: selectedGroupId,
+                from_month,
+                count,
+            });
+            // Report what the server did, not what was asked for — months that
+            // already had a period are skipped rather than overwritten.
+            const created = result?.created ?? 0;
+            const skipped = result?.skipped ?? 0;
+            if (created === 0 && skipped > 0) {
+                toast.success(`All ${skipped} month${skipped === 1 ? '' : 's'} already had periods — nothing to add`);
+            } else {
+                toast.success(
+                    `Generated ${created} period${created === 1 ? '' : 's'}` +
+                        (skipped > 0 ? ` (${skipped} already existed)` : ''),
+                );
+            }
             setShowGenerateDialog(false);
             loadPeriods(selectedGroupId);
-        } catch {
-            toast.error('Failed to generate periods');
+        } catch (error) {
+            // The backend's validation text is the actionable part; a bare
+            // "Failed to generate periods" hid the real cause of this bug.
+            console.error('Payroll period generation failed', error);
+            toast.error(getErrorMessage(error, 'Failed to generate periods'));
         }
     };
 
@@ -235,20 +255,31 @@ const GroupModal: React.FC<{
 const GeneratePeriodsDialog: React.FC<{
     isOpen: boolean;
     onClose: () => void;
-    onGenerate: (from: string, count: number) => void;
+    /** Receives the month only, as YYYY-MM. */
+    onGenerate: (fromMonth: string, count: number) => void;
 }> = ({ isOpen, onClose, onGenerate }) => {
     const [from, setFrom] = useState('');
     const [count, setCount] = useState(12);
+    const fromMonth = toFromMonth(from);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Generate Pay Periods" size="sm">
-            <form onSubmit={e => { e.preventDefault(); if (from) onGenerate(from, count); }} className="space-y-4">
+            {/* The picker is a calendar day for familiarity, but only its month
+                reaches the API — sending the day failed DTO validation. */}
+            <form onSubmit={e => { e.preventDefault(); if (fromMonth) onGenerate(fromMonth, count); }} className="space-y-4">
                 <p className="text-xs text-slate-400">
                     Periods are generated ahead using this group's pay day rule. Existing periods are never overwritten.
                 </p>
                 <div>
                     <label className={labelCls}>Start From *</label>
                     <input type="date" required value={from} onChange={e => setFrom(e.target.value)} className={inputCls} />
+                    {/* Only the month is used — say so, rather than letting the
+                        day silently disappear into the request. */}
+                    {fromMonth && (
+                        <p className="mt-1 text-xs text-slate-500">
+                            Periods start from {fromMonth} — the day you pick is ignored.
+                        </p>
+                    )}
                 </div>
                 <div>
                     <label className={labelCls}>Number of Periods</label>

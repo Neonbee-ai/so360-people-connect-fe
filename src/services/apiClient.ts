@@ -68,7 +68,13 @@ export class ApiClient {
         let errorMessage = `API Error: ${response.status}`;
         try {
           const errorJson = JSON.parse(text);
-          errorMessage = errorJson.message || errorJson.error || errorMessage;
+          // NestJS ValidationPipe returns `message` as an array of constraint
+          // strings; joining keeps them readable instead of relying on Array
+          // coercion, which glues them together without spaces.
+          const raw = errorJson.message ?? errorJson.error;
+          errorMessage = Array.isArray(raw)
+            ? raw.join('; ') || errorMessage
+            : raw || errorMessage;
         } catch {
           errorMessage = text || errorMessage;
         }

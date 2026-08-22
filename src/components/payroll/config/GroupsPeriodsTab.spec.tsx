@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 
-vi.mock('../../../services/payrollApi', () => ({
+// Only the network layer is faked. toFromMonth stays real so these specs
+// exercise the actual date -> YYYY-MM narrowing the API depends on.
+vi.mock('../../../services/payrollApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../services/payrollApi')>()),
   payrollApi: {
     groups: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
     periods: { list: vi.fn(), generate: vi.fn() },
@@ -11,6 +14,7 @@ vi.mock('../../../services/payrollApi', () => ({
 
 import GroupsPeriodsTab from './GroupsPeriodsTab';
 import { payrollApi } from '../../../services/payrollApi';
+import { toast } from '@so360/design-system';
 
 const mockApi = payrollApi as any;
 
@@ -24,6 +28,9 @@ const period = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  // The design-system stub exports plain functions; spy so toast copy is assertable.
+  vi.spyOn(toast, 'success');
+  vi.spyOn(toast, 'error');
   mockApi.groups.list.mockResolvedValue({ data: [groupA, groupB], total: 2 });
   mockApi.periods.list.mockResolvedValue({ data: [period], total: 1 });
 });
@@ -128,21 +135,78 @@ describe('GIVEN the group create/edit modal', () => {
 });
 
 describe('GIVEN the generate-periods dialog', () => {
-  it('WHEN a start date and count are submitted THEN periods.generate is called for the selected group', async () => {
-    mockApi.periods.generate.mockResolvedValue({ data: [], total: 0 });
+  /** Opens the dialog and fills the start date; returns nothing. */
+  const openAndPickDate = async (date: string) => {
     render(<GroupsPeriodsTab />);
     await waitFor(() => expect(screen.getByText('Generate periods')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Generate periods'));
     await waitFor(() => expect(screen.getByText('Generate Pay Periods')).toBeInTheDocument());
     const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-    fireEvent.change(dateInput, { target: { value: '2026-09-01' } });
+    fireEvent.change(dateInput, { target: { value: date } });
+  };
+
+  it('WHEN a start date and count are submitted THEN periods.generate is called for the selected group', async () => {
+    mockApi.periods.generate.mockResolvedValue({ data: [], created: 6, skipped: 0 });
+    await openAndPickDate('2026-09-01');
     fireEvent.change(screen.getByDisplayValue('12'), { target: { value: '6' } });
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     await waitFor(() => expect(mockApi.periods.generate).toHaveBeenCalledWith({
-      payroll_group_id: 'g1', from: '2026-09-01', count: 6,
+      payroll_group_id: 'g1', from_month: '2026-09', count: 6,
     }));
     // Periods for the group reload after generation
     await waitFor(() => expect(mockApi.periods.list.mock.calls.length).toBeGreaterThanOrEqual(2));
+  });
+
+  // The reported bug: the picker's day component was posted verbatim as
+  // `from`, so the DTO saw no `from_month` at all and rejected the request.
+  it('WHEN a mid-month date like 22-08-2026 is chosen THEN from_month is sent as 2026-08', async () => {
+    mockApi.periods.generate.mockResolvedValue({ data: [], created: 10, skipped: 0 });
+    await openAndPickDate('2026-08-22');
+    fireEvent.change(screen.getByDisplayValue('12'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    await waitFor(() => expect(mockApi.periods.generate).toHaveBeenCalledWith({
+      payroll_group_id: 'g1', from_month: '2026-08', count: 10,
+    }));
+  });
+
+  it('WHEN the payload is inspected THEN from_month matches the backend YYYY-MM contract and no legacy key rides along', async () => {
+    mockApi.periods.generate.mockResolvedValue({ data: [], created: 1, skipped: 0 });
+    await openAndPickDate('2026-12-31');
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    await waitFor(() => expect(mockApi.periods.generate).toHaveBeenCalled());
+    const payload = mockApi.periods.generate.mock.calls[0][0];
+    // Mirrors GeneratePeriodsDto's @Matches in people-connect-be.
+    expect(payload.from_month).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/);
+    expect(typeof payload.from_month).toBe('string');
+    expect(typeof payload.count).toBe('number');
+    expect(payload).not.toHaveProperty('from');
+    expect(Object.keys(payload).sort()).toEqual(['count', 'from_month', 'payroll_group_id']);
+  });
+
+  it('WHEN a date is picked THEN the dialog states which month will be used', async () => {
+    await openAndPickDate('2026-08-22');
+    expect(screen.getByText(/Periods start from 2026-08/)).toBeInTheDocument();
+  });
+
+  it('WHEN months already had periods THEN the toast reports what was actually created, not the requested count', async () => {
+    mockApi.periods.generate.mockResolvedValue({ data: [], created: 2, skipped: 4 });
+    await openAndPickDate('2026-09-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Generated 2 periods (4 already existed)'));
+  });
+
+  it('WHEN every requested month already exists THEN the toast says nothing was added', async () => {
+    mockApi.periods.generate.mockResolvedValue({ data: [], created: 0, skipped: 3 });
+    await openAndPickDate('2026-09-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('All 3 months already had periods — nothing to add'));
+  });
+
+  it('WHEN exactly one period is created THEN the toast is singular', async () => {
+    mockApi.periods.generate.mockResolvedValue({ data: [], created: 1, skipped: 0 });
+    await openAndPickDate('2026-09-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Generated 1 period'));
   });
 
   it('WHEN no start date is chosen THEN Generate does nothing', async () => {
@@ -166,14 +230,34 @@ describe('GIVEN the generate-periods dialog', () => {
 
   it('WHEN generation fails THEN the dialog stays open', async () => {
     mockApi.periods.generate.mockRejectedValue(new Error('overlap'));
-    render(<GroupsPeriodsTab />);
-    await waitFor(() => expect(screen.getByText('Generate periods')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Generate periods'));
-    await waitFor(() => expect(screen.getByText('Generate Pay Periods')).toBeInTheDocument());
-    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-    fireEvent.change(dateInput, { target: { value: '2026-09-01' } });
+    await openAndPickDate('2026-09-01');
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
     await waitFor(() => expect(mockApi.periods.generate).toHaveBeenCalled());
     expect(screen.getByText('Generate Pay Periods')).toBeInTheDocument();
+  });
+
+  // A bare "Failed to generate periods" is what let the from_month bug sit
+  // unexplained in the UI — the server's own validation text must reach the user.
+  it("WHEN the backend rejects the payload THEN its validation text is shown, not a generic failure", async () => {
+    mockApi.periods.generate.mockRejectedValue(new Error('from_month must be YYYY-MM'));
+    await openAndPickDate('2026-09-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('from_month must be YYYY-MM'));
+  });
+
+  it('WHEN the failure carries no usable message THEN a plain fallback is shown', async () => {
+    mockApi.periods.generate.mockRejectedValue({});
+    await openAndPickDate('2026-09-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to generate periods'));
+  });
+
+  // A date input sanitizes junk to '', so an unnarrowable value reaches submit
+  // as empty — the same path the "no start date" case takes. Nothing is posted.
+  it('WHEN the picked date cannot be narrowed to a month THEN nothing is posted', async () => {
+    await openAndPickDate('not-a-date');
+    expect(screen.queryByText(/Periods start from/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    expect(mockApi.periods.generate).not.toHaveBeenCalled();
   });
 });

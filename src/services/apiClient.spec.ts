@@ -112,6 +112,41 @@ describe('Given ApiClient receiving error responses', () => {
     await expect(client.get('/protected')).rejects.toThrow('Unauthorized');
   });
 
+  it('When Nest ValidationPipe returns an array of constraints / Then they are joined readably', async () => {
+    // Array coercion would render "a,b" with no separator space.
+    const client = new ApiClient('/test-api');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: () => Promise.resolve(
+        '{"message":["from_month must be YYYY-MM","from_month must be a string"]}',
+      ),
+    }));
+    await expect(client.post('/payroll/periods/generate', {})).rejects.toThrow(
+      'from_month must be YYYY-MM; from_month must be a string',
+    );
+  });
+
+  it('When the error body carries an empty message array / Then the status fallback is kept', async () => {
+    const client = new ApiClient('/test-api');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve('{"message":[]}'),
+    }));
+    await expect(client.get('/boom')).rejects.toThrow('API Error: 500');
+  });
+
+  it('When only `error` is present / Then it is used as the message', async () => {
+    const client = new ApiClient('/test-api');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: () => Promise.resolve('{"error":"Forbidden resource"}'),
+    }));
+    await expect(client.get('/nope')).rejects.toThrow('Forbidden resource');
+  });
+
   it('When response JSON is invalid / Then it throws an error', async () => {
     const client = new ApiClient('/test-api');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({

@@ -14,7 +14,7 @@ vi.mock('./apiClient', () => ({
   },
 }));
 
-import payrollApiDefault, { payrollApi } from './payrollApi';
+import payrollApiDefault, { payrollApi, toFromMonth } from './payrollApi';
 import { api } from './apiClient';
 
 const mockClient = api as unknown as {
@@ -60,7 +60,7 @@ const rows: Row[] = [
   ['groups.update', () => payrollApi.groups.update(ID, { name: 'G2' }), 'patch', `/payroll/groups/${ID}`, { name: 'G2' }],
   ['groups.remove', () => payrollApi.groups.remove(ID), 'delete', `/payroll/groups/${ID}`],
   ['periods.list', () => payrollApi.periods.list({ status: 'open' }), 'get', '/payroll/periods', { status: 'open' }],
-  ['periods.generate', () => payrollApi.periods.generate({ payroll_group_id: 'g1', from: '2026-01-01', count: 12 }), 'post', '/payroll/periods/generate', { payroll_group_id: 'g1', from: '2026-01-01', count: 12 }],
+  ['periods.generate', () => payrollApi.periods.generate({ payroll_group_id: 'g1', from_month: '2026-01', count: 12 }), 'post', '/payroll/periods/generate', { payroll_group_id: 'g1', from_month: '2026-01', count: 12 }],
   // Statutory
   ['statutory.get', () => payrollApi.statutory.get(), 'get', '/payroll/statutory'],
   ['statutory.update', () => payrollApi.statutory.update({ enabled: true }), 'put', '/payroll/statutory', { enabled: true }],
@@ -231,5 +231,44 @@ describe('GIVEN the CSV / PDF download helpers', () => {
     await payrollApi.reports.exportCsv('history');
     const [url] = fetchSpy.mock.calls[0];
     expect(url).toBe('http://api.test/v1/payroll/reports/history?export=csv');
+  });
+});
+
+// The bug this closes: the picker's value ('2026-08-22') was posted straight
+// through, so the DTO's @Matches(/^\d{4}-(0[1-9]|1[0-2])$/) rejected it.
+describe('GIVEN toFromMonth narrowing a picked date to the API month', () => {
+  it.each([
+    ['2026-08-22', '2026-08'],
+    ['2026-01-01', '2026-01'],
+    ['2026-12-31', '2026-12'],
+    ['2026-08', '2026-08'],
+    ['  2026-08-22  ', '2026-08'],
+  ])('WHEN %s is picked THEN from_month is %s', (input, expected) => {
+    expect(toFromMonth(input)).toBe(expected);
+  });
+
+  it('WHEN a first-of-month date is narrowed THEN it does not roll back a month', () => {
+    // Date-parsing would apply the local timezone and could yield 2025-12.
+    expect(toFromMonth('2026-01-01')).toBe('2026-01');
+  });
+
+  it.each(['', '   ', 'not-a-date', '22-08-2026', '2026/08/22', '2026-13-01', '2026-00-05', '26-08'])(
+    'WHEN %j cannot be read as a month THEN an empty string signals "do not send"',
+    (input) => {
+      expect(toFromMonth(input)).toBe('');
+    },
+  );
+
+  it.each([undefined, null])('WHEN %j is passed THEN it is treated as unset', (input) => {
+    expect(toFromMonth(input as unknown as string)).toBe('');
+  });
+
+  it('WHEN any produced value is checked THEN it satisfies the backend regex', () => {
+    const dtoPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
+    for (let month = 1; month <= 12; month++) {
+      const day = String(month * 2).padStart(2, '0');
+      const result = toFromMonth(`2026-${String(month).padStart(2, '0')}-${day}`);
+      expect(result).toMatch(dtoPattern);
+    }
   });
 });

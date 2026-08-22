@@ -66,6 +66,32 @@ export interface PayrollPeriod {
   status: PayrollPeriodStatus;
 }
 
+/**
+ * Generation is idempotent server-side: a month that already has a period is
+ * skipped, never overwritten. `created` and `skipped` are what actually
+ * happened — do not report the requested count back to the user instead.
+ */
+export interface GeneratePeriodsResult {
+  data: PayrollPeriod[];
+  created: number;
+  skipped: number;
+}
+
+/**
+ * Narrows any ISO-ish calendar date to the YYYY-MM the generate DTO demands.
+ *
+ * The date picker hands back a full day ('2026-08-22'); posting that verbatim
+ * failed validation with "from_month must be YYYY-MM". Slicing is deliberate
+ * over `new Date(...)`: parsing would reinterpret the value in the local
+ * timezone and can roll a 1st-of-month back into the previous month.
+ * Returns '' for anything that is not a parseable date, so the caller can
+ * refuse to send rather than post a malformed payload.
+ */
+export function toFromMonth(value: string): string {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])(?:-\d{2})?$/.exec((value ?? '').trim());
+  return match ? `${match[1]}-${match[2]}` : '';
+}
+
 export type ComponentKind = 'earning' | 'deduction' | 'employer_contribution' | 'benefit';
 export type CalcType = 'fixed' | 'percent_of' | 'formula' | 'slab';
 export type ComponentFrequency = 'per_period' | 'annual_spread' | 'one_time' | 'per_day' | 'per_hour';
@@ -531,8 +557,10 @@ export const payrollApi = {
   periods: {
     list: (params?: { group_id?: string; status?: PayrollPeriodStatus; year?: number }) =>
       api.get<PaginatedList<PayrollPeriod>>('/payroll/periods', params),
-    generate: (data: { payroll_group_id: string; from: string; count: number }) =>
-      api.post<PaginatedList<PayrollPeriod>>('/payroll/periods/generate', data),
+    // `from_month` is strictly YYYY-MM — the backend DTO rejects a full date.
+    // Callers holding a calendar date must narrow it with toFromMonth().
+    generate: (data: { payroll_group_id: string; from_month: string; count: number }) =>
+      api.post<GeneratePeriodsResult>('/payroll/periods/generate', data),
   },
 
   // ---- Statutory ------------------------------------------------------------
