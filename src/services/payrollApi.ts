@@ -43,8 +43,6 @@ export interface PayrollSettings {
   currency?: string;
 }
 
-export type PayFrequency = 'monthly' | 'semi_monthly' | 'bi_weekly' | 'weekly';
-
 export interface PayrollGroup {
   id: string;
   name: string;
