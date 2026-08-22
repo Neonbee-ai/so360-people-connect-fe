@@ -252,7 +252,7 @@ const MyLeavePage: React.FC = () => {
                         <div className="relative">
                             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                             <input
-                                type="text"
+                                type="search"
                                 value={managerSearch}
                                 onChange={e => setManagerSearch(e.target.value)}
                                 placeholder="Search by name, department or designation…"
