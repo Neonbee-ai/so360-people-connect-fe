@@ -6,7 +6,14 @@ import { useFormatters } from '@so360/formatters';
 import Modal from '../../Modal';
 import EmptyState from '../../EmptyState';
 import StatusChip from '../StatusChip';
-import { payrollApi, toFromMonth, PayrollGroup, PayrollPeriod } from '../../../services/payrollApi';
+import { payrollApi, toFromMonth, PayrollGroup, PayrollPeriod, PayFrequency } from '../../../services/payrollApi';
+
+const PAY_FREQUENCIES: { value: PayFrequency; label: string }[] = [
+    { value: 'monthly', label: 'Monthly — one period per calendar month' },
+    { value: 'semi_monthly', label: 'Semi-monthly — 1st–15th and 16th–month end' },
+    { value: 'bi_weekly', label: 'Bi-weekly — every 14 days' },
+    { value: 'weekly', label: 'Weekly — every 7 days' },
+];
 
 const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
 const labelCls = 'block text-xs text-slate-400 mb-1';
@@ -214,12 +221,12 @@ const GroupModal: React.FC<{
     onClose: () => void;
     onSave: (data: Partial<PayrollGroup>) => void;
 }> = ({ isOpen, group, onClose, onSave }) => {
-    const [form, setForm] = useState<Partial<PayrollGroup>>({ name: '', code: '', description: '', is_default: false, is_active: true });
+    const [form, setForm] = useState<Partial<PayrollGroup>>({ name: '', code: '', description: '', pay_frequency: 'monthly', is_default: false, is_active: true });
 
     useEffect(() => {
         setForm(group
-            ? { name: group.name, code: group.code, description: group.description || '', is_default: group.is_default, is_active: group.is_active }
-            : { name: '', code: '', description: '', is_default: false, is_active: true });
+            ? { name: group.name, code: group.code, description: group.description || '', pay_frequency: group.pay_frequency || 'monthly', is_default: group.is_default, is_active: group.is_active }
+            : { name: '', code: '', description: '', pay_frequency: 'monthly', is_default: false, is_active: true });
     }, [group, isOpen]);
 
     return (
@@ -232,6 +239,19 @@ const GroupModal: React.FC<{
                 <div>
                     <label className={labelCls}>Code *</label>
                     <input type="text" required value={form.code || ''} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} className={inputCls} placeholder="MONTHLY" />
+                </div>
+                <div>
+                    <label className={labelCls}>Pay Frequency</label>
+                    <select
+                        value={form.pay_frequency || 'monthly'}
+                        onChange={e => setForm(f => ({ ...f, pay_frequency: e.target.value as PayFrequency }))}
+                        className={inputCls}
+                    >
+                        {PAY_FREQUENCIES.map(({ value, label }) => (
+                            <option key={value} value={value}>{label}</option>
+                        ))}
+                    </select>
+                    <p className="mt-1 text-xs text-slate-500">Decides how generated periods are split.</p>
                 </div>
                 <div>
                     <label className={labelCls}>Description</label>

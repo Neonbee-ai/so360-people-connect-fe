@@ -43,11 +43,15 @@ export interface PayrollSettings {
   currency?: string;
 }
 
+export type PayFrequency = 'monthly' | 'semi_monthly' | 'bi_weekly' | 'weekly';
+
 export interface PayrollGroup {
   id: string;
   name: string;
   code: string;
   description?: string;
+  /** Drives the shape of generated periods; server defaults to 'monthly'. */
+  pay_frequency?: PayFrequency;
   pay_day_rule?: PayDayRule | null;
   is_default: boolean;
   is_active: boolean;

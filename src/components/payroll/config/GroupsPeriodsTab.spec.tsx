@@ -87,6 +87,48 @@ describe('GIVEN the group create/edit modal', () => {
     expect(mockApi.groups.list.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
+  // Without this field the frequency was unreachable from the UI, so every
+  // group stayed on the server-side 'monthly' default.
+  it('WHEN a pay frequency is chosen THEN it is sent with the new group', async () => {
+    mockApi.groups.create.mockResolvedValue({ ...groupB, id: 'g3' });
+    render(<GroupsPeriodsTab />);
+    await waitFor(() => expect(screen.getByText('New Group')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Group'));
+    await waitFor(() => expect(screen.getByText('New Payroll Group')).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText('Monthly Staff'), { target: { value: 'Weekly Crew' } });
+    fireEvent.change(screen.getByPlaceholderText('MONTHLY'), { target: { value: 'weekly' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'weekly' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(mockApi.groups.create).toHaveBeenCalledWith(expect.objectContaining({
+      pay_frequency: 'weekly',
+    })));
+  });
+
+  it('WHEN the frequency is left alone THEN monthly is sent, matching the server default', async () => {
+    mockApi.groups.create.mockResolvedValue({ ...groupB, id: 'g3' });
+    render(<GroupsPeriodsTab />);
+    await waitFor(() => expect(screen.getByText('New Group')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Group'));
+    await waitFor(() => expect(screen.getByText('New Payroll Group')).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText('Monthly Staff'), { target: { value: 'Staff' } });
+    fireEvent.change(screen.getByPlaceholderText('MONTHLY'), { target: { value: 'staff' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(mockApi.groups.create).toHaveBeenCalledWith(expect.objectContaining({
+      pay_frequency: 'monthly',
+    })));
+  });
+
+  it('WHEN an existing group is edited THEN its saved frequency pre-fills the selector', async () => {
+    mockApi.groups.list.mockResolvedValue({
+      data: [{ ...groupA, pay_frequency: 'semi_monthly' }, groupB], total: 2,
+    });
+    render(<GroupsPeriodsTab />);
+    await waitFor(() => expect(screen.getByText('Monthly Staff')).toBeInTheDocument());
+    fireEvent.click(screen.getAllByText('Edit')[0]);
+    await waitFor(() => expect(screen.getByText('Edit Payroll Group')).toBeInTheDocument());
+    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('semi_monthly');
+  });
+
   it('WHEN the name or code is missing THEN submit does nothing', async () => {
     render(<GroupsPeriodsTab />);
     await waitFor(() => expect(screen.getByText('New Group')).toBeInTheDocument());
