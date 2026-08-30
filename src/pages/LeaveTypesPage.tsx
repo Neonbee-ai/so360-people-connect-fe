@@ -148,7 +148,7 @@ const LeaveTypesPage: React.FC = () => {
                                     <td className="px-4 py-3 text-right">
                                         {canCreate && <button
                                             onClick={() => setEditingLeaveType(leaveType)}
-                                            className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                                            className="text-sm font-semibold text-teal-400 hover:text-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500/40 rounded transition-colors"
                                         >
                                             Edit
                                         </button>}

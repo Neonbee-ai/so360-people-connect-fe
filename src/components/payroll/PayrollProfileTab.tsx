@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     ChevronDown, ChevronUp, Briefcase, DollarSign, Layers, Award, Landmark,
     CreditCard, FileText, History, Plus, Eye, Trash2, AlertTriangle, TrendingUp,
@@ -302,7 +302,17 @@ const SalaryAdjustmentModal: React.FC<{
     onSaved: () => void;
     formatCurrency: (v: number) => string;
 }> = ({ isOpen, personId, current, onClose, onSaved, formatCurrency }) => {
+    const navigate = useNavigate();
+    const shell = useShellBridge() as {
+        permissionsLoaded?: boolean;
+        hasPermission?: (code: string) => boolean;
+    } | null;
+    const canConfigureStructures = shell?.permissionsLoaded
+        ? (shell.hasPermission?.('payroll.structures') ?? false)
+        : false;
+
     const [structures, setStructures] = useState<SalaryStructure[]>([]);
+    const [structuresLoaded, setStructuresLoaded] = useState(false);
     const [form, setForm] = useState<SalaryRevisionPayload>({
         structure_id: '', monthly_wage: 0, effective_from: '',
         revision_reason: '', revision_type: 'increment',
@@ -311,9 +321,11 @@ const SalaryAdjustmentModal: React.FC<{
 
     useEffect(() => {
         if (!isOpen) return;
+        setStructuresLoaded(false);
         payrollApi.structures.list({ status: 'active' })
             .then(result => setStructures(result.data))
-            .catch(() => toast.error('Failed to load structures'));
+            .catch(() => toast.error('Failed to load structures'))
+            .finally(() => setStructuresLoaded(true));
         setForm({
             structure_id: current?.structure_id || '',
             monthly_wage: current?.monthly_wage || 0,
@@ -322,6 +334,11 @@ const SalaryAdjustmentModal: React.FC<{
             revision_type: current ? 'increment' : 'initial',
         });
     }, [isOpen, current]);
+
+    const goConfigureStructures = () => {
+        onClose();
+        navigate('/people/payroll/configuration');
+    };
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -364,10 +381,26 @@ const SalaryAdjustmentModal: React.FC<{
                     </div>
                     <div>
                         <label className={labelCls}>Salary Structure *</label>
-                        <select required value={form.structure_id} onChange={e => setForm(f => ({ ...f, structure_id: e.target.value }))} className={inputCls}>
-                            <option value="">Select structure…</option>
-                            {structures.map(s => <option key={s.id} value={s.id}>{s.name} (v{s.version})</option>)}
-                        </select>
+                        {structuresLoaded && structures.length === 0 ? (
+                            canConfigureStructures ? (
+                                <button
+                                    type="button"
+                                    onClick={goConfigureStructures}
+                                    className="w-full text-left px-3 py-2 bg-amber-500/5 border border-amber-500/30 rounded-lg text-xs text-amber-400 hover:bg-amber-500/10 transition-colors"
+                                >
+                                    No salary structures configured — Configure Salary Structure →
+                                </button>
+                            ) : (
+                                <div className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-400">
+                                    Contact an administrator to configure salary structures.
+                                </div>
+                            )
+                        ) : (
+                            <select required value={form.structure_id} onChange={e => setForm(f => ({ ...f, structure_id: e.target.value }))} className={inputCls}>
+                                <option value="">Select structure…</option>
+                                {structures.map(s => <option key={s.id} value={s.id}>{s.name} (v{s.version})</option>)}
+                            </select>
+                        )}
                     </div>
                     <div>
                         <label className={labelCls}>Effective From *</label>

@@ -1155,7 +1155,7 @@ const WorkLocationFieldHelp: React.FC<{
     const navigate = useNavigate();
     const [confirmingLeave, setConfirmingLeave] = useState(false);
 
-    const go = () => navigate('/settings/work-locations');
+    const go = () => navigate('/people/settings/work-locations');
 
     if (confirmingLeave) {
         return (

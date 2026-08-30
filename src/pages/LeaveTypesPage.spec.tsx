@@ -146,4 +146,13 @@ describe('Given a Leave Type row with a dedicated Edit action', () => {
     const row = screen.getByText('Annual Leave').closest('tr') as HTMLTableRowElement;
     expect(row.className).not.toContain('cursor-pointer');
   });
+
+  it('When the Edit action is rendered / Then it carries prominent, discoverable styling', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    const editButton = screen.getByText('Edit');
+    expect(editButton.className).toContain('font-semibold');
+    expect(editButton.className).not.toContain('text-xs');
+    expect(editButton.className).toContain('focus:ring-2');
+  });
 });

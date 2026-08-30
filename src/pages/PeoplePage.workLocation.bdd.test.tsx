@@ -4,7 +4,10 @@
  * Covers the three defects this feature had:
  *  1. the "Manage Work Locations" link disappeared as soon as one location
  *     existed, leaving no route to the management page;
- *  2. that link navigated to a path the module router does not serve;
+ *  2. that link navigated to an absolute path that escaped the module's
+ *     mount point under the shell (`/settings/...` instead of
+ *     `/people/settings/...`), 404ing on the shell's own unrelated Settings
+ *     route instead of reaching this module's Work Locations page;
  *  3. only active locations are offered for assignment, but a person already
  *     assigned to a since-deactivated location must not silently lose it.
  */
@@ -169,7 +172,7 @@ describe('Given the Add Person modal and at least one work location configured',
     await openCreateModal();
     await waitFor(() => expect(screen.getByText('Manage Work Locations')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Manage Work Locations'));
-    expect(mockNavigate).toHaveBeenCalledWith('/settings/work-locations');
+    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/work-locations');
   });
 
   it('When the form has data / Then the manage link warns in place instead of silently discarding it', async () => {
@@ -182,7 +185,7 @@ describe('Given the Add Person modal and at least one work location configured',
     expect(screen.getByText(/Leaving discards/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Leave anyway'));
-    expect(mockNavigate).toHaveBeenCalledWith('/settings/work-locations');
+    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/work-locations');
   });
 
   it('When the user chooses Stay / Then the form is untouched and no navigation happens', async () => {

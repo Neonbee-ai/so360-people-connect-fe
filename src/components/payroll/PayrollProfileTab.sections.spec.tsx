@@ -226,6 +226,27 @@ describe('GIVEN the Salary section', () => {
     fireEvent.click(await screen.findByText('Salary'));
     await waitFor(() => expect(screen.getByText(/No salary assigned yet/)).toBeInTheDocument());
   });
+
+  it('WHEN no salary structures are configured and the viewer lacks payroll.structures THEN the dropdown is replaced with a contact-admin message', async () => {
+    mockApi.structures.list.mockResolvedValue({ data: [], total: 0 });
+    renderTab();
+    fireEvent.click(await screen.findByText('Salary'));
+    fireEvent.click(await screen.findByText('Salary Adjustment'));
+    await waitFor(() => expect(screen.getByText(/Contact an administrator to configure salary structures/)).toBeInTheDocument());
+    expect(screen.queryByText(/Configure Salary Structure/)).not.toBeInTheDocument();
+  });
+
+  it('WHEN no salary structures are configured and the viewer holds payroll.structures THEN a Configure Salary Structure link navigates to Payroll Configuration', async () => {
+    mockApi.structures.list.mockResolvedValue({ data: [], total: 0 });
+    shellBridgeState.permissions = ['payroll.structures'];
+    renderTab();
+    fireEvent.click(await screen.findByText('Salary'));
+    fireEvent.click(await screen.findByText('Salary Adjustment'));
+    const configureLink = await screen.findByText(/No salary structures configured — Configure Salary Structure/);
+    fireEvent.click(configureLink);
+    // The modal closes and navigation is triggered — the adjustment form is no longer shown.
+    await waitFor(() => expect(screen.queryByText('Apply Adjustment')).not.toBeInTheDocument());
+  });
 });
 
 // =============================================================================
