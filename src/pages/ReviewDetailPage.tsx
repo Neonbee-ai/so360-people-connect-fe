@@ -7,6 +7,7 @@ import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
 import { reviewTemplatesApi, ReviewTemplate, ReviewTemplateSection } from '../services/reviewTemplatesService';
+import PerformanceEvidencePanel from '../components/PerformanceEvidencePanel';
 
 // Dynamic review form that renders template sections and fields
 const ReviewForm: React.FC<{
@@ -288,6 +289,17 @@ const ReviewDetailPage: React.FC = () => {
                 <PageHeader
                     title={`${review.person?.full_name || 'Unknown'} - ${review.template?.name || 'Review'}`}
                     subtitle={`Review Period: ${formatters.formatDate(review.review_period_start)} - ${formatters.formatDate(review.review_period_end)}`}
+                />
+            </div>
+
+            {/* Measured evidence from CRM, scoped to this review's period.
+                Placed above the rating form on purpose: the reviewer should
+                see the numbers before writing the assessment, not after. */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <PerformanceEvidencePanel
+                    personId={review.person_id}
+                    periodStart={review.review_period_start}
+                    periodEnd={review.review_period_end}
                 />
             </div>
 
