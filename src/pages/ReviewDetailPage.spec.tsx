@@ -21,6 +21,13 @@ vi.mock('../services/performanceReviewsService', () => ({
   ReviewTemplateSection: {},
 }));
 
+// The appraisal evidence panel is a child of this page, so its service must
+// be mocked here too — otherwise it reaches the real apiClient during render
+// and takes the whole page down with it.
+vi.mock('../services/performanceBlocksService', () => ({
+  performanceBlocksApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+
 vi.mock('../services/reviewTemplatesService', () => ({
   reviewTemplatesApi: { getById: vi.fn() },
   ReviewTemplate: {},

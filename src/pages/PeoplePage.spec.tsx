@@ -311,9 +311,10 @@ describe('Given the Work Location field in the create modal', () => {
     expect(screen.queryByText('None')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Manage Work Locations'));
-    // The module router serves this at the root of the People Connect remote;
-    // the previous '/people/...' prefix was a dead route.
-    expect(mockNavigate).toHaveBeenCalledWith('/settings/work-locations');
+    // Mount-relative: an absolute '/settings/work-locations' escaped this
+    // module's /people/* mount point under the shell (see 5e3af34, which
+    // changed PeoplePage and its sibling spec but left this one stale).
+    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/work-locations');
   });
 
   it('When the work locations fetch fails / Then an error message is shown instead of silently rendering an empty dropdown', async () => {
