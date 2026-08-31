@@ -33,20 +33,30 @@ export default function PerformanceEvidencePanel({
     let alive = true;
     if (!personId) return;
     setError(null);
-    performanceBlocksApi
-      .list(personId, {
-        // Only send a window when BOTH bounds exist — a half-applied filter
-        // would silently drop evidence.
-        ...(showAll || !periodStart || !periodEnd
-          ? {}
-          : { period_start: periodStart, period_end: periodEnd }),
-      })
-      .then((rows) => alive && setBlocks(Array.isArray(rows) ? rows : []))
-      .catch((e: any) => {
+
+    // Wrapped, not just `.catch`: this panel is a child of the appraisal page,
+    // and a synchronous throw here (a missing client, a bad import) would take
+    // the whole review down with it. Evidence is supporting context — it must
+    // never be able to stop someone completing a performance review.
+    const load = async () => {
+      try {
+        const rows = await performanceBlocksApi.list(personId, {
+          // Only send a window when BOTH bounds exist — a half-applied filter
+          // would silently drop evidence.
+          ...(showAll || !periodStart || !periodEnd
+            ? {}
+            : { period_start: periodStart, period_end: periodEnd }),
+        });
+        if (!alive) return;
+        setBlocks(Array.isArray(rows) ? rows : []);
+      } catch (e: any) {
         if (!alive) return;
         setBlocks([]);
         setError(e?.message ?? 'Could not load performance evidence.');
-      });
+      }
+    };
+
+    void load();
     return () => {
       alive = false;
     };
