@@ -51,6 +51,16 @@ describe('Given LeaveSettingsPage wiring', () => {
     await waitFor(() => expect(screen.getByDisplayValue('April')).toBeTruthy());
   });
 
+  it('When mounted / Then it points to Leave Types for per-type accrual and carry-forward instead of duplicating them', async () => {
+    mockApi.get.mockResolvedValueOnce({ category: 'leave_policy', value: {}, updated_by: null, updated_at: null });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('link', { name: /leave types/i })).toBeInTheDocument());
+    expect(screen.getByRole('link', { name: /leave types/i })).toHaveAttribute('href', '/people/leaves/types');
+    expect(screen.queryByText(/^Leave Accrual$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Auto Carry Forward/i)).not.toBeInTheDocument();
+  });
+
   it('When Save Changes is clicked / Then it calls settingsApi.update with category "leave_policy" and the current value', async () => {
     mockApi.get.mockResolvedValueOnce({ category: 'leave_policy', value: DEFAULT_LEAVE_SETTINGS, updated_by: null, updated_at: null });
     mockApi.update.mockResolvedValueOnce({ category: 'leave_policy', value: DEFAULT_LEAVE_SETTINGS, updated_by: 'u1', updated_at: 'now' });

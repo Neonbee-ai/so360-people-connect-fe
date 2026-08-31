@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button, toast } from '@so360/design-system';
-import { Building2, Save } from 'lucide-react';
+import { Building2, Save, Globe2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -13,8 +14,6 @@ export interface OrganizationSettingsValue {
   shift_duration_hours: number;
   office_start_time: string;
   office_end_time: string;
-  timezone: string;
-  date_format: string;
   time_format: '12h' | '24h';
   employee_id_format: string;
   default_joining_status: string;
@@ -31,8 +30,6 @@ export const DEFAULT_ORGANIZATION_SETTINGS: OrganizationSettingsValue = {
   shift_duration_hours: 8,
   office_start_time: '09:00',
   office_end_time: '18:00',
-  timezone: 'Asia/Kolkata',
-  date_format: 'DD/MM/YYYY',
   time_format: '24h',
   employee_id_format: 'EMP-{seq}',
   default_joining_status: 'Probation',
@@ -42,7 +39,6 @@ export const DEFAULT_ORGANIZATION_SETTINGS: OrganizationSettingsValue = {
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DATE_FORMATS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
 const INPUT_CLASS =
   'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
 
@@ -210,37 +206,29 @@ const OrganizationSettingsPage: React.FC = () => {
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
           <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Locale &amp; Formats</h3>
 
-          <Field label="Timezone">
-            <input
-              type="text"
-              className={INPUT_CLASS}
-              value={value.timezone}
-              onChange={(e) => set('timezone', e.target.value)}
-              placeholder="e.g. Asia/Kolkata"
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Date Format">
-              <select
-                className={INPUT_CLASS}
-                value={value.date_format}
-                onChange={(e) => set('date_format', e.target.value)}
-              >
-                {DATE_FORMATS.map((f) => <option key={f} value={f}>{f}</option>)}
-              </select>
-            </Field>
-            <Field label="Time Format">
-              <select
-                className={INPUT_CLASS}
-                value={value.time_format}
-                onChange={(e) => set('time_format', e.target.value as '12h' | '24h')}
-              >
-                <option value="12h">12-hour</option>
-                <option value="24h">24-hour</option>
-              </select>
-            </Field>
+          <div className="flex items-start gap-2.5 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-400">
+            <Globe2 className="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-500" />
+            <span>
+              Timezone (<span className="text-slate-300">{shell?.businessSettings?.timezone || 'not set'}</span>) and date
+              format (<span className="text-slate-300">{shell?.businessSettings?.date_format || 'not set'}</span>) are
+              organization-wide and managed once for every module in{' '}
+              <Link to="/settings/organization" className="text-blue-400 hover:text-blue-300 underline">
+                Business Settings
+              </Link>
+              , not here.
+            </span>
           </div>
+
+          <Field label="Time Format">
+            <select
+              className={INPUT_CLASS}
+              value={value.time_format}
+              onChange={(e) => set('time_format', e.target.value as '12h' | '24h')}
+            >
+              <option value="12h">12-hour</option>
+              <option value="24h">24-hour</option>
+            </select>
+          </Field>
 
           <Field label="Employee ID Format">
             <input

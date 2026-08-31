@@ -12,7 +12,8 @@ vi.mock('../services/orgSettingsService', () => ({
 vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({
     permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, effectiveFlagsLoaded: true,
-    permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true,
+    isFeatureEnabled: () => true,
+    businessSettings: { timezone: 'Asia/Kolkata', date_format: 'DD/MM/YYYY' },
   }),
 }));
 
@@ -43,7 +44,7 @@ describe('Given OrganizationSettingsPage', () => {
     it('When mounted / Then it calls settingsApi.get with category "organization" and pre-fills the form', async () => {
       mockApi.get.mockResolvedValueOnce({
         category: 'organization',
-        value: { default_working_hours: 9, timezone: 'America/New_York' },
+        value: { default_working_hours: 9 },
         updated_by: null,
         updated_at: null,
       });
@@ -52,7 +53,6 @@ describe('Given OrganizationSettingsPage', () => {
 
       await waitFor(() => expect(mockApi.get).toHaveBeenCalledWith('organization'));
       await waitFor(() => expect(screen.getByDisplayValue('9')).toBeInTheDocument());
-      expect(screen.getByDisplayValue('America/New_York')).toBeInTheDocument();
     });
 
     it('When the stored value is empty / Then it falls back to sensible defaults', async () => {
@@ -63,8 +63,19 @@ describe('Given OrganizationSettingsPage', () => {
       await waitFor(() =>
         expect(screen.getAllByDisplayValue(String(DEFAULT_ORGANIZATION_SETTINGS.default_working_hours)).length).toBeGreaterThan(0),
       );
-      expect(screen.getByDisplayValue(DEFAULT_ORGANIZATION_SETTINGS.timezone)).toBeInTheDocument();
       expect(screen.getByDisplayValue(DEFAULT_ORGANIZATION_SETTINGS.employee_id_format)).toBeInTheDocument();
+    });
+
+    it('When mounted / Then timezone and date format are shown read-only from Business Settings, not as editable fields', async () => {
+      mockApi.get.mockResolvedValueOnce({ category: 'organization', value: {}, updated_by: null, updated_at: null });
+
+      renderPage();
+
+      await waitFor(() => expect(screen.getByText('Asia/Kolkata')).toBeInTheDocument());
+      expect(screen.getByText('DD/MM/YYYY')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /business settings/i })).toHaveAttribute('href', '/settings/organization');
+      // Neither is an input the admin can type into — this is Core's data, not PC's.
+      expect(screen.queryByPlaceholderText(/asia\/kolkata/i)).not.toBeInTheDocument();
     });
   });
 

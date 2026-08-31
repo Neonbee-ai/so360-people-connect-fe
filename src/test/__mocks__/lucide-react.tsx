@@ -23,6 +23,7 @@ export const Users = createIcon('Users');
 export const UserPlus = createIcon('UserPlus');
 export const Briefcase = createIcon('Briefcase');
 export const Building2 = createIcon('Building2');
+export const Globe2 = createIcon('Globe2');
 export const Target = createIcon('Target');
 export const AlertTriangle = createIcon('AlertTriangle');
 export const TrendingUp = createIcon('TrendingUp');

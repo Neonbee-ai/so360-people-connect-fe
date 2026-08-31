@@ -1,19 +1,26 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button, toast } from '@so360/design-system';
-import { CalendarRange, Save } from 'lucide-react';
+import { CalendarRange, Save, Info } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
+// Accrual rate/type and carry-forward are deliberately NOT here — leave_types
+// already carries accrual_type, carry_forward_allowed, max_carry_forward_days
+// and carry_forward_expiry_months PER leave type (Annual Leave and Sick Leave
+// legitimately accrue differently), so a single org-wide toggle for either
+// would just be a second, conflicting source of truth. Only settings that
+// leave_types genuinely cannot express — because they apply to how a leave
+// SPAN is calculated across the calendar, not to one type's entitlement —
+// belong on this page.
 export interface LeaveSettingsValue {
   leave_year_start_month: string;
   weekend_policy: 'exclude' | 'include';
   holiday_inclusion: boolean;
   sandwich_rule: boolean;
   half_day_rule: 'first_half' | 'second_half' | 'both';
-  leave_accrual: 'monthly' | 'yearly' | 'none';
   auto_expiry: boolean;
-  auto_carry_forward: boolean;
 }
 
 export const DEFAULT_LEAVE_SETTINGS: LeaveSettingsValue = {
@@ -22,9 +29,7 @@ export const DEFAULT_LEAVE_SETTINGS: LeaveSettingsValue = {
   holiday_inclusion: false,
   sandwich_rule: false,
   half_day_rule: 'both',
-  leave_accrual: 'monthly',
   auto_expiry: false,
-  auto_carry_forward: false,
 };
 
 const MONTHS = [
@@ -97,7 +102,7 @@ const LeaveSettingsPage: React.FC = () => {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Leave Policy"
-        subtitle="Leave year, accrual, and calendar rules applied across leave requests"
+        subtitle="Leave year and calendar rules applied across every leave type"
         actions={
           canManage && (
             <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
@@ -149,19 +154,7 @@ const LeaveSettingsPage: React.FC = () => {
         </div>
 
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Accrual &amp; Rules</h3>
-
-          <Field label="Leave Accrual">
-            <select
-              className={INPUT_CLASS}
-              value={value.leave_accrual}
-              onChange={(e) => set('leave_accrual', e.target.value as LeaveSettingsValue['leave_accrual'])}
-            >
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-              <option value="none">None</option>
-            </select>
-          </Field>
+          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Calendar Rules</h3>
 
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-400">Holiday Inclusion (count holidays within a leave span)</span>
@@ -174,13 +167,20 @@ const LeaveSettingsPage: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Auto Expiry of Unused Leave</span>
+            <span className="text-xs text-slate-400">Auto Expiry of Unused, Non-Carried Leave at Year End</span>
             <Toggle checked={value.auto_expiry} onChange={(v) => set('auto_expiry', v)} />
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Auto Carry Forward to Next Leave Year</span>
-            <Toggle checked={value.auto_carry_forward} onChange={(v) => set('auto_carry_forward', v)} />
+          <div className="flex items-start gap-2.5 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-400">
+            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-500" />
+            <span>
+              Accrual rate and carry-forward are configured per leave type, not org-wide — different types
+              legitimately accrue and carry over differently. Set those in{' '}
+              <Link to="/people/leaves/types" className="text-blue-400 hover:text-blue-300 underline">
+                Leave Types
+              </Link>
+              .
+            </span>
           </div>
         </div>
       </div>
