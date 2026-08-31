@@ -240,6 +240,10 @@ const PeoplePage: React.FC = () => {
     const [typeFilter, setTypeFilter] = useState<string>('');
     const [departmentFilter, setDepartmentFilter] = useState<string>('');
     const [employmentTypeFilter, setEmploymentTypeFilter] = useState<string>('');
+    // Options come from the org's Employment Types master (Settings →
+    // Employment Types), not a fixed list — admins can add their own codes
+    // there (e.g. 'consultant', 'freelancer') and this filter must offer them.
+    const [employmentTypeOptions, setEmploymentTypeOptions] = useState<MasterRow[]>([]);
     const [joiningFromFilter, setJoiningFromFilter] = useState<string>('');
     const [joiningToFilter, setJoiningToFilter] = useState<string>('');
     // From > To is invalid input, not "zero matches" — surfaced inline instead
@@ -326,6 +330,12 @@ const PeoplePage: React.FC = () => {
     useEffect(() => {
         loadPeople();
     }, [loadPeople]);
+
+    useEffect(() => {
+        mastersApi.getAll('employment_type')
+            .then(r => setEmploymentTypeOptions(r.data ?? []))
+            .catch(() => setEmploymentTypeOptions([]));
+    }, []);
 
     // Open create modal when navigated from dashboard "Add Person" button
     useEffect(() => {
@@ -712,10 +722,9 @@ const PeoplePage: React.FC = () => {
                     className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Employment Types</option>
-                    <option value="full_time">Full Time</option>
-                    <option value="part_time">Part Time</option>
-                    <option value="contract">Contract</option>
-                    <option value="intern">Intern</option>
+                    {employmentTypeOptions.map(t => (
+                        <option key={t.id} value={t.code}>{t.name}</option>
+                    ))}
                 </select>
 
                 {/* Date of Joining Filter */}

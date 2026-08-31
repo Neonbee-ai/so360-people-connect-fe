@@ -400,6 +400,17 @@ describe('Given the Employment Type field in the create modal', () => {
     expect(screen.getAllByText('Contract').length).toBeGreaterThanOrEqual(1);
   });
 
+  it('When the org has added a non-default employment type code / Then the list-page filter offers it too, not just the fixed 4', async () => {
+    mockMastersApi.getAll.mockImplementation((type: string) =>
+      type === 'employment_type'
+        ? Promise.resolve({ data: [{ id: 'et-1', name: 'Full Time', code: 'full_time' }, { id: 'et-3', name: 'Consultant', code: 'consultant' }] })
+        : Promise.resolve({ data: [] }),
+    );
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Consultant')).toBeInTheDocument());
+  });
+
   it('When no employment types are configured / Then an empty state with a "Create Employment Type" action is shown, not a bare "None"', async () => {
     mockMastersApi.getAll.mockResolvedValue({ data: [] });
     await openModal();
