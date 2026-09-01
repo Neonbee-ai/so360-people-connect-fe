@@ -64,4 +64,13 @@ describe('Given PerformanceSettingsPage wiring', () => {
     );
     await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Performance settings saved'));
   });
+
+  it('When mounted / Then it points to Review Templates for rating scale instead of duplicating it', async () => {
+    mockApi.get.mockResolvedValueOnce({ category: 'performance_settings', value: {}, updated_by: null, updated_at: null });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('link', { name: /review templates/i })).toBeInTheDocument());
+    expect(screen.getByRole('link', { name: /review templates/i })).toHaveAttribute('href', '/people/reviews/templates');
+    expect(screen.queryByText(/^Rating Scale$/i)).not.toBeInTheDocument();
+  });
 });

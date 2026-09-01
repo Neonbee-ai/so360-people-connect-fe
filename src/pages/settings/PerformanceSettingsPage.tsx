@@ -1,24 +1,28 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button, toast } from '@so360/design-system';
-import { Award, Save, X } from 'lucide-react';
+import { Award, Save, X, Info } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
+// rating_scale and review_templates are deliberately NOT here — the real
+// Review Templates page already owns a rating_scale PER template (3/5/10/
+// 100-point, review_templates.rating_scale) and IS the actual template
+// catalog. A second, org-wide "1-5 or 1-10" scale and a free-text list of
+// template names here were pure decoration: nothing ever read them, and a
+// template created via that real page could use a scale this page's
+// dropdown couldn't even represent (10 or 100-point).
 export interface PerformanceSettingsValue {
   review_cycle: 'quarterly' | 'half_yearly' | 'annual';
-  rating_scale: '1-5' | '1-10';
   kpi_categories: string[];
   competency_library: string[];
-  review_templates: string[];
 }
 
 export const DEFAULT_PERFORMANCE_SETTINGS: PerformanceSettingsValue = {
   review_cycle: 'annual',
-  rating_scale: '1-5',
   kpi_categories: [],
   competency_library: [],
-  review_templates: [],
 };
 
 const INPUT_CLASS =
@@ -127,7 +131,7 @@ const PerformanceSettingsPage: React.FC = () => {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Performance Settings"
-        subtitle="Review cycles, rating scale, KPI categories, and competency library"
+        subtitle="Review cycles, KPI categories, and competency library"
         actions={
           canManage && (
             <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
@@ -156,23 +160,17 @@ const PerformanceSettingsPage: React.FC = () => {
             </select>
           </Field>
 
-          <Field label="Rating Scale">
-            <select
-              className={INPUT_CLASS}
-              value={value.rating_scale}
-              onChange={(e) => set('rating_scale', e.target.value as PerformanceSettingsValue['rating_scale'])}
-            >
-              <option value="1-5">1 to 5</option>
-              <option value="1-10">1 to 10</option>
-            </select>
-          </Field>
-
-          <TagListField
-            label="Review Templates"
-            items={value.review_templates}
-            placeholder="e.g. Annual Manager Review"
-            onChange={(items) => set('review_templates', items)}
-          />
+          <div className="flex items-start gap-2.5 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-400">
+            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-500" />
+            <span>
+              Rating scale and templates are configured per template, not org-wide — different
+              reviews legitimately need different scales. Manage those in{' '}
+              <Link to="/people/reviews/templates" className="text-blue-400 hover:text-blue-300 underline">
+                Review Templates
+              </Link>
+              .
+            </span>
+          </div>
         </div>
 
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
