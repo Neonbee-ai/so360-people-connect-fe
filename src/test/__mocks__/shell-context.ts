@@ -62,3 +62,8 @@ export const useQuota = () => ({
   getPercentage: () => 0,
   refresh: async () => {},
 });
+export const QUOTA_EXCEEDED_EVENT = '__so360_quota_exceeded';
+export const buildQuotaExceededDetail = (error: any): unknown => {
+  const data = error?.response?.data ?? {};
+  return data?.resolution ?? data;
+};

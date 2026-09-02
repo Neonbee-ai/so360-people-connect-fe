@@ -15,6 +15,7 @@ import type {
 } from '../types/people';
 import { api, apiContext } from './apiClient';
 import { createRequestCache } from './requestCache';
+import { notifyQuotaExceeded } from './quotaExceeded';
 
 // Utilization summary is org-static for short windows but is requested by both
 // the Dashboard and the Utilization page (and on every revisit). Coalesce
@@ -100,6 +101,7 @@ export const peopleApi = {
       method: 'GET',
       headers: api.getHeadersRaw(),
     });
+    await notifyQuotaExceeded(response);
 
     if (!response.ok) {
       throw new Error('Failed to export people');
@@ -118,6 +120,7 @@ export const peopleApi = {
       headers: api.getHeadersRaw(),
       body: formData,
     });
+    await notifyQuotaExceeded(response);
 
     if (!response.ok) {
       const text = await response.text();
@@ -138,6 +141,7 @@ export const peopleApi = {
       method: 'GET',
       headers: api.getHeadersRaw(),
     });
+    await notifyQuotaExceeded(response);
 
     if (!response.ok) {
       throw new Error('Failed to download import template');
@@ -156,6 +160,7 @@ export const peopleApi = {
       headers: api.getHeadersRaw(),
       body: formData,
     });
+    await notifyQuotaExceeded(response);
 
     if (!response.ok) {
       const text = await response.text();
