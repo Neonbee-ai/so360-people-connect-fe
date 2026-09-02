@@ -1,4 +1,5 @@
 import { apiContext } from './apiClient';
+import { notifyQuotaExceeded } from './quotaExceeded';
 
 const _win = typeof window !== 'undefined' ? (window as any) : undefined;
 const CORE_API_BASE =
@@ -20,6 +21,7 @@ export async function fetchOrgBaseCurrency(orgId: string): Promise<string | null
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
         });
+        await notifyQuotaExceeded(res);
         if (!res.ok) return null;
         const data = await res.json();
         return (data?.base_currency as string) || (data?.currency as string) || null;

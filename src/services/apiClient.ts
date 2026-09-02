@@ -1,6 +1,7 @@
 // =============================================================================
 // Shared API Client — Single source of truth for tenant/org/user context
 // All service modules import this instead of duplicating ApiClient.
+import { notifyQuotaExceeded } from './quotaExceeded';
 // =============================================================================
 
 const _win = typeof window !== 'undefined' ? (window as any) : undefined;
@@ -61,6 +62,7 @@ export class ApiClient {
         ...options,
         headers: { ...this.getHeaders(), ...options.headers },
       });
+      await notifyQuotaExceeded(response);
 
       const text = await response.text();
 

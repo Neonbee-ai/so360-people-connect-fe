@@ -1,4 +1,5 @@
 import { apiContext } from './apiClient';
+import { notifyQuotaExceeded } from './quotaExceeded';
 
 // =============================================================================
 // Department-Scoped Access — calls so360-core directly (not People Connect
@@ -37,6 +38,7 @@ async function coreRequest<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { ...coreHeaders(), ...init?.headers },
   });
+  await notifyQuotaExceeded(res);
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
     try {

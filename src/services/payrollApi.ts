@@ -7,6 +7,7 @@
 // =============================================================================
 
 import { api, apiContext } from './apiClient';
+import { notifyQuotaExceeded } from './quotaExceeded';
 
 // =============================================================================
 // Types (snake_case — mirror plan §5 field names)
@@ -517,6 +518,7 @@ async function downloadFile(path: string, filename: string): Promise<void> {
   const response = await fetch(`${apiContext.getBaseUrl()}${path}`, {
     headers: api.getHeadersRaw(),
   });
+  await notifyQuotaExceeded(response);
   if (!response.ok) {
     throw new Error(`Download failed: ${response.status}`);
   }
