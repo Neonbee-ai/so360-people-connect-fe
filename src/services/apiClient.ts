@@ -4,8 +4,69 @@
 import { notifyQuotaExceeded } from './quotaExceeded';
 // =============================================================================
 
+// -----------------------------------------------------------------------------
+// Base URL resolution
+//
+// Two names for the same value exist in the wild:
+//   • VITE_SO360_PEOPLE_CONNECT_API — what the production deploy workflow sets
+//   • VITE_SO360_PEOPLE_API         — the legacy name this code originally read,
+//                                     and the name the Shell injects on `window`
+//
+// Reading only one of them meant the app silently fell back to '/people-api'
+// whenever the environment supplied the other. We now accept BOTH.
+//
+// ⚠️ Vite substitutes `import.meta.env.VITE_*` LITERALLY at build time. Every
+// read below MUST be a full static member expression. Indirect access
+// (`const e = import.meta.env; e[name]`), computed keys, destructuring, or
+// optional chaining (`import.meta?.env`) are NOT substituted and ship undefined.
+// That is why the candidate values are read statically here and only then handed
+// to the (testable, pure) resolver.
+// -----------------------------------------------------------------------------
+
+export interface ApiBaseUrlCandidates {
+  /** window.VITE_SO360_PEOPLE_CONNECT_API — runtime override injected by the Shell */
+  windowPeopleConnectApi?: unknown;
+  /** window.VITE_SO360_PEOPLE_API — legacy runtime override injected by the Shell */
+  windowPeopleApi?: unknown;
+  /** import.meta.env.VITE_SO360_PEOPLE_CONNECT_API — canonical build-time name */
+  envPeopleConnectApi?: unknown;
+  /** import.meta.env.VITE_SO360_PEOPLE_API — legacy build-time name */
+  envPeopleApi?: unknown;
+}
+
+const DEFAULT_API_BASE_URL = '/people-api';
+
+/**
+ * Precedence (first non-empty string wins):
+ *   1. window.VITE_SO360_PEOPLE_CONNECT_API   (runtime, canonical)
+ *   2. window.VITE_SO360_PEOPLE_API           (runtime, legacy — what the Shell injects today)
+ *   3. import.meta.env.VITE_SO360_PEOPLE_CONNECT_API (build-time, canonical — what the deploy sets)
+ *   4. import.meta.env.VITE_SO360_PEOPLE_API         (build-time, legacy)
+ *   5. '/people-api'                                  (same-origin proxy fallback)
+ *
+ * Runtime (window) beats build-time because the Shell knows the live
+ * environment; canonical beats legacy within each tier.
+ */
+export function resolveApiBaseUrl(candidates: ApiBaseUrlCandidates): string {
+  const ordered = [
+    candidates.windowPeopleConnectApi,
+    candidates.windowPeopleApi,
+    candidates.envPeopleConnectApi,
+    candidates.envPeopleApi,
+  ];
+  for (const value of ordered) {
+    if (typeof value === 'string' && value.trim() !== '') return value;
+  }
+  return DEFAULT_API_BASE_URL;
+}
+
 const _win = typeof window !== 'undefined' ? (window as any) : undefined;
-const API_BASE_URL = (_win && _win.VITE_SO360_PEOPLE_API) || (import.meta as any).env?.VITE_SO360_PEOPLE_API || '/people-api';
+const API_BASE_URL = resolveApiBaseUrl({
+  windowPeopleConnectApi: _win && _win.VITE_SO360_PEOPLE_CONNECT_API,
+  windowPeopleApi: _win && _win.VITE_SO360_PEOPLE_API,
+  envPeopleConnectApi: import.meta.env.VITE_SO360_PEOPLE_CONNECT_API,
+  envPeopleApi: import.meta.env.VITE_SO360_PEOPLE_API,
+});
 let TENANT_ID = '';
 let ORG_ID = '';
 let USER_ID = '';
