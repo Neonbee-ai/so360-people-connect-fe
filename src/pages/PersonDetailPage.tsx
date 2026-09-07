@@ -34,6 +34,10 @@ const PersonDetailPage: React.FC = () => {
     const [person, setPerson] = useState<Person | null>(null);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [timeEntries, setTimeEntries] = useState<TimesheetEntry[]>([]);
+    // Time entries come from the Timesheets module over a bridge that can be down
+    // (503), forbidden (403) or unreachable. Those are NOT the same thing as an
+    // employee who logged no time, so the tab tracks its own three states.
+    const [timeEntriesStatus, setTimeEntriesStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
     const [employmentHistory, setEmploymentHistory] = useState<any[]>([]);
     const [rateHistory, setRateHistory] = useState<any[]>([]);
     const [goals, setGoals] = useState<any[]>([]);
@@ -56,6 +60,7 @@ const PersonDetailPage: React.FC = () => {
         const loadData = async () => {
             setLoading(true);
             setLoadError(null);
+            setTimeEntriesStatus('loading');
 
             // 1. Critical fetch: the employee record itself. A failure here (or an
             //    empty/invalid record) must surface a proper error/not-found state,
@@ -92,10 +97,12 @@ const PersonDetailPage: React.FC = () => {
             if (cancelled) return;
             setAllocations(allocRes.status === 'fulfilled' ? (allocRes.value?.data ?? []) : []);
             setTimeEntries(timeRes.status === 'fulfilled' ? (timeRes.value?.data ?? []) : []);
+            setTimeEntriesStatus(timeRes.status === 'fulfilled' ? 'loaded' : 'error');
             setWorkLocations(locRes.status === 'fulfilled' ? (locRes.value?.data ?? []) : []);
             // Log secondary failures but do not surface a page-level error toast.
             // Timesheet 403 is expected for users without timesheet access; work
-            // location failures are non-critical. Each tab shows its own empty state.
+            // location failures are non-critical. Each tab shows its own state —
+            // the Time Entries tab distinguishes "unavailable" from "none logged".
             if (timeRes.status === 'rejected') {
                 console.warn('[PersonDetail] Timesheet data unavailable (user may lack timesheet permissions):', (timeRes as PromiseRejectedResult).reason);
             }
@@ -192,6 +199,23 @@ const PersonDetailPage: React.FC = () => {
         toast.success('New rate recorded');
         loadRateHistory();
         recordActivity({ eventType: 'people.person.rate_changed', eventCategory: 'compensation', description: `${person?.full_name ?? 'Person'} rate changed`, resourceType: 'person', resourceId: id }).catch(() => {});
+    };
+
+    // Re-fetch just the time entries. Backs the Retry action on the Time Entries
+    // tab so a transient timesheet-bridge failure can be recovered without a
+    // full page reload.
+    const loadTimeEntries = async () => {
+        if (!id) return;
+        setTimeEntriesStatus('loading');
+        try {
+            const res = await timesheetApi.getEntries({ person_id: id, limit: 10 });
+            setTimeEntries(res?.data ?? []);
+            setTimeEntriesStatus('loaded');
+        } catch (error) {
+            console.warn('[PersonDetail] Timesheet data unavailable:', error);
+            setTimeEntries([]);
+            setTimeEntriesStatus('error');
+        }
     };
 
     const loadEmploymentHistory = async () => {
@@ -434,7 +458,10 @@ const PersonDetailPage: React.FC = () => {
                         <Clock size={14} className="text-amber-400" />
                         <span className="text-xs text-slate-400">Hours Logged</span>
                     </div>
-                    <div className="text-lg font-bold text-slate-50">{totalHoursLogged}h</div>
+                    {/* Never report a confident "0h" when the timesheet source failed. */}
+                    <div className="text-lg font-bold text-slate-50">
+                        {timeEntriesStatus === 'error' ? '—' : `${totalHoursLogged}h`}
+                    </div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -670,7 +697,21 @@ const PersonDetailPage: React.FC = () => {
                     {/* Time Entries Tab */}
                     {activeTab === 'time' && (
                         <div className="space-y-3">
-                            {timeEntries.length === 0 ? (
+                            {timeEntriesStatus === 'loading' ? (
+                                <div data-testid="time-entries-loading" role="status" aria-busy="true" className="animate-pulse space-y-3">
+                                    <span className="sr-only">Loading time entries…</span>
+                                    <div className="h-16 bg-slate-800 rounded-lg" />
+                                    <div className="h-16 bg-slate-800 rounded-lg" />
+                                    <div className="h-16 bg-slate-800 rounded-lg" />
+                                </div>
+                            ) : timeEntriesStatus === 'error' ? (
+                                <EmptyState
+                                    icon={Clock}
+                                    title="Unable to load time entries"
+                                    description="The Timesheets service did not respond. This is a connection problem, not an empty timesheet."
+                                    action={{ label: 'Retry', onClick: () => { loadTimeEntries(); } }}
+                                />
+                            ) : timeEntries.length === 0 ? (
                                 <EmptyState
                                     icon={Clock}
                                     title="No time entries"
