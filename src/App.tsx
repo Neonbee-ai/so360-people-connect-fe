@@ -248,7 +248,7 @@ const App = () => {
             <PeopleShellInitializer>
                 <Routes>
                     <Route path="/" element={<ModuleLanding />} />
-                    <Route path="dashboard" element={<DashboardPage />} />
+                    <Route path="dashboard" element={<PermissionGuard permission={['employees.read', 'departments.read']}><DashboardPage /></PermissionGuard>} />
 
                     {/* Employee self-service. Deliberately permission-free: these
                         routes show only the caller's own records (the backend

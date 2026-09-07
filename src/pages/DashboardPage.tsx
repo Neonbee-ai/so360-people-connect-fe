@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useBusinessSettings } from '@so360/shell-context';
+import { useBusinessSettings, useShellBridge } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import {
     Users, Clock, Target, TrendingUp,
@@ -18,12 +18,17 @@ import type { UtilizationSummary, PeopleEvent, DepartmentHeadcountEntry } from '
 
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
+    const shell = useShellBridge() as any;
     const { settings } = useBusinessSettings();
     const formatters = useFormatters({
         currency: settings?.base_currency || 'USD',
         locale: settings?.document_language || 'en-US',
         timezone: settings?.timezone || 'UTC',
     });
+
+    const canViewCost = shell?.isAdmin ||
+        (shell?.hasAnyPermission && shell.hasAnyPermission('dashboard.financial_kpis', 'compensation.read', 'payroll.read')) ||
+        (shell?.hasPermission && (shell.hasPermission('dashboard.financial_kpis') || shell.hasPermission('compensation.read') || shell.hasPermission('payroll.read')));
     const [summary, setSummary] = useState<UtilizationSummary | null>(null);
     const [recentEntries, setRecentEntries] = useState<TimesheetEntry[]>([]);
     const [recentEvents, setRecentEvents] = useState<PeopleEvent[]>([]);
@@ -87,7 +92,7 @@ const DashboardPage: React.FC = () => {
             />
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${canViewCost ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
                 <StatCard
                     label="Active People"
                     value={summary?.total_people || 0}
@@ -106,12 +111,14 @@ const DashboardPage: React.FC = () => {
                     icon={Clock}
                     color="blue"
                 />
-                <StatCard
-                    label="Weekly Burn Rate"
-                    value={formatCurrency(summary?.total_cost_this_week || 0)}
-                    icon={DollarSign}
-                    color="purple"
-                />
+                {canViewCost && (
+                    <StatCard
+                        label="Weekly Burn Rate"
+                        value={formatCurrency(summary?.total_cost_this_week || 0)}
+                        icon={DollarSign}
+                        color="purple"
+                    />
+                )}
             </div>
 
             {/* Secondary Stats */}
