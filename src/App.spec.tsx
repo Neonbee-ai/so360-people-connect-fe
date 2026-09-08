@@ -178,8 +178,17 @@ describe('Given a page gated on role permissions', () => {
     expect(screen.queryByText(/don't have access/i)).not.toBeInTheDocument();
   });
 
-  it('When the dashboard is opened with no page codes / Then it stays reachable', async () => {
+  // The dashboard aggregates headcount and burn rate, so since fbb5405 it is
+  // gated like the pages it summarises: any of employees.read / departments.read.
+  it('When the dashboard is opened with no page codes / Then the permission notice shows instead', async () => {
     mockUseShellBridge.mockReturnValue(bridgeWith([]));
+    renderApp('/dashboard');
+    await waitFor(() => expect(screen.getByText(/don't have access to this page/i)).toBeInTheDocument());
+    expect(screen.queryByText('DashboardPage')).not.toBeInTheDocument();
+  });
+
+  it('When the user holds only departments.read / Then the dashboard still renders (any-of gate)', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['departments.read']));
     renderApp('/dashboard');
     await waitFor(() => expect(screen.getByText('DashboardPage')).toBeInTheDocument());
     expect(screen.queryByText(/don't have access/i)).not.toBeInTheDocument();
