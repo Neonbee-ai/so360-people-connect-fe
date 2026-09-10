@@ -8,7 +8,8 @@ import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance } from '../services/leaveRequestsService';
-import { leaveTypesApi, LeaveType } from '../services/leaveTypesService';
+import { LeaveType } from '../services/leaveTypesService';
+import { leaveConfigApi } from '../services/leaveConfigService';
 import { apiContext } from '../services/apiClient';
 import { peopleApi } from '../services/peopleService';
 import { todayIso, focusFirstInvalid } from '../utils/validation';
@@ -218,6 +219,7 @@ interface CreateLeaveRequestModalProps {
 
 const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpen, onClose, onCreate }) => {
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+    const [leaveTypesError, setLeaveTypesError] = useState<string | null>(null);
     const [balances, setBalances] = useState<LeaveBalance[]>([]);
     const [personError, setPersonError] = useState<string | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -236,8 +238,10 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
     useEffect(() => {
         if (isOpen) {
             setErrors({});
+            // Leave types are loaded per-person now (see loadApplicableLeaveTypes),
+            // because which types apply depends on the employee's employment type
+            // and their own overrides. resolveCurrentPerson triggers that load.
             resolveCurrentPerson();
-            loadLeaveTypes();
         }
     }, [isOpen]);
 
@@ -256,17 +260,33 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
             }
             setFormData(prev => ({ ...prev, person_id: personId }));
             loadBalances(personId);
+            loadApplicableLeaveTypes(personId);
         } catch {
             setPersonError('No employee profile found for your account. Please contact your administrator.');
         }
     };
 
-    const loadLeaveTypes = async () => {
+    /**
+     * Only the leave types that apply to THIS employee.
+     *
+     * The org-wide catalog (`leaveTypesApi.getAll`) offered every employee every
+     * type — Maternity, Paternity and Bereavement included — and the request was
+     * then rejected on the server. Applicability comes from the employee's
+     * employment type plus their own overrides; an org that has configured
+     * nothing still gets every active type, so nothing changes for them.
+     */
+    const loadApplicableLeaveTypes = async (personId: string) => {
         try {
-            const result = await leaveTypesApi.getAll({ is_active: true });
-            setLeaveTypes(result.data);
+            const config = await leaveConfigApi.getApplicable(personId);
+            setLeaveTypes(config.leave_types as unknown as LeaveType[]);
+            setLeaveTypesError(null);
         } catch (error) {
-            console.error('Failed to load leave types:', error);
+            console.error('Failed to load applicable leave types:', error);
+            // Fail CLOSED with a visible message rather than silently falling back
+            // to the whole catalog: offering a type the server will refuse is the
+            // behaviour this replaced.
+            setLeaveTypes([]);
+            setLeaveTypesError('Could not load the leave types available to you. Please try again.');
         }
     };
 
@@ -396,6 +416,16 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                         ))}
                     </select>
                     {errors.leave_type_id && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.leave_type_id}</p>}
+                    {leaveTypesError && (
+                        <p role="alert" className="mt-1 text-xs text-rose-400">{leaveTypesError}</p>
+                    )}
+                    {/* An empty picker is a configuration answer, not a loading
+                        state — say which one, or the user just sees a dead dropdown. */}
+                    {!leaveTypesError && !personError && leaveTypes.length === 0 && (
+                        <p className="mt-1 text-xs text-amber-400">
+                            No leave types are configured for your employment type. Contact HR.
+                        </p>
+                    )}
                     {selectedBalance && (
                         <div className="mt-2 grid grid-cols-3 gap-2 p-2 bg-slate-800/50 rounded-lg text-center">
                             <div>

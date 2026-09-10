@@ -28,6 +28,13 @@ export interface MasterListPageProps {
   showLevelGrade?: boolean;
   /** Feature flag gating create/edit/delete — defaults to the shared people action flag. */
   manageFlagKey?: string;
+  /**
+   * Extra per-row control, rendered alongside Edit/Delete. Employment Types use
+   * it to configure the leave types their employees receive by default; every
+   * other master list omits it, so this stays a shared component rather than
+   * growing a `masterType === 'employment_type'` branch.
+   */
+  rowExtraAction?: (row: MasterRow) => React.ReactNode;
 }
 
 const BLANK: CreateMasterPayload = { name: '', level: '', grade: '', is_active: true };
@@ -40,6 +47,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
   description,
   showLevelGrade = false,
   manageFlagKey = 'action:people:employees:create',
+  rowExtraAction,
 }) => {
   const shell = useShellBridge();
   const canManage = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.(manageFlagKey) ?? true);
@@ -185,6 +193,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
                   {canManage && (
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
+                        {rowExtraAction?.(row)}
                         <button
                           onClick={() => setEditing(row)}
                           className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"

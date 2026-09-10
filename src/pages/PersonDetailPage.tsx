@@ -3,10 +3,11 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Mail, Phone, Calendar, DollarSign, Clock, Target,
     Tag, Plus, Trash2, Edit2, Save, X, History, User, UserCheck, UserPlus,
-    Briefcase, Shield, Wallet, ClipboardCheck,
+    Briefcase, Shield, Wallet, ClipboardCheck, CalendarDays,
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import PayrollProfileTab from '../components/payroll/PayrollProfileTab';
+import PersonLeaveConfigTab from '../components/leave/PersonLeaveConfigTab';
 import PersonOnboardingTab from '../components/PersonOnboardingTab';
 import Modal from '../components/Modal';
 import { toast } from '@so360/design-system';
@@ -21,6 +22,7 @@ import { workLocationsApi, WorkLocation } from '../services/workLocationsService
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
 import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
+import { useCanConfigureLeave } from '../hooks/useCanConfigureLeave';
 import type { Person, Allocation, PersonRole } from '../types/people';
 
 const PersonDetailPage: React.FC = () => {
@@ -31,6 +33,8 @@ const PersonDetailPage: React.FC = () => {
     // Compensation privacy tier — rate/salary fields are hidden unless the
     // user holds compensation.read (fail open while permissions load).
     const canViewCompensation = useCanViewCompensation();
+    // Employees must not be able to grant themselves leave types.
+    const canConfigureLeave = useCanConfigureLeave();
     const [person, setPerson] = useState<Person | null>(null);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [timeEntries, setTimeEntries] = useState<TimesheetEntry[]>([]);
@@ -638,6 +642,17 @@ const PersonDetailPage: React.FC = () => {
                             Onboarding
                         </button>
                         <button
+                            onClick={() => setActiveTab('leave')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                activeTab === 'leave'
+                                    ? 'bg-teal-500/10 text-teal-400'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                            }`}
+                        >
+                            <CalendarDays size={14} className="inline mr-1.5" />
+                            Leave
+                        </button>
+                        <button
                             onClick={() => setActiveTab('payroll')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'payroll'
@@ -840,6 +855,17 @@ const PersonDetailPage: React.FC = () => {
 
                     {/* Onboarding Tab */}
                     {activeTab === 'onboarding' && id && <PersonOnboardingTab personId={id} />}
+
+                    {/* Leave Configuration Tab — which leave types apply to this
+                        employee, and whether each came from their employment type
+                        or was set for them specifically. */}
+                    {activeTab === 'leave' && id && (
+                        <PersonLeaveConfigTab
+                            personId={id}
+                            employmentTypeLabel={person?.employment_type ?? null}
+                            canEdit={canConfigureLeave}
+                        />
+                    )}
 
                     {/* Payroll Tab */}
                     {activeTab === 'payroll' && person && <PayrollProfileTab person={person} />}
