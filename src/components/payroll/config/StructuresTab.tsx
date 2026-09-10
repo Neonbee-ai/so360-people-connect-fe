@@ -153,7 +153,7 @@ const StructureBuilder: React.FC<{
     onReload: (structure: SalaryStructure) => void;
 }> = ({ structure, onBack, onReload }) => {
     const { settings } = useBusinessSettings();
-    const formatters = useFormatters({ currency: settings?.base_currency || 'USD' });
+    const formatters = useFormatters({ currency: settings?.base_currency || 'USD', timezone: settings?.timezone || 'UTC' });
     const [lines, setLines] = useState<SalaryStructureLine[]>(structure.lines || []);
     const [components, setComponents] = useState<SalaryComponent[]>([]);
     const [pickerComponentId, setPickerComponentId] = useState('');
