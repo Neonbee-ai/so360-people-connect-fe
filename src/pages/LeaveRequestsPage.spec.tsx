@@ -23,6 +23,10 @@ vi.mock('../services/leaveTypesService', () => ({
   leaveTypesApi: { getAll: vi.fn() },
 }));
 
+vi.mock('../services/leaveConfigService', () => ({
+  leaveConfigApi: { getApplicable: vi.fn() },
+}));
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
 
@@ -49,6 +53,7 @@ vi.mock('../utils/formatters', () => ({
 import LeaveRequestsPage from './LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { leaveTypesApi } from '../services/leaveTypesService';
+import { leaveConfigApi } from '../services/leaveConfigService';
 import { toast } from '@so360/design-system';
 
 const mockLeaveApi = leaveRequestsApi as any;
@@ -71,6 +76,9 @@ const mockRequest = {
 beforeEach(() => {
   vi.resetAllMocks();
   mockTypesApi.getAll.mockResolvedValue({ data: [] });
+  // The request picker now loads the types APPLICABLE to the employee, not the
+  // org-wide catalog — the catalog offered everyone every type.
+  (leaveConfigApi as any).getApplicable.mockResolvedValue({ leave_types: [] });
   mockLeaveApi.getBalances.mockResolvedValue({ data: [] });
 });
 

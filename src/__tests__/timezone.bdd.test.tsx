@@ -37,6 +37,10 @@ vi.mock('../services/leaveTypesService', () => ({
   LeaveType: {},
 }));
 
+vi.mock('../services/leaveConfigService', () => ({
+  leaveConfigApi: { getApplicable: vi.fn().mockResolvedValue({ leave_types: [] }) },
+}));
+
 // Rendered by ReviewDetailPage. Without this the panel reaches the real
 // service, which imports the apiClient this file mocks without an `api`
 // export — and the resulting throw fails assertions about the review itself.

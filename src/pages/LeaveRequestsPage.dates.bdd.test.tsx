@@ -26,6 +26,10 @@ vi.mock('../services/leaveTypesService', () => ({
   leaveTypesApi: { getAll: vi.fn() },
 }));
 
+vi.mock('../services/leaveConfigService', () => ({
+  leaveConfigApi: { getApplicable: vi.fn() },
+}));
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
   useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
@@ -52,6 +56,7 @@ vi.mock('../utils/formatters', () => ({
 import LeaveRequestsPage from './LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { leaveTypesApi } from '../services/leaveTypesService';
+import { leaveConfigApi } from '../services/leaveConfigService';
 import { todayIso } from '../utils/validation';
 import { peopleApi } from '../services/peopleService';
 
@@ -98,6 +103,9 @@ beforeEach(() => {
   mockLeaveApi.create.mockResolvedValue({ id: 'lr-new' });
   mockLeaveApi.submit.mockResolvedValue({});
   mockTypesApi.getAll.mockResolvedValue({ data: [ANNUAL, SICK] });
+  // The request picker now loads the types APPLICABLE to the employee, not the
+  // org-wide catalog — the catalog offered everyone every type.
+  (leaveConfigApi as any).getApplicable.mockResolvedValue({ leave_types: [ANNUAL, SICK] });
 });
 
 afterEach(() => vi.useRealTimers());

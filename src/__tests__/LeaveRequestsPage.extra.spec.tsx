@@ -28,6 +28,10 @@ vi.mock('../services/leaveTypesService', () => ({
   LeaveType: {},
 }));
 
+vi.mock('../services/leaveConfigService', () => ({
+  leaveConfigApi: { getApplicable: vi.fn() },
+}));
+
 vi.mock('../services/apiClient', () => ({
   apiContext: { getUserId: () => 'u1' },
 }));
@@ -55,6 +59,7 @@ vi.mock('../utils/formatters', () => ({
 import LeaveRequestsPage from '../pages/LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { leaveTypesApi } from '../services/leaveTypesService';
+import { leaveConfigApi } from '../services/leaveConfigService';
 import { peopleApi } from '../services/peopleService';
 
 const mockApi = leaveRequestsApi as any;
@@ -85,6 +90,9 @@ const renderPage = () => render(<MemoryRouter><LeaveRequestsPage /></MemoryRoute
 beforeEach(() => {
   vi.resetAllMocks();
   mockLeaveTypes.getAll.mockResolvedValue({ data: [] });
+  // The request picker now loads the types APPLICABLE to the employee, not the
+  // org-wide catalog — the catalog offered everyone every type.
+  (leaveConfigApi as any).getApplicable.mockResolvedValue({ leave_types: [] });
   mockApi.getBalances.mockResolvedValue({ data: [] });
   mockPeopleApi.getMe.mockResolvedValue({ id: 'person-1', full_name: 'Alice' });
 });
