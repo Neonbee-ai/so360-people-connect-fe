@@ -21,8 +21,6 @@ const UtilizationPage: React.FC = () => {
         currency: settings?.base_currency || 'USD',
         locale: settings?.document_language || 'en-US',
         timezone: settings?.timezone || 'UTC',
-        timezone: settings?.timezone || 'UTC',
-        timezone: settings?.timezone || 'UTC',
     });
     const [utilizationData, setUtilizationData] = useState<UtilizationData[]>([]);
     const [summary, setSummary] = useState<UtilizationSummary | null>(null);
@@ -376,8 +374,6 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
         currency: cardSettings?.base_currency || 'USD',
         locale: cardSettings?.document_language || 'en-US',
         timezone: cardSettings?.timezone || 'UTC',
-        timezone: cardSettings?.timezone || 'UTC',
-        timezone: cardSettings?.timezone || 'UTC',
     });
     // Guard against an incomplete record (e.g. a person with no allocation
     // or timesheet data yet) missing `person`/`utilization` entirely.
@@ -516,8 +512,6 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
     const formatters = useFormatters({
         currency: settings?.base_currency || 'USD',
         locale: settings?.document_language || 'en-US',
-        timezone: settings?.timezone || 'UTC',
-        timezone: settings?.timezone || 'UTC',
         timezone: settings?.timezone || 'UTC',
     });
     const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
