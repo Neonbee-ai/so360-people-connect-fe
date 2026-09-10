@@ -14,7 +14,7 @@ const STATUS_OPTIONS: DeclarationStatus[] = ['submitted', 'under_review', 'appro
 
 const TaxDeclarationsPage: React.FC = () => {
     const { settings } = useBusinessSettings();
-    const formatters = useFormatters({ currency: settings?.base_currency || 'USD' });
+    const formatters = useFormatters({ currency: settings?.base_currency || 'USD', timezone: settings?.timezone || 'UTC' });
     const [declarations, setDeclarations] = useState<TaxDeclaration[]>([]);
     const [loading, setLoading] = useState(true);
     const [fiscalYear, setFiscalYear] = useState('');

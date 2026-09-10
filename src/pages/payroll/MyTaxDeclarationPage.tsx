@@ -30,7 +30,7 @@ const STATUS_TIMELINE = ['draft', 'submitted', 'under_review', 'approved'] as co
 
 const MyTaxDeclarationPage: React.FC = () => {
     const { settings } = useBusinessSettings();
-    const formatters = useFormatters({ currency: settings?.base_currency || 'USD' });
+    const formatters = useFormatters({ currency: settings?.base_currency || 'USD', timezone: settings?.timezone || 'UTC' });
     const [fiscalYear] = useState(currentFiscalYear());
     const [declaration, setDeclaration] = useState<TaxDeclaration | null>(null);
     const [items, setItems] = useState<TaxDeclarationItem[]>([]);

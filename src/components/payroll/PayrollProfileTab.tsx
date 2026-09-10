@@ -202,7 +202,7 @@ const EmploymentSection: React.FC<{
 
 const SalarySection: React.FC<{ personId: string }> = ({ personId }) => {
     const { settings } = useBusinessSettings();
-    const formatters = useFormatters({ currency: settings?.base_currency || 'USD' });
+    const formatters = useFormatters({ currency: settings?.base_currency || 'USD', timezone: settings?.timezone || 'UTC' });
     const [assignments, setAssignments] = useState<SalaryAssignment[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAdjustModal, setShowAdjustModal] = useState(false);
