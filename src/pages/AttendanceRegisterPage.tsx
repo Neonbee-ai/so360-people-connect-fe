@@ -15,8 +15,7 @@ import {
     AttendanceCorrectionRequest,
     CorrectionStatus,
 } from '../services/attendanceService';
-
-const todayIso = () => new Date().toISOString().split('T')[0];
+import { usePeopleFormatters } from '../utils/formatters';
 
 const statusLabel = (status: string) =>
     status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
@@ -30,8 +29,13 @@ const QUICK_ACTIONS: { status: AttendanceStatus; label: string; icon: React.FC<{
 ];
 
 const AttendanceRegisterPage: React.FC = () => {
+    const formatters = usePeopleFormatters();
     const [tab, setTab] = useState<'register' | 'corrections'>('register');
-    const [date, setDate] = useState(todayIso());
+    // Attendance is the most midnight-sensitive surface in the platform: the
+    // register must open on the day the ORG is on. The UTC day meant an org
+    // ahead of UTC opened YESTERDAY's register between local midnight and the
+    // offset, so early-shift marks landed on the wrong date.
+    const [date, setDate] = useState(() => formatters.businessToday());
     const [rows, setRows] = useState<AttendanceRegisterRow[]>([]);
     const [summary, setSummary] = useState<AttendanceSummary | null>(null);
     const [loading, setLoading] = useState(true);

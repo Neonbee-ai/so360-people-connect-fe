@@ -41,8 +41,8 @@ const UtilizationPage: React.FC = () => {
         const end = new Date(start);
         end.setDate(end.getDate() + 4);
         return {
-            start: start.toISOString().split('T')[0],
-            end: end.toISOString().split('T')[0],
+            start: formatters.toBusinessDate(start),
+            end: formatters.toBusinessDate(end),
         };
     };
 

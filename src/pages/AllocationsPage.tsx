@@ -356,7 +356,7 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
         entity_type: 'project',
         entity_id: '',
         entity_name: '',
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: formatters.businessToday(),
         end_date: '',
         allocation_percentage: 50,
         notes: '',

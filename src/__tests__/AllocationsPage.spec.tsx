@@ -28,6 +28,12 @@ vi.mock('@so360/shell-context', () => ({
 let mockCurrencySymbol = '$';
 vi.mock('../utils/formatters', () => ({
   usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
     formatDate: (d: string) => d ?? '',
     formatDateTime: (d: string) => d ?? '',
     formatCurrency: (v: number) => `${mockCurrencySymbol}${v}`,

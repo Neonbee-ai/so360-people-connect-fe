@@ -272,6 +272,9 @@ interface CreateReviewModalProps {
 }
 
 const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, onCreate }) => {
+    // This modal is a SIBLING of the page component, so it cannot see the
+    // page's formatters — it needs its own hook to reach the org timezone.
+    const formatters = usePeopleFormatters();
     const [templates, setTemplates] = useState<ReviewTemplate[]>([]);
     const [templatesLoaded, setTemplatesLoaded] = useState(false);
     const [seedingTemplates, setSeedingTemplates] = useState(false);
@@ -283,8 +286,8 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
         person_id: '',
         template_id: '',
         reviewer_id: '',
-        review_period_start: new Date().toISOString().split('T')[0],
-        review_period_end: new Date().toISOString().split('T')[0],
+        review_period_start: formatters.businessToday(),
+        review_period_end: formatters.businessToday(),
         self_review_deadline: '',
         manager_review_deadline: '',
     });
