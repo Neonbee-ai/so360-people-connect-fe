@@ -1324,6 +1324,9 @@ interface CreatePersonModalProps {
 }
 
 const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, onCreate, currencies = DEFAULT_CURRENCIES, defaultCurrency }) => {
+    // This modal is a SIBLING of the page component, so it cannot see the
+    // page's formatters — it needs its own hook to reach the org timezone.
+    const formatters = usePeopleFormatters();
     const { orgId, tenantId } = usePeopleContext();
     const navigate = useNavigate();
     const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);

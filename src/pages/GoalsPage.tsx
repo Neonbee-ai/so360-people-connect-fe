@@ -330,6 +330,9 @@ interface GoalModalProps {
 }
 
 const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpdate, goal }) => {
+    // This modal is a SIBLING of the page component, so it cannot see the
+    // page's formatters — it needs its own hook to reach the org timezone.
+    const formatters = usePeopleFormatters();
     const [formData, setFormData] = useState<CreateGoalPayload>({
         // Resolved from the caller's employee record below — NEVER the auth
         // user id, which is a different identifier entirely.

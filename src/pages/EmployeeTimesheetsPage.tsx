@@ -13,21 +13,28 @@ import { timesheetApi } from '../services/timesheetApi';
 import type { TimesheetEntry, TimesheetUtilizationPerson } from '../services/timesheetApi';
 import type { Person } from '../types/people';
 
-// Current week (Monday → Sunday) — default filter range.
-const getCurrentWeek = (): { from: string; to: string } => {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    const start = new Date(now);
-    start.setDate(diff);
+/**
+ * Current week (Monday → Sunday) as date-only business values, derived from the
+ * org's business date (`YYYY-MM-DD`).
+ *
+ * Two defects fixed here. The old version started from `new Date()` and read
+ * `getDay()`/`getDate()` in LOCAL time while emitting the UTC day, so the
+ * window could be both the wrong week AND off by a day. It was also a
+ * module-level function reaching for a component-scoped `formatters`, which is
+ * simply not in scope.
+ *
+ * Taking the resolved business date makes this a pure function and keeps the
+ * arithmetic in one clock: 'YYYY-MM-DD' parses as UTC midnight, so the UTC
+ * accessors are the consistent choice and the result is stable in every zone.
+ */
+const getCurrentWeek = (businessToday: string): { from: string; to: string } => {
+    const start = new Date(`${businessToday}T00:00:00Z`);
+    const day = start.getUTCDay();
+    // Sunday (0) belongs to the week that STARTED six days earlier.
+    start.setUTCDate(start.getUTCDate() - day + (day === 0 ? -6 : 1));
     const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-    return {
-        // The window is a pair of date-only business values; the UTC day would
-        // load the wrong range for an org ahead of UTC in local early hours.
-        from: formatters.toBusinessDate(start),
-        to: formatters.toBusinessDate(end),
-    };
+    end.setUTCDate(end.getUTCDate() + 6);
+    return { from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) };
 };
 
 /**
@@ -44,7 +51,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
         timezone: settings?.timezone || 'UTC',
     });
 
-    const defaultWeek = getCurrentWeek();
+    const defaultWeek = getCurrentWeek(formatters.businessToday());
     const [people, setPeople] = useState<Person[]>([]);
     const [entries, setEntries] = useState<TimesheetEntry[]>([]);
     const [utilization, setUtilization] = useState<TimesheetUtilizationPerson[]>([]);
