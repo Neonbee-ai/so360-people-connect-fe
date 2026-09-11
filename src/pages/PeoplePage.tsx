@@ -576,7 +576,7 @@ const PeoplePage: React.FC = () => {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `people-${new Date().toISOString().split('T')[0]}.${format === 'csv' ? 'csv' : 'xlsx'}`;
+            a.download = `people-${formatters.businessToday()}.${format === 'csv' ? 'csv' : 'xlsx'}`;
             a.click();
             setShowExportMenu(false);
             toast.success(`Exported ${people.length} people as ${format.toUpperCase()}`);
@@ -1399,7 +1399,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         billing_rate: 0,
         available_hours_per_day: 8,
         available_days_per_week: 5,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: formatters.businessToday(),
         userLinkageMode: 'invite',
         sendInviteEmail: true,
     });
@@ -1472,7 +1472,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
             full_name: '', email: '', phone: '', type: 'employee',
             department_id: '', job_title: '', cost_rate: 0, cost_rate_unit: 'hour',
             currency: resolvedCurrency, billing_rate: 0, available_hours_per_day: 8,
-            available_days_per_week: 5, start_date: new Date().toISOString().split('T')[0],
+            available_days_per_week: 5, start_date: formatters.businessToday(),
             userLinkageMode: 'invite', sendInviteEmail: true,
         });
         setErrors({});

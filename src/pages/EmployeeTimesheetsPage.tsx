@@ -23,8 +23,10 @@ const getCurrentWeek = (): { from: string; to: string } => {
     const end = new Date(start);
     end.setDate(end.getDate() + 6);
     return {
-        from: start.toISOString().split('T')[0],
-        to: end.toISOString().split('T')[0],
+        // The window is a pair of date-only business values; the UTC day would
+        // load the wrong range for an org ahead of UTC in local early hours.
+        from: formatters.toBusinessDate(start),
+        to: formatters.toBusinessDate(end),
     };
 };
 

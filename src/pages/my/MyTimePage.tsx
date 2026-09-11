@@ -7,6 +7,7 @@ import type { MyOpenSession, MyAttendanceRecord, MyAllocation } from '../../serv
 import { attendanceCorrectionsApi } from '../../services/attendanceService';
 import type { AttendanceCorrectionRequest, AttendanceStatus } from '../../services/attendanceService';
 import { MyCard, StatusPill, Skeleton, primaryBtn, secondaryBtn, dangerBtn, inputCls, labelCls } from './myUi';
+import { usePeopleFormatters } from '../../utils/formatters';
 
 /**
  * My Time — clock in, breaks, clock out, and my own attendance history.
@@ -238,16 +239,17 @@ const MyTimePage: React.FC = () => {
 // Attendance correction requests — "I was there, the register is wrong"
 // =============================================================================
 
-const todayIso = () => new Date().toISOString().split('T')[0];
-
 const CORRECTION_STATUSES: AttendanceStatus[] = ['present', 'half_day', 'wfh', 'on_duty'];
 
 const CorrectionRequestsCard: React.FC<{
     corrections: AttendanceCorrectionRequest[];
     onFiled: () => Promise<void> | void;
 }> = ({ corrections, onFiled }) => {
+    const formatters = usePeopleFormatters();
     const [open, setOpen] = useState(false);
-    const [date, setDate] = useState(todayIso());
+    // Org business date, not the UTC day — an employee filing a correction just
+    // after local midnight would otherwise default to the previous day.
+    const [date, setDate] = useState(() => formatters.businessToday());
     const [checkIn, setCheckIn] = useState('');
     const [checkOut, setCheckOut] = useState('');
     const [status, setStatus] = useState<AttendanceStatus>('present');
@@ -302,7 +304,7 @@ const CorrectionRequestsCard: React.FC<{
                             <input
                                 id="correction-date"
                                 type="date"
-                                max={todayIso()}
+                                max={formatters.businessToday()}
                                 value={date}
                                 onChange={e => setDate(e.target.value)}
                                 className={inputCls}
