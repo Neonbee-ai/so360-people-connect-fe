@@ -26,3 +26,12 @@ declare const _: any;
 export default _;
 export const useSandboxLimit: any;
 export const useQuota: any;
+
+// Quota interceptor surface. src/services/quotaExceeded.ts imports these, and
+// the gate injects .ci-stubs OVER node_modules — so their absence here made the
+// stub disagree with the real package (shell-context exports both from
+// utils/quotaInterceptor). Nothing caught it until the typecheck tier ran,
+// because transpiling does not resolve types.
+export declare const QUOTA_EXCEEDED_EVENT: string;
+export declare const buildQuotaExceededDetail: any;
+export declare const installQuotaExceededInterceptor: any;
