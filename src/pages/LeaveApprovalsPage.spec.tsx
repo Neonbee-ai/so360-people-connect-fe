@@ -8,6 +8,7 @@ vi.mock('../services/leaveRequestsService', () => ({
     getPendingApprovals: vi.fn(),
     approve: vi.fn(),
     reject: vi.fn(),
+    getById: vi.fn().mockResolvedValue({ id: 'lr1', approvals: [] }),
   },
   LeaveRequest: {},
 }));

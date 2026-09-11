@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { CalendarDays, Plus, Search, Check } from 'lucide-react';
+import { CalendarDays, Plus } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { toast, Drawer } from '@so360/design-system';
@@ -9,8 +9,8 @@ import { leaveRequestsApi } from '../../services/leaveRequestsService';
 import type { LeaveRequest } from '../../services/leaveRequestsService';
 import { leaveTypesApi, LeaveType } from '../../services/leaveTypesService';
 import { peopleApi } from '../../services/peopleService';
-import type { Person } from '../../types/people';
-import { MyCard, StatTile, StatusPill, Skeleton, Avatar, primaryBtn, secondaryBtn, inputCls, labelCls } from './myUi';
+import ApproverSelector from '../../components/leave/ApproverSelector';
+import { MyCard, StatTile, StatusPill, Skeleton, primaryBtn, secondaryBtn, inputCls, labelCls } from './myUi';
 
 /**
  * My Leave — the employee's own balances, history and request form.
@@ -29,8 +29,9 @@ const MyLeavePage: React.FC = () => {
     const [balances, setBalances] = useState<MyLeaveBalance[]>([]);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-    const [managers, setManagers] = useState<Person[]>([]);
-    const [managerSearch, setManagerSearch] = useState('');
+    // Needed only to scope the approver picker to this employee's eligible
+    // population; every other call on this page resolves the person server-side.
+    const [myPersonId, setMyPersonId] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [formOpen, setFormOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -63,33 +64,18 @@ const MyLeavePage: React.FC = () => {
             .catch(() => undefined);
     }, []);
 
+    // Replaces a client-side fetch of up to 200 people that was then filtered in
+    // the browser: the picker now asks the server, which ranks the reporting
+    // manager first and caps the window.
     useEffect(() => {
         peopleApi
-            .getAll({ status: 'active', limit: 200 })
-            .then(res => setManagers(res.data))
+            .getMe()
+            .then(person => setMyPersonId(person?.id ?? ''))
             .catch(() => undefined);
     }, []);
 
-    const toggleApprover = (personId: string) => {
-        setForm(f => ({
-            ...f,
-            approver_ids: f.approver_ids.includes(personId)
-                ? f.approver_ids.filter(id => id !== personId)
-                : [...f.approver_ids, personId],
-        }));
-    };
-
-    const filteredManagers = managerSearch.trim()
-        ? managers.filter(m => {
-              const q = managerSearch.trim().toLowerCase();
-              return (
-                  m.full_name?.toLowerCase().includes(q) ||
-                  m.email?.toLowerCase().includes(q) ||
-                  m.job_title?.toLowerCase().includes(q) ||
-                  m.department_info?.name?.toLowerCase().includes(q)
-              );
-          })
-        : managers;
+    const setApproverIds = (ids: string[]) =>
+        setForm(f => ({ ...f, approver_ids: ids }));
 
     const submit = async () => {
         if (!form.leave_type_id) {
@@ -122,7 +108,6 @@ const MyLeavePage: React.FC = () => {
                 reason: '',
                 approver_ids: [],
             });
-            setManagerSearch('');
             await load();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Could not submit your request');
@@ -247,52 +232,15 @@ const MyLeavePage: React.FC = () => {
                         />
                     </div>
 
-                    <div>
-                        <label className={labelCls}>Manager / Approver (optional)</label>
-                        <div className="relative">
-                            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                            <input
-                                type="search"
-                                value={managerSearch}
-                                onChange={e => setManagerSearch(e.target.value)}
-                                placeholder="Search by name, department or designation…"
-                                className={`${inputCls} pl-9`}
-                            />
-                        </div>
-                        <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800">
-                            {filteredManagers.length === 0 ? (
-                                <p className="px-3 py-3 text-xs text-slate-500">No matching people</p>
-                            ) : (
-                                filteredManagers.map(m => {
-                                    const selected = form.approver_ids.includes(m.id);
-                                    return (
-                                        <button
-                                            type="button"
-                                            key={m.id}
-                                            onClick={() => toggleApprover(m.id)}
-                                            className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-700/50 ${selected ? 'bg-teal-500/10' : ''}`}
-                                        >
-                                            <Avatar name={m.full_name} />
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block truncate text-slate-50">{m.full_name}</span>
-                                                {(m.job_title || m.department_info?.name) && (
-                                                    <span className="block truncate text-xs text-slate-500">
-                                                        {[m.job_title, m.department_info?.name].filter(Boolean).join(' · ')}
-                                                    </span>
-                                                )}
-                                            </span>
-                                            {selected && <Check size={16} className="shrink-0 text-teal-400" />}
-                                        </button>
-                                    );
-                                })
-                            )}
-                        </div>
-                        <p className="mt-1.5 text-xs text-slate-500">
-                            {form.approver_ids.length > 0
-                                ? `Routed to ${form.approver_ids.length} selected manager(s).`
-                                : "Left blank, this routes to your department's configured head."}
-                        </p>
-                    </div>
+                    {myPersonId && (
+                        <ApproverSelector
+                            personId={myPersonId}
+                            value={form.approver_ids}
+                            onChange={setApproverIds}
+                            disabled={submitting}
+                            helpText="Leave blank to route to your department's configured head."
+                        />
+                    )}
                 </div>
             </Drawer>
         </div>

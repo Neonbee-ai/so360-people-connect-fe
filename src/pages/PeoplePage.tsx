@@ -23,6 +23,8 @@ import {
     CHOICE_FIELD_TYPES,
 } from '../services/customFieldsService';
 import { usePeopleFormatters } from '../utils/formatters';
+import { leaveConfigApi } from '../services/leaveConfigService';
+import PersonLeaveConfigSection, { type PendingLeaveOverride } from '../components/leave/PersonLeaveConfigSection';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
 import { validatePersonName, validateEmail, validatePhone, focusFirstInvalid } from '../utils/validation';
 
@@ -367,8 +369,10 @@ const PeoplePage: React.FC = () => {
     const handleCreate = async (data: CreatePersonPayload) => {
         try {
             const customFieldValues = (data as any).customFieldValues as Record<string, unknown> | undefined;
+            const leaveOverrides = (data as any).leaveOverrides as PendingLeaveOverride[] | undefined;
             const createPayload = { ...data } as any;
             delete createPayload.customFieldValues;
+            delete createPayload.leaveOverrides;
             const created = await peopleApi.create(createPayload);
             setShowCreateModal(false);
             recordActivity({ eventType: 'people.person.created', eventCategory: 'identity', description: `Person ${data.full_name} was created`, resourceType: 'person', resourceId: created?.id }).catch(() => {});
@@ -378,6 +382,25 @@ const PeoplePage: React.FC = () => {
                 personCustomFieldsApi.setForPerson(created.id, entries).catch(() => {
                     toast.error('Person created, but saving custom field values failed');
                 });
+            }
+
+            // Leave overrides are applied AFTER creation because they are keyed
+            // by person_id. The person is already saved at this point, so a
+            // failure here must not read as "creation failed" — it is reported
+            // as the partial it is, with the fix (Employee → Leave) named.
+            if (created?.id && leaveOverrides && leaveOverrides.length > 0) {
+                try {
+                    // Sequential, not Promise.all: each call returns the whole
+                    // recomputed config, and concurrent writes to the same
+                    // person's override set race each other.
+                    for (const o of leaveOverrides) {
+                        await leaveConfigApi.setPersonOverride(created.id, o.leave_type_id, o.mode);
+                    }
+                } catch {
+                    toast.error(
+                        `${data.full_name} was created, but their leave configuration could not be saved. Set it from the employee's Leave tab.`,
+                    );
+                }
             }
 
             // When the admin chose "Invite as New User", mint the invite via Core (which also emails
@@ -1339,12 +1362,23 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
     const [customFieldsError, setCustomFieldsError] = useState(false);
     const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
+    // Employee-level leave deviations, staged here and applied after the person
+    // row exists (overrides are keyed by person_id).
+    const [leaveOverrides, setLeaveOverrides] = useState<PendingLeaveOverride[]>([]);
+    const shell = useShellBridge() as any;
+    // Creating a person and managing their leave are separate permissions: an
+    // HR assistant may hold the first and not the second, in which case they see
+    // the inherited structure read-only. Fails open while permissions resolve.
+    const canManageLeave = !shell?.permissionsLoaded
+        ? true
+        : (shell?.hasPermission?.('leave.update') ?? true);
     // Holds the resolved org currency. Initialized from the shell prop when available;
     // falls back to a direct Core BE fetch to avoid the shell's async race condition.
     const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || 'USD');
 
     useEffect(() => {
         if (!isOpen) return;
+        setLeaveOverrides([]);
         setWorkLocationsError(false);
         workLocationsApi.getAll()
             .then(r => setWorkLocations(r.data ?? []))
@@ -1368,6 +1402,13 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const updateCustomFieldValue = (fieldDefId: string, value: unknown) => {
         setCustomFieldValues(prev => ({ ...prev, [fieldDefId]: value }));
     };
+
+    // The form stores employment_type as a CODE; leave configuration is keyed by
+    // the master row's id, so resolve one to the other here rather than in the
+    // section (which would have to re-fetch the master list to do it).
+    const selectedEmploymentType = employmentTypes.find(
+        et => et.code === (formData as any).employment_type,
+    );
 
     // When the shell hasn't pre-loaded businessSettings yet (defaultCurrency is empty),
     // fetch org currency directly from Core BE so the field is never stuck on USD.
@@ -1468,8 +1509,15 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         if (Object.keys(customFieldValues).length > 0) {
             payload.customFieldValues = customFieldValues;
         }
+        // Applied by handleCreate once the person id exists. Only sent when the
+        // user actually deviated from the inherited defaults — an untouched
+        // Leave Configuration section writes nothing at all.
+        if (leaveOverrides.length > 0) {
+            payload.leaveOverrides = leaveOverrides;
+        }
         onCreate(payload);
         setCustomFieldValues({});
+        setLeaveOverrides([]);
         // Reset form
         setFormData({
             full_name: '', email: '', phone: '', type: 'employee',
@@ -1724,6 +1772,19 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             ) : null}
                         </div>
                     </div>
+                </Section>
+
+                {/* Placed directly after Employment Details — the employment type
+                    chosen above is what determines the defaults shown here. */}
+                <Section title="Leave Configuration">
+                    <PersonLeaveConfigSection
+                        employmentTypeMasterId={selectedEmploymentType?.id ?? ''}
+                        employmentTypeName={selectedEmploymentType?.name}
+                        overrides={leaveOverrides}
+                        onOverridesChange={setLeaveOverrides}
+                        canManageLeave={canManageLeave}
+                        onConfigureEmploymentTypes={() => navigate('/people/settings/employment-types')}
+                    />
                 </Section>
 
                 {/* Cost — Advanced (defaults: 0 @ hourly in the org currency) */}

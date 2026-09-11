@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../services/leaveRequestsService', () => ({
-  leaveRequestsApi: { getPendingApprovals: vi.fn(), approve: vi.fn(), reject: vi.fn() },
+  leaveRequestsApi: { getPendingApprovals: vi.fn(), approve: vi.fn(), reject: vi.fn(), getById: vi.fn().mockResolvedValue({ id: 'lr1', approvals: [] }) },
   LeaveRequest: {},
 }));
 

@@ -12,6 +12,8 @@ import { LeaveType } from '../services/leaveTypesService';
 import { leaveConfigApi } from '../services/leaveConfigService';
 import { apiContext } from '../services/apiClient';
 import { peopleApi } from '../services/peopleService';
+import ApproverSelector from '../components/leave/ApproverSelector';
+import ApprovalProgress from '../components/leave/ApprovalProgress';
 import { todayIso, focusFirstInvalid } from '../utils/validation';
 
 const LeaveRequestsPage: React.FC = () => {
@@ -23,6 +25,7 @@ const LeaveRequestsPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [viewingRequest, setViewingRequest] = useState<LeaveRequest | null>(null);
 
     const loadRequests = useCallback(async () => {
@@ -45,10 +48,17 @@ const LeaveRequestsPage: React.FC = () => {
         loadRequests();
     }, [loadRequests]);
 
-    const handleCreate = async (data: CreateLeaveRequestPayload) => {
+    const handleCreate = async (data: CreateLeaveRequestPayload, approverIds: string[]) => {
+        // Guards a double-click: create + submit are two calls, and a second
+        // click between them produced two requests and two approval chains.
+        if (submitting) return;
+        setSubmitting(true);
         try {
             const created = await leaveRequestsApi.create(data);
-            await leaveRequestsApi.submit(created.id);
+            // Submit carries the selected approvers — without them the request
+            // falls back to the department-head chain, which is exactly the
+            // silent mis-routing this modal used to do on every submission.
+            await leaveRequestsApi.submit(created.id, approverIds);
             setShowCreateModal(false);
             toast.success('Leave request submitted successfully');
             recordActivity({ eventType: 'people.leave.requested', eventCategory: 'data', description: `Leave request submitted from ${data.start_date} to ${data.end_date}`, resourceType: 'leave_request', resourceId: created.id }).catch(() => {});
@@ -56,6 +66,8 @@ const LeaveRequestsPage: React.FC = () => {
         } catch (error) {
             const msg = error instanceof Error ? error.message : 'Failed to create leave request';
             toast.error(msg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -192,6 +204,7 @@ const LeaveRequestsPage: React.FC = () => {
             {/* Create Modal */}
             <CreateLeaveRequestModal
                 isOpen={showCreateModal}
+                submitting={submitting}
                 onClose={() => setShowCreateModal(false)}
                 onCreate={handleCreate}
             />
@@ -214,14 +227,16 @@ const LeaveRequestsPage: React.FC = () => {
 interface CreateLeaveRequestModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreate: (data: CreateLeaveRequestPayload) => void;
+    onCreate: (data: CreateLeaveRequestPayload, approverIds: string[]) => void;
+    submitting?: boolean;
 }
 
-const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpen, onClose, onCreate }) => {
+const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpen, onClose, onCreate, submitting = false }) => {
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
     const [leaveTypesError, setLeaveTypesError] = useState<string | null>(null);
     const [balances, setBalances] = useState<LeaveBalance[]>([]);
     const [personError, setPersonError] = useState<string | null>(null);
+    const [approverIds, setApproverIds] = useState<string[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const formRef = useRef<HTMLFormElement>(null);
     const today = todayIso();
@@ -238,6 +253,7 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
     useEffect(() => {
         if (isOpen) {
             setErrors({});
+            setApproverIds([]);
             // Leave types are loaded per-person now (see loadApplicableLeaveTypes),
             // because which types apply depends on the employee's employment type
             // and their own overrides. resolveCurrentPerson triggers that load.
@@ -356,11 +372,14 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
             return;
         }
 
-        onCreate({
-            ...formData,
-            // Never send an end half-day for a one-day request.
-            is_half_day_end: isSingleDay ? false : formData.is_half_day_end,
-        });
+        onCreate(
+            {
+                ...formData,
+                // Never send an end half-day for a one-day request.
+                is_half_day_end: isSingleDay ? false : formData.is_half_day_end,
+            },
+            approverIds,
+        );
     };
 
     const updateField = (field: keyof CreateLeaveRequestPayload, value: unknown) => {
@@ -520,6 +539,19 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                     )}
                 </div>
 
+                {/* Sits between Total Days and Reason — the request is fully
+                    described by this point, so choosing who reviews it is the
+                    natural next decision. */}
+                {formData.person_id && (
+                    <ApproverSelector
+                        personId={formData.person_id}
+                        value={approverIds}
+                        onChange={setApproverIds}
+                        disabled={submitting}
+                        helpText="Select the manager or approver(s) who should review this leave request. Leave blank to route to your department head."
+                    />
+                )}
+
                 <div>
                     <label htmlFor="leave-reason" className="block text-xs text-slate-400 mb-1">Reason *</label>
                     <textarea
@@ -546,11 +578,11 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                     </button>
                     <button
                         type="submit"
-                        disabled={!isFormValid}
+                        disabled={!isFormValid || submitting}
                         title={isFormValid ? undefined : 'Complete all required fields with valid dates to submit.'}
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Submit Request
+                        {submitting ? 'Submitting…' : 'Submit Request'}
                     </button>
                 </div>
             </form>
@@ -565,11 +597,30 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
 interface ViewLeaveRequestModalProps {
     request: LeaveRequest | null;
     onClose: () => void;
-    formatters: { formatDate: (d: string) => string };
+    formatters: { formatDate: (d: string) => string; formatDateTime: (d: string) => string };
 }
 
 const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, onClose, formatters }) => {
+    // The list endpoint doesn't join approvals (it would be a per-row fan-out),
+    // so the detail is fetched when the modal opens. The list row stays the
+    // immediate render so the modal never opens blank.
+    const [detail, setDetail] = useState<LeaveRequest | null>(null);
+
+    useEffect(() => {
+        if (!request) { setDetail(null); return; }
+        let cancelled = false;
+        leaveRequestsApi
+            .getById(request.id)
+            .then(full => { if (!cancelled) setDetail(full); })
+            // Non-fatal: the row data already covers every field except the
+            // approval chain, so a failure degrades to "no progress strip".
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [request?.id]);
+
     if (!request) return null;
+
+    const shown = detail ?? request;
 
     const statusColors: Record<string, string> = {
         draft: 'bg-slate-600',
@@ -628,6 +679,22 @@ const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, 
                         <p className="text-sm text-slate-300 bg-slate-800/50 border border-slate-700 rounded-lg p-3">{request.reason}</p>
                     </div>
                 )}
+
+                {shown.status === 'rejected' && shown.rejection_reason && (
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Rejection Reason</p>
+                        <p className="rounded-lg border border-rose-700/40 bg-rose-900/20 p-3 text-sm text-rose-200">
+                            {shown.rejection_reason}
+                        </p>
+                    </div>
+                )}
+
+                <ApprovalProgress
+                    approvals={shown.approvals ?? []}
+                    submittedAt={shown.submitted_at}
+                    submittedByName={shown.person?.full_name}
+                    formatDateTime={formatters.formatDateTime}
+                />
 
                 <div className="flex justify-end pt-4 border-t border-slate-800">
                     <button

@@ -18,6 +18,8 @@ vi.mock('../../services/onboardingService', async () => {
     ...actual,
     onboardingApi: {
       listTemplates: vi.fn(),
+      listStandardTemplates: vi.fn().mockResolvedValue({ data: [], total: 0 }),
+      seedStandardTemplates: vi.fn().mockResolvedValue({ created: [], created_count: 0, skipped: [], skipped_count: 0, has_default: false }),
       getTemplate: vi.fn(),
       createTemplate: vi.fn(),
       updateTemplate: vi.fn(),

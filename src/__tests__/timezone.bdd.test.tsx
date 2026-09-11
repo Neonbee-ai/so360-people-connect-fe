@@ -26,6 +26,8 @@ vi.mock('../services/leaveRequestsService', () => ({
     create: vi.fn(),
     submit: vi.fn(),
     getBalances: vi.fn(),
+    getById: vi.fn().mockResolvedValue({ id: 'lr1', approvals: [] }),
+    getEligibleApprovers: vi.fn().mockResolvedValue({ data: [], total: 0, suggested_approver_id: null }),
   },
   LeaveRequest: {},
   CreateLeaveRequestPayload: {},

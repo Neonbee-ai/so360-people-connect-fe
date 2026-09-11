@@ -1,5 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { ClipboardCheck, Plus, Edit2, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ClipboardCheck,
+  Plus,
+  Edit2,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Sparkles,
+  AlertTriangle,
+  Check,
+} from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import {
@@ -20,6 +30,7 @@ import {
   type OnboardingAssigneeRole,
   type TemplateItemPayload,
   type CreateTemplatePayload,
+  type StandardOnboardingTemplate,
 } from '../../services/onboardingService';
 
 const ITEM_TYPE_LABELS: Record<OnboardingItemType, string> = {
@@ -57,6 +68,7 @@ const OnboardingTemplatesPage: React.FC = () => {
   const [editing, setEditing] = useState<OnboardingTemplate | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OnboardingTemplate | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -71,6 +83,17 @@ const OnboardingTemplatesPage: React.FC = () => {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  // The whole reason "Start onboarding" used to dead-end: templates can exist
+  // while none is default, and nothing on this page said so. Only surfaced once
+  // loading settles, so it never flashes during the initial fetch.
+  const hasActiveTemplates = templates.some(t => t.is_active);
+  const missingDefault = !loading && hasActiveTemplates && !templates.some(t => t.is_default && t.is_active);
+
+  const handleSeeded = () => {
+    setShowCatalog(false);
+    void load();
+  };
 
   const handleSaved = () => {
     setShowDrawer(false);
@@ -161,16 +184,40 @@ const OnboardingTemplatesPage: React.FC = () => {
         subtitle="Checklists that guide every new hire's first weeks"
         actions={
           canManage && (
-            <button
-              onClick={() => setShowDrawer(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              <Plus size={16} />
-              New Template
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCatalog(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors"
+              >
+                <Sparkles size={16} />
+                Standard Templates
+              </button>
+              <button
+                onClick={() => setShowDrawer(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <Plus size={16} />
+                New Template
+              </button>
+            </div>
           )
         }
       />
+
+      {missingDefault && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-4 py-3">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-400" />
+          <div className="text-sm text-amber-200">
+            <p className="font-medium">No default onboarding template</p>
+            <p className="mt-0.5 text-amber-200/75">
+              New hires won't get a checklist automatically, and{' '}
+              <span className="font-medium">Start onboarding</span> will ask for a template every
+              time. Edit a template below and tick{' '}
+              <span className="font-medium">Set as the organization default</span> to fix this.
+            </p>
+          </div>
+        </div>
+      )}
 
       <DataTable
         columns={columns}
@@ -181,10 +228,17 @@ const OnboardingTemplatesPage: React.FC = () => {
           <EmptyState
             icon={ClipboardCheck}
             title="No onboarding templates"
-            description="Create a checklist of tasks, meetings, documents and signatures for new hires. Mark one template as default to start it automatically."
-            action={canManage ? { label: 'New Template', onClick: () => setShowDrawer(true) } : undefined}
+            description="Start from one of the standard checklists and edit it to fit, or build your own from scratch. Whichever you pick, mark one as default so new hires get it automatically."
+            action={canManage ? { label: 'Use a Standard Template', onClick: () => setShowCatalog(true) } : undefined}
+            secondaryAction={canManage ? { label: 'Build from scratch', onClick: () => setShowDrawer(true) } : undefined}
           />
         }
+      />
+
+      <StandardCatalogDrawer
+        isOpen={showCatalog}
+        onClose={() => setShowCatalog(false)}
+        onSeeded={handleSeeded}
       />
 
       <TemplateDrawer
@@ -204,6 +258,181 @@ const OnboardingTemplatesPage: React.FC = () => {
         isLoading={deleteBusy}
       />
     </div>
+  );
+};
+
+// =============================================================================
+// Standard Catalog Drawer — copy NeonBee's starting points into this org
+// =============================================================================
+
+interface StandardCatalogDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSeeded: () => void;
+}
+
+/**
+ * Seeding COPIES catalog entries in; it never links to shared rows. Once
+ * copied they are ordinary org templates — editing them is safe and a later
+ * platform update will not overwrite the edits. Entries already taken come back
+ * with `already_seeded`, are shown ticked and disabled, and the backend skips
+ * them anyway, so a double-submit cannot duplicate anything.
+ */
+const StandardCatalogDrawer: React.FC<StandardCatalogDrawerProps> = ({ isOpen, onClose, onSeeded }) => {
+  const [catalog, setCatalog] = useState<StandardOnboardingTemplate[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const loadCatalog = useCallback(async () => {
+    setLoading(true);
+    setFailed(false);
+    try {
+      const result = await onboardingApi.listStandardTemplates();
+      setCatalog(result.data);
+      // Preselect what the org doesn't have yet — the common case is "give me
+      // the ones I'm missing", and preselecting seeded rows would be a lie.
+      setSelected(result.data.filter(t => !t.already_seeded).map(t => t.key));
+    } catch (err) {
+      setFailed(true);
+      toast.error(getErrorMessage(err, 'Failed to load the standard template catalog'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    void loadCatalog();
+  }, [isOpen, loadCatalog]);
+
+  const toggle = (key: string) =>
+    setSelected(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
+
+  const handleSeed = async () => {
+    if (selected.length === 0) return;
+    setSaving(true);
+    try {
+      const result = await onboardingApi.seedStandardTemplates(selected);
+      if (result.created_count === 0) {
+        toast.info('Those templates were already added — nothing to copy.');
+      } else {
+        toast.success(
+          `Added ${result.created_count} template${result.created_count === 1 ? '' : 's'}` +
+            (result.has_default ? '' : ' — set one as default to start onboarding automatically'),
+        );
+      }
+      onSeeded();
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Failed to add standard templates'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const available = catalog.filter(t => !t.already_seeded).length;
+
+  return (
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Standard Onboarding Templates"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-slate-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSeed}
+            disabled={saving || loading || selected.length === 0}
+            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {saving
+              ? 'Adding…'
+              : `Add ${selected.length || ''} Template${selected.length === 1 ? '' : 's'}`.trim()}
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-slate-400">
+          Ready-made checklists you can use as-is or edit. They are copied into your organization,
+          so any changes you make stay yours.
+        </p>
+
+        {loading ? (
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-20 rounded-lg bg-slate-800/50 animate-pulse" />
+            ))}
+          </div>
+        ) : failed ? (
+          <div className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-6 text-center">
+            <p className="text-sm text-slate-400">Unable to load the standard templates.</p>
+            <button
+              onClick={() => void loadCatalog()}
+              className="mt-3 px-3 py-1.5 text-sm font-medium text-teal-400 hover:text-teal-300 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        ) : available === 0 ? (
+          <div className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-6 text-center text-sm text-slate-400">
+            You've already added every standard template. Use{' '}
+            <span className="font-medium text-slate-300">New Template</span> to build your own.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {catalog.map(tpl => {
+              const isSelected = selected.includes(tpl.key);
+              return (
+                <button
+                  key={tpl.key}
+                  type="button"
+                  disabled={tpl.already_seeded}
+                  onClick={() => toggle(tpl.key)}
+                  className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
+                    tpl.already_seeded
+                      ? 'cursor-not-allowed border-slate-800 bg-slate-900/50 opacity-60'
+                      : isSelected
+                        ? 'border-teal-500/40 bg-teal-500/10'
+                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                  }`}
+                >
+                  <span
+                    className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                      tpl.already_seeded || isSelected
+                        ? 'border-teal-500 bg-teal-500'
+                        : 'border-slate-600'
+                    }`}
+                  >
+                    {(tpl.already_seeded || isSelected) && (
+                      <Check size={12} className="text-white" strokeWidth={3} />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-slate-50">{tpl.name}</span>
+                      <span className="text-xs text-slate-500">{tpl.step_count} steps</span>
+                      {tpl.already_seeded && (
+                        <span className="rounded-md border border-slate-700 px-1.5 py-0.5 text-xs text-slate-400">
+                          Already added
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500">{tpl.description}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Drawer>
   );
 };
 

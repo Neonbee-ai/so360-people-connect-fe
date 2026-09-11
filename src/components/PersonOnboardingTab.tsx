@@ -9,6 +9,7 @@ import {
   type OnboardingInstance,
   type OnboardingInstanceItem,
   type OnboardingInstanceWithItems,
+  type OnboardingTemplate,
 } from '../services/onboardingService';
 
 const ITEM_TYPE_LABELS: Record<string, string> = {
@@ -65,6 +66,14 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
   // B4 — HR attaches the collected document on the hire's behalf.
   const [attaching, setAttaching] = useState<OnboardingInstanceItem | null>(null);
 
+  // Templates are fetched alongside the instance so the "no onboarding" state
+  // can tell the three cases apart: no templates configured at all, templates
+  // but no default, and ready-to-start. Previously all three produced the same
+  // button and the difference only surfaced as a server error after clicking.
+  const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
+  const [templatesFailed, setTemplatesFailed] = useState(false);
+  const [chosenTemplateId, setChosenTemplateId] = useState<string>('');
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -90,14 +99,39 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Only HR can start onboarding, so only HR needs the template list.
+  const loadTemplates = useCallback(async () => {
+    if (!canManage) return;
+    try {
+      const { data } = await onboardingApi.listTemplates();
+      const active = data.filter(t => t.is_active);
+      setTemplates(active);
+      setTemplatesFailed(false);
+      // Preselect the org default so the common path is one click; falls back
+      // to the only active template when exactly one exists.
+      const preferred = active.find(t => t.is_default) ?? (active.length === 1 ? active[0] : undefined);
+      setChosenTemplateId(preferred?.id ?? '');
+    } catch {
+      // Non-fatal: the start button still works and the server will explain if
+      // it can't resolve a template. Surfaced as a retry affordance, not a toast
+      // — this runs on tab open, and an unprompted error toast reads as a crash.
+      setTemplatesFailed(true);
+    }
+  }, [canManage]);
+
+  useEffect(() => { void loadTemplates(); }, [loadTemplates]);
+
   const handleStart = async () => {
     setStarting(true);
     try {
-      await onboardingApi.startOnboarding({ person_id: personId });
+      await onboardingApi.startOnboarding({
+        person_id: personId,
+        ...(chosenTemplateId ? { template_id: chosenTemplateId } : {}),
+      });
       toast.success('Onboarding started');
       await load();
     } catch (err) {
-      // 409 = already has an open instance; 400 = no default template. Both
+      // 409 = already has an open instance; 404 = no template resolvable. Both
       // arrive as server messages worth showing verbatim.
       toast.error(getErrorMessage(err, 'Failed to start onboarding'));
     } finally {
@@ -172,13 +206,85 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
   }
 
   if (!instance) {
+    // No templates configured anywhere in the org — starting is impossible, so
+    // point at the fix instead of offering a button that can only fail.
+    if (canManage && !templatesFailed && templates.length === 0) {
+      return (
+        <EmptyState
+          icon={ClipboardCheck}
+          title="No onboarding templates configured"
+          description="Onboarding runs from a checklist template, and this organization doesn't have one yet. Add a standard template — or build your own — then come back to start onboarding."
+          action={{
+            label: 'Configure Templates',
+            onClick: () => { window.location.hash = '#/settings/onboarding'; },
+          }}
+        />
+      );
+    }
+
     return (
-      <EmptyState
-        icon={ClipboardCheck}
-        title="No onboarding"
-        description="Onboarding hasn't been started for this person."
-        action={canManage ? { label: starting ? 'Starting…' : 'Start onboarding', onClick: handleStart } : undefined}
-      />
+      <div className="space-y-4">
+        <EmptyState
+          icon={ClipboardCheck}
+          title="No onboarding"
+          description="Onboarding hasn't been started for this person."
+        />
+
+        {canManage && (
+          <div className="mx-auto w-full max-w-sm space-y-3">
+            {templates.length > 0 && (
+              <div>
+                <label
+                  htmlFor="onboarding-template"
+                  className="mb-1.5 block text-xs font-medium text-slate-400"
+                >
+                  Onboarding template
+                </label>
+                <select
+                  id="onboarding-template"
+                  value={chosenTemplateId}
+                  onChange={e => setChosenTemplateId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-50 focus:border-teal-500 focus:outline-none"
+                >
+                  <option value="">Use the organization default</option>
+                  {templates.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}{t.is_default ? ' (default)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {!chosenTemplateId && !templates.some(t => t.is_default) && (
+                  <p className="mt-1.5 text-xs text-amber-400">
+                    No default template is set — pick one above, or set a default in Settings →
+                    Onboarding.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {templatesFailed && (
+              <p className="text-xs text-slate-500">
+                Couldn't load the template list.{' '}
+                <button
+                  onClick={() => void loadTemplates()}
+                  className="font-medium text-teal-400 hover:text-teal-300"
+                >
+                  Retry
+                </button>
+                {' '}— starting will still use the organization default.
+              </p>
+            )}
+
+            <button
+              onClick={handleStart}
+              disabled={starting}
+              className="w-full rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {starting ? 'Starting…' : 'Start onboarding'}
+            </button>
+          </div>
+        )}
+      </div>
     );
   }
 

@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../services/leaveRequestsService', () => ({
-  leaveRequestsApi: { getAll: vi.fn(), create: vi.fn(), submit: vi.fn(), getBalances: vi.fn() },
+  leaveRequestsApi: { getAll: vi.fn(), create: vi.fn(), submit: vi.fn(), getBalances: vi.fn(), getById: vi.fn().mockResolvedValue({ id: 'lr1', approvals: [] }), getEligibleApprovers: vi.fn().mockResolvedValue({ data: [], total: 0, suggested_approver_id: null }) },
   LeaveRequest: {},
   CreateLeaveRequestPayload: {},
   LeaveBalance: {},

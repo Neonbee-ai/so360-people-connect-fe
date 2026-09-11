@@ -24,8 +24,32 @@ export interface OnboardingTemplate {
   description: string | null;
   is_default: boolean;
   is_active: boolean;
+  /** Standard-catalog key this was copied from; null when authored in-org. */
+  source_key?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+/**
+ * An entry in the NeonBee standard catalog. NOT an org row — it is a preview of
+ * what seeding would copy in. Once seeded the copy is an ordinary
+ * OnboardingTemplate the org fully owns and may edit freely.
+ */
+export interface StandardOnboardingTemplate {
+  key: string;
+  name: string;
+  description: string;
+  is_default: boolean;
+  step_count: number;
+  already_seeded: boolean;
+}
+
+export interface SeedStandardTemplatesResult {
+  created: Array<{ id: string; key: string; name: string }>;
+  created_count: number;
+  skipped: string[];
+  skipped_count: number;
+  has_default: boolean;
 }
 
 export interface OnboardingTemplateItem {
@@ -143,6 +167,28 @@ export const onboardingApi = {
 
   getTemplate: async (id: string): Promise<OnboardingTemplateWithItems> => {
     return api.get<OnboardingTemplateWithItems>(`/onboarding/templates/${id}`);
+  },
+
+  /** The standard catalog, with `already_seeded` per entry. Read-only. */
+  listStandardTemplates: async (): Promise<{
+    data: StandardOnboardingTemplate[];
+    total: number;
+  }> => {
+    return api.get<{ data: StandardOnboardingTemplate[]; total: number }>(
+      '/onboarding/standard-templates',
+    );
+  },
+
+  /**
+   * Copy catalog entries into this org. Idempotent — already-seeded keys are
+   * skipped rather than duplicated, and an existing org default is preserved.
+   * Omit `keys` to take the whole catalog.
+   */
+  seedStandardTemplates: async (keys?: string[]): Promise<SeedStandardTemplatesResult> => {
+    return api.post<SeedStandardTemplatesResult>(
+      '/onboarding/templates/seed-standard',
+      keys?.length ? { keys } : {},
+    );
   },
 
   createTemplate: async (data: CreateTemplatePayload): Promise<OnboardingTemplateWithItems> => {

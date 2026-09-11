@@ -27,11 +27,11 @@ vi.mock('../../services/leaveTypesService', () => ({
 }));
 
 vi.mock('../../services/leaveRequestsService', () => ({
-    leaveRequestsApi: { submit: vi.fn() },
+    leaveRequestsApi: { submit: vi.fn(), getEligibleApprovers: vi.fn().mockResolvedValue({ data: [], total: 0, suggested_approver_id: null }) },
 }));
 
 vi.mock('../../services/peopleService', () => ({
-    peopleApi: { getAll: vi.fn() },
+    peopleApi: { getAll: vi.fn(), getMe: vi.fn().mockResolvedValue({ id: 'me-person', full_name: 'Me' }) },
 }));
 
 vi.mock('@so360/design-system', async () => {
@@ -108,6 +108,16 @@ beforeEach(() => {
             { id: 'mgr-1', full_name: 'Bhaskar R N', job_title: 'Director of Operations', status: 'active' },
             { id: 'mgr-2', full_name: 'Arjun Prince', job_title: 'Founder / Director', status: 'active' },
         ],
+    });
+    // The picker is server-backed now: ranking and search happen in the API,
+    // so the stub returns whatever the component should render verbatim.
+    (leaveRequestsApi.getEligibleApprovers as any).mockResolvedValue({
+        data: [
+            { id: 'mgr-1', full_name: 'Bhaskar R N', job_title: 'Director of Operations', is_suggested: false, is_department_head: true },
+            { id: 'mgr-2', full_name: 'Arjun Prince', job_title: 'Founder / Director', is_suggested: false, is_department_head: true },
+        ],
+        total: 2,
+        suggested_approver_id: null,
     });
 });
 
@@ -219,12 +229,18 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         renderPage();
         await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
-        await waitFor(() => expect(screen.getByText(/Manager \/ Approver/i)).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText(/Send Request To/i)).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText('Bhaskar R N')).toBeInTheDocument());
     };
 
-    it('When the form opens / Then active people from the registry are listed as candidates', async () => {
+    it('When the form opens / Then eligible approvers are fetched for this employee', async () => {
         await openForm();
-        await waitFor(() => expect(peopleApi.getAll).toHaveBeenCalledWith({ status: 'active', limit: 200 }));
+        await waitFor(() =>
+            expect(leaveRequestsApi.getEligibleApprovers).toHaveBeenCalledWith(
+                'me-person',
+                expect.objectContaining({ limit: 25 }),
+            ),
+        );
         expect(screen.getByText('Bhaskar R N')).toBeInTheDocument();
         expect(screen.getByText('Arjun Prince')).toBeInTheDocument();
     });
@@ -261,14 +277,36 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         await waitFor(() => expect(leaveRequestsApi.submit).toHaveBeenCalledWith('new-request', []));
     });
 
-    it('When searching by name / Then non-matching people are filtered out', async () => {
+    it('When a reporting manager is suggested / Then it is preselected without the user choosing it', async () => {
+        (leaveRequestsApi.getEligibleApprovers as any).mockResolvedValue({
+            data: [
+                { id: 'mgr-1', full_name: 'Bhaskar R N', job_title: 'Director of Operations', is_suggested: true, is_department_head: true },
+            ],
+            total: 1,
+            suggested_approver_id: 'mgr-1',
+        });
         await openForm();
 
-        const search = screen.getByPlaceholderText(/search by name/i);
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() => expect(leaveRequestsApi.submit).toHaveBeenCalledWith('new-request', ['mgr-1']));
+    });
+
+    it('When searching by name / Then the query is sent to the server (not filtered in the browser)', async () => {
+        await openForm();
+
+        const search = screen.getByPlaceholderText(/search manager or employee/i);
         fireEvent.change(search, { target: { value: 'bha' } });
 
-        expect(screen.getByText('Bhaskar R N')).toBeInTheDocument();
-        expect(screen.queryByText('Arjun Prince')).not.toBeInTheDocument();
+        await waitFor(
+            () =>
+                expect(leaveRequestsApi.getEligibleApprovers).toHaveBeenCalledWith(
+                    'me-person',
+                    expect.objectContaining({ search: 'bha' }),
+                ),
+            { timeout: 2000 },
+        );
     });
 });
 

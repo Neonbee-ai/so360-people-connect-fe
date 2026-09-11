@@ -17,6 +17,7 @@ vi.mock('../services/onboardingService', async () => {
     ...actual,
     onboardingApi: {
       listInstances: vi.fn(),
+      listTemplates: vi.fn().mockResolvedValue({ data: [], total: 0 }),
       getInstance: vi.fn(),
       startOnboarding: vi.fn(),
       cancelInstance: vi.fn(),

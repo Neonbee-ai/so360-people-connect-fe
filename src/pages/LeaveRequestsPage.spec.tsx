@@ -7,13 +7,22 @@ vi.mock('../services/peopleService', () => ({
   peopleApi: { getMe: vi.fn().mockResolvedValue({ id: 'p1', full_name: 'Test User' }), getAll: vi.fn().mockResolvedValue({ data: [], total: 0 }) },
 }));
 
+// Closed-list stub: any method the page calls but this object omits comes back
+// undefined and fails an unrelated assertion. getById (view modal) and
+// getEligibleApprovers (approver picker) must stay listed here.
 vi.mock('../services/leaveRequestsService', () => ({
   leaveRequestsApi: {
     getAll: vi.fn(),
+    getById: vi.fn().mockResolvedValue({ id: 'lr1', approvals: [] }),
     create: vi.fn(),
     submit: vi.fn(),
     delete: vi.fn(),
     getBalances: vi.fn(),
+    getEligibleApprovers: vi.fn().mockResolvedValue({
+      data: [],
+      total: 0,
+      suggested_approver_id: null,
+    }),
   },
   LeaveRequest: {},
   CreateLeaveRequestPayload: {},
@@ -86,6 +95,114 @@ beforeEach(() => {
   // org-wide catalog — the catalog offered everyone every type.
   (leaveConfigApi as any).getApplicable.mockResolvedValue({ leave_types: [] });
   mockLeaveApi.getBalances.mockResolvedValue({ data: [] });
+  // resetAllMocks() above wipes the factory defaults, so the approver picker and
+  // the detail fetch must be re-stubbed here or every render rejects on undefined.
+  mockLeaveApi.getEligibleApprovers.mockResolvedValue({
+    data: [],
+    total: 0,
+    suggested_approver_id: null,
+  });
+  mockLeaveApi.getById.mockResolvedValue({ ...mockRequest, approvals: [] });
+});
+
+describe('Given an employee filling in the Request Leave modal', () => {
+  const APPLICABLE = {
+    leave_types: [{ id: 'lt1', name: 'Annual Leave', code: 'AL', is_active: true }],
+  };
+
+  const openModal = async () => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [], total: 0 });
+    (leaveConfigApi as any).getApplicable.mockResolvedValue(APPLICABLE);
+    mockLeaveApi.getEligibleApprovers.mockResolvedValue({
+      data: [
+        { id: 'mgr-1', full_name: 'Raj Kumar', job_title: 'Sales Manager', department_name: 'Sales', is_suggested: true, is_department_head: true },
+        { id: 'hr-1', full_name: 'Priya Sharma', job_title: 'HR Manager', department_name: 'People', is_suggested: false, is_department_head: true },
+      ],
+      total: 2,
+      suggested_approver_id: 'mgr-1',
+    });
+    mockLeaveApi.create.mockResolvedValue({ id: 'new-lr' });
+    mockLeaveApi.submit.mockResolvedValue({ id: 'new-lr', status: 'pending' });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Leave Requests')).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button', { name: /request leave/i })[0]);
+    await waitFor(() => expect(screen.getByText(/Send Request To/i)).toBeInTheDocument());
+  };
+
+  const fillRequiredFields = () => {
+    fireEvent.change(screen.getByLabelText(/Leave Type/i), { target: { value: 'lt1' } });
+    fireEvent.change(screen.getByLabelText(/Reason/i), { target: { value: 'Personal leave' } });
+  };
+
+  it('When the modal opens / Then an approver field is present', async () => {
+    await openModal();
+    expect(screen.getByText(/Send Request To/i)).toBeInTheDocument();
+  });
+
+  it('When approvers are loaded / Then People Connect employees are offered with title and department', async () => {
+    await openModal();
+    await waitFor(() => expect(screen.getByText('Raj Kumar')).toBeInTheDocument());
+    expect(screen.getByText(/Sales Manager · Sales/)).toBeInTheDocument();
+    expect(screen.getByText('Priya Sharma')).toBeInTheDocument();
+  });
+
+  it('When a reporting manager is suggested / Then it is preselected and submitted without being clicked', async () => {
+    await openModal();
+    await waitFor(() => expect(screen.getByText('Raj Kumar')).toBeInTheDocument());
+
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+    await waitFor(() => expect(mockLeaveApi.submit).toHaveBeenCalledWith('new-lr', ['mgr-1']));
+  });
+
+  it('When a second approver is added / Then BOTH ids are sent on submit', async () => {
+    await openModal();
+    await waitFor(() => expect(screen.getByText('Priya Sharma')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('Priya Sharma'));
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+    await waitFor(() => expect(mockLeaveApi.submit).toHaveBeenCalledWith('new-lr', ['mgr-1', 'hr-1']));
+  });
+
+  it('When a selected approver is removed / Then their id is not submitted', async () => {
+    await openModal();
+    await waitFor(() => expect(screen.getByText('Raj Kumar')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /Remove Raj Kumar/i }));
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+    await waitFor(() => expect(mockLeaveApi.submit).toHaveBeenCalledWith('new-lr', []));
+  });
+
+  it('When the same approver is clicked twice / Then no duplicate id is submitted', async () => {
+    await openModal();
+    await waitFor(() => expect(screen.getByText('Priya Sharma')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('Priya Sharma'));
+    fireEvent.click(screen.getByText('Priya Sharma'));
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+    await waitFor(() => expect(mockLeaveApi.submit).toHaveBeenCalledWith('new-lr', ['mgr-1']));
+  });
+
+  it('When the approver list fails to load / Then an error with a retry is shown instead of a silent empty list', async () => {
+    mockLeaveApi.getAll.mockResolvedValue({ data: [], total: 0 });
+    (leaveConfigApi as any).getApplicable.mockResolvedValue(APPLICABLE);
+    mockLeaveApi.getEligibleApprovers.mockRejectedValue(new Error('boom'));
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Leave Requests')).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button', { name: /request leave/i })[0]);
+
+    await waitFor(() =>
+      expect(screen.getByText(/Unable to load approvers/i)).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+  });
 });
 
 describe('Given LeaveRequestsPage loads with requests', () => {
