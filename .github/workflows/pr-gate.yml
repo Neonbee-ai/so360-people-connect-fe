@@ -16,4 +16,9 @@ jobs:
     with:
       service_name: people-connect-fe-pr
       deploy_type: vite-mfe
+      # Opted in deliberately: this repo is where a TS1117 duplicate object key
+      # passed the gate and then broke the production deploy. vitest transpiles
+      # without checking types, so only this tier can see that class of error
+      # before merge.
+      typecheck: true
     secrets: inherit
