@@ -69,6 +69,7 @@ import LeaveRequestsPage from './LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { leaveTypesApi } from '../services/leaveTypesService';
 import { leaveConfigApi } from '../services/leaveConfigService';
+import { peopleApi } from '../services/peopleService';
 import { toast } from '@so360/design-system';
 
 const mockLeaveApi = leaveRequestsApi as any;
@@ -103,6 +104,9 @@ beforeEach(() => {
     suggested_approver_id: null,
   });
   mockLeaveApi.getById.mockResolvedValue({ ...mockRequest, approvals: [] });
+  // Same reason: the approver selector only renders once the modal has resolved
+  // the current person, so a wiped getMe silently removes the whole field.
+  (peopleApi.getMe as any).mockResolvedValue({ id: 'p1', full_name: 'Test User' });
 });
 
 describe('Given an employee filling in the Request Leave modal', () => {
