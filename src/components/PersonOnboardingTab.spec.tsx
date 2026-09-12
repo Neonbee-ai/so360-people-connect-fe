@@ -117,10 +117,16 @@ describe('Given an organization whose onboarding templates are not configured', 
     expect(screen.queryByText('Start onboarding')).not.toBeInTheDocument();
   });
 
-  it('Given templates exist but none is default / When the tab loads / Then starting is still offered with a warning', async () => {
+  it('Given SEVERAL templates and none is default / When the tab loads / Then starting is still offered with a warning', async () => {
+    // Two, not one: with a single active template the component preselects it,
+    // so there is nothing to warn about. The warning is for the genuinely
+    // ambiguous case where nothing can be chosen automatically.
     mockApi.listTemplates.mockResolvedValue({
-      data: [{ id: 'tpl-a', name: 'Sales Onboarding', description: null, is_default: false, is_active: true }],
-      total: 1,
+      data: [
+        { id: 'tpl-a', name: 'Sales Onboarding', description: null, is_default: false, is_active: true },
+        { id: 'tpl-b', name: 'Engineering Onboarding', description: null, is_default: false, is_active: true },
+      ],
+      total: 2,
     });
     renderTab();
 
@@ -274,6 +280,13 @@ describe('Given an in-progress instance with a pending document_upload item', ()
 
 describe('Given only a cancelled instance exists', () => {
   it('When the tab loads / Then it is treated as no onboarding', async () => {
+    // Seeded with a usable default so this exercises the cancelled-instance
+    // rule; without it the tab correctly shows the no-templates-configured
+    // state instead, which is a different screen and not what this pins.
+    mockApi.listTemplates.mockResolvedValue({
+      data: [{ id: 'tpl-default', name: 'Standard Employee Onboarding', description: null, is_default: true, is_active: true }],
+      total: 1,
+    });
     mockApi.listInstances.mockResolvedValue({
       data: [{ ...instanceFixture, status: 'cancelled', items: undefined }],
       total: 1,
