@@ -62,6 +62,12 @@ beforeEach(() => {
 describe('Given a person with no onboarding instance', () => {
   beforeEach(() => {
     mockApi.listInstances.mockResolvedValue({ data: [], total: 0 });
+    // An org WITH a usable default is the ordinary case. The empty-template org
+    // is a distinct state now and is covered in its own block below.
+    mockApi.listTemplates.mockResolvedValue({
+      data: [{ id: 'tpl-default', name: 'Standard Employee Onboarding', description: null, is_default: true, is_active: true }],
+      total: 1,
+    });
   });
 
   it('When the tab loads / Then a Start onboarding affordance is offered to manage holders', async () => {
@@ -81,7 +87,9 @@ describe('Given a person with no onboarding instance', () => {
     mockApi.getInstance.mockResolvedValue(instanceFixture);
 
     fireEvent.click(screen.getByText('Start onboarding'));
-    await waitFor(() => expect(mockApi.startOnboarding).toHaveBeenCalledWith({ person_id: 'p1' }));
+    await waitFor(() =>
+      expect(mockApi.startOnboarding).toHaveBeenCalledWith({ person_id: 'p1', template_id: 'tpl-default' }),
+    );
     await waitFor(() => expect(screen.getByText('Onboarding in progress')).toBeInTheDocument());
   });
 
@@ -90,6 +98,66 @@ describe('Given a person with no onboarding instance', () => {
     renderTab();
     await waitFor(() => expect(screen.getByText('No onboarding')).toBeInTheDocument());
     expect(screen.queryByText('Start onboarding')).not.toBeInTheDocument();
+  });
+});
+
+describe('Given an organization whose onboarding templates are not configured', () => {
+  beforeEach(() => {
+    mockApi.listInstances.mockResolvedValue({ data: [], total: 0 });
+  });
+
+  it('Given NO templates exist / When the tab loads / Then it points at the fix instead of a button that can only fail', async () => {
+    mockApi.listTemplates.mockResolvedValue({ data: [], total: 0 });
+    renderTab();
+
+    await waitFor(() =>
+      expect(screen.getByText('No onboarding templates configured')).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: /configure templates/i })).toBeInTheDocument();
+    expect(screen.queryByText('Start onboarding')).not.toBeInTheDocument();
+  });
+
+  it('Given templates exist but none is default / When the tab loads / Then starting is still offered with a warning', async () => {
+    mockApi.listTemplates.mockResolvedValue({
+      data: [{ id: 'tpl-a', name: 'Sales Onboarding', description: null, is_default: false, is_active: true }],
+      total: 1,
+    });
+    renderTab();
+
+    await waitFor(() => expect(screen.getByText('Start onboarding')).toBeInTheDocument());
+    expect(screen.getByText(/No default template is set/i)).toBeInTheDocument();
+  });
+
+  it('Given several templates / When HR picks a non-default one / Then that template_id is sent', async () => {
+    mockApi.listTemplates.mockResolvedValue({
+      data: [
+        { id: 'tpl-default', name: 'Standard Employee Onboarding', description: null, is_default: true, is_active: true },
+        { id: 'tpl-sales', name: 'Sales Employee Onboarding', description: null, is_default: false, is_active: true },
+      ],
+      total: 2,
+    });
+    mockApi.startOnboarding.mockResolvedValue({ ...instanceFixture });
+    renderTab();
+    await waitFor(() => expect(screen.getByText('Start onboarding')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText(/onboarding template/i), { target: { value: 'tpl-sales' } });
+    fireEvent.click(screen.getByText('Start onboarding'));
+
+    await waitFor(() =>
+      expect(mockApi.startOnboarding).toHaveBeenCalledWith({ person_id: 'p1', template_id: 'tpl-sales' }),
+    );
+  });
+
+  it('Given INACTIVE templates only / When the tab loads / Then they are not offered for a new onboarding', async () => {
+    mockApi.listTemplates.mockResolvedValue({
+      data: [{ id: 'tpl-old', name: 'Retired Checklist', description: null, is_default: false, is_active: false }],
+      total: 1,
+    });
+    renderTab();
+
+    await waitFor(() =>
+      expect(screen.getByText('No onboarding templates configured')).toBeInTheDocument(),
+    );
   });
 });
 

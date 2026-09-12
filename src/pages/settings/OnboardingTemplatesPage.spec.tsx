@@ -160,3 +160,117 @@ describe('Given a viewer without onboarding.manage', () => {
     expect(screen.queryByTitle('Delete')).not.toBeInTheDocument();
   });
 });
+
+describe('Given the NeonBee standard template catalog', () => {
+  const CATALOG = [
+    { key: 'standard_employee', name: 'Standard Employee Onboarding', description: 'General purpose', is_default: true, step_count: 15, already_seeded: false },
+    { key: 'sales_employee', name: 'Sales Employee Onboarding', description: 'For sales hires', is_default: false, step_count: 16, already_seeded: false },
+    { key: 'intern', name: 'Intern / Trainee Onboarding', description: 'Shorter', is_default: false, step_count: 10, already_seeded: true },
+  ];
+
+  const openCatalog = async () => {
+    mockApi.listStandardTemplates.mockResolvedValue({ data: CATALOG, total: 3 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Onboarding Templates')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /standard templates/i }));
+    await waitFor(() => expect(screen.getByText('Standard Employee Onboarding')).toBeInTheDocument());
+  };
+
+  it('When the catalog opens / Then each entry shows its name and step count', async () => {
+    await openCatalog();
+    expect(screen.getByText('Sales Employee Onboarding')).toBeInTheDocument();
+    expect(screen.getByText('15 steps')).toBeInTheDocument();
+  });
+
+  it('When entries are already seeded / Then they are flagged and excluded from the selection', async () => {
+    await openCatalog();
+    expect(screen.getByText('Already added')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /add 2 templates/i }));
+
+    await waitFor(() =>
+      expect(mockApi.seedStandardTemplates).toHaveBeenCalledWith(['standard_employee', 'sales_employee']),
+    );
+  });
+
+  it('When an entry is deselected / Then it is not sent to the seeder', async () => {
+    await openCatalog();
+
+    fireEvent.click(screen.getByText('Sales Employee Onboarding'));
+    fireEvent.click(screen.getByRole('button', { name: /add 1 template/i }));
+
+    await waitFor(() =>
+      expect(mockApi.seedStandardTemplates).toHaveBeenCalledWith(['standard_employee']),
+    );
+  });
+
+  it('When seeding succeeds / Then the template list is reloaded', async () => {
+    await openCatalog();
+    mockApi.seedStandardTemplates.mockResolvedValue({
+      created: [{ id: 'new-1', key: 'standard_employee', name: 'Standard Employee Onboarding' }],
+      created_count: 1, skipped: [], skipped_count: 0, has_default: true,
+    });
+    const callsBefore = mockApi.listTemplates.mock.calls.length;
+
+    fireEvent.click(screen.getByRole('button', { name: /add 2 templates/i }));
+
+    await waitFor(() =>
+      expect(mockApi.listTemplates.mock.calls.length).toBeGreaterThan(callsBefore),
+    );
+  });
+
+  it('When every entry is already seeded / Then the drawer says so instead of showing an empty list', async () => {
+    mockApi.listStandardTemplates.mockResolvedValue({
+      data: CATALOG.map(t => ({ ...t, already_seeded: true })),
+      total: 3,
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Onboarding Templates')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /standard templates/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/already added every standard template/i)).toBeInTheDocument(),
+    );
+  });
+
+  it('When the catalog fails to load / Then a retry is offered rather than a silent empty drawer', async () => {
+    mockApi.listStandardTemplates.mockRejectedValue(new Error('boom'));
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Onboarding Templates')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /standard templates/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Unable to load the standard templates/i)).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+  });
+
+  it('When the viewer lacks onboarding.manage / Then the standard-template action is hidden', async () => {
+    mockShell = { permissionsLoaded: true, hasPermission: (c: string) => c !== 'onboarding.manage' };
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Onboarding Templates')).toBeInTheDocument());
+
+    expect(screen.queryByRole('button', { name: /standard templates/i })).not.toBeInTheDocument();
+  });
+});
+
+describe('Given templates exist but none is the organization default', () => {
+  it('When the page loads / Then it warns that new hires will not get a checklist automatically', async () => {
+    mockApi.listTemplates.mockResolvedValue({
+      data: [{ id: 't1', name: 'Engineering New Hire', description: null, is_default: false, is_active: true }],
+      total: 1,
+    });
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByText('No default onboarding template')).toBeInTheDocument(),
+    );
+  });
+
+  it('Given a default IS set / When the page loads / Then no warning is shown', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Engineering New Hire')).toBeInTheDocument());
+
+    expect(screen.queryByText('No default onboarding template')).not.toBeInTheDocument();
+  });
+});
