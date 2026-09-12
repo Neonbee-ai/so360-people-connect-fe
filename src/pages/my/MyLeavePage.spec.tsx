@@ -230,7 +230,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
         await waitFor(() => expect(screen.getByText(/Send Request To/i)).toBeInTheDocument());
-        await waitFor(() => expect(screen.getByText('Bhaskar R N')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByRole('button', { name: /^Bhaskar R N/ })).toBeInTheDocument());
     };
 
     it('When the form opens / Then eligible approvers are fetched for this employee', async () => {
@@ -241,16 +241,16 @@ describe('Given an employee selecting a manager to approve their leave', () => {
                 expect.objectContaining({ limit: 25 }),
             ),
         );
-        expect(screen.getByText('Bhaskar R N')).toBeInTheDocument();
-        expect(screen.getByText('Arjun Prince')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Bhaskar R N/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Arjun Prince/ })).toBeInTheDocument();
     });
 
     it('When they select managers and submit / Then the request is created then submitted with those approver ids', async () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
-        fireEvent.click(screen.getByText('Bhaskar R N'));
-        fireEvent.click(screen.getByText('Arjun Prince'));
+        fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
+        fireEvent.click(screen.getByRole('button', { name: /^Arjun Prince/ }));
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
         await waitFor(() => expect(leaveRequestsApi.submit).toHaveBeenCalled());
@@ -270,8 +270,8 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
-        fireEvent.click(screen.getByText('Bhaskar R N'));
-        fireEvent.click(screen.getByText('Bhaskar R N'));
+        fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
+        fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
         await waitFor(() => expect(leaveRequestsApi.submit).toHaveBeenCalledWith('new-request', []));

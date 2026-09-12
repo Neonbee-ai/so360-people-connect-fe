@@ -141,14 +141,14 @@ describe('Given an employee filling in the Request Leave modal', () => {
 
   it('When approvers are loaded / Then People Connect employees are offered with title and department', async () => {
     await openModal();
-    await waitFor(() => expect(screen.getByText('Raj Kumar')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Raj Kumar/ })).toBeInTheDocument());
     expect(screen.getByText(/Sales Manager · Sales/)).toBeInTheDocument();
-    expect(screen.getByText('Priya Sharma')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Priya Sharma/ })).toBeInTheDocument();
   });
 
   it('When a reporting manager is suggested / Then it is preselected and submitted without being clicked', async () => {
     await openModal();
-    await waitFor(() => expect(screen.getByText('Raj Kumar')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Raj Kumar/ })).toBeInTheDocument());
 
     fillRequiredFields();
     fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
@@ -158,9 +158,9 @@ describe('Given an employee filling in the Request Leave modal', () => {
 
   it('When a second approver is added / Then BOTH ids are sent on submit', async () => {
     await openModal();
-    await waitFor(() => expect(screen.getByText('Priya Sharma')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Priya Sharma/ })).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('Priya Sharma'));
+    fireEvent.click(screen.getByRole('button', { name: /^Priya Sharma/ }));
     fillRequiredFields();
     fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
@@ -169,7 +169,7 @@ describe('Given an employee filling in the Request Leave modal', () => {
 
   it('When a selected approver is removed / Then their id is not submitted', async () => {
     await openModal();
-    await waitFor(() => expect(screen.getByText('Raj Kumar')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Raj Kumar/ })).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole('button', { name: /Remove Raj Kumar/i }));
     fillRequiredFields();
@@ -180,10 +180,10 @@ describe('Given an employee filling in the Request Leave modal', () => {
 
   it('When the same approver is clicked twice / Then no duplicate id is submitted', async () => {
     await openModal();
-    await waitFor(() => expect(screen.getByText('Priya Sharma')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Priya Sharma/ })).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('Priya Sharma'));
-    fireEvent.click(screen.getByText('Priya Sharma'));
+    fireEvent.click(screen.getByRole('button', { name: /^Priya Sharma/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Priya Sharma/ }));
     fillRequiredFields();
     fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
