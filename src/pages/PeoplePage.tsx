@@ -1403,13 +1403,6 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         setCustomFieldValues(prev => ({ ...prev, [fieldDefId]: value }));
     };
 
-    // The form stores employment_type as a CODE; leave configuration is keyed by
-    // the master row's id, so resolve one to the other here rather than in the
-    // section (which would have to re-fetch the master list to do it).
-    const selectedEmploymentType = employmentTypes.find(
-        et => et.code === (formData as any).employment_type,
-    );
-
     // When the shell hasn't pre-loaded businessSettings yet (defaultCurrency is empty),
     // fetch org currency directly from Core BE so the field is never stuck on USD.
     useEffect(() => {
@@ -1453,6 +1446,15 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     // Submit-order of the validated fields — drives which field gets scrolled
     // to and focused when a submit is rejected.
     const FIELD_ORDER = ['full_name', 'email', 'phone', 'inviteEmail', 'inviteRole'];
+
+    // The form stores employment_type as a CODE; leave configuration is keyed by
+    // the master row's id, so resolve one to the other here rather than in the
+    // section (which would have to re-fetch the master list to do it).
+    // MUST stay below the formData declaration — reading it above is a temporal
+    // dead zone error that crashes the whole modal at render, and tsc cannot see it.
+    const selectedEmploymentType = employmentTypes.find(
+        et => et.code === (formData as any).employment_type,
+    );
 
     // Sync form currency whenever the resolved currency updates or the modal opens.
     useEffect(() => {
