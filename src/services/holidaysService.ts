@@ -60,6 +60,7 @@ export interface ResolveHolidayParams {
   person_id?: string;
   work_location_id?: string;
   employment_type_master_id?: string;
+  [key: string]: string | undefined;
 }
 
 export const holidaysApi = {
