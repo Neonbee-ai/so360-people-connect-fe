@@ -193,6 +193,60 @@ describe('Given the Request Leave date fields', () => {
     expect(mockLeaveApi.create.mock.calls[0][0]).toMatchObject({ start_date: today, end_date: today });
   });
 
+  // Pulse 85eeeffb: the reported repro is exactly this shape — a same-day,
+  // no-half-day request, WITH an approver chosen via "Send Request To". The
+  // ticket's own working theory was that the approver-selection feature
+  // interfered with total_days; it does not (total_days isn't even sent by
+  // the client — see leaveRequestsService.CreateLeaveRequestPayload), and
+  // this proves the create+submit payloads stay correct with an approver in
+  // the mix.
+  it('Given the reported repro shape (same day, no half day, an approver selected) / Then the create payload is exactly the same-day dates, and submit carries the chosen approver', async () => {
+    mockLeaveApi.getEligibleApprovers.mockResolvedValue({
+      data: [{ id: 'approver-1', full_name: 'Manager Bob' }],
+      total: 1,
+      suggested_approver_id: 'approver-1',
+    });
+
+    await openModal();
+    await fillRequiredFields();
+
+    fireEvent.change(startDate(), { target: { value: today } });
+    fireEvent.change(endDate(), { target: { value: today } });
+
+    // The reporting manager is auto-suggested as soon as the picker loads.
+    // Selected people render twice by design (chip + result list), so assert
+    // presence rather than uniqueness.
+    await waitFor(() => expect(screen.getAllByText('Manager Bob').length).toBeGreaterThan(0));
+
+    expect(submit()).not.toBeDisabled();
+    fireEvent.click(submit());
+
+    await waitFor(() => expect(mockLeaveApi.submit).toHaveBeenCalled());
+    expect(mockLeaveApi.create.mock.calls[0][0]).toMatchObject({ start_date: today, end_date: today });
+    // 'total_days' has no field to check here — it was never part of the
+    // payload; total_days is computed by the backend, never the client.
+    expect(mockLeaveApi.create.mock.calls[0][0]).not.toHaveProperty('total_days');
+    expect(mockLeaveApi.submit.mock.calls[0]).toEqual(['lr-new', ['approver-1']]);
+  });
+
+  it('Given the backend refuses the request (e.g. it would violate the total_days constraint) / Then the caller sees the backend'
+    + "'s own message, not a generic failure", async () => {
+    mockLeaveApi.create.mockRejectedValue(
+      new Error('Invalid leave duration. Please check the selected dates and half-day option.'),
+    );
+
+    await openModal();
+    await fillRequiredFields();
+    fireEvent.change(startDate(), { target: { value: today } });
+    fireEvent.change(endDate(), { target: { value: today } });
+
+    fireEvent.click(submit());
+
+    // The modal must not report success when create() rejected.
+    await waitFor(() => expect(mockLeaveApi.create).toHaveBeenCalled());
+    expect(mockLeaveApi.submit).not.toHaveBeenCalled();
+  });
+
   it('When a month-end / leap-year window is chosen / Then the day count is exact', async () => {
     await openModal();
     await fillRequiredFields(SICK.id); // backdating allowed, so fixed dates are usable
