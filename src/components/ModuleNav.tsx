@@ -105,6 +105,9 @@ const navigationItems: NavSection[] = [
             { path: '/leaves/approvals', label: 'Pending Approvals', icon: CheckCircle, permKey: 'leave.approve' },
             { path: '/leaves/types', label: 'Leave Types', icon: Settings, permKey: 'leave.configure' },
             { path: '/leaves/balances', label: 'Leave Balances', icon: DollarSign, adminOnly: true, permKey: 'leave.read' },
+            // Same page as Settings > Holiday Calendar (/settings/holidays) — surfaced
+            // here too since Holidays is planned/actual leave for scheduling purposes.
+            { path: '/leaves/holidays', label: 'Holidays', icon: CalendarRange, flagKey: 'submodule:people:holidays', permKey: 'org_policy.read' },
         ]
     },
     {

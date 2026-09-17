@@ -289,6 +289,8 @@ const App = () => {
                     <Route path="leaves/calendar" element={<PermissionGuard permission="leave.read"><LeaveCalendarPage /></PermissionGuard>} />
                     <Route path="leaves/approvals" element={<PermissionGuard permission="leave.approve"><LeaveApprovalsPage /></PermissionGuard>} />
                     <Route path="leaves/balances" element={<PermissionGuard permission="leave.read"><LeaveBalancesPage /></PermissionGuard>} />
+                    {/* Alias of settings/holidays — same page, surfaced under Leave Management for discoverability. */}
+                    <Route path="leaves/holidays" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate></PermissionGuard>} />
 
                     {/* Performance Reviews */}
                     <Route path="reviews/templates" element={<PermissionGuard permission="reviews.create"><FeatureGate flagKey="submodule:people:reviews"><ReviewTemplatesPage /></FeatureGate></PermissionGuard>} />
