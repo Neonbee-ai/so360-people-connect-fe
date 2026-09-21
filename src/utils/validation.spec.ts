@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isUuid, validateEmail } from './validation';
+import { isUuid, validateEmail, sanitizePhoneInput } from './validation';
 
 describe('isUuid', () => {
   describe('Given a syntactically valid UUID', () => {
@@ -114,6 +114,31 @@ describe('validateEmail', () => {
 
     it('When required / Then it returns a message', () => {
       expect(validateEmail('', true)).toBe('Email is required.');
+    });
+  });
+});
+
+describe('sanitizePhoneInput', () => {
+  describe('Given disallowed characters', () => {
+    it('When the ticket\'s repro string is typed / Then everything but digits/-/() survives', () => {
+      expect(sanitizePhoneInput('/(@$)(959599666666997979796462')).toBe('()(95959966666699797');
+    });
+
+    it('When letters and symbols like @ $ % & are present / Then they are stripped', () => {
+      expect(sanitizePhoneInput('abc@555$123%456&')).toBe('555123456');
+    });
+  });
+
+  describe('Given allowed characters', () => {
+    it('When digits, spaces, +, -, ( ) are typed / Then they pass through unchanged', () => {
+      expect(sanitizePhoneInput('+1 (555) 010-0100')).toBe('+1 (555) 010-0100');
+    });
+  });
+
+  describe('Given an excessively long value', () => {
+    it('When it exceeds 20 characters / Then it is truncated to 20', () => {
+      const long = '1'.repeat(30);
+      expect(sanitizePhoneInput(long)).toHaveLength(20);
     });
   });
 });

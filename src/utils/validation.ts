@@ -71,6 +71,16 @@ export function validateEmail(value: unknown, required = false): string | null {
   return null;
 }
 
+/**
+ * Strips characters `validatePhone` would reject, at keystroke/paste time.
+ * The submit-time regex already blocked invalid values from being saved,
+ * but nothing stopped a user from typing/pasting them in the first place —
+ * this closes that input-level gap without changing what's ultimately valid.
+ */
+export function sanitizePhoneInput(value: string): string {
+  return value.replace(/[^0-9\s().+-]/g, '').slice(0, 20);
+}
+
 /** Phone: digits (7–15) with an optional leading +. Empty is allowed. */
 export function validatePhone(value: unknown, required = false): string | null {
   const phone = typeof value === 'string' ? value.trim() : '';
