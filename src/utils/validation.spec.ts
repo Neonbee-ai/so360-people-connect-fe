@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isUuid } from './validation';
+import { isUuid, validateEmail } from './validation';
 
 describe('isUuid', () => {
   describe('Given a syntactically valid UUID', () => {
@@ -54,6 +54,66 @@ describe('isUuid', () => {
       expect(isUuid(12345)).toBe(false);
       expect(isUuid({})).toBe(false);
       expect(isUuid(['550e8400-e29b-41d4-a716-446655440000'])).toBe(false);
+    });
+  });
+});
+
+describe('validateEmail', () => {
+  describe('Given a valid email address', () => {
+    it.each([
+      'john.doe@gmail.com',
+      'john_doe@company.co.in',
+      'user+sales@example.com',
+      'first-last@domain.org',
+    ])('When "%s" is checked / Then it returns null', (email) => {
+      expect(validateEmail(email)).toBeNull();
+    });
+  });
+
+  describe('Given an email with a malformed domain', () => {
+    it('When the domain has consecutive hyphens (gm--ail.com) / Then it is rejected', () => {
+      expect(validateEmail('shunma-8@gm--ail.com')).not.toBeNull();
+      expect(validateEmail('abc@gm--ail.com')).not.toBeNull();
+    });
+
+    it('When the domain has consecutive periods / Then it is rejected', () => {
+      expect(validateEmail('abc@gmail..com')).not.toBeNull();
+    });
+
+    it('When the domain starts with a period / Then it is rejected', () => {
+      expect(validateEmail('abc@.gmail.com')).not.toBeNull();
+    });
+
+    it('When the domain is missing an extension / Then it is rejected', () => {
+      expect(validateEmail('abc@gmail')).not.toBeNull();
+      expect(validateEmail('abc@gmail.')).not.toBeNull();
+    });
+  });
+
+  describe('Given an email with a malformed username', () => {
+    it('When the username has consecutive periods / Then it is rejected', () => {
+      expect(validateEmail('abc..123@gmail.com')).not.toBeNull();
+    });
+
+    it('When the "@" symbol is missing, doubled, or has no username/domain / Then it is rejected', () => {
+      expect(validateEmail('abc')).not.toBeNull();
+      expect(validateEmail('abc@')).not.toBeNull();
+      expect(validateEmail('@gmail.com')).not.toBeNull();
+      expect(validateEmail('abc@@gmail.com')).not.toBeNull();
+    });
+
+    it('When the address contains a space / Then it is rejected', () => {
+      expect(validateEmail('abc @gmail.com')).not.toBeNull();
+    });
+  });
+
+  describe('Given an empty value', () => {
+    it('When not required / Then it returns null', () => {
+      expect(validateEmail('')).toBeNull();
+    });
+
+    it('When required / Then it returns a message', () => {
+      expect(validateEmail('', true)).toBe('Email is required.');
     });
   });
 });
