@@ -191,7 +191,9 @@ const fillMinimalPersonAndSelectEmploymentType = async () => {
   // these leave-config scenarios are not about.
   fireEvent.click(screen.getByText('Employee Only (No System Access)'));
 
-  const employmentTypeSelect = screen.getByDisplayValue('Select Employment Type');
+  // The Employment Type field only mounts once the invite-mode switch commits
+  // its re-render — a synchronous query here races that update.
+  const employmentTypeSelect = await screen.findByDisplayValue('Select Employment Type');
   fireEvent.change(employmentTypeSelect, { target: { value: 'full_time' } });
   await waitFor(() => expect(mockLeaveConfigApi.getForEmploymentType).toHaveBeenCalledWith('et-full'));
 
