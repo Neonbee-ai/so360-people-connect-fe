@@ -131,7 +131,7 @@ describe('ApiClient', () => {
 
   describe('Given a network error', () => {
     it('When fetch throws / Then the error propagates', async () => {
-      mockFetch.mockRejectedValue(new Error('Network failure'));
+      mockFetch.mockImplementation(async () => { throw new Error('Network failure'); });
 
       await expect(client.get('/down')).rejects.toThrow('Network failure');
     });

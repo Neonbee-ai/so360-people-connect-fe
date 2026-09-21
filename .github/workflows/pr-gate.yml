@@ -1,0 +1,24 @@
+# Verification only — this workflow has no deploy capability by construction.
+# See neonbee-devops/neonbee-pr-gate.yml for why that is structural.
+name: PR Gate
+
+on:
+  pull_request:
+    branches: [develop, qa, main]
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    uses: Neonbee-ai/neonbee-devops/.github/workflows/neonbee-pr-gate.yml@main
+    with:
+      service_name: people-connect-fe-pr
+      deploy_type: vite-mfe
+      # Opted in deliberately: this repo is where a TS1117 duplicate object key
+      # passed the gate and then broke the production deploy. vitest transpiles
+      # without checking types, so only this tier can see that class of error
+      # before merge.
+      typecheck: true
+    secrets: inherit

@@ -6,6 +6,24 @@ import React from 'react';
 vi.mock('@so360/shell-context', () => ({
   useShellBridge: vi.fn(),
   useActivity: () => ({ recordActivity: async () => {} }),
+
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),}));
+
+vi.mock('@so360/design-system', () => ({
+  FeatureRoute: ({ state, children, hiddenFallback, lockedFallback, disabledFallback }: any) => {
+    if (state === 'locked') return lockedFallback;
+    if (state === 'disabled') return disabledFallback;
+    if (state === 'hidden') return hiddenFallback;
+    return children;
+  },
+  toast: {
+    success: () => 'toast-id',
+    error: () => 'toast-id',
+    warning: () => 'toast-id',
+    info: () => 'toast-id',
+    promise: (p: any) => p,
+    dismiss: () => undefined,
+  },
 }));
 
 vi.mock('./services/peopleService', () => ({
@@ -13,11 +31,15 @@ vi.mock('./services/peopleService', () => ({
     setTenantId: vi.fn(),
     setOrgId: vi.fn(),
     setAccessToken: vi.fn(),
+    setAccessTokenProvider: vi.fn(),
     setUser: vi.fn(),
   },
   utilizationApi: { getSummary: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
   eventsApi: { getAll: vi.fn() },
+}));
+
+vi.mock('./services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn(), getUtilization: vi.fn() },
 }));
 
 // Mock all lazy-loaded pages to avoid rendering their service calls
@@ -25,9 +47,8 @@ vi.mock('./pages/DashboardPage', () => ({ default: () => React.createElement('di
 vi.mock('./pages/PeoplePage', () => ({ default: () => React.createElement('div', null, 'PeoplePage') }));
 vi.mock('./pages/PersonDetailPage', () => ({ default: () => React.createElement('div', null, 'PersonDetailPage') }));
 vi.mock('./pages/AllocationsPage', () => ({ default: () => React.createElement('div', null, 'AllocationsPage') }));
-vi.mock('./pages/TimeEntriesPage', () => ({ default: () => React.createElement('div', null, 'TimeEntriesPage') }));
+vi.mock('./pages/EmployeeTimesheetsPage', () => ({ default: () => React.createElement('div', null, 'EmployeeTimesheetsPage') }));
 vi.mock('./pages/UtilizationPage', () => ({ default: () => React.createElement('div', null, 'UtilizationPage') }));
-vi.mock('./pages/EventsPage', () => ({ default: () => React.createElement('div', null, 'EventsPage') }));
 vi.mock('./pages/DepartmentsPage', () => ({ default: () => React.createElement('div', null, 'DepartmentsPage') }));
 vi.mock('./pages/LeaveTypesPage', () => ({ default: () => React.createElement('div', null, 'LeaveTypesPage') }));
 vi.mock('./pages/LeaveRequestsPage', () => ({ default: () => React.createElement('div', null, 'LeaveRequestsPage') }));
@@ -51,6 +72,11 @@ const mockShell = {
   currentOrg: { id: 'o1', name: 'Org A' },
   user: { id: 'u1', email: 'user@test.com', full_name: 'Test User' },
   accessToken: 'token-123',
+  // Entitlements default to unrestricted so the routing/flag specs below exercise
+  // those behaviours alone; the permission specs drive this down to a real code set.
+  permissionsLoaded: true,
+  hasPermission: () => true,
+  hasAnyPermission: () => true,
 };
 
 const renderApp = (initialPath = '/dashboard') =>
@@ -90,6 +116,11 @@ describe('Given App with valid shell context', () => {
     renderApp('/goals');
     await waitFor(() => expect(screen.getByText('GoalsPage')).toBeInTheDocument());
   });
+
+  it('When navigating to /time / Then the read-only EmployeeTimesheetsPage is rendered (time entry CRUD removed)', async () => {
+    renderApp('/time');
+    await waitFor(() => expect(screen.getByText('EmployeeTimesheetsPage')).toBeInTheDocument());
+  });
 });
 
 describe('Given App with missing shell context', () => {
@@ -110,5 +141,104 @@ describe('Given App root redirect', () => {
   it('When navigating to / (root) / Then it redirects to dashboard', async () => {
     renderApp('/');
     await waitFor(() => expect(screen.getByText('DashboardPage')).toBeInTheDocument());
+  });
+});
+
+describe('Given a page gated on role permissions', () => {
+  const bridgeWith = (codes: string[], permissionsLoaded = true) => ({
+    ...mockShell,
+    permissionsLoaded,
+    hasPermission: (c: string) => codes.includes(c),
+    hasAnyPermission: (...cs: string[]) => cs.some((c) => codes.includes(c)),
+  });
+
+  it('When the user holds the page code / Then the page renders', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['employees.read']));
+    renderApp('/people');
+    await waitFor(() => expect(screen.getByText('PeoplePage')).toBeInTheDocument());
+  });
+
+  it('When the user lacks the page code / Then the page is withheld with a notice', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['goals.read']));
+    renderApp('/people');
+    await waitFor(() => expect(screen.getByText(/don't have access to this page/i)).toBeInTheDocument());
+    expect(screen.queryByText('PeoplePage')).not.toBeInTheDocument();
+  });
+
+  it('When a page lists two codes / Then holding either one is enough', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['leave.request']));
+    renderApp('/leaves/requests');
+    await waitFor(() => expect(screen.getByText('LeaveRequestsPage')).toBeInTheDocument());
+  });
+
+  it('When entitlements have not resolved / Then no denial flashes', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith([], false));
+    renderApp('/people');
+    await waitFor(() => expect(screen.queryByText('PeoplePage')).not.toBeInTheDocument());
+    expect(screen.queryByText(/don't have access/i)).not.toBeInTheDocument();
+  });
+
+  // The dashboard aggregates headcount and burn rate, so since fbb5405 it is
+  // gated like the pages it summarises: any of employees.read / departments.read.
+  it('When the dashboard is opened with no page codes / Then the permission notice shows instead', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith([]));
+    renderApp('/dashboard');
+    await waitFor(() => expect(screen.getByText(/don't have access to this page/i)).toBeInTheDocument());
+    expect(screen.queryByText('DashboardPage')).not.toBeInTheDocument();
+  });
+
+  it('When the user holds only departments.read / Then the dashboard still renders (any-of gate)', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['departments.read']));
+    renderApp('/dashboard');
+    await waitFor(() => expect(screen.getByText('DashboardPage')).toBeInTheDocument());
+    expect(screen.queryByText(/don't have access/i)).not.toBeInTheDocument();
+  });
+
+  it('When the plan flag is locked AND the code is missing / Then the permission notice wins over the upgrade prompt', async () => {
+    mockUseShellBridge.mockReturnValue({ ...bridgeWith([]), getFeatureState: () => 'locked' });
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText(/don't have access to this page/i)).toBeInTheDocument());
+    expect(screen.queryByText(/upgrade plan/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('Given the allocations FeatureGate on the 5-state model', () => {
+  const syncedBridge = (getFeatureState?: (k: string) => string) => ({
+    ...mockShell,
+    ...(getFeatureState ? { getFeatureState } : {}),
+  });
+
+  it('When submodule:people:allocations is enabled / Then AllocationsPage renders', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge(() => 'enabled'));
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText('AllocationsPage')).toBeInTheDocument());
+  });
+
+  it('When no getFeatureState on the bridge / Then it fails open and AllocationsPage renders', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge());
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText('AllocationsPage')).toBeInTheDocument());
+  });
+
+  it('When locked / Then the upgrade prompt is shown instead of the page', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge(() => 'locked'));
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText(/upgrade plan/i)).toBeInTheDocument());
+    expect(screen.queryByText('AllocationsPage')).not.toBeInTheDocument();
+  });
+
+  it('When disabled / Then the unavailable panel is shown and NO upgrade prompt', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge(() => 'disabled'));
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText(/feature not available/i)).toBeInTheDocument());
+    expect(screen.queryByText(/upgrade plan/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('AllocationsPage')).not.toBeInTheDocument();
+  });
+
+  it('When hidden / Then the unavailable panel is shown and the page is gone', async () => {
+    mockUseShellBridge.mockReturnValue(syncedBridge(() => 'hidden'));
+    renderApp('/allocations');
+    await waitFor(() => expect(screen.getByText(/feature not available/i)).toBeInTheDocument());
+    expect(screen.queryByText('AllocationsPage')).not.toBeInTheDocument();
   });
 });

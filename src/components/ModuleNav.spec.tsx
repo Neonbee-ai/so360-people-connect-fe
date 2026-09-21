@@ -1,8 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
+
+let mockShell: Record<string, unknown> = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+
+vi.mock('@so360/shell-context', () => ({
+  useShellBridge: () => mockShell,
+}));
+
 import ModuleNav from './ModuleNav';
+
+beforeEach(() => {
+  mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+});
 
 const renderNav = (initialPath = '/dashboard') =>
   render(<MemoryRouter initialEntries={[initialPath]}><ModuleNav /></MemoryRouter>);
@@ -72,5 +83,344 @@ describe('Given ModuleNav on a specific route', () => {
     const link = screen.getByText('People Registry').closest('a');
     expect(link).toBeTruthy();
     expect(link?.getAttribute('href')).toBe('/people');
+  });
+});
+
+describe('Given ModuleNav effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then flagged nav items are hidden', () => {
+    mockShell = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    renderNav();
+    expect(screen.queryByText('Allocations')).not.toBeInTheDocument();
+    expect(screen.queryByText('Utilization')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reviews')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then flagged nav items are visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    renderNav();
+    expect(screen.getByText('Allocations')).toBeInTheDocument();
+    expect(screen.getByText('Utilization')).toBeInTheDocument();
+    expect(screen.getByText('Reviews')).toBeInTheDocument();
+  });
+});
+
+// ─── Attendance (submodule:people:attendance flag) ────────────────────────────
+
+describe('Given ModuleNav Attendance item', () => {
+  it('When the attendance flag is enabled / Then Attendance is visible and points to /attendance', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    renderNav();
+    const link = screen.getByText('Attendance').closest('a');
+    expect(link?.getAttribute('href')).toBe('/attendance');
+  });
+
+  it('When the attendance flag is disabled / Then Attendance is hidden', () => {
+    mockShell = {
+      permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, effectiveFlagsLoaded: true,
+      permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: (key: string) => key !== 'submodule:people:attendance',
+    };
+    renderNav();
+    expect(screen.queryByText('Attendance')).not.toBeInTheDocument();
+  });
+
+  it('When flags are not yet loaded / Then Attendance is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    renderNav();
+    expect(screen.queryByText('Attendance')).not.toBeInTheDocument();
+  });
+});
+
+describe('Given ModuleNav Leave Types visibility', () => {
+  it('When user is not admin / Then Leave Types is still visible (not adminOnly)', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.getByText('Leave Types')).toBeInTheDocument();
+  });
+
+  it('When user is admin / Then Leave Types is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Leave Types')).toBeInTheDocument();
+  });
+
+  it('When rendered / Then Leave Types link points to /leaves/types', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    renderNav('/leaves/types');
+    const link = screen.getByText('Leave Types').closest('a');
+    expect(link?.getAttribute('href')).toBe('/leaves/types');
+  });
+});
+
+describe('Given ModuleNav adminOnly filter', () => {
+  it('When user is not admin / Then Review Templates is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.queryByText('Review Templates')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin / Then Review Templates is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Review Templates')).toBeInTheDocument();
+  });
+
+  it('When isAdmin is undefined (bridge not yet loaded) / Then adminOnly items are hidden', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    renderNav();
+    expect(screen.queryByText('Review Templates')).not.toBeInTheDocument();
+  });
+});
+
+// ─── permKey filtering + My Work section ─────────────────────────────────────
+
+describe('Given permission-gated nav items (permKey)', () => {
+    it('When the user lacks employees.read / Then the Dashboard item is hidden', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => c !== 'employees.read', hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+    });
+
+    it('When the user holds employees.read / Then the Dashboard item shows', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    });
+
+    it('When the user lacks the manager read codes / Then Allocations, Attendance, Employee Timesheets and Utilization are hidden', () => {
+        const managerCodes = ['allocations.read', 'attendance.read', 'utilization.read'];
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => !managerCodes.includes(c), hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.queryByText('Allocations')).not.toBeInTheDocument();
+        expect(screen.queryByText('Attendance')).not.toBeInTheDocument();
+        expect(screen.queryByText('Employee Timesheets')).not.toBeInTheDocument();
+        expect(screen.queryByText('Utilization')).not.toBeInTheDocument();
+    });
+
+    it('When permissions are still loading / Then permKey items stay visible (no empty-nav flash)', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: false, hasPermission: () => false, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.getByText('Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Allocations')).toBeInTheDocument();
+    });
+});
+
+// ─── Employee (self-service only) sees NO org-wide workforce sections ─────────
+
+describe('Given an employee whose role has no workforce read grants (post-migration-145 Employee)', () => {
+    // The employee keeps only self-service creates; every org-wide read
+    // (leave.read, goals.read, reviews.read, employees.read, ...) is denied.
+    beforeEach(() => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => false, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+    });
+
+    it('When rendered / Then the entire Leave Management section is hidden', () => {
+        renderNav();
+        expect(screen.queryByText('Leave Management')).not.toBeInTheDocument();
+        expect(screen.queryByText('Leave Requests')).not.toBeInTheDocument();
+        expect(screen.queryByText('Leave Calendar')).not.toBeInTheDocument();
+        expect(screen.queryByText('Pending Approvals')).not.toBeInTheDocument();
+        expect(screen.queryByText('Leave Types')).not.toBeInTheDocument();
+        expect(screen.queryByText('Leave Balances')).not.toBeInTheDocument();
+    });
+
+    it('When rendered / Then People Registry, Departments, Performance and Import/Export are hidden', () => {
+        renderNav();
+        expect(screen.queryByText('People Registry')).not.toBeInTheDocument();
+        expect(screen.queryByText('Departments')).not.toBeInTheDocument();
+        expect(screen.queryByText('Reviews')).not.toBeInTheDocument();
+        expect(screen.queryByText('Goals')).not.toBeInTheDocument();
+        expect(screen.queryByText('Team Performance')).not.toBeInTheDocument();
+        expect(screen.queryByText('Import/Export')).not.toBeInTheDocument();
+    });
+
+    it('When rendered / Then the My Work self-service section still shows (its data comes from /me)', () => {
+        renderNav();
+        expect(screen.getByText('My Leave')).toBeInTheDocument();
+        expect(screen.getByText('My Time')).toBeInTheDocument();
+    });
+});
+
+describe('Given an HR/manager holding the workforce read grants', () => {
+    it('When rendered / Then the Leave Management section shows', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+        renderNav();
+        expect(screen.getByText('Leave Requests')).toBeInTheDocument();
+        expect(screen.getByText('Leave Calendar')).toBeInTheDocument();
+        expect(screen.getByText('Pending Approvals')).toBeInTheDocument();
+    });
+});
+
+describe('Given an array permKey (ANY-of semantics, mirroring OR route guards)', () => {
+    it('When the user holds only utilization.read / Then Team Performance still shows', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => c === 'utilization.read', hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.getByText('Team Performance')).toBeInTheDocument();
+        // ...while single-code items gated on other permissions stay hidden.
+        expect(screen.queryByText('Reviews')).not.toBeInTheDocument();
+    });
+
+    it('When the user holds only leave.request / Then Leave Requests shows but Leave Calendar stays hidden', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => c === 'leave.request', hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        expect(screen.getByText('Leave Requests')).toBeInTheDocument();
+        expect(screen.queryByText('Leave Calendar')).not.toBeInTheDocument();
+    });
+});
+
+describe('Given the My Work section', () => {
+    it('When the self-service flag is enabled / Then all six employee items render for a non-admin', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => false, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+        renderNav();
+        // 'My Work' is both the section header and the home item's label.
+        expect(screen.getAllByText('My Work').length).toBeGreaterThanOrEqual(2);
+        expect(screen.getByText('My Time')).toBeInTheDocument();
+        expect(screen.getByText('My Leave')).toBeInTheDocument();
+        expect(screen.getByText('My Goals')).toBeInTheDocument();
+        expect(screen.getByText('My Team')).toBeInTheDocument();
+        expect(screen.getByText('My Profile')).toBeInTheDocument();
+    });
+
+    it('When the self-service flag is off / Then the whole section disappears', () => {
+        mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: (k: string) => k !== 'submodule:people:self_service', isAdmin: true };
+        renderNav();
+        expect(screen.queryByText('My Time')).not.toBeInTheDocument();
+        expect(screen.queryByText('My Leave')).not.toBeInTheDocument();
+    });
+});
+
+// ─── Work Locations (adminOnly, no flagKey) ───────────────────────────────────
+
+describe('Given ModuleNav Work Locations item', () => {
+  it('When user is not admin / Then Work Locations is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.queryByText('Work Locations')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin / Then Work Locations is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Work Locations')).toBeInTheDocument();
+  });
+
+  it('When user is admin / Then Work Locations sits in the People & Organization section, next to Departments', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    const section = screen.getByText('People & Organization').parentElement!;
+    expect(section.textContent).toContain('Work Locations');
+    expect(section.textContent).toContain('Departments');
+  });
+
+  it('When user is admin / Then Work Locations link points to /settings/work-locations', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav('/settings/work-locations');
+    const link = screen.getByText('Work Locations').closest('a');
+    expect(link?.getAttribute('href')).toBe('/settings/work-locations');
+  });
+});
+
+// ─── Hierarchy (adminOnly + submodule:people:approval_chains flag) ────────────
+
+describe('Given ModuleNav Hierarchy item', () => {
+  it('When user is not admin / Then Hierarchy is hidden regardless of flag', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.queryByText('Hierarchy')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin and flag is enabled / Then Hierarchy is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Hierarchy')).toBeInTheDocument();
+  });
+
+  it('When user is admin but flag is disabled / Then Hierarchy is hidden', () => {
+    mockShell = {
+      permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, effectiveFlagsLoaded: true,
+      permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: (key: string) => key !== 'submodule:people:approval_chains',
+      isAdmin: true,
+    };
+    renderNav();
+    expect(screen.queryByText('Hierarchy')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin but flags are not yet loaded / Then Hierarchy is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.queryByText('Hierarchy')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin and flag enabled / Then Hierarchy link points to /settings/approval-chains', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav('/settings/approval-chains');
+    const link = screen.getByText('Hierarchy').closest('a');
+    expect(link?.getAttribute('href')).toBe('/settings/approval-chains');
+  });
+});
+
+// ─── Overtime Rules (adminOnly + submodule:people:employment_policy flag) ─────
+
+describe('Given ModuleNav Overtime Rules item', () => {
+  it('When user is not admin / Then Overtime Rules is hidden regardless of flag', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    expect(screen.queryByText('Overtime Rules')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin and flag is enabled / Then Overtime Rules is visible', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Overtime Rules')).toBeInTheDocument();
+  });
+
+  it('When user is admin but flag is disabled / Then Overtime Rules is hidden', () => {
+    mockShell = {
+      permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, effectiveFlagsLoaded: true,
+      permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: (key: string) => key !== 'submodule:people:employment_policy',
+      isAdmin: true,
+    };
+    renderNav();
+    expect(screen.queryByText('Overtime Rules')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin but flags are not yet loaded / Then Overtime Rules is hidden', () => {
+    mockShell = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.queryByText('Overtime Rules')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin and flag enabled / Then Overtime Rules link points to /settings/employment-policy', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav('/settings/employment-policy');
+    const link = screen.getByText('Overtime Rules').closest('a');
+    expect(link?.getAttribute('href')).toBe('/settings/employment-policy');
+  });
+});
+
+// ─── Administration section collapses correctly ───────────────────────────────
+
+describe('Given ModuleNav Administration section with all admin items hidden', () => {
+  it('When user is not admin and no flagged items / Then Administration section is hidden entirely', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
+    renderNav();
+    // Import/Export is not adminOnly — section still shows
+    expect(screen.getByText('Administration')).toBeInTheDocument();
+    expect(screen.queryByText('Work Locations')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hierarchy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Overtime Rules')).not.toBeInTheDocument();
+  });
+
+  it('When rendered / Then Events nav item is absent (events consolidated into Shell FE Activity Log)', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.queryByText('Events')).not.toBeInTheDocument();
+  });
+
+  it('When user is admin / Then all three admin-only Administration items are visible together', () => {
+    mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: true };
+    renderNav();
+    expect(screen.getByText('Work Locations')).toBeInTheDocument();
+    expect(screen.getByText('Hierarchy')).toBeInTheDocument();
+    expect(screen.getByText('Overtime Rules')).toBeInTheDocument();
   });
 });

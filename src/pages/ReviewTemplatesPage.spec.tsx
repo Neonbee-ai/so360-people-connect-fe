@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { toast } from '@so360/design-system';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -17,7 +18,10 @@ vi.mock('../services/reviewTemplatesService', () => ({
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
-}));
+
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
 
 import ReviewTemplatesPage from './ReviewTemplatesPage';
 import { reviewTemplatesApi } from '../services/reviewTemplatesService';
@@ -90,11 +94,12 @@ describe('Given ReviewTemplatesPage create interaction', () => {
 
 describe('Given ReviewTemplatesPage API failure', () => {
   beforeEach(() => {
-    mockApi.getAll.mockRejectedValue(new Error('Server error'));
+    mockApi.getAll.mockImplementation(async () => { throw new Error('Server error'); });
   });
 
   it('When API fails / Then error toast appears', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
-    await waitFor(() => expect(screen.getByText(/Failed to load/i)).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith(expect.stringMatching(/Failed to load/i)));
   });
 });

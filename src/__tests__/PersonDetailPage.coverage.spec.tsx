@@ -1,0 +1,438 @@
+/**
+ * PersonDetailPage — coverage gap spec.
+ *
+ * Covers branches not exercised by PersonDetailPage.spec.tsx and
+ * PersonDetailPage.extra.spec.tsx:
+ *   - handleAddRole success + failure
+ *   - handleRemoveRole failure toast
+ *   - loadEmploymentHistory / loadRateHistory / loadGoals error paths
+ *   - person with user_id (linked badge, no Link User button)
+ *   - person with work_location (location shown in header)
+ *   - handleSave with status change (different activity event)
+ *   - secondary data partial failure (workLocations rejected)
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+
+// vi.hoisted ensures this fn is defined before the vi.mock factory runs (hoisting safety).
+const mockRecordActivity = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+
+vi.mock('../services/peopleService', () => ({
+  peopleApi: {
+    getById: vi.fn(),
+    update: vi.fn(),
+    addRole: vi.fn(),
+    removeRole: vi.fn(),
+    getEmploymentHistory: vi.fn(),
+    getRateHistory: vi.fn(),
+    linkUser: vi.fn(),
+    inviteUser: vi.fn(),
+    getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
+    updateSystemRole: vi.fn(),
+  },
+  allocationsApi: { getAll: vi.fn() },
+}));
+
+vi.mock('../services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn() },
+}));
+
+vi.mock('../services/goalsService', () => ({
+  goalsApi: { getAll: vi.fn() },
+  Goal: {},
+}));
+
+vi.mock('../services/workLocationsService', () => ({
+  workLocationsApi: { getAll: vi.fn() },
+  WorkLocation: {},
+}));
+
+vi.mock('../services/departmentsService', () => ({
+  departmentsApi: { getTree: vi.fn().mockResolvedValue([]) },
+}));
+
+vi.mock('@so360/shell-context', () => ({
+  useActivity: () => ({ recordActivity: mockRecordActivity }),
+  useShellBridge: () => ({
+    permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, effectiveFlagsLoaded: true,
+    permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true,
+    isFeatureHidden: () => false,
+    currentTenant: { id: 'tenant-1' },
+    currentOrg: { id: 'org-1' },
+    user: { id: 'u1', email: 'a@b.com' },
+    accessToken: 'tok',
+  }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
+}));
+
+import PersonDetailPage from '../pages/PersonDetailPage';
+import { peopleApi, allocationsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
+import { goalsApi } from '../services/goalsService';
+import { workLocationsApi } from '../services/workLocationsService';
+import { departmentsApi } from '../services/departmentsService';
+import { toast } from '@so360/design-system';
+
+const mockPeople = peopleApi as any;
+const mockDepartments = departmentsApi as any;
+const mockAlloc = allocationsApi as any;
+const mockTime = timesheetApi as any;
+const mockGoals = goalsApi as any;
+const mockLoc = workLocationsApi as any;
+
+const basePerson = {
+  id: 'p1',
+  full_name: 'Alice Smith',
+  type: 'employee',
+  status: 'active',
+  email: 'alice@test.com',
+  phone: '+1234567890',
+  job_title: 'Developer',
+  department: 'Engineering',
+  cost_rate: 50,
+  cost_rate_unit: 'hour',
+  currency: 'USD',
+  billing_rate: 75,
+  available_hours_per_day: 8,
+  start_date: '2024-01-01',
+  people_roles: [
+    { id: 'r1', role_name: 'Frontend Dev', skill_category: 'Engineering', proficiency: 'expert', is_primary: true },
+  ],
+  user_id: null as string | null,
+};
+
+const renderPage = (id = 'p1') =>
+  render(
+    <MemoryRouter initialEntries={[`/people/${id}`]}>
+      <Routes>
+        <Route path="/people/:id" element={<PersonDetailPage />} />
+        <Route path="/people" element={<div>People List</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockAlloc.getAll.mockResolvedValue({ data: [] });
+  mockTime.getEntries.mockResolvedValue({ data: [] });
+  mockGoals.getAll.mockResolvedValue({ data: [] });
+  mockPeople.getEmploymentHistory.mockResolvedValue([]);
+  mockPeople.getRateHistory.mockResolvedValue([]);
+  mockLoc.getAll.mockResolvedValue({ data: [] });
+  mockDepartments.getTree.mockResolvedValue([]);
+  mockRecordActivity.mockResolvedValue(undefined);
+});
+
+// ---------------------------------------------------------------------------
+// Department display + edit (relational department_id)
+// ---------------------------------------------------------------------------
+
+describe('Given a person linked to a department', () => {
+  it('When the header renders / Then the hydrated department name is shown (even if archived)', async () => {
+    mockPeople.getById.mockResolvedValue({
+      ...basePerson,
+      department: null,
+      department_id: 'dep-old',
+      department_info: { id: 'dep-old', name: 'Legacy Ops', code: 'OPS', is_active: false },
+    });
+    renderPage();
+    // Department now renders in both the header and the Employment Information card.
+    await waitFor(() => expect(screen.getAllByText('Legacy Ops').length).toBeGreaterThanOrEqual(1));
+  });
+
+  it('When editing and selecting a new department / Then update is called with the relational department_id', async () => {
+    // Person is on an archived department: the header shows the historical name,
+    // while the active-only dropdown shows the placeholder until reassigned.
+    mockPeople.getById.mockResolvedValue({
+      ...basePerson,
+      department: null,
+      department_id: 'dep-old',
+      department_info: { id: 'dep-old', name: 'Legacy Ops', code: 'OPS', is_active: false },
+    });
+    mockPeople.update.mockResolvedValue({ ...basePerson, department_id: 'dep-sales' });
+    mockDepartments.getTree.mockResolvedValue([
+      { id: 'dep-eng', name: 'Engineering', code: 'ENG', children: [] },
+      { id: 'dep-sales', name: 'Sales', code: 'SALES', children: [] },
+    ]);
+
+    renderPage();
+    await waitFor(() => screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit'));
+
+    // The active-only dropdown cannot resolve the archived dept → placeholder.
+    const deptTrigger = await screen.findByText('Select department...');
+    fireEvent.click(deptTrigger);
+    fireEvent.click(await screen.findByText('Sales'));
+
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => expect(mockPeople.update).toHaveBeenCalled());
+    expect(mockPeople.update.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ department_id: 'dep-sales' }),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleAddRole paths
+// ---------------------------------------------------------------------------
+
+describe('Given a person exists — handleAddSkill', () => {
+  beforeEach(() => {
+    mockPeople.getById.mockResolvedValue({ ...basePerson });
+  });
+
+  it('When Add Skill modal is submitted successfully / Then addRole is called and skill appears', async () => {
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
+    mockPeople.addRole.mockResolvedValue({
+      id: 'r2',
+      role_name: 'Backend Dev',
+      skill_category: 'Engineering',
+      proficiency: 'intermediate',
+      is_primary: false,
+    });
+
+    renderPage();
+    await waitFor(() => screen.getByText('Alice Smith'));
+
+    // Open modal (the "Add Skill" opener button)
+    const addSkillOpener = screen.getAllByText('Add Skill')[0];
+    fireEvent.click(addSkillOpener);
+    await waitFor(() => screen.getByText('Skill Name *'));
+
+    // Fill in skill name and submit the form
+    const skillInput = screen.getByPlaceholderText('e.g., React, Financial Modelling');
+    fireEvent.change(skillInput, { target: { value: 'Backend Dev' } });
+    const form = skillInput.closest('form') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(mockPeople.addRole).toHaveBeenCalledWith('p1', expect.objectContaining({ role_name: 'Backend Dev' })));
+    await waitFor(() => expect(toastSuccessSpy).toHaveBeenCalledWith('Skill added'));
+  });
+
+  it('When Add Skill modal submit fails / Then shows failure toast', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
+    mockPeople.addRole.mockImplementation(async () => { throw new Error('Skill creation failed'); });
+
+    renderPage();
+    await waitFor(() => screen.getByText('Alice Smith'));
+
+    const addSkillOpener = screen.getAllByText('Add Skill')[0];
+    fireEvent.click(addSkillOpener);
+    await waitFor(() => screen.getByText('Skill Name *'));
+
+    const skillInput = screen.getByPlaceholderText('e.g., React, Financial Modelling');
+    fireEvent.change(skillInput, { target: { value: 'Backend Dev' } });
+    const form = skillInput.closest('form') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to add skill'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleRemoveRole failure
+// ---------------------------------------------------------------------------
+
+describe('Given a person exists — handleRemoveSkill failure', () => {
+  beforeEach(() => {
+    mockPeople.getById.mockResolvedValue({ ...basePerson });
+    mockPeople.removeRole.mockImplementation(async () => { throw new Error('Remove failed'); });
+  });
+
+  it('When removeRole fails / Then shows failure toast', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
+    renderPage();
+    await waitFor(() => screen.getByText('Frontend Dev'));
+
+    const trashButton = screen.getByTestId('icon-Trash2').closest('button');
+    if (trashButton) fireEvent.click(trashButton);
+
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to remove skill'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tab data load error paths
+// ---------------------------------------------------------------------------
+
+describe('Given a person exists — secondary tab load errors', () => {
+  beforeEach(() => {
+    mockPeople.getById.mockResolvedValue({ ...basePerson });
+  });
+
+  it('When loadEmploymentHistory fails / Then employment history tab shows empty state without crashing', async () => {
+    mockPeople.getEmploymentHistory.mockImplementation(async () => { throw new Error('History unavailable'); });
+
+    renderPage();
+    await waitFor(() => screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('Employment History'));
+
+    await waitFor(() => expect(screen.getByText('No employment history')).toBeInTheDocument());
+  });
+
+  it('When loadRateHistory fails / Then rate history tab shows empty state without crashing', async () => {
+    mockPeople.getRateHistory.mockImplementation(async () => { throw new Error('Rates unavailable'); });
+
+    renderPage();
+    await waitFor(() => screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('Rate History'));
+
+    await waitFor(() => expect(screen.getByText('No rate history')).toBeInTheDocument());
+  });
+
+  it('When loadGoals fails / Then goals tab shows empty state without crashing', async () => {
+    mockGoals.getAll.mockImplementation(async () => { throw new Error('Goals unavailable'); });
+
+    renderPage();
+    await waitFor(() => screen.getByText('Alice Smith'));
+    fireEvent.click(screen.getByText('Goals'));
+
+    await waitFor(() => expect(screen.getByText('No goals')).toBeInTheDocument());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Linked-user badge
+// ---------------------------------------------------------------------------
+
+describe('Given a person with a linked user account', () => {
+  beforeEach(() => {
+    mockPeople.getById.mockResolvedValue({ ...basePerson, user_id: 'u-abc' });
+  });
+
+  it('When person has user_id / Then shows Linked to user account badge', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Linked to user account')).toBeInTheDocument());
+  });
+
+  it('When person has user_id / Then Link User button is not shown', async () => {
+    renderPage();
+    await waitFor(() => screen.getByText('Linked to user account'));
+    expect(screen.queryByText('Link User')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Work location in header
+// ---------------------------------------------------------------------------
+
+describe('Given a person with a work location', () => {
+  beforeEach(() => {
+    mockPeople.getById.mockResolvedValue({
+      ...basePerson,
+      work_location: { id: 'wl1', name: 'HQ Office', location_type: 'office', is_active: true, org_id: 'o1', tenant_id: 't1', created_at: '', updated_at: '' },
+    });
+  });
+
+  it('When person has work_location / Then location name is shown in the header', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('HQ Office')).toBeInTheDocument());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleSave with status change activity
+// ---------------------------------------------------------------------------
+
+describe('Given a person exists — handleSave with status change', () => {
+  beforeEach(() => {
+    mockPeople.getById.mockResolvedValue({ ...basePerson, status: 'active' });
+    mockPeople.update.mockResolvedValue({ ...basePerson, status: 'inactive' });
+  });
+
+  it('When save is called with a different status / Then person.status_changed activity is recorded', async () => {
+    renderPage();
+    await waitFor(() => screen.getByText('Edit'));
+
+    fireEvent.click(screen.getByText('Edit'));
+    await waitFor(() => screen.getByText('Save'));
+
+    const statusSelect = screen.getByDisplayValue('Active');
+    fireEvent.change(statusSelect, { target: { value: 'inactive' } });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(mockRecordActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ eventType: 'people.person.status_changed' }),
+      ),
+    );
+  });
+
+  it('When save is called without status change / Then person.updated activity is recorded', async () => {
+    mockPeople.update.mockResolvedValue({ ...basePerson });
+
+    renderPage();
+    await waitFor(() => screen.getByText('Edit'));
+
+    fireEvent.click(screen.getByText('Edit'));
+    await waitFor(() => screen.getByText('Save'));
+
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(mockRecordActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ eventType: 'people.person.updated' }),
+      ),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// workLocations rejected — does not blank the page
+// ---------------------------------------------------------------------------
+
+describe('Given a person exists and workLocations API fails', () => {
+  beforeEach(() => {
+    mockPeople.getById.mockResolvedValue({ ...basePerson });
+    mockLoc.getAll.mockImplementation(async () => { throw new Error('Locations down'); });
+  });
+
+  it('When workLocations fetch rejects / Then the profile still renders without blanking', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Inline edit work location dropdown populated from API
+// ---------------------------------------------------------------------------
+
+describe('Given a person exists with work locations available', () => {
+  beforeEach(() => {
+    mockPeople.getById.mockResolvedValue({ ...basePerson });
+    mockLoc.getAll.mockResolvedValue({
+      data: [
+        { id: 'wl1', name: 'Main Office', location_type: 'office', is_active: true, org_id: 'o1', tenant_id: 't1', created_at: '', updated_at: '' },
+      ],
+    });
+  });
+
+  it('When editing / Then work location dropdown includes available locations', async () => {
+    renderPage();
+    await waitFor(() => screen.getByText('Edit'));
+
+    fireEvent.click(screen.getByText('Edit'));
+    await waitFor(() => expect(screen.getByText('Main Office')).toBeInTheDocument());
+  });
+});

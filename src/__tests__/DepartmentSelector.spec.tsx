@@ -95,7 +95,7 @@ describe('DepartmentSelector', () => {
 
   describe('Given the API fails', () => {
     it('When getTree rejects / Then the list shows no departments', async () => {
-      mockApi.getTree.mockRejectedValue(new Error('fail'));
+      mockApi.getTree.mockImplementation(async () => { throw new Error('fail'); });
       render(<DepartmentSelector value="" onChange={() => {}} />);
       await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
       fireEvent.click(screen.getByText('Select department...'));

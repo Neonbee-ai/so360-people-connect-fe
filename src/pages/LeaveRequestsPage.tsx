@@ -1,23 +1,32 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Plus, Calendar } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { toast } from '@so360/design-system';
+import { useActivity, useShellBridge } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance } from '../services/leaveRequestsService';
-import { leaveTypesApi, LeaveType } from '../services/leaveTypesService';
+import { LeaveType } from '../services/leaveTypesService';
+import { leaveConfigApi } from '../services/leaveConfigService';
 import { apiContext } from '../services/apiClient';
+import { peopleApi } from '../services/peopleService';
+import ApproverSelector from '../components/leave/ApproverSelector';
+import ApprovalProgress from '../components/leave/ApprovalProgress';
+import { todayIso, focusFirstInvalid } from '../utils/validation';
 
 const LeaveRequestsPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const formatters = usePeopleFormatters();
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:leave_requests:create') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'my' | 'team'>('my');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [viewingRequest, setViewingRequest] = useState<LeaveRequest | null>(null);
 
     const loadRequests = useCallback(async () => {
         try {
@@ -29,7 +38,7 @@ const LeaveRequestsPage: React.FC = () => {
             setRequests(result.data);
         } catch (error) {
             console.error('Failed to load leave requests:', error);
-            setToast({ message: 'Failed to load leave requests', type: 'error' });
+            toast.error('Failed to load leave requests');
         } finally {
             setLoading(false);
         }
@@ -39,16 +48,26 @@ const LeaveRequestsPage: React.FC = () => {
         loadRequests();
     }, [loadRequests]);
 
-    const handleCreate = async (data: CreateLeaveRequestPayload) => {
+    const handleCreate = async (data: CreateLeaveRequestPayload, approverIds: string[]) => {
+        // Guards a double-click: create + submit are two calls, and a second
+        // click between them produced two requests and two approval chains.
+        if (submitting) return;
+        setSubmitting(true);
         try {
             const created = await leaveRequestsApi.create(data);
-            await leaveRequestsApi.submit(created.id);
+            // Submit carries the selected approvers — without them the request
+            // falls back to the department-head chain, which is exactly the
+            // silent mis-routing this modal used to do on every submission.
+            await leaveRequestsApi.submit(created.id, approverIds);
             setShowCreateModal(false);
-            setToast({ message: 'Leave request submitted successfully', type: 'success' });
+            toast.success('Leave request submitted successfully');
             recordActivity({ eventType: 'people.leave.requested', eventCategory: 'data', description: `Leave request submitted from ${data.start_date} to ${data.end_date}`, resourceType: 'leave_request', resourceId: created.id }).catch(() => {});
             loadRequests();
         } catch (error) {
-            setToast({ message: 'Failed to create leave request', type: 'error' });
+            const msg = error instanceof Error ? error.message : 'Failed to create leave request';
+            toast.error(msg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -69,7 +88,7 @@ const LeaveRequestsPage: React.FC = () => {
                 title="Leave Requests"
                 subtitle="View and manage leave applications"
                 actions={
-                    <button
+                    canCreate && <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
@@ -79,36 +98,12 @@ const LeaveRequestsPage: React.FC = () => {
                 }
             />
 
-            {/* Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-800">
-                <button
-                    onClick={() => setActiveTab('my')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'my'
-                            ? 'text-teal-400 border-b-2 border-teal-400'
-                            : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    My Requests
-                </button>
-                <button
-                    onClick={() => setActiveTab('team')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'team'
-                            ? 'text-teal-400 border-b-2 border-teal-400'
-                            : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    Team Requests
-                </button>
-            </div>
-
             {/* Filters */}
             <div className="flex items-center gap-3">
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Statuses</option>
                     <option value="draft">Draft</option>
@@ -131,7 +126,7 @@ const LeaveRequestsPage: React.FC = () => {
                     icon={Calendar}
                     title="No leave requests found"
                     description="Request time off to manage your work-life balance."
-                    action={{ label: 'Request Leave', onClick: () => setShowCreateModal(true) }}
+                    action={canCreate ? { label: 'Request Leave', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -161,7 +156,7 @@ const LeaveRequestsPage: React.FC = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className="text-sm text-white">{request.person?.full_name}</span>
+                                            <span className="text-sm text-slate-50">{request.person?.full_name}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
@@ -172,27 +167,30 @@ const LeaveRequestsPage: React.FC = () => {
                                                     style={{ backgroundColor: request.leave_type.color }}
                                                 />
                                             )}
-                                            <span className="text-sm text-white">{request.leave_type?.name}</span>
+                                            <span className="text-sm text-slate-50">{request.leave_type?.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
-                                        {new Date(request.start_date).toLocaleDateString()}
+                                        {formatters.formatDate(request.start_date)}
                                         {request.is_half_day_start && <span className="text-xs text-slate-500"> (Half)</span>}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
-                                        {new Date(request.end_date).toLocaleDateString()}
+                                        {formatters.formatDate(request.end_date)}
                                         {request.is_half_day_end && <span className="text-xs text-slate-500"> (Half)</span>}
                                     </td>
-                                    <td className="px-4 py-3 text-center text-sm font-medium text-white">
+                                    <td className="px-4 py-3 text-center text-sm font-medium text-slate-50">
                                         {request.total_days}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-white ${getStatusColor(request.status)}`}>
+                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(request.status)}`}>
                                             {request.status}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <button className="text-xs text-teal-400 hover:text-teal-300 transition-colors">
+                                        <button
+                                            onClick={() => setViewingRequest(request)}
+                                            className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                                        >
                                             View
                                         </button>
                                     </td>
@@ -206,11 +204,18 @@ const LeaveRequestsPage: React.FC = () => {
             {/* Create Modal */}
             <CreateLeaveRequestModal
                 isOpen={showCreateModal}
+                submitting={submitting}
                 onClose={() => setShowCreateModal(false)}
                 onCreate={handleCreate}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            {/* View Modal */}
+            <ViewLeaveRequestModal
+                request={viewingRequest}
+                onClose={() => setViewingRequest(null)}
+                formatters={formatters}
+            />
+
         </div>
     );
 };
@@ -222,17 +227,24 @@ const LeaveRequestsPage: React.FC = () => {
 interface CreateLeaveRequestModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreate: (data: CreateLeaveRequestPayload) => void;
+    onCreate: (data: CreateLeaveRequestPayload, approverIds: string[]) => void;
+    submitting?: boolean;
 }
 
-const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpen, onClose, onCreate }) => {
+const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpen, onClose, onCreate, submitting = false }) => {
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+    const [leaveTypesError, setLeaveTypesError] = useState<string | null>(null);
     const [balances, setBalances] = useState<LeaveBalance[]>([]);
+    const [personError, setPersonError] = useState<string | null>(null);
+    const [approverIds, setApproverIds] = useState<string[]>([]);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const formRef = useRef<HTMLFormElement>(null);
+    const today = todayIso();
     const [formData, setFormData] = useState<CreateLeaveRequestPayload>({
-        person_id: apiContext.getUserId() || '',
+        person_id: '',
         leave_type_id: '',
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date().toISOString().split('T')[0],
+        start_date: today,
+        end_date: today,
         is_half_day_start: false,
         is_half_day_end: false,
         reason: '',
@@ -240,138 +252,319 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
 
     useEffect(() => {
         if (isOpen) {
-            loadLeaveTypes();
-            loadBalances();
+            setErrors({});
+            setApproverIds([]);
+            // Leave types are loaded per-person now (see loadApplicableLeaveTypes),
+            // because which types apply depends on the employee's employment type
+            // and their own overrides. resolveCurrentPerson triggers that load.
+            resolveCurrentPerson();
         }
     }, [isOpen]);
 
-    const loadLeaveTypes = async () => {
+    const resolveCurrentPerson = async () => {
         try {
-            const result = await leaveTypesApi.getAll({ is_active: true });
-            setLeaveTypes(result.data);
-        } catch (error) {
-            console.error('Failed to load leave types:', error);
+            setPersonError(null);
+            const person = await peopleApi.getMe();
+            // Read the id eagerly: when no People profile is linked the backend
+            // can resolve `undefined` (instead of rejecting). Reading `person.id`
+            // inside the setFormData updater would defer the access into React's
+            // reducer — outside this try — surfacing as an unhandled error.
+            const personId = person?.id;
+            if (!personId) {
+                setPersonError('No employee profile found for your account. Please contact your administrator.');
+                return;
+            }
+            setFormData(prev => ({ ...prev, person_id: personId }));
+            loadBalances(personId);
+            loadApplicableLeaveTypes(personId);
+        } catch {
+            setPersonError('No employee profile found for your account. Please contact your administrator.');
         }
     };
 
-    const loadBalances = async () => {
+    /**
+     * Only the leave types that apply to THIS employee.
+     *
+     * The org-wide catalog (`leaveTypesApi.getAll`) offered every employee every
+     * type — Maternity, Paternity and Bereavement included — and the request was
+     * then rejected on the server. Applicability comes from the employee's
+     * employment type plus their own overrides; an org that has configured
+     * nothing still gets every active type, so nothing changes for them.
+     */
+    const loadApplicableLeaveTypes = async (personId: string) => {
         try {
-            const userId = apiContext.getUserId();
-            if (userId) {
-                const result = await leaveRequestsApi.getBalances(userId);
-                setBalances(result.data || []);
-            }
+            const config = await leaveConfigApi.getApplicable(personId);
+            setLeaveTypes(config.leave_types as unknown as LeaveType[]);
+            setLeaveTypesError(null);
+        } catch (error) {
+            console.error('Failed to load applicable leave types:', error);
+            // Fail CLOSED with a visible message rather than silently falling back
+            // to the whole catalog: offering a type the server will refuse is the
+            // behaviour this replaced.
+            setLeaveTypes([]);
+            setLeaveTypesError('Could not load the leave types available to you. Please try again.');
+        }
+    };
+
+    const loadBalances = async (personId: string) => {
+        try {
+            const result = await leaveRequestsApi.getBalances(personId);
+            setBalances(result.data || []);
         } catch (error) {
             console.error('Failed to load leave balances:', error);
         }
     };
 
-    const calculateTotalDays = () => {
-        const start = new Date(formData.start_date);
-        const end = new Date(formData.end_date);
-        const diffTime = Math.abs(end.getTime() - start.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const selectedLeaveType = leaveTypes.find(t => t.id === formData.leave_type_id);
+    // Backdating is opt-in per leave type (e.g. sick leave recorded after the
+    // fact). Everything else must start today or later.
+    const allowsBackdating = selectedLeaveType?.allow_backdated_requests === true;
+    // A single-day request has only one day to halve, so the end-date checkbox
+    // would be ambiguous (both boxes on a 1-day request = 0 days).
+    const isSingleDay = formData.start_date === formData.end_date;
+
+    const validate = (data: CreateLeaveRequestPayload, backdatingAllowed: boolean): Record<string, string> => {
+        const next: Record<string, string> = {};
+        if (!data.leave_type_id) next.leave_type_id = 'Select a leave type.';
+        if (!data.start_date) {
+            next.start_date = 'Start date is required.';
+        } else if (!backdatingAllowed && data.start_date < today) {
+            next.start_date = 'Start date cannot be in the past.';
+        }
+        if (!data.end_date) {
+            next.end_date = 'End date is required.';
+        } else if (data.start_date && data.end_date < data.start_date) {
+            next.end_date = 'End date cannot be earlier than start date.';
+        }
+        if (!data.reason || !data.reason.trim()) next.reason = 'Reason is required.';
+        return next;
+    };
+
+    const validationErrors = validate(formData, allowsBackdating);
+    const hasValidRange = !validationErrors.start_date && !validationErrors.end_date;
+    const isFormValid = Object.keys(validationErrors).length === 0 && !!formData.person_id && !personError;
+
+    /**
+     * Total days for the selected window. Returns null for an invalid range so
+     * the UI shows "—" rather than a nonsense figure (the old version used
+     * Math.abs, which happily reported 518 days for a reversed pair).
+     */
+    const calculateTotalDays = (): number | null => {
+        if (!hasValidRange || !formData.start_date || !formData.end_date) return null;
+        const start = new Date(`${formData.start_date}T00:00:00`);
+        const end = new Date(`${formData.end_date}T00:00:00`);
+        const diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
         let total = diffDays;
         if (formData.is_half_day_start) total -= 0.5;
-        if (formData.is_half_day_end) total -= 0.5;
+        // On a single-day request only the start half-day applies.
+        if (!isSingleDay && formData.is_half_day_end) total -= 0.5;
 
         return total;
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.leave_type_id || !formData.reason) return;
+        const nextErrors = validate(formData, allowsBackdating);
+        if (Object.keys(nextErrors).length > 0 || !formData.person_id) {
+            setErrors(nextErrors);
+            focusFirstInvalid(formRef.current, ['leave_type_id', 'start_date', 'end_date', 'reason'], nextErrors);
+            return;
+        }
 
-        onCreate(formData);
+        onCreate(
+            {
+                ...formData,
+                // Never send an end half-day for a one-day request.
+                is_half_day_end: isSingleDay ? false : formData.is_half_day_end,
+            },
+            approverIds,
+        );
     };
 
     const updateField = (field: keyof CreateLeaveRequestPayload, value: unknown) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        // Functional update: `person_id` is filled in asynchronously by
+        // resolveCurrentPerson, so merging into a captured `formData` snapshot
+        // could wipe it out mid-flight.
+        setFormData(prev => {
+            const merged = { ...prev, [field]: value } as CreateLeaveRequestPayload;
+            // Moving the start date past the end date drags the end date along
+            // instead of leaving an invalid pair on screen.
+            if (field === 'start_date' && typeof value === 'string' && merged.end_date < value) {
+                merged.end_date = value;
+            }
+            return merged;
+        });
+        // Errors depend only on user-entered fields, so the local snapshot is
+        // safe here.
+        const nextData = { ...formData, [field]: value } as CreateLeaveRequestPayload;
+        if (field === 'start_date' && typeof value === 'string' && nextData.end_date < value) {
+            nextData.end_date = value;
+        }
+        const nextErrors = validate(nextData, allowsBackdating);
+        setErrors(prev => ({
+            ...prev,
+            [field]: nextErrors[field] || '',
+            ...(field === 'start_date' ? { end_date: nextErrors.end_date || '' } : {}),
+        }));
     };
 
     const selectedBalance = balances.find(b => b.leave_type_id === formData.leave_type_id);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Request Leave">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
+                {personError && (
+                    <div className="p-3 rounded-lg bg-red-900/30 border border-red-700/50 text-sm text-red-300">
+                        {personError}
+                    </div>
+                )}
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Leave Type *</label>
+                    <label htmlFor="leave-type" className="block text-xs text-slate-400 mb-1">Leave Type *</label>
                     <select
-                        required
+                        id="leave-type"
+                        data-field="leave_type_id"
                         value={formData.leave_type_id}
                         onChange={(e) => updateField('leave_type_id', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        aria-invalid={!!errors.leave_type_id}
+                        className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.leave_type_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                     >
                         <option value="">Select leave type</option>
                         {leaveTypes.map(type => (
                             <option key={type.id} value={type.id}>{type.name}</option>
                         ))}
                     </select>
-                    {selectedBalance && (
-                        <p className="mt-1 text-xs text-slate-400">
-                            Available: <span className="text-teal-400 font-medium">{selectedBalance.available} days</span>
+                    {errors.leave_type_id && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.leave_type_id}</p>}
+                    {leaveTypesError && (
+                        <p role="alert" className="mt-1 text-xs text-rose-400">{leaveTypesError}</p>
+                    )}
+                    {/* An empty picker is a configuration answer, not a loading
+                        state — say which one, or the user just sees a dead dropdown. */}
+                    {!leaveTypesError && !personError && leaveTypes.length === 0 && (
+                        <p className="mt-1 text-xs text-amber-400">
+                            No leave types are configured for your employment type. Contact HR.
                         </p>
+                    )}
+                    {selectedBalance && (
+                        <div className="mt-2 grid grid-cols-3 gap-2 p-2 bg-slate-800/50 rounded-lg text-center">
+                            <div>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Allocated</p>
+                                <p className="text-sm font-medium text-slate-200">
+                                    {selectedBalance.opening_balance + selectedBalance.accrued + selectedBalance.adjusted} days
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Used</p>
+                                <p className="text-sm font-medium text-slate-200">{selectedBalance.used} days</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Remaining</p>
+                                <p className="text-sm font-medium text-teal-400">{selectedBalance.available} days</p>
+                            </div>
+                        </div>
                     )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Start Date *</label>
+                        <label htmlFor="leave-start-date" className="block text-xs text-slate-400 mb-1">Start Date *</label>
                         <input
+                            id="leave-start-date"
+                            data-field="start_date"
                             type="date"
-                            required
                             value={formData.start_date}
+                            // `min` blocks calendar picking; validate() blocks typed input.
+                            min={allowsBackdating ? undefined : today}
                             onChange={(e) => updateField('start_date', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            aria-invalid={!!errors.start_date}
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.start_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                         />
-                        <label className="flex items-center gap-2 mt-2">
+                        {errors.start_date && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.start_date}</p>}
+                        <label className="flex items-center gap-2 mt-2" title="Tick when you are only taking the second half of the first day off.">
                             <input
                                 type="checkbox"
+                                aria-label="Start Date – Half Day"
                                 checked={formData.is_half_day_start}
                                 onChange={(e) => updateField('is_half_day_start', e.target.checked)}
                                 className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
                             />
-                            <span className="text-xs text-slate-400">Half Day</span>
+                            <span className="text-xs text-slate-400">
+                                {isSingleDay ? 'Half Day (this day only)' : 'Start Date – Half Day'}
+                            </span>
                         </label>
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">End Date *</label>
+                        <label htmlFor="leave-end-date" className="block text-xs text-slate-400 mb-1">End Date *</label>
                         <input
+                            id="leave-end-date"
+                            data-field="end_date"
                             type="date"
-                            required
                             value={formData.end_date}
+                            // Minimum end date tracks the chosen start date.
+                            min={formData.start_date || (allowsBackdating ? undefined : today)}
                             onChange={(e) => updateField('end_date', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            aria-invalid={!!errors.end_date}
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.end_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                         />
-                        <label className="flex items-center gap-2 mt-2">
-                            <input
-                                type="checkbox"
-                                checked={formData.is_half_day_end}
-                                onChange={(e) => updateField('is_half_day_end', e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
-                            />
-                            <span className="text-xs text-slate-400">Half Day</span>
-                        </label>
+                        {errors.end_date && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.end_date}</p>}
+                        {/* Hidden for single-day requests: with start == end there is
+                            only one day to halve, so a second checkbox is ambiguous. */}
+                        {!isSingleDay && (
+                            <label className="flex items-center gap-2 mt-2" title="Tick when you are only taking the first half of the last day off.">
+                                <input
+                                    type="checkbox"
+                                    aria-label="End Date – Half Day"
+                                    checked={formData.is_half_day_end}
+                                    onChange={(e) => updateField('is_half_day_end', e.target.checked)}
+                                    className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                                />
+                                <span className="text-xs text-slate-400">End Date – Half Day</span>
+                            </label>
+                        )}
                     </div>
                 </div>
 
+                <p className="text-xs text-slate-500 -mt-2">
+                    Each half-day option applies only to its own date — tick “Start Date – Half Day”
+                    when you work the morning of your first day off, and “End Date – Half Day”
+                    when you return for the afternoon of your last day.
+                </p>
+
                 <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
                     <p className="text-sm text-slate-300">
-                        Total Days: <span className="text-teal-400 font-medium">{calculateTotalDays()}</span>
+                        Total Days: <span className="text-teal-400 font-medium">{calculateTotalDays() ?? '—'}</span>
                     </p>
+                    {!hasValidRange && (
+                        <p className="mt-1 text-xs text-slate-500">Fix the dates above to see the total.</p>
+                    )}
                 </div>
 
+                {/* Sits between Total Days and Reason — the request is fully
+                    described by this point, so choosing who reviews it is the
+                    natural next decision. */}
+                {formData.person_id && (
+                    <ApproverSelector
+                        personId={formData.person_id}
+                        value={approverIds}
+                        onChange={setApproverIds}
+                        disabled={submitting}
+                        helpText="Select the manager or approver(s) who should review this leave request. Leave blank to route to your department head."
+                    />
+                )}
+
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Reason *</label>
+                    <label htmlFor="leave-reason" className="block text-xs text-slate-400 mb-1">Reason *</label>
                     <textarea
-                        required
+                        id="leave-reason"
+                        data-field="reason"
                         value={formData.reason || ''}
                         onChange={(e) => updateField('reason', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        aria-invalid={!!errors.reason}
+                        className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.reason ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                         rows={3}
                         placeholder="Reason for leave..."
                     />
+                    {errors.reason && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.reason}</p>}
                 </div>
 
                 {/* Actions */}
@@ -379,18 +572,139 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        disabled={!isFormValid || submitting}
+                        title={isFormValid ? undefined : 'Complete all required fields with valid dates to submit.'}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Submit Request
+                        {submitting ? 'Submitting…' : 'Submit Request'}
                     </button>
                 </div>
             </form>
+        </Modal>
+    );
+};
+
+// =============================================================================
+// View Leave Request Modal
+// =============================================================================
+
+interface ViewLeaveRequestModalProps {
+    request: LeaveRequest | null;
+    onClose: () => void;
+    formatters: { formatDate: (d: string) => string; formatDateTime: (d: string) => string };
+}
+
+const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, onClose, formatters }) => {
+    // The list endpoint doesn't join approvals (it would be a per-row fan-out),
+    // so the detail is fetched when the modal opens. The list row stays the
+    // immediate render so the modal never opens blank.
+    const [detail, setDetail] = useState<LeaveRequest | null>(null);
+
+    useEffect(() => {
+        if (!request) { setDetail(null); return; }
+        let cancelled = false;
+        leaveRequestsApi
+            .getById(request.id)
+            .then(full => { if (!cancelled) setDetail(full); })
+            // Non-fatal: the row data already covers every field except the
+            // approval chain, so a failure degrades to "no progress strip".
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [request?.id]);
+
+    if (!request) return null;
+
+    const shown = detail ?? request;
+
+    const statusColors: Record<string, string> = {
+        draft: 'bg-slate-600',
+        pending: 'bg-yellow-600',
+        approved: 'bg-green-600',
+        rejected: 'bg-red-600',
+        cancelled: 'bg-slate-500',
+    };
+
+    return (
+        <Modal isOpen={!!request} onClose={onClose} title="Leave Request Details">
+            <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Employee</p>
+                        <p className="text-sm text-slate-50 font-medium">{request.person?.full_name || '—'}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Status</p>
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${statusColors[request.status] || 'bg-slate-600'}`}>
+                            {request.status}
+                        </span>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Leave Type</p>
+                        <div className="flex items-center gap-2">
+                            {request.leave_type?.color && (
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: request.leave_type.color }} />
+                            )}
+                            <p className="text-sm text-slate-50">{request.leave_type?.name || '—'}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Total Days</p>
+                        <p className="text-sm text-slate-50 font-medium">{request.total_days} day{request.total_days !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Start Date</p>
+                        <p className="text-sm text-slate-50">
+                            {formatters.formatDate(request.start_date)}
+                            {request.is_half_day_start && <span className="text-xs text-slate-500 ml-1">(Half Day)</span>}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">End Date</p>
+                        <p className="text-sm text-slate-50">
+                            {formatters.formatDate(request.end_date)}
+                            {request.is_half_day_end && <span className="text-xs text-slate-500 ml-1">(Half Day)</span>}
+                        </p>
+                    </div>
+                </div>
+
+                {request.reason && (
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Reason</p>
+                        <p className="text-sm text-slate-300 bg-slate-800/50 border border-slate-700 rounded-lg p-3">{request.reason}</p>
+                    </div>
+                )}
+
+                {shown.status === 'rejected' && shown.rejection_reason && (
+                    <div>
+                        <p className="text-xs text-slate-400 mb-1">Rejection Reason</p>
+                        <p className="rounded-lg border border-rose-700/40 bg-rose-900/20 p-3 text-sm text-rose-200">
+                            {shown.rejection_reason}
+                        </p>
+                    </div>
+                )}
+
+                <ApprovalProgress
+                    approvals={shown.approvals ?? []}
+                    submittedAt={shown.submitted_at}
+                    submittedByName={shown.person?.full_name}
+                    formatDateTime={formatters.formatDateTime}
+                />
+
+                <div className="flex justify-end pt-4 border-t border-slate-800">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
         </Modal>
     );
 };

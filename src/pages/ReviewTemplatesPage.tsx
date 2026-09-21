@@ -4,17 +4,18 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { toast } from '@so360/design-system';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { reviewTemplatesApi, ReviewTemplate, CreateReviewTemplatePayload } from '../services/reviewTemplatesService';
 
 const ReviewTemplatesPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:review_templates:create') ?? true);
     const [templates, setTemplates] = useState<ReviewTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<ReviewTemplate | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadTemplates = useCallback(async () => {
         try {
@@ -23,7 +24,7 @@ const ReviewTemplatesPage: React.FC = () => {
             setTemplates(result.data);
         } catch (error) {
             console.error('Failed to load review templates:', error);
-            setToast({ message: 'Failed to load review templates', type: 'error' });
+            toast.error('Failed to load review templates');
         } finally {
             setLoading(false);
         }
@@ -37,11 +38,11 @@ const ReviewTemplatesPage: React.FC = () => {
         try {
             const created = await reviewTemplatesApi.create(data);
             setShowCreateModal(false);
-            setToast({ message: `Review template ${data.name} has been created`, type: 'success' });
+            toast.success(`Review template ${data.name} has been created`);
             recordActivity({ eventType: 'people.review_template.created', eventCategory: 'data', description: `Review template ${data.name} was created`, resourceType: 'review_template', resourceId: created?.id }).catch(() => {});
             loadTemplates();
         } catch (error) {
-            setToast({ message: 'Failed to create review template', type: 'error' });
+            toast.error('Failed to create review template');
         }
     };
 
@@ -49,11 +50,11 @@ const ReviewTemplatesPage: React.FC = () => {
         try {
             await reviewTemplatesApi.update(id, data);
             setEditingTemplate(null);
-            setToast({ message: 'Review template updated successfully', type: 'success' });
+            toast.success('Review template updated successfully');
             recordActivity({ eventType: 'people.review_template.updated', eventCategory: 'data', description: `Review template ${data.name || id} was updated`, resourceType: 'review_template', resourceId: id }).catch(() => {});
             loadTemplates();
         } catch (error) {
-            setToast({ message: 'Failed to update review template', type: 'error' });
+            toast.error('Failed to update review template');
         }
     };
 
@@ -63,10 +64,10 @@ const ReviewTemplatesPage: React.FC = () => {
 
         try {
             await reviewTemplatesApi.clone(template.id, newName);
-            setToast({ message: 'Template cloned successfully', type: 'success' });
+            toast.success('Template cloned successfully');
             loadTemplates();
         } catch (error) {
-            setToast({ message: 'Failed to clone template', type: 'error' });
+            toast.error('Failed to clone template');
         }
     };
 
@@ -76,7 +77,7 @@ const ReviewTemplatesPage: React.FC = () => {
                 title="Review Templates"
                 subtitle="Configure performance review structures"
                 actions={
-                    <button
+                    canCreate && <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
@@ -98,7 +99,7 @@ const ReviewTemplatesPage: React.FC = () => {
                     icon={FileText}
                     title="No review templates found"
                     description="Create templates to standardize performance reviews."
-                    action={{ label: 'Create Template', onClick: () => setShowCreateModal(true) }}
+                    action={canCreate ? { label: 'Create Template', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -122,7 +123,7 @@ const ReviewTemplatesPage: React.FC = () => {
                                     onClick={() => setEditingTemplate(template)}
                                 >
                                     <td className="px-4 py-3">
-                                        <div className="text-sm font-medium text-white">{template.name}</div>
+                                        <div className="text-sm font-medium text-slate-50">{template.name}</div>
                                         {template.description && (
                                             <div className="text-xs text-slate-500">{template.description}</div>
                                         )}
@@ -144,7 +145,7 @@ const ReviewTemplatesPage: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <button
+                                            {canCreate && <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleClone(template);
@@ -153,8 +154,8 @@ const ReviewTemplatesPage: React.FC = () => {
                                                 title="Clone template"
                                             >
                                                 <Copy size={14} />
-                                            </button>
-                                            <button
+                                            </button>}
+                                            {canCreate && <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setEditingTemplate(template);
@@ -162,7 +163,7 @@ const ReviewTemplatesPage: React.FC = () => {
                                                 className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
                                             >
                                                 Edit
-                                            </button>
+                                            </button>}
                                         </div>
                                     </td>
                                 </tr>
@@ -184,7 +185,6 @@ const ReviewTemplatesPage: React.FC = () => {
                 template={editingTemplate}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
@@ -267,7 +267,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                             required
                             value={formData.name}
                             onChange={(e) => updateField('name', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             placeholder="Annual Performance Review"
                         />
                     </div>
@@ -276,7 +276,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                         <textarea
                             value={formData.description || ''}
                             onChange={(e) => updateField('description', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             rows={2}
                         />
                     </div>
@@ -285,7 +285,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                         <select
                             value={formData.review_type}
                             onChange={(e) => updateField('review_type', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="annual">Annual</option>
                             <option value="quarterly">Quarterly</option>
@@ -299,7 +299,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                         <select
                             value={formData.rating_scale}
                             onChange={(e) => updateField('rating_scale', parseInt(e.target.value))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="3">3 Point</option>
                             <option value="5">5 Point</option>
@@ -350,7 +350,7 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

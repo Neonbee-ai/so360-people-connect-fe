@@ -22,10 +22,32 @@ vi.mock('../services/goalsService', () => ({
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
 }));
 
 import GoalsPage from '../pages/GoalsPage';
 import { goalsApi } from '../services/goalsService';
+import { toast } from '@so360/design-system';
 
 const mockApi = goalsApi as any;
 
@@ -53,9 +75,11 @@ describe('GoalsPage — extra scenarios', () => {
 
   describe('Given API load fails', () => {
     it('When getAll rejects / Then shows error toast message', async () => {
-      mockApi.getAll.mockRejectedValue(new Error('Network error'));
+      const toastErrorSpy = vi.spyOn(toast, 'error');
+      mockApi.getAll.mockImplementation(async () => { throw new Error('Network error'); });
       renderPage();
-      await waitFor(() => expect(screen.getByText('Failed to load goals')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Goals')).toBeInTheDocument());
+      await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load goals'));
     });
   });
 
@@ -87,10 +111,11 @@ describe('GoalsPage — extra scenarios', () => {
   describe('Given goal creation fails', () => {
     beforeEach(() => {
       mockApi.getAll.mockResolvedValue({ data: [] });
-      mockApi.create.mockRejectedValue(new Error('Create failed'));
+      mockApi.create.mockImplementation(async () => { throw new Error('Create failed'); });
     });
 
     it('When create throws / Then failure toast is shown', async () => {
+      const toastErrorSpy = vi.spyOn(toast, 'error');
       renderPage();
       await waitFor(() => screen.getByText('Goals'));
       fireEvent.click(screen.getAllByText('Create Goal')[0]);
@@ -102,7 +127,7 @@ describe('GoalsPage — extra scenarios', () => {
           fireEvent.change(titleInput, { target: { value: 'Test goal' } });
           const submitBtn = screen.getAllByText('Create Goal')[0];
           fireEvent.click(submitBtn);
-          await waitFor(() => expect(screen.getByText('Failed to create goal')).toBeInTheDocument());
+          await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to create goal'));
         }
       }
     });
@@ -123,7 +148,7 @@ describe('GoalsPage — extra scenarios', () => {
       const updateBtn = screen.queryByText('Update');
       if (updateBtn) {
         fireEvent.click(updateBtn);
-        await waitFor(() => expect(mockApi.updateProgress).toHaveBeenCalledWith('g1', expect.any(Number)));
+        await waitFor(() => expect(mockApi.updateProgress).toHaveBeenCalledWith('g1', expect.any(Number), expect.any(Number)));
       }
     });
   });

@@ -17,8 +17,31 @@ vi.mock('../services/apiClient', () => ({
 }));
 
 
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
 }));
 
 import FeedbackPage from '../pages/FeedbackPage';
@@ -30,7 +53,10 @@ const mockPeople = peopleApi as any;
 
 const renderPage = () => render(<MemoryRouter><FeedbackPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+});
 
 describe('FeedbackPage', () => {
   describe('Given feedback entries exist', () => {
@@ -111,5 +137,23 @@ describe('FeedbackPage', () => {
       fireEvent.click(screen.getByText('Give Feedback'));
       await waitFor(() => expect(screen.getByText('Feedback For *')).toBeInTheDocument());
     });
+  });
+});
+
+describe('FeedbackPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Give Feedback button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockFeedback.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No feedback yet')).toBeInTheDocument());
+    expect(screen.queryByText('Give Feedback')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Give Feedback button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockFeedback.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No feedback yet')).toBeInTheDocument());
+    expect(screen.getByText('Give Feedback')).toBeInTheDocument();
   });
 });

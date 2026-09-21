@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../services/leaveRequestsService', () => ({
-  leaveRequestsApi: { getAll: vi.fn(), create: vi.fn(), submit: vi.fn(), getBalances: vi.fn() },
+  leaveRequestsApi: { getAll: vi.fn(), create: vi.fn(), submit: vi.fn(), getBalances: vi.fn(), getById: vi.fn().mockResolvedValue({ id: 'lr1', approvals: [] }), getEligibleApprovers: vi.fn().mockResolvedValue({ data: [], total: 0, suggested_approver_id: null }) },
   LeaveRequest: {},
   CreateLeaveRequestPayload: {},
   LeaveBalance: {},
@@ -14,23 +14,70 @@ vi.mock('../services/leaveTypesService', () => ({
   LeaveType: {},
 }));
 
+vi.mock('../services/leaveConfigService', () => ({
+  leaveConfigApi: { getApplicable: vi.fn() },
+}));
+
 vi.mock('../services/apiClient', () => ({
   apiContext: { getUserId: () => 'u1' },
 }));
 
+vi.mock('../services/peopleService', () => ({
+  peopleApi: { getMe: vi.fn().mockResolvedValue({ id: 'person-1', full_name: 'Alice' }) },
+}));
+
+
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
 }));
 
 import LeaveRequestsPage from '../pages/LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
+import { leaveTypesApi } from '../services/leaveTypesService';
+import { leaveConfigApi } from '../services/leaveConfigService';
+import { peopleApi } from '../services/peopleService';
 
 const mockApi = leaveRequestsApi as any;
+const mockLeaveTypesApi = leaveTypesApi as any;
+const mockPeopleApi = peopleApi as any;
 
 const renderPage = () => render(<MemoryRouter><LeaveRequestsPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+  // Re-initialize leave types and people mocks after vi.resetAllMocks() so the
+  // modal doesn't get undefined.data when it calls leaveTypesApi.getAll().
+  mockLeaveTypesApi.getAll.mockResolvedValue({ data: [] });
+  // The request picker now loads the types APPLICABLE to the employee, not the
+  // org-wide catalog — the catalog offered everyone every type.
+  (leaveConfigApi as any).getApplicable.mockResolvedValue({ leave_types: [] });
+  mockApi.getBalances.mockResolvedValue({ data: [] });
+  mockPeopleApi.getMe.mockResolvedValue({ id: 'person-1', full_name: 'Alice' });
+});
 
 describe('LeaveRequestsPage', () => {
   describe('Given leave requests exist', () => {
@@ -55,10 +102,16 @@ describe('LeaveRequestsPage', () => {
       expect(screen.getByText('2.5')).toBeInTheDocument();
     });
 
-    it('When the page loads / Then it shows tabs for My and Team requests', async () => {
+    it('When the page loads / Then Team Requests tab is absent', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('My Requests')).toBeInTheDocument());
-      expect(screen.getByText('Team Requests')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+      expect(screen.queryByText('Team Requests')).not.toBeInTheDocument();
+    });
+
+    it('When the page loads / Then My Requests tab button is absent (tab bar removed)', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+      expect(screen.queryByRole('button', { name: 'My Requests' })).not.toBeInTheDocument();
     });
 
     it('When Request Leave is clicked / Then the modal opens', async () => {
@@ -78,5 +131,23 @@ describe('LeaveRequestsPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No leave requests found')).toBeInTheDocument());
     });
+  });
+});
+
+describe('LeaveRequestsPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Request Leave button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No leave requests found')).toBeInTheDocument());
+    expect(screen.queryByText('Request Leave')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Request Leave button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No leave requests found')).toBeInTheDocument());
+    expect(screen.queryAllByText('Request Leave').length).toBeGreaterThan(0);
   });
 });

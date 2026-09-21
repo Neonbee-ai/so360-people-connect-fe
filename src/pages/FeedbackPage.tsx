@@ -3,8 +3,10 @@ import { MessageSquare, Plus, Star, CheckCircle, Eye, EyeOff } from 'lucide-reac
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import PersonPicker from '../components/PersonPicker';
+import { toast } from '@so360/design-system';
+import { useActivity, useShellBridge } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { feedbackApi, Feedback, CreateFeedbackPayload } from '../services/feedbackService';
 import { peopleApi } from '../services/peopleService';
 import { apiContext } from '../services/apiClient';
@@ -12,11 +14,13 @@ import type { Person } from '../types/people';
 
 const FeedbackPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const formatters = usePeopleFormatters();
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:feedback:create') ?? true);
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
     const [loading, setLoading] = useState(true);
     const [typeFilter, setTypeFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadFeedback = useCallback(async () => {
         setLoading(true);
@@ -40,22 +44,22 @@ const FeedbackPage: React.FC = () => {
     const handleCreate = async (data: CreateFeedbackPayload) => {
         try {
             const created = await feedbackApi.create(data);
-            setToast({ message: 'Feedback submitted successfully', type: 'success' });
+            toast.success('Feedback submitted successfully');
             setShowCreateModal(false);
             recordActivity({ eventType: 'people.feedback.submitted', eventCategory: 'data', description: `${data.feedback_type} feedback was submitted`, resourceType: 'feedback', resourceId: created?.id }).catch(() => {});
             loadFeedback();
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to submit feedback', type: 'error' });
+            toast.error(error.message || 'Failed to submit feedback');
         }
     };
 
     const handleAcknowledge = async (id: string) => {
         try {
             await feedbackApi.acknowledge(id);
-            setToast({ message: 'Feedback acknowledged', type: 'success' });
+            toast.success('Feedback acknowledged');
             loadFeedback();
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to acknowledge', type: 'error' });
+            toast.error(error.message || 'Failed to acknowledge');
         }
     };
 
@@ -72,7 +76,7 @@ const FeedbackPage: React.FC = () => {
                 title="Feedback"
                 subtitle="Give and receive feedback across the team"
                 actions={
-                    <button
+                    canCreate && <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
@@ -86,7 +90,7 @@ const FeedbackPage: React.FC = () => {
                 <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Types</option>
                     <option value="positive">Positive</option>
@@ -113,11 +117,11 @@ const FeedbackPage: React.FC = () => {
                         <div key={fb.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-medium text-slate-50">
                                         {fb.is_anonymous ? '?' : fb.provider?.full_name?.charAt(0) || '?'}
                                     </div>
                                     <div>
-                                        <p className="text-sm text-white font-medium">
+                                        <p className="text-sm text-slate-50 font-medium">
                                             {fb.is_anonymous ? 'Anonymous' : fb.provider?.full_name || 'Unknown'}
                                             <span className="text-slate-400 font-normal"> to </span>
                                             {fb.person?.full_name || 'Unknown'}
@@ -130,7 +134,7 @@ const FeedbackPage: React.FC = () => {
                                                 <span className="text-[10px] text-slate-500 capitalize">{fb.provider_relationship.replace('_', ' ')}</span>
                                             )}
                                             <span className="text-[10px] text-slate-500">
-                                                {new Date(fb.created_at).toLocaleDateString()}
+                                                {formatters.formatDate(fb.created_at)}
                                             </span>
                                         </div>
                                     </div>
@@ -172,7 +176,7 @@ const FeedbackPage: React.FC = () => {
                             )}
                             {fb.acknowledged_at && (
                                 <p className="mt-2 text-[10px] text-slate-500">
-                                    Acknowledged on {new Date(fb.acknowledged_at).toLocaleDateString()}
+                                    Acknowledged on {formatters.formatDate(fb.acknowledged_at)}
                                 </p>
                             )}
                         </div>
@@ -187,7 +191,6 @@ const FeedbackPage: React.FC = () => {
                 onCreate={handleCreate}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
@@ -204,7 +207,6 @@ interface CreateFeedbackModalProps {
 
 const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClose, onCreate }) => {
     const [people, setPeople] = useState<Person[]>([]);
-    const [personSearch, setPersonSearch] = useState('');
     const [formData, setFormData] = useState<CreateFeedbackPayload>({
         person_id: '',
         provider_id: apiContext.getUserId() || '',
@@ -232,47 +234,20 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const selectedPerson = people.find(p => p.id === formData.person_id);
-    const filteredPeople = people.filter(p =>
-        !personSearch || p.full_name.toLowerCase().includes(personSearch.toLowerCase())
-    );
-
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Give Feedback">
             <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Person Selector */}
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Feedback For *</label>
-                    {selectedPerson ? (
-                        <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
-                            <span className="text-sm text-white">{selectedPerson.full_name}</span>
-                            <button type="button" onClick={() => updateField('person_id', '')} className="text-xs text-slate-400 hover:text-red-400">Clear</button>
-                        </div>
-                    ) : (
-                        <div>
-                            <input
-                                type="text"
-                                placeholder="Search people..."
-                                value={personSearch}
-                                onChange={(e) => setPersonSearch(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
-                            />
-                            {personSearch && (
-                                <div className="mt-1 max-h-32 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg">
-                                    {filteredPeople.slice(0, 10).map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => { updateField('person_id', p.id); setPersonSearch(''); }}
-                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white"
-                                        >
-                                            {p.full_name}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    <PersonPicker
+                        options={people}
+                        value={formData.person_id}
+                        onChange={(id) => updateField('person_id', id)}
+                        placeholder="Search people..."
+                        emptyMessage="No people available"
+                        data-testid="feedback-person-picker"
+                    />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -281,7 +256,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         <select
                             value={formData.feedback_type}
                             onChange={(e) => updateField('feedback_type', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="positive">Positive</option>
                             <option value="constructive">Constructive</option>
@@ -294,7 +269,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         <select
                             value={formData.provider_relationship || ''}
                             onChange={(e) => updateField('provider_relationship', e.target.value || undefined)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="">Select...</option>
                             <option value="manager">Manager</option>
@@ -313,7 +288,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         value={formData.feedback_text}
                         onChange={(e) => updateField('feedback_text', e.target.value)}
                         placeholder="Share your feedback..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     />
                 </div>
 
@@ -324,7 +299,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         value={formData.strengths || ''}
                         onChange={(e) => updateField('strengths', e.target.value)}
                         placeholder="Highlight strengths..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     />
                 </div>
 
@@ -335,7 +310,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         value={formData.areas_for_improvement || ''}
                         onChange={(e) => updateField('areas_for_improvement', e.target.value)}
                         placeholder="Suggest improvements..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     />
                 </div>
 
@@ -383,7 +358,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

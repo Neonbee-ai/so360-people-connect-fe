@@ -40,7 +40,7 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, trend, co
                     </span>
                 )}
             </div>
-            <div className="text-2xl font-bold text-white">{value}</div>
+            <div className="text-2xl font-bold text-slate-50">{value}</div>
             <div className="text-xs text-slate-400 mt-1">{label}</div>
         </div>
     );

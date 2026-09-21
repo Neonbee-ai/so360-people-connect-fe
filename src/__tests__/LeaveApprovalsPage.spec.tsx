@@ -3,13 +3,36 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../services/leaveRequestsService', () => ({
-  leaveRequestsApi: { getPendingApprovals: vi.fn(), approve: vi.fn(), reject: vi.fn() },
+  leaveRequestsApi: { getPendingApprovals: vi.fn(), approve: vi.fn(), reject: vi.fn(), getById: vi.fn().mockResolvedValue({ id: 'lr1', approvals: [] }) },
   LeaveRequest: {},
 }));
 
 
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
 }));
 
 import LeaveApprovalsPage from '../pages/LeaveApprovalsPage';
@@ -19,7 +42,10 @@ const mockApi = leaveRequestsApi as any;
 
 const renderPage = () => render(<MemoryRouter><LeaveApprovalsPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+});
 
 describe('LeaveApprovalsPage', () => {
   describe('Given pending approvals exist', () => {
@@ -59,5 +85,35 @@ describe('LeaveApprovalsPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No pending approvals')).toBeInTheDocument());
     });
+  });
+});
+
+describe('LeaveApprovalsPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Approve button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockApi.getPendingApprovals.mockResolvedValue({
+      data: [{
+        id: 'lr1', start_date: '2025-06-01', end_date: '2025-06-05', total_days: 5, submitted_at: '2025-05-28',
+        person: { full_name: 'Alice Smith', email: 'alice@test.com', avatar_url: null },
+        leave_type: { name: 'Annual Leave', color: '#10b981' },
+      }],
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    expect(screen.queryByText('Approve')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Approve button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockApi.getPendingApprovals.mockResolvedValue({
+      data: [{
+        id: 'lr1', start_date: '2025-06-01', end_date: '2025-06-05', total_days: 5, submitted_at: '2025-05-28',
+        person: { full_name: 'Alice Smith', email: 'alice@test.com', avatar_url: null },
+        leave_type: { name: 'Annual Leave', color: '#10b981' },
+      }],
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    expect(screen.getByText('Approve')).toBeInTheDocument();
   });
 });

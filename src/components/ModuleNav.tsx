@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
+import { useShellBridge } from '@so360/shell-context';
 import {
     LayoutDashboard,
     Users,
@@ -15,6 +16,17 @@ import {
     FileText,
     Upload,
     Settings,
+    ClipboardCheck,
+    DollarSign,
+    Award,
+    Briefcase,
+    Sparkles,
+    UserCheck,
+    MapPin,
+    Wallet,
+    Play,
+    Receipt,
+    BarChart3,
 } from 'lucide-react';
 
 interface NavItem {
@@ -22,6 +34,16 @@ interface NavItem {
     label: string;
     icon: React.FC<{ size?: number; className?: string }>;
     adminOnly?: boolean;
+    flagKey?: string;
+    /**
+     * Role-permission gate, matching the route's PermissionGuard code. Opt-in
+     * per item: the menu should never advertise a page whose guard will refuse
+     * the click. Items stay visible while permissions load (no empty-nav
+     * flash); once loaded, missing the code hides the item.
+     */
+    // Single code or ANY-of list — mirrors the route's PermissionGuard exactly
+    // (guards use OR logic for arrays).
+    permKey?: string | string[];
 }
 
 interface NavSection {
@@ -31,55 +53,108 @@ interface NavSection {
 
 const navigationItems: NavSection[] = [
     {
+        // Employee self-service — the landing surface for everyone without
+        // workforce permissions. Plan-gated as one feature; the pages inside
+        // degrade per-domain via the /me endpoints' own flags.
+        section: 'My Work',
+        items: [
+            { path: '/my', label: 'My Work', icon: LayoutDashboard, flagKey: 'submodule:people:self_service' },
+            { path: '/my/time', label: 'My Time', icon: Clock, flagKey: 'submodule:people:self_service' },
+            { path: '/my/leave', label: 'My Leave', icon: CalendarDays, flagKey: 'submodule:people:self_service' },
+            { path: '/my/goals', label: 'My Goals', icon: Target, flagKey: 'submodule:people:self_service' },
+            { path: '/my/payslips', label: 'My Payslips', icon: Receipt, flagKey: 'submodule:people:payroll' },
+            { path: '/my/team', label: 'My Team', icon: Users, flagKey: 'submodule:people:self_service' },
+            { path: '/my/profile', label: 'My Profile', icon: UserCheck, flagKey: 'submodule:people:self_service' },
+        ]
+    },
+    {
         section: 'Overview',
         items: [
-            { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            // The workforce overview is an empty page without employees.read —
+            // don't advertise it to people whose role can't populate it.
+            { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permKey: 'employees.read' },
         ]
     },
     {
         section: 'People & Organization',
         items: [
-            { path: '/people', label: 'People Registry', icon: Users },
-            { path: '/departments', label: 'Departments', icon: Building2 },
+            { path: '/people', label: 'People Registry', icon: Users, permKey: 'employees.read' },
+            { path: '/departments', label: 'Departments', icon: Building2, permKey: 'departments.read' },
+            { path: '/settings/work-locations', label: 'Work Locations', icon: MapPin, adminOnly: true },
         ]
     },
     {
         section: 'Resource Management',
         items: [
-            { path: '/allocations', label: 'Allocations', icon: Calendar },
-            { path: '/time', label: 'Time Entries', icon: Clock },
-            { path: '/utilization', label: 'Utilization', icon: Activity },
+            // permKeys mirror each route's PermissionGuard — the section only
+            // renders for roles whose clicks the guards would actually admit.
+            { path: '/allocations', label: 'Allocations', icon: Calendar, flagKey: 'submodule:people:allocations', permKey: 'allocations.read' },
+            { path: '/attendance', label: 'Attendance', icon: ClipboardCheck, flagKey: 'submodule:people:attendance', permKey: 'attendance.read' },
+            { path: '/time', label: 'Employee Timesheets', icon: Clock, permKey: 'attendance.read' },
+            { path: '/utilization', label: 'Utilization', icon: Activity, flagKey: 'submodule:people:utilization', permKey: 'utilization.read' },
         ]
     },
     {
         section: 'Leave Management',
         items: [
-            { path: '/leaves/requests', label: 'Leave Requests', icon: CalendarDays },
-            { path: '/leaves/calendar', label: 'Leave Calendar', icon: CalendarRange },
-            { path: '/leaves/approvals', label: 'Pending Approvals', icon: CheckCircle },
-            { path: '/leaves/types', label: 'Leave Types', icon: Settings, adminOnly: true },
+            // permKeys mirror each route's PermissionGuard. Employees manage
+            // their own leave under /my/leave — this section is the HR/manager
+            // org-wide surface and hides entirely without workforce grants.
+            { path: '/leaves/requests', label: 'Leave Requests', icon: CalendarDays, permKey: ['leave.read', 'leave.request'] },
+            { path: '/leaves/calendar', label: 'Leave Calendar', icon: CalendarRange, permKey: 'leave.read' },
+            { path: '/leaves/approvals', label: 'Pending Approvals', icon: CheckCircle, permKey: 'leave.approve' },
+            { path: '/leaves/types', label: 'Leave Types', icon: Settings, permKey: 'leave.configure' },
+            { path: '/leaves/balances', label: 'Leave Balances', icon: DollarSign, adminOnly: true, permKey: 'leave.read' },
+            // Same page as Settings > Holiday Calendar (/settings/holidays) — surfaced
+            // here too since Holidays is planned/actual leave for scheduling purposes.
+            { path: '/leaves/holidays', label: 'Holidays', icon: CalendarRange, flagKey: 'submodule:people:holidays', permKey: 'org_policy.read' },
         ]
     },
     {
         section: 'Performance',
         items: [
-            { path: '/reviews', label: 'Reviews', icon: TrendingUp },
-            { path: '/goals', label: 'Goals', icon: Target },
-            { path: '/team-performance', label: 'Team Performance', icon: Users },
-            { path: '/reviews/templates', label: 'Review Templates', icon: FileText, adminOnly: true },
+            { path: '/reviews', label: 'Reviews', icon: TrendingUp, flagKey: 'submodule:people:reviews', permKey: 'reviews.read' },
+            { path: '/goals', label: 'Goals', icon: Target, permKey: 'goals.read' },
+            { path: '/team-performance', label: 'Team Performance', icon: Users, permKey: ['reviews.read', 'utilization.read'] },
+            { path: '/reviews/templates', label: 'Review Templates', icon: FileText, adminOnly: true, flagKey: 'submodule:people:reviews', permKey: 'reviews.create' },
+        ]
+    },
+    {
+        section: 'Payroll',
+        items: [
+            { path: '/payroll', label: 'Payroll Dashboard', icon: Wallet, flagKey: 'submodule:people:payroll', permKey: 'payroll.read' },
+            { path: '/payroll/runs', label: 'Payroll Runs', icon: Play, flagKey: 'submodule:people:payroll', permKey: 'payroll.read' },
+            { path: '/payroll/payslips', label: 'Payslips', icon: Receipt, flagKey: 'submodule:people:payroll', permKey: 'payroll.read' },
+            { path: '/payroll/tax-declarations', label: 'Tax Declarations', icon: ClipboardCheck, flagKey: 'submodule:people:payroll', permKey: ['payroll.tax_manage', 'payroll.read'] },
+            { path: '/payroll/reports', label: 'Reports', icon: BarChart3, flagKey: 'submodule:people:payroll', permKey: ['payroll.reports', 'payroll.read'] },
+            { path: '/payroll/configuration', label: 'Payroll Configuration', icon: Settings, adminOnly: true, flagKey: 'submodule:people:payroll', permKey: 'payroll.config' },
         ]
     },
     {
         section: 'Administration',
         items: [
-            { path: '/import-export', label: 'Import/Export', icon: Upload },
-            { path: '/events', label: 'Events', icon: Activity },
+            { path: '/import-export', label: 'Import/Export', icon: Upload, permKey: 'employees.import' },
+            { path: '/settings', label: 'Settings', icon: Settings, adminOnly: true },
+            { path: '/settings/approval-chains', label: 'Hierarchy', icon: Building2, adminOnly: true, flagKey: 'submodule:people:approval_chains' },
+            { path: '/settings/employment-policy', label: 'Overtime Rules', icon: TrendingUp, adminOnly: true, flagKey: 'submodule:people:employment_policy' },
+            // Master Data — Designations, Employment Types, Skills, Employee Status, Document Types.
+            { path: '/settings/designations', label: 'Designations', icon: Award, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/employment-types', label: 'Employment Types', icon: Briefcase, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/skills', label: 'Skills', icon: Sparkles, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/employee-status', label: 'Employee Status', icon: UserCheck, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/document-types', label: 'Document Types', icon: FileText, adminOnly: true, flagKey: 'submodule:people:masters' },
+            { path: '/settings/onboarding', label: 'Onboarding', icon: ClipboardCheck, adminOnly: true, flagKey: 'submodule:people:onboarding', permKey: ['onboarding.read', 'onboarding.manage'] },
+            // Email connectivity (connecting/designating a sending account)
+            // belongs to so360-connect, not People Connect — disabled for now.
+            // { path: '/settings/notification-sender', label: 'Notification Sender', icon: Mail, adminOnly: true, permKey: 'org_policy.read' },
         ]
     },
 ];
 
 const ModuleNav: React.FC = () => {
     const location = useLocation();
+    const shell = useShellBridge();
+    const isAdmin = (shell as any)?.isAdmin ?? false;
 
     const isActive = (path: string) => {
         if (path === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
@@ -89,13 +164,27 @@ const ModuleNav: React.FC = () => {
     return (
         <nav className="h-full w-64 bg-slate-900 border-r border-slate-800 overflow-y-auto">
             <div className="p-6 space-y-6">
-                {navigationItems.map((section) => (
+                {navigationItems.map((section) => {
+                    const visibleItems = section.items.filter((item) => {
+                        if (item.adminOnly && !isAdmin) return false;
+                        if (item.flagKey && !((shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.(item.flagKey) ?? true))) return false;
+                        // Fail-open while permissions load (no empty-nav flash),
+                        // fail-closed once they have: the guard would refuse the
+                        // click, so the menu doesn't offer it.
+                        if (item.permKey && shell?.permissionsLoaded) {
+                            const keys = Array.isArray(item.permKey) ? item.permKey : [item.permKey];
+                            if (!keys.some((k) => shell?.hasPermission?.(k) ?? true)) return false;
+                        }
+                        return true;
+                    });
+                    if (visibleItems.length === 0) return null;
+                    return (
                     <div key={section.section}>
                         <h3 className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                             {section.section}
                         </h3>
                         <div className="space-y-1">
-                            {section.items.map((item) => {
+                            {visibleItems.map((item) => {
                                 const Icon = item.icon;
                                 const active = isActive(item.path);
                                 return (
@@ -106,7 +195,7 @@ const ModuleNav: React.FC = () => {
                                             `flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors ${
                                                 navIsActive
                                                     ? 'bg-teal-500/10 text-teal-400 border-l-2 border-teal-500'
-                                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                                             }`
                                         }
                                     >
@@ -117,7 +206,8 @@ const ModuleNav: React.FC = () => {
                             })}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         </nav>
     );

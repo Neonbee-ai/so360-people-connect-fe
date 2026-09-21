@@ -56,8 +56,12 @@ export interface CreateReviewTemplatePayload {
 // =============================================================================
 
 export const reviewTemplatesApi = {
-  getAll: async (params?: { is_active?: boolean; review_type?: string; page?: number; limit?: number }): Promise<PaginatedResponse<ReviewTemplate>> => {
+  getAll: async (params?: { status?: string; review_type?: string; page?: number; limit?: number }): Promise<PaginatedResponse<ReviewTemplate>> => {
     return api.get<PaginatedResponse<ReviewTemplate>>('/review-templates', params);
+  },
+
+  seedDefaults: async (): Promise<{ seeded: number; total: number; data: ReviewTemplate[] }> => {
+    return api.post<{ seeded: number; total: number; data: ReviewTemplate[] }>('/review-templates/seed-defaults', {});
   },
 
   getById: async (id: string): Promise<ReviewTemplate> => {

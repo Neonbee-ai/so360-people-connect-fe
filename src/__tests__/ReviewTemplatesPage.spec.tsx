@@ -9,8 +9,13 @@ vi.mock('../services/reviewTemplatesService', () => ({
 }));
 
 
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
 }));
 
 import ReviewTemplatesPage from '../pages/ReviewTemplatesPage';
@@ -20,7 +25,10 @@ const mockApi = reviewTemplatesApi as any;
 
 const renderPage = () => render(<MemoryRouter><ReviewTemplatesPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+});
 
 describe('ReviewTemplatesPage', () => {
   describe('Given templates exist', () => {
@@ -66,5 +74,23 @@ describe('ReviewTemplatesPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No review templates found')).toBeInTheDocument());
     });
+  });
+});
+
+describe('ReviewTemplatesPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Create Template button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No review templates found')).toBeInTheDocument());
+    expect(screen.queryByText('Create Template')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Create Template button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No review templates found')).toBeInTheDocument());
+    expect(screen.queryAllByText('Create Template').length).toBeGreaterThan(0);
   });
 });

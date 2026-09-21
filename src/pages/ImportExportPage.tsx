@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Download, Upload, FileDown, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
 
+type BulkTab = 'export' | 'import';
+
 const ImportExportPage: React.FC = () => {
+    // Import and Export are separate workflows on one Data Management page.
+    // The entry point decides which one opens (`?tab=import` from the People
+    // Registry's Import button) so the user never lands on the other section.
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab: BulkTab = searchParams.get('tab') === 'import' ? 'import' : 'export';
+    const setActiveTab = (tab: BulkTab) => setSearchParams({ tab }, { replace: true });
     const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('csv');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [typeFilter, setTypeFilter] = useState<string>('');
@@ -18,7 +27,6 @@ const ImportExportPage: React.FC = () => {
         success: number;
         errors: Array<{ row: number; field: string; message: string }>;
     } | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [departments, setDepartments] = useState<Department[]>([]);
 
     useEffect(() => {
@@ -47,9 +55,9 @@ const ImportExportPage: React.FC = () => {
             window.URL.revokeObjectURL(url);
             a.remove();
 
-            setToast({ message: `Exported successfully as ${exportFormat.toUpperCase()}`, type: 'success' });
+            toast.success(`Exported successfully as ${exportFormat.toUpperCase()}`);
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to export people', type: 'error' });
+            toast.error(error.message || 'Failed to export people');
         } finally {
             setIsExporting(false);
         }
@@ -68,9 +76,9 @@ const ImportExportPage: React.FC = () => {
             window.URL.revokeObjectURL(url);
             a.remove();
 
-            setToast({ message: 'Template downloaded successfully', type: 'success' });
+            toast.success('Template downloaded successfully');
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to download template', type: 'error' });
+            toast.error(error.message || 'Failed to download template');
         }
     };
 
@@ -95,9 +103,9 @@ const ImportExportPage: React.FC = () => {
                 });
 
                 if (!result.errors || result.errors.length === 0) {
-                    setToast({ message: 'Validation successful! All records are valid.', type: 'success' });
+                    toast.success('Validation successful! All records are valid.');
                 } else {
-                    setToast({ message: `Validation found ${result.errors.length} errors.`, type: 'error' });
+                    toast.error(`Validation found ${result.errors.length} errors.`);
                 }
             } else {
                 const result = await peopleApi.import(importFile);
@@ -107,14 +115,14 @@ const ImportExportPage: React.FC = () => {
                 });
 
                 if (!result.errors || result.errors.length === 0) {
-                    setToast({ message: `Import successful! ${result.success} people imported.`, type: 'success' });
+                    toast.success(`Import successful! ${result.success} people imported.`);
                     setImportFile(null);
                 } else {
-                    setToast({ message: `Imported ${result.success} records with ${result.errors.length} errors.`, type: 'error' });
+                    toast.error(`Imported ${result.success} records with ${result.errors.length} errors.`);
                 }
             }
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to process import', type: 'error' });
+            toast.error(error.message || 'Failed to process import');
         } finally {
             setIsImporting(false);
         }
@@ -123,15 +131,37 @@ const ImportExportPage: React.FC = () => {
     return (
         <div className="p-6 space-y-5">
             <PageHeader
-                title="Import/Export"
-                subtitle="Bulk operations for people data"
+                title="Data Management"
+                subtitle="Bulk import and export for people data"
             />
 
+            {/* Workflow tabs — only one workflow is ever on screen, so Import
+                never shows Export controls and vice versa. */}
+            <div className="flex items-center gap-1 border-b border-slate-800" role="tablist">
+                {(['export', 'import'] as BulkTab[]).map(tab => (
+                    <button
+                        key={tab}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors ${
+                            activeTab === tab
+                                ? 'border-teal-500 text-teal-400'
+                                : 'border-transparent text-slate-400 hover:text-slate-50'
+                        }`}
+                    >
+                        {tab === 'export' ? 'Export People' : 'Import People'}
+                    </button>
+                ))}
+            </div>
+
             {/* Export Section */}
+            {activeTab === 'export' && (
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Download size={20} className="text-teal-400" />
-                    <h2 className="text-lg font-medium text-white">Export People</h2>
+                    <h2 className="text-lg font-medium text-slate-50">Export People</h2>
                 </div>
 
                 <div className="space-y-4">
@@ -141,7 +171,7 @@ const ImportExportPage: React.FC = () => {
                             <select
                                 value={exportFormat}
                                 onChange={(e) => setExportFormat(e.target.value as 'csv' | 'excel')}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="csv">CSV</option>
                                 <option value="excel">Excel</option>
@@ -152,7 +182,7 @@ const ImportExportPage: React.FC = () => {
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="">All Statuses</option>
                                 <option value="active">Active</option>
@@ -166,7 +196,7 @@ const ImportExportPage: React.FC = () => {
                             <select
                                 value={typeFilter}
                                 onChange={(e) => setTypeFilter(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="">All Types</option>
                                 <option value="employee">Employee</option>
@@ -178,7 +208,7 @@ const ImportExportPage: React.FC = () => {
                             <select
                                 value={departmentFilter}
                                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="">All Departments</option>
                                 {departments.map(dept => (
@@ -199,7 +229,7 @@ const ImportExportPage: React.FC = () => {
                         </button>
                         <button
                             onClick={handleDownloadTemplate}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-50 text-sm font-medium rounded-lg transition-colors"
                         >
                             <FileDown size={16} />
                             Download Template
@@ -207,19 +237,33 @@ const ImportExportPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Import Section */}
+            {activeTab === 'import' && (
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Upload size={20} className="text-teal-400" />
-                    <h2 className="text-lg font-medium text-white">Import People</h2>
+                    <h2 className="text-lg font-medium text-slate-50">Import People</h2>
                 </div>
 
                 <div className="space-y-4">
-                    {/* File Upload */}
+                    {/* File Upload — compact drop zone. The old p-8 + h-12 icon
+                        pushed the Validate button below the fold on a standard
+                        desktop viewport. */}
                     <div>
-                        <label className="block text-xs text-slate-400 mb-2">Upload File</label>
-                        <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center hover:border-slate-600 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                            <label htmlFor="file-upload" className="text-xs text-slate-400">Upload File</label>
+                            <button
+                                type="button"
+                                onClick={handleDownloadTemplate}
+                                className="flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                            >
+                                <FileDown size={13} />
+                                Download Template
+                            </button>
+                        </div>
+                        <div className="border-2 border-dashed border-slate-700 rounded-lg px-4 py-5 text-center hover:border-slate-600 transition-colors">
                             <input
                                 type="file"
                                 accept=".csv,.xlsx,.xls"
@@ -231,8 +275,8 @@ const ImportExportPage: React.FC = () => {
                                 htmlFor="file-upload"
                                 className="cursor-pointer flex flex-col items-center"
                             >
-                                <Upload className="h-12 w-12 text-slate-600 mb-3" />
-                                <p className="text-sm text-slate-300 mb-1">
+                                <Upload className="h-7 w-7 text-slate-600 mb-2" />
+                                <p className="text-sm text-slate-300">
                                     {importFile ? importFile.name : 'Click to browse or drag and drop'}
                                 </p>
                                 <p className="text-xs text-slate-500">
@@ -321,8 +365,8 @@ const ImportExportPage: React.FC = () => {
                     )}
                 </div>
             </div>
+            )}
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

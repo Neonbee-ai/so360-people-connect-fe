@@ -23,7 +23,7 @@ vi.mock('./apiClient', () => ({
   },
 }));
 
-import { peopleApi, allocationsApi, timeEntriesApi, utilizationApi, eventsApi } from './peopleService';
+import { peopleApi, allocationsApi, utilizationApi, eventsApi } from './peopleService';
 import { api } from './apiClient';
 
 const mockApi = api as any;
@@ -71,6 +71,14 @@ describe('Given peopleApi.update', () => {
   });
 });
 
+describe('Given peopleApi.updateSystemRole', () => {
+  it('When called with personId and roleId / Then it PATCHes /people/:id/system-role with role_id', async () => {
+    mockApi.patch.mockResolvedValue({ role_id: 'role-9' });
+    await peopleApi.updateSystemRole('p1', 'role-9');
+    expect(mockApi.patch).toHaveBeenCalledWith('/people/p1/system-role', { role_id: 'role-9' });
+  });
+});
+
 describe('Given peopleApi.delete', () => {
   it('When called with id / Then it calls DELETE /people/:id', async () => {
     mockApi.delete.mockResolvedValue({ message: 'Deleted' });
@@ -87,19 +95,126 @@ describe('Given allocationsApi.getAll', () => {
   });
 });
 
-describe('Given timeEntriesApi.submit', () => {
-  it('When called with id / Then it calls POST /time-entries/:id/submit', async () => {
-    mockApi.post.mockResolvedValue({ id: 'te1', status: 'submitted' });
-    await timeEntriesApi.submit('te1');
-    expect(mockApi.post).toHaveBeenCalledWith('/time-entries/te1/submit', {});
-  });
-});
-
 describe('Given utilizationApi.getSummary', () => {
   it('When called / Then it calls GET /utilization/summary', async () => {
     mockApi.get.mockResolvedValue({ total_people: 10 });
     await utilizationApi.getSummary();
     expect(mockApi.get).toHaveBeenCalledWith('/utilization/summary');
+  });
+});
+
+describe('Given utilizationApi.getAll', () => {
+  // The backend returns a flat per-person row (person_id, person_name,
+  // logged_hours, cost, ...) — see utilization.service.ts. The UI reads a
+  // nested { person, utilization } shape, so getAll must reshape every row;
+  // a regression here reintroduces the "Cannot read properties of undefined
+  // (reading 'full_name')" crash on the Utilization page.
+  it('When the backend returns a flat row / Then it is reshaped into nested person/utilization objects', async () => {
+    mockApi.get.mockResolvedValue({
+      data: [
+        {
+          person_id: 'p1',
+          person_name: 'Alice',
+          person_email: 'alice@test.com',
+          job_title: 'Engineer',
+          available_hours: 40,
+          logged_hours: 32,
+          utilization_pct: 80,
+          target_utilization: 80,
+          allocation_pct: 100,
+          cost: 1600,
+          is_idle: false,
+          is_overallocated: false,
+        },
+      ],
+      period: { start: '2026-08-03', end: '2026-08-07' },
+    });
+
+    const result = await utilizationApi.getAll();
+
+    expect(mockApi.get).toHaveBeenCalledWith('/utilization', undefined);
+    expect(result.period).toEqual({ start: '2026-08-03', end: '2026-08-07' });
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].person).toMatchObject({ id: 'p1', full_name: 'Alice', email: 'alice@test.com', job_title: 'Engineer' });
+    expect(result.data[0].utilization).toMatchObject({
+      available_hours: 40,
+      actual_hours: 32,
+      actual_cost: 1600,
+      utilization_pct: 80,
+      allocation_pct: 100,
+      is_idle: false,
+      is_overallocated: false,
+    });
+  });
+
+  it('When a row has no allocation/hours data / Then it defaults to zeroed, non-undefined numeric fields', async () => {
+    mockApi.get.mockResolvedValue({
+      data: [{ person_id: 'p2', person_name: 'Bob', is_idle: true, is_overallocated: false }],
+      period: { start: '2026-08-03', end: '2026-08-07' },
+    });
+
+    const result = await utilizationApi.getAll();
+
+    expect(result.data[0].utilization.available_hours).toBe(0);
+    expect(result.data[0].utilization.actual_hours).toBe(0);
+    expect(result.data[0].utilization.actual_cost).toBe(0);
+    expect(result.data[0].utilization.allocation_pct).toBe(0);
+  });
+
+  it('When called with period params / Then they are forwarded to GET /utilization', async () => {
+    mockApi.get.mockResolvedValue({ data: [], period: { start: 'a', end: 'b' } });
+    await utilizationApi.getAll({ period_start: '2026-08-03', period_end: '2026-08-07' });
+    expect(mockApi.get).toHaveBeenCalledWith('/utilization', { period_start: '2026-08-03', period_end: '2026-08-07' });
+  });
+
+  // Regression coverage for the Utilization page crash:
+  // "Cannot read properties of undefined (reading 'utilization_pct')".
+  describe('Given a row has a missing/null/non-numeric utilization_pct', () => {
+    it('When utilization_pct is null / Then it defaults to a finite 0, never null/NaN', async () => {
+      mockApi.get.mockResolvedValue({
+        data: [{ person_id: 'p3', person_name: 'Carol', utilization_pct: null }],
+        period: { start: '2026-08-03', end: '2026-08-07' },
+      });
+      const result = await utilizationApi.getAll();
+      expect(result.data[0].utilization.utilization_pct).toBe(0);
+      expect(Number.isFinite(result.data[0].utilization.utilization_pct)).toBe(true);
+    });
+
+    it('When utilization_pct is a non-numeric string / Then it defaults to 0, never NaN', async () => {
+      mockApi.get.mockResolvedValue({
+        data: [{ person_id: 'p4', person_name: 'Dave', utilization_pct: 'not-a-number' }],
+        period: { start: '2026-08-03', end: '2026-08-07' },
+      });
+      const result = await utilizationApi.getAll();
+      expect(Number.isFinite(result.data[0].utilization.utilization_pct)).toBe(true);
+      expect(result.data[0].utilization.utilization_pct).toBe(0);
+    });
+
+    it('When utilization_pct is Infinity (upstream division-by-zero) / Then it defaults to 0', async () => {
+      mockApi.get.mockResolvedValue({
+        data: [{ person_id: 'p5', person_name: 'Eve', utilization_pct: Infinity }],
+        period: { start: '2026-08-03', end: '2026-08-07' },
+      });
+      const result = await utilizationApi.getAll();
+      expect(result.data[0].utilization.utilization_pct).toBe(0);
+    });
+  });
+
+  describe('Given the BE response array contains a null/undefined entry', () => {
+    it('When one row in `data` is null / Then it is dropped, and the remaining valid rows still map correctly', async () => {
+      mockApi.get.mockResolvedValue({
+        data: [
+          { person_id: 'p1', person_name: 'Alice', utilization_pct: 75 },
+          null,
+          undefined,
+          { person_id: 'p2', person_name: 'Bob', utilization_pct: 20 },
+        ],
+        period: { start: '2026-08-03', end: '2026-08-07' },
+      });
+      const result = await utilizationApi.getAll();
+      expect(result.data).toHaveLength(2);
+      expect(result.data.map((d) => d.person.id)).toEqual(['p1', 'p2']);
+    });
   });
 });
 

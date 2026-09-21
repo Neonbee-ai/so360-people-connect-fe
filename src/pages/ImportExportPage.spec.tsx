@@ -34,7 +34,7 @@ beforeEach(() => {
 describe('Given ImportExportPage renders', () => {
   it('When page loads / Then "Import / Export" heading is visible', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText(/Import \/ Export|Import\/Export/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Data Management/i)).toBeInTheDocument());
   });
 
   it('When page loads / Then the Export section is present', async () => {
@@ -69,12 +69,12 @@ describe('Given ImportExportPage with departments loaded', () => {
 
 describe('Given ImportExportPage department API failure', () => {
   beforeEach(() => {
-    mockDeptApi.getAll.mockRejectedValue(new Error('Dept load failed'));
+    mockDeptApi.getAll.mockImplementation(async () => { throw new Error('Dept load failed'); });
   });
 
   it('When departments fail to load / Then page still renders without crashing', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText(/Import \/ Export|Import\/Export/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Data Management/i)).toBeInTheDocument());
   });
 });
 

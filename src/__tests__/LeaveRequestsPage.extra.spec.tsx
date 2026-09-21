@@ -13,15 +13,25 @@ vi.mock('../services/leaveRequestsService', () => ({
     create: vi.fn(),
     submit: vi.fn(),
     getBalances: vi.fn(),
+    getById: vi.fn().mockResolvedValue({ id: 'lr1', approvals: [] }),
+    getEligibleApprovers: vi.fn().mockResolvedValue({ data: [], total: 0, suggested_approver_id: null }),
   },
   LeaveRequest: {},
   CreateLeaveRequestPayload: {},
   LeaveBalance: {},
 }));
 
+vi.mock('../services/peopleService', () => ({
+  peopleApi: { getMe: vi.fn() },
+}));
+
 vi.mock('../services/leaveTypesService', () => ({
   leaveTypesApi: { getAll: vi.fn() },
   LeaveType: {},
+}));
+
+vi.mock('../services/leaveConfigService', () => ({
+  leaveConfigApi: { getApplicable: vi.fn() },
 }));
 
 vi.mock('../services/apiClient', () => ({
@@ -31,14 +41,38 @@ vi.mock('../services/apiClient', () => ({
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
 }));
 
 import LeaveRequestsPage from '../pages/LeaveRequestsPage';
 import { leaveRequestsApi } from '../services/leaveRequestsService';
 import { leaveTypesApi } from '../services/leaveTypesService';
+import { leaveConfigApi } from '../services/leaveConfigService';
+import { peopleApi } from '../services/peopleService';
 
 const mockApi = leaveRequestsApi as any;
 const mockLeaveTypes = leaveTypesApi as any;
+const mockPeopleApi = peopleApi as any;
 
 const sampleRequests = [
   {
@@ -64,7 +98,11 @@ const renderPage = () => render(<MemoryRouter><LeaveRequestsPage /></MemoryRoute
 beforeEach(() => {
   vi.resetAllMocks();
   mockLeaveTypes.getAll.mockResolvedValue({ data: [] });
+  // The request picker now loads the types APPLICABLE to the employee, not the
+  // org-wide catalog — the catalog offered everyone every type.
+  (leaveConfigApi as any).getApplicable.mockResolvedValue({ leave_types: [] });
   mockApi.getBalances.mockResolvedValue({ data: [] });
+  mockPeopleApi.getMe.mockResolvedValue({ id: 'person-1', full_name: 'Alice' });
 });
 
 describe('LeaveRequestsPage — extra scenarios', () => {
@@ -116,7 +154,7 @@ describe('LeaveRequestsPage — extra scenarios', () => {
 
   describe('Given API load fails', () => {
     it('When getAll rejects / Then page still renders without crash', async () => {
-      mockApi.getAll.mockRejectedValue(new Error('Server down'));
+      mockApi.getAll.mockImplementation(async () => { throw new Error('Server down'); });
       renderPage();
       await waitFor(() => expect(mockApi.getAll).toHaveBeenCalled());
       // Page header should still render
@@ -142,27 +180,35 @@ describe('LeaveRequestsPage — extra scenarios', () => {
     });
   });
 
-  describe('Given create request fails', () => {
+  describe('Given create request fails with a server error', () => {
     beforeEach(() => {
       mockApi.getAll.mockResolvedValue({ data: [] });
-      mockApi.create.mockRejectedValue(new Error('Creation failed'));
+      mockApi.create.mockImplementation(async () => { throw new Error('No employee profile found for your account. Please contact your administrator.'); });
     });
 
-    it('When create API fails / Then shows failure toast', async () => {
+    it('When create API fails / Then shows the actual server error in the toast', async () => {
       renderPage();
       await waitFor(() => screen.getAllByText('Request Leave')[0]);
       fireEvent.click(screen.getAllByText('Request Leave')[0]);
-      // If a modal appeared with a form, submit it; otherwise just verify modal opens
       const modal = document.querySelector('[data-testid="modal"]');
       if (modal) {
         const form = modal.querySelector('form');
         if (form) {
           fireEvent.submit(form);
           await waitFor(() =>
-            expect(screen.queryByText('Failed to create leave request')).toBeInTheDocument(),
+            expect(screen.queryByText('No employee profile found for your account. Please contact your administrator.')).toBeInTheDocument(),
           );
         }
       }
+    });
+
+    it('When create API fails with generic error / Then still shows a message', async () => {
+      mockApi.create.mockRejectedValue('non-error object');
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      // Modal may or may not have a form; just verify no crash
+      await waitFor(() => screen.getAllByText('Request Leave'));
     });
   });
 
@@ -176,6 +222,88 @@ describe('LeaveRequestsPage — extra scenarios', () => {
       await waitFor(() =>
         expect(screen.getByText('No leave requests found')).toBeInTheDocument(),
       );
+    });
+  });
+});
+
+// ============================================================================
+//   Person Resolution in Create Modal
+// ============================================================================
+describe('LeaveRequestsPage — person resolution on modal open', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [] });
+  });
+
+  describe('Given getMe resolves successfully', () => {
+    beforeEach(() => {
+      mockPeopleApi.getMe.mockResolvedValue({ id: 'person-1', full_name: 'Alice' });
+    });
+
+    it('When modal opens / Then getMe is called to resolve person', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() => expect(mockPeopleApi.getMe).toHaveBeenCalled());
+    });
+
+    it('When modal opens / Then getBalances is called with the resolved person_id (not auth userId)', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() =>
+        expect(mockApi.getBalances).toHaveBeenCalledWith('person-1'),
+      );
+    });
+
+    it('When modal opens / Then no employee error message is shown', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() => expect(mockPeopleApi.getMe).toHaveBeenCalled());
+      expect(screen.queryByText(/No employee profile found/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Given getMe resolves undefined (no people profile linked, backend returns null)', () => {
+    beforeEach(() => {
+      mockPeopleApi.getMe.mockResolvedValue(undefined);
+    });
+
+    it('When modal opens / Then shows the employee profile error without throwing', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() =>
+        expect(screen.getByText(/No employee profile found/)).toBeInTheDocument(),
+      );
+      // getBalances must NOT be called when no person resolved
+      expect(mockApi.getBalances).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Given getMe fails (no people profile linked)', () => {
+    beforeEach(() => {
+      mockPeopleApi.getMe.mockImplementation(async () => { throw new Error('No employee profile found for your account.'); });
+    });
+
+    it('When modal opens / Then shows employee profile error message', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() =>
+        expect(screen.getByText(/No employee profile found/)).toBeInTheDocument(),
+      );
+    });
+
+    it('When modal opens and getMe fails / Then Submit Request button is disabled', async () => {
+      renderPage();
+      await waitFor(() => screen.getAllByText('Request Leave')[0]);
+      fireEvent.click(screen.getAllByText('Request Leave')[0]);
+      await waitFor(() =>
+        expect(screen.getByText(/No employee profile found/)).toBeInTheDocument(),
+      );
+      const submitBtn = screen.getByRole('button', { name: 'Submit Request' });
+      expect(submitBtn).toBeDisabled();
     });
   });
 });

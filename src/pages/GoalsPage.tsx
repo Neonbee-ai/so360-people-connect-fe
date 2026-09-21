@@ -4,12 +4,17 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { toast } from '@so360/design-system';
+import { useActivity, useShellBridge } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
+import { peopleApi } from '../services/peopleService';
 
 const GoalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const formatters = usePeopleFormatters();
+    const canCreateGoal = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:goals:create') ?? true);
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -17,7 +22,6 @@ const GoalsPage: React.FC = () => {
     const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
     const [updatingProgress, setUpdatingProgress] = useState<Goal | null>(null);
     const [progressValue, setProgressValue] = useState<number>(0);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadGoals = useCallback(async () => {
         try {
@@ -29,7 +33,7 @@ const GoalsPage: React.FC = () => {
             setGoals(result.data);
         } catch (error) {
             console.error('Failed to load goals:', error);
-            setToast({ message: 'Failed to load goals', type: 'error' });
+            toast.error('Failed to load goals');
         } finally {
             setLoading(false);
         }
@@ -43,11 +47,11 @@ const GoalsPage: React.FC = () => {
         try {
             const created = await goalsApi.create(data);
             setShowCreateModal(false);
-            setToast({ message: `Goal ${data.title} has been created`, type: 'success' });
+            toast.success(`Goal ${data.title} has been created`);
             recordActivity({ eventType: 'people.goal.created', eventCategory: 'data', description: `Goal "${data.title}" was created`, resourceType: 'goal', resourceId: created?.id }).catch(() => {});
             loadGoals();
         } catch (error) {
-            setToast({ message: 'Failed to create goal', type: 'error' });
+            toast.error('Failed to create goal');
         }
     };
 
@@ -55,24 +59,28 @@ const GoalsPage: React.FC = () => {
         try {
             await goalsApi.update(id, data);
             setEditingGoal(null);
-            setToast({ message: 'Goal updated successfully', type: 'success' });
+            toast.success('Goal updated successfully');
             recordActivity({ eventType: 'people.goal.updated', eventCategory: 'data', description: `Goal "${data.title || id}" was updated`, resourceType: 'goal', resourceId: id }).catch(() => {});
             loadGoals();
         } catch (error) {
-            setToast({ message: 'Failed to update goal', type: 'error' });
+            toast.error('Failed to update goal');
         }
     };
 
     const handleUpdateProgress = async () => {
         if (!updatingProgress) return;
+        if (isNaN(progressValue) || progressValue < 0) {
+            toast.error('Please enter a valid progress value (0 or above)');
+            return;
+        }
 
         try {
-            await goalsApi.updateProgress(updatingProgress.id, progressValue);
+            await goalsApi.updateProgress(updatingProgress.id, progressValue, updatingProgress.target_value);
             setUpdatingProgress(null);
-            setToast({ message: 'Progress updated successfully', type: 'success' });
+            toast.success('Progress updated successfully');
             loadGoals();
         } catch (error) {
-            setToast({ message: 'Failed to update progress', type: 'error' });
+            toast.error('Unable to update progress. Please try again.');
         }
     };
 
@@ -81,11 +89,11 @@ const GoalsPage: React.FC = () => {
 
         try {
             await goalsApi.complete(goal.id);
-            setToast({ message: 'Goal marked as completed', type: 'success' });
+            toast.success('Goal marked as completed');
             recordActivity({ eventType: 'people.goal.completed', eventCategory: 'data', description: `Goal "${goal.title}" was completed`, resourceType: 'goal', resourceId: goal.id }).catch(() => {});
             loadGoals();
         } catch (error) {
-            setToast({ message: 'Failed to complete goal', type: 'error' });
+            toast.error('Failed to complete goal');
         }
     };
 
@@ -118,7 +126,7 @@ const GoalsPage: React.FC = () => {
             <PageHeader
                 title="Goals"
                 subtitle="Track objectives and key results"
-                actions={
+                actions={canCreateGoal ? (
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -126,7 +134,7 @@ const GoalsPage: React.FC = () => {
                         <Target size={16} />
                         Create Goal
                     </button>
-                }
+                ) : undefined}
             />
 
             {/* Filters */}
@@ -134,7 +142,7 @@ const GoalsPage: React.FC = () => {
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Statuses</option>
                     <option value="draft">Draft</option>
@@ -156,7 +164,7 @@ const GoalsPage: React.FC = () => {
                     icon={Target}
                     title="No goals found"
                     description="Create goals to track objectives and key results."
-                    action={{ label: 'Create Goal', onClick: () => setShowCreateModal(true) }}
+                    action={canCreateGoal ? { label: 'Create Goal', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -168,7 +176,7 @@ const GoalsPage: React.FC = () => {
                         >
                             {/* Header */}
                             <div className="flex items-start justify-between mb-3">
-                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-white ${getGoalTypeColor(goal.goal_type)}`}>
+                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getGoalTypeColor(goal.goal_type)}`}>
                                     {goal.goal_type}
                                 </span>
                                 <span className={`text-xs font-medium ${getPriorityColor(goal.priority)}`}>
@@ -177,7 +185,7 @@ const GoalsPage: React.FC = () => {
                             </div>
 
                             {/* Title */}
-                            <h3 className="text-sm font-medium text-white mb-2 line-clamp-2">{goal.title}</h3>
+                            <h3 className="text-sm font-medium text-slate-50 mb-2 line-clamp-2">{goal.title}</h3>
 
                             {/* Person */}
                             <div className="flex items-center gap-2 mb-3">
@@ -197,7 +205,7 @@ const GoalsPage: React.FC = () => {
                             <div className="mb-3">
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-xs text-slate-400">Progress</span>
-                                    <span className="text-xs font-medium text-white">{goal.progress_percentage}%</span>
+                                    <span className="text-xs font-medium text-slate-50">{goal.progress_percentage}%</span>
                                 </div>
                                 <div className="w-full bg-slate-800 rounded-full h-2">
                                     <div
@@ -214,7 +222,7 @@ const GoalsPage: React.FC = () => {
                                         <AlertTriangle size={12} className="text-red-400" />
                                     )}
                                     <span className={isOverdue(goal) ? 'text-red-400' : 'text-slate-400'}>
-                                        Target: {new Date(goal.target_date).toLocaleDateString()}
+                                        Target: {formatters.formatDate(goal.target_date)}
                                     </span>
                                 </div>
                                 <StatusBadge status={goal.status} />
@@ -276,7 +284,7 @@ const GoalsPage: React.FC = () => {
                             step="0.1"
                             value={progressValue}
                             onChange={(e) => setProgressValue(parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                         {updatingProgress?.unit && (
                             <p className="mt-1 text-xs text-slate-400">Unit: {updatingProgress.unit}</p>
@@ -291,7 +299,7 @@ const GoalsPage: React.FC = () => {
                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
                         <button
                             onClick={() => setUpdatingProgress(null)}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                         >
                             Cancel
                         </button>
@@ -305,7 +313,6 @@ const GoalsPage: React.FC = () => {
                 </div>
             </Modal>
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
@@ -323,13 +330,18 @@ interface GoalModalProps {
 }
 
 const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpdate, goal }) => {
+    // This modal is a SIBLING of the page component, so it cannot see the
+    // page's formatters — it needs its own hook to reach the org timezone.
+    const formatters = usePeopleFormatters();
     const [formData, setFormData] = useState<CreateGoalPayload>({
+        // Resolved from the caller's employee record below — NEVER the auth
+        // user id, which is a different identifier entirely.
         person_id: '',
         title: '',
         description: '',
         goal_type: 'individual',
-        start_date: new Date().toISOString().split('T')[0],
-        target_date: new Date().toISOString().split('T')[0],
+        start_date: formatters.businessToday(),
+        target_date: formatters.businessToday(),
         measurement_criteria: '',
         target_value: 0,
         current_value: 0,
@@ -337,6 +349,19 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
         priority: 'medium',
         status: 'draft',
     });
+
+    // A goal belongs to a PERSON, not to a login. This used to default to
+    // the auth USER uuid — a different identifier — so every goal an employee
+    // created was written against a person_id matching no employee record.
+    useEffect(() => {
+        if (goal || !isOpen) return;
+        let cancelled = false;
+        peopleApi
+            .getMe()
+            .then(me => { if (!cancelled) setFormData(prev => ({ ...prev, person_id: me.id })); })
+            .catch(() => undefined);
+        return () => { cancelled = true; };
+    }, [goal, isOpen]);
 
     useEffect(() => {
         if (goal) {
@@ -360,6 +385,11 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.title || !formData.target_date) return;
+        if (!formData.person_id) {
+            // Better to refuse than to write a goal nobody owns.
+            toast.error('Could not identify your employee record. Contact your administrator.');
+            return;
+        }
 
         if (goal) {
             onUpdate(goal.id, formData);
@@ -382,7 +412,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                         required
                         value={formData.title}
                         onChange={(e) => updateField('title', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         placeholder="Increase sales by 20%"
                     />
                 </div>
@@ -392,7 +422,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                     <textarea
                         value={formData.description || ''}
                         onChange={(e) => updateField('description', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         rows={3}
                     />
                 </div>
@@ -403,7 +433,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                         <select
                             value={formData.goal_type}
                             onChange={(e) => updateField('goal_type', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="individual">Individual</option>
                             <option value="team">Team</option>
@@ -416,7 +446,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                         <select
                             value={formData.priority}
                             onChange={(e) => updateField('priority', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         >
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
@@ -430,7 +460,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                             type="date"
                             value={formData.start_date || ''}
                             onChange={(e) => updateField('start_date', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                     <div>
@@ -440,7 +470,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                             required
                             value={formData.target_date}
                             onChange={(e) => updateField('target_date', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                 </div>
@@ -454,7 +484,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                             step="0.1"
                             value={formData.target_value || ''}
                             onChange={(e) => updateField('target_value', parseFloat(e.target.value) || undefined)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                     <div>
@@ -465,7 +495,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                             step="0.1"
                             value={formData.current_value || ''}
                             onChange={(e) => updateField('current_value', parseFloat(e.target.value) || undefined)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                     <div>
@@ -474,7 +504,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                             type="text"
                             value={formData.unit || ''}
                             onChange={(e) => updateField('unit', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             placeholder="sales, projects, %"
                         />
                     </div>
@@ -484,7 +514,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

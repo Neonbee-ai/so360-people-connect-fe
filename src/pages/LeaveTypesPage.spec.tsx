@@ -16,10 +16,14 @@ vi.mock('../services/leaveTypesService', () => ({
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
-}));
+
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
 
 import LeaveTypesPage from './LeaveTypesPage';
 import { leaveTypesApi } from '../services/leaveTypesService';
+import { toast } from '@so360/design-system';
 
 const mockApi = leaveTypesApi as any;
 
@@ -95,11 +99,60 @@ describe('Given LeaveTypesPage create interaction', () => {
 
 describe('Given LeaveTypesPage API failure', () => {
   beforeEach(() => {
-    mockApi.getAll.mockRejectedValue(new Error('Failed'));
+    mockApi.getAll.mockImplementation(async () => { throw new Error('Failed'); });
   });
 
   it('When API fails / Then error toast is shown', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
-    await waitFor(() => expect(screen.getByText('Failed to load leave types')).toBeInTheDocument());
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load leave types'));
+  });
+});
+
+/*
+ * Row-interaction standardisation: the Actions column owns editing. The whole
+ * row used to be clickable *as well*, so inspecting a value (code, accrual,
+ * status) navigated into the edit form by accident.
+ */
+describe('Given a Leave Type row with a dedicated Edit action', () => {
+  beforeEach(() => {
+    mockApi.getAll.mockResolvedValue({ data: [mockLeaveType], total: 1 });
+  });
+
+  it('When the Edit action is clicked / Then the edit modal opens', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Edit'));
+    await waitFor(() => expect(screen.getByText('Edit Leave Type')).toBeInTheDocument());
+  });
+
+  it('When the row name cell is clicked / Then no edit modal opens', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Annual Leave'));
+    expect(screen.queryByText('Edit Leave Type')).not.toBeInTheDocument();
+  });
+
+  it('When the row code cell is clicked / Then no edit modal opens', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('AL')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('AL'));
+    expect(screen.queryByText('Edit Leave Type')).not.toBeInTheDocument();
+  });
+
+  it('When the row is rendered / Then it carries no whole-row click affordance', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    const row = screen.getByText('Annual Leave').closest('tr') as HTMLTableRowElement;
+    expect(row.className).not.toContain('cursor-pointer');
+  });
+
+  it('When the Edit action is rendered / Then it carries prominent, discoverable styling', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    const editButton = screen.getByText('Edit');
+    expect(editButton.className).toContain('font-semibold');
+    expect(editButton.className).not.toContain('text-xs');
+    expect(editButton.className).toContain('focus:ring-2');
   });
 });

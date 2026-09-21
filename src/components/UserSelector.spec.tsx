@@ -83,7 +83,7 @@ describe('Given UserSelector with users', () => {
 
 describe('Given UserSelector with fetch failure', () => {
   it('When fetch fails / Then empty list is shown when opened', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Failed')));
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => { throw new Error('Failed'); }));
     render(<UserSelector value={null} onChange={() => {}} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     fireEvent.click(screen.getByText('Select user...'));

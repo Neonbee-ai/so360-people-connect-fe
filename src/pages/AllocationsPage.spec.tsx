@@ -3,6 +3,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../services/peopleService', () => ({
   allocationsApi: {
     getAll: vi.fn(),
@@ -11,19 +18,52 @@ vi.mock('../services/peopleService', () => ({
     cancel: vi.fn(),
   },
   peopleApi: { getAll: vi.fn() },
+  entitiesApi: { list: vi.fn() },
 }));
+
+vi.mock('../services/departmentsService', () => ({
+  departmentsApi: {
+    getTree: vi.fn(),
+  },
+}));
+
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
+}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD', locale: 'en-US', timezone: 'UTC',
+  }),
 }));
 
 import AllocationsPage from './AllocationsPage';
-import { allocationsApi, peopleApi } from '../services/peopleService';
+import { allocationsApi, peopleApi, entitiesApi } from '../services/peopleService';
+import { departmentsApi } from '../services/departmentsService';
+import { toast } from '@so360/design-system';
 
 const mockAllocApi = allocationsApi as any;
 const mockPeopleApi = peopleApi as any;
+const mockEntitiesApi = entitiesApi as any;
+const mockDeptApi = departmentsApi as any;
 
-const renderPage = () => render(<MemoryRouter><AllocationsPage /></MemoryRouter>);
+const renderPage = () =>
+  render(<MemoryRouter><AllocationsPage /></MemoryRouter>);
 
 const mockAllocation = {
   id: 'a1',
@@ -31,86 +71,566 @@ const mockAllocation = {
   person: { full_name: 'Alice' },
   entity_type: 'project',
   entity_id: 'proj-1',
-  entity_name: 'Website Redesign',
-  start_date: '2024-01-01',
-  end_date: '2024-06-30',
-  allocation_type: 'percentage',
+  entity_name: 'Website',
+  start_date: '2026-01-01',
+  end_date: '2026-06-30',
   allocation_value: 80,
-  allocation_period: 'daily',
+  allocation_type: 'percentage',
   status: 'active',
   notes: '',
 };
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
   mockPeopleApi.getAll.mockResolvedValue({ data: [] });
+  mockEntitiesApi.list.mockResolvedValue({ data: [] });
+  mockDeptApi.getTree.mockResolvedValue({ data: [] });
 });
 
-describe('Given AllocationsPage loads successfully', () => {
+// ============================================================================
+//   Loading and display
+// ============================================================================
+describe('AllocationsPage', () => {
+  describe('Given allocations are loaded', () => {
+    beforeEach(() => {
+      mockAllocApi.getAll.mockResolvedValue({
+        data: [
+          { ...mockAllocation, id: 'a1', entity_name: 'Website', allocation_value: 80 },
+          { ...mockAllocation, id: 'a2', entity_name: 'Mobile App', allocation_value: 40, entity_id: 'proj-2' },
+        ],
+      });
+    });
+
+    it('When the page loads / Then allocation cards are rendered', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+      expect(screen.getByText('Mobile App')).toBeInTheDocument();
+    });
+
+    it('When a person is overallocated / Then a warning is shown', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getAllByText(/Total: 120%/).length).toBeGreaterThan(0));
+    });
+
+    it('When the status filter is changed / Then allocations are re-fetched', async () => {
+      renderPage();
+      await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
+      fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'active' } });
+      await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ status: 'active' })));
+    });
+
+    it('When the summary stats are displayed / Then they count correctly', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('2 allocations')).toBeInTheDocument());
+      expect(screen.getByText('2 active')).toBeInTheDocument();
+    });
+  });
+
+  describe('Given the user interacts with allocations', () => {
+    beforeEach(() => {
+      mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
+    });
+
+    it('When entity type filter is changed / Then allocations are re-fetched', async () => {
+      renderPage();
+      await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
+      fireEvent.change(screen.getByDisplayValue('All Entity Types'), { target: { value: 'project' } });
+      await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ entity_type: 'project' })));
+    });
+
+    it('When New Allocation is clicked / Then the create modal opens', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('New Allocation'));
+      await waitFor(() => expect(screen.getByText('Person *')).toBeInTheDocument());
+    });
+  });
+
+  describe('Given the department filter', () => {
+    const engineering = { id: 'd1', name: 'Engineering', code: 'ENG', is_active: true, children: [
+      { id: 'd2', name: 'QA', code: 'QA2', is_active: true, children: [] },
+    ] };
+
+    beforeEach(() => {
+      mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
+      mockDeptApi.getTree.mockResolvedValue({ data: [engineering] });
+    });
+
+    it('When departments load / Then the filter lists every depth of the tree, indented', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+      const select = screen.getAllByRole('combobox').find(el =>
+        Array.from(el.querySelectorAll('option')).some(o => o.textContent?.includes('QA')),
+      ) as HTMLSelectElement;
+      const optionTexts = Array.from(select.querySelectorAll('option')).map(o => o.textContent);
+      expect(optionTexts.some(t => t?.includes('Engineering'))).toBe(true);
+      expect(optionTexts.some(t => t?.includes('QA'))).toBe(true);
+    });
+
+    it('When a department is selected / Then allocations are re-fetched with department_id', async () => {
+      renderPage();
+      await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
+      const select = screen.getAllByRole('combobox').find(el =>
+        Array.from(el.querySelectorAll('option')).some(o => o.textContent?.includes('Engineering')),
+      ) as HTMLSelectElement;
+      fireEvent.change(select, { target: { value: 'd1' } });
+      await waitFor(() =>
+        expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ department_id: 'd1' })),
+      );
+    });
+
+    it('When the departments API fails / Then the page still renders with an empty department filter', async () => {
+      mockDeptApi.getTree.mockRejectedValueOnce(new Error('down'));
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+      expect(screen.getByText('All Departments')).toBeInTheDocument();
+    });
+  });
+
+  describe('Given no allocations exist', () => {
+    beforeEach(() => {
+      mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    });
+
+    it('When the page loads / Then the empty state is shown', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('No allocations')).toBeInTheDocument());
+    });
+  });
+});
+
+// ============================================================================
+//   Feature flag gate
+// ============================================================================
+describe('AllocationsPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then New Allocation button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No allocations')).toBeInTheDocument());
+    expect(screen.queryByText('New Allocation')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then New Allocation button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No allocations')).toBeInTheDocument());
+    expect(screen.getByText('New Allocation')).toBeInTheDocument();
+  });
+});
+
+// ============================================================================
+//   Edit allocation
+// ============================================================================
+describe('AllocationsPage — edit allocation', () => {
   beforeEach(() => {
     mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
   });
 
-  it('When the page loads / Then the page heading is visible', async () => {
+  it('When Edit button is clicked / Then the edit modal opens pre-filled with current allocation_value', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Allocations')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('Edit'));
+    await waitFor(() => expect(screen.getByText(/Edit Allocation/)).toBeInTheDocument());
+    // The form should be pre-seeded with allocation.allocation_value (80)
+    expect(screen.getByDisplayValue('80')).toBeInTheDocument();
   });
 
-  it('When allocations are fetched / Then allocation entity names are rendered', async () => {
+  it('When edit form is submitted with a new value / Then update API receives allocation_percentage (not allocation_value)', async () => {
+    mockAllocApi.update.mockResolvedValue({ ...mockAllocation, allocation_value: 60 });
     renderPage();
-    await waitFor(() => expect(screen.getByText('Website Redesign')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('Edit'));
+    await waitFor(() => expect(screen.getByDisplayValue('80')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByDisplayValue('80'), { target: { value: '60' } });
+    fireEvent.click(screen.getByText('Save Changes'));
+
+    await waitFor(() =>
+      expect(mockAllocApi.update).toHaveBeenCalledWith(
+        'a1',
+        expect.objectContaining({ allocation_percentage: 60 }),
+      ),
+    );
+    // Ensure the old DB column name is NOT sent
+    const payload = mockAllocApi.update.mock.calls[0][1];
+    expect('allocation_value' in payload).toBe(false);
   });
 
-  it('When allocations are fetched / Then person name is displayed', async () => {
+  it('When edit percentage is invalid / Then update is not called and error is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('Edit'));
+    await waitFor(() => expect(screen.getByDisplayValue('80')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByDisplayValue('80'), { target: { value: '200' } });
+    // Use fireEvent.submit on the form directly — same pattern as create validation tests
+    const form = document.querySelector('form.space-y-4') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(screen.getByText(/between 1 and 100/)).toBeInTheDocument());
+    expect(mockAllocApi.update).not.toHaveBeenCalled();
+  });
+
+  it('When edit modal is closed / Then the modal disappears', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('Edit'));
+    await waitFor(() => expect(screen.getByText(/Edit Allocation/)).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Cancel'));
+    await waitFor(() => expect(screen.queryByText(/Edit Allocation/)).not.toBeInTheDocument());
   });
 });
 
-describe('Given AllocationsPage with no allocations', () => {
+// ============================================================================
+//   Cancel allocation
+// ============================================================================
+describe('AllocationsPage — cancel allocation', () => {
   beforeEach(() => {
-    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
+    mockAllocApi.cancel.mockResolvedValue({ message: 'cancelled successfully' });
   });
 
-  it('When the page loads / Then the empty state is displayed', async () => {
+  it('When cancel button is clicked and user confirms / Then cancel API is called with the allocation ID', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('Cancel'));
+    await waitFor(() => expect(mockAllocApi.cancel).toHaveBeenCalledWith('a1'));
+  });
+
+  it('When cancel button is clicked but user dismisses the dialog / Then cancel API is NOT called', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('Cancel'));
+    expect(mockAllocApi.cancel).not.toHaveBeenCalled();
+  });
+
+  it('When cancel succeeds / Then the list is refreshed', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('Cancel'));
+    await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalledTimes(2));
+  });
+});
+
+// ============================================================================
+//   Allocations with terminal status hide action buttons
+// ============================================================================
+describe('AllocationsPage — terminal-status allocations', () => {
+  it('When an allocation is cancelled / Then neither Edit nor Cancel buttons are rendered for it', async () => {
+    mockAllocApi.getAll.mockResolvedValue({
+      data: [{ ...mockAllocation, status: 'cancelled' }],
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Cancel')).not.toBeInTheDocument();
+  });
+
+  it('When an allocation is completed / Then neither Edit nor Cancel buttons are rendered for it', async () => {
+    mockAllocApi.getAll.mockResolvedValue({
+      data: [{ ...mockAllocation, status: 'completed' }],
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Cancel')).not.toBeInTheDocument();
+  });
+});
+
+// ============================================================================
+//   Error handling
+// ============================================================================
+describe('AllocationsPage — error handling', () => {
+  it('When create API fails / Then the error is shown inline inside the modal and the modal stays open', async () => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    mockAllocApi.create.mockRejectedValue(new Error('Person already has an active allocation on this project.'));
+    mockPeopleApi.getAll.mockResolvedValue({ data: [{ id: 'p1', full_name: 'Alice', job_title: 'Dev', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }] });
+    mockEntitiesApi.list.mockResolvedValue({ data: [{ id: '550e8400-e29b-41d4-a716-446655440000', name: 'Project X' }] });
+
     renderPage();
     await waitFor(() => expect(screen.getByText('No allocations')).toBeInTheDocument());
-  });
-});
-
-describe('Given AllocationsPage filter interaction', () => {
-  beforeEach(() => {
-    mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
-  });
-
-  it('When status filter changes / Then API is called with new status', async () => {
-    renderPage();
-    await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
-    fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'active' } });
-    await waitFor(() =>
-      expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ status: 'active' }))
-    );
-  });
-
-  it('When entity type filter changes / Then API is called with new entity type', async () => {
-    renderPage();
-    await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
-    fireEvent.change(screen.getByDisplayValue('All Entity Types'), { target: { value: 'project' } });
-    await waitFor(() =>
-      expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ entity_type: 'project' }))
-    );
-  });
-});
-
-describe('Given AllocationsPage create interaction', () => {
-  beforeEach(() => {
-    mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
-  });
-
-  it('When New Allocation is clicked / Then the create modal opens', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText('Website Redesign')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New Allocation'));
-    await waitFor(() => expect(screen.getByText('Person *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('option', { name: /Alice/ })).toBeInTheDocument());
+
+    fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: 'p1' } });
+    fireEvent.click(screen.getByText('Select project...'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Project X' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Project X' }));
+
+    const container = document.querySelector('form')!;
+    const dateInputs = container.querySelectorAll('input[type="date"]');
+    fireEvent.change(dateInputs[0], { target: { value: '2026-01-01' } });
+    fireEvent.change(dateInputs[1], { target: { value: '2026-06-30' } });
+    fireEvent.submit(container);
+
+    await waitFor(() =>
+      expect(screen.getByText('Person already has an active allocation on this project.')).toBeInTheDocument(),
+    );
+    // Modal must still be visible so the user can correct the input
+    expect(screen.getByText('Person *')).toBeInTheDocument();
+  });
+
+  it('When update API fails / Then an inline error is shown inside the edit modal', async () => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
+    mockAllocApi.update.mockRejectedValue(new Error('Update failed'));
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('Edit'));
+    await waitFor(() => expect(screen.getByDisplayValue('80')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Save Changes'));
+
+    await waitFor(() => expect(screen.getByText('Update failed')).toBeInTheDocument());
+    // Modal should still be open
+    expect(screen.getByDisplayValue('80')).toBeInTheDocument();
+  });
+
+  it('When load fails / Then a failure toast is shown', async () => {
+    const toastErrorSpy = vi.spyOn(toast, 'error');
+    mockAllocApi.getAll.mockRejectedValue(new Error('Network error'));
+    renderPage();
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load allocations'));
+  });
+});
+
+// ============================================================================
+//   Unknown Person fallback
+// ============================================================================
+describe('AllocationsPage — person data', () => {
+  it('When allocation has no person join / Then "Unknown Person" is displayed as a fallback', async () => {
+    mockAllocApi.getAll.mockResolvedValue({
+      data: [{ ...mockAllocation, person: null }],
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Unknown Person')).toBeInTheDocument());
+  });
+
+  it('When allocation has a person join / Then the person full_name is displayed', async () => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [mockAllocation] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    expect(screen.queryByText('Unknown Person')).not.toBeInTheDocument();
+  });
+});
+
+// ============================================================================
+//   Create form validation
+// ============================================================================
+describe('AllocationsPage — create form validation', () => {
+  const PERSON_UUID = '11111111-1111-4111-8111-111111111111';
+  const ENTITY_UUID = '550e8400-e29b-41d4-a716-446655440000';
+
+  beforeEach(() => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    mockPeopleApi.getAll.mockResolvedValue({
+      data: [{ id: PERSON_UUID, full_name: 'Alice', job_title: 'Dev', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }],
+    });
+    mockEntitiesApi.list.mockResolvedValue({ data: [{ id: ENTITY_UUID, name: 'Website Redesign' }] });
+    mockAllocApi.create.mockResolvedValue({ id: 'a-new' });
+  });
+
+  const openModal = async () => {
+    const view = renderPage();
+    await waitFor(() => expect(screen.getByText('No allocations')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Allocation'));
+    await waitFor(() => expect(screen.getByRole('option', { name: /Alice/ })).toBeInTheDocument());
+    return view;
+  };
+
+  const fillDates = (container: HTMLElement) => {
+    const dateInputs = container.querySelectorAll('input[type="date"]');
+    fireEvent.change(dateInputs[0], { target: { value: '2026-01-01' } });
+    fireEvent.change(dateInputs[1], { target: { value: '2026-06-30' } });
+  };
+
+  const pickEntity = async () => {
+    fireEvent.click(screen.getByText('Select project...'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+  };
+
+  it('When no entity is selected / Then a validation error is shown and create is not called', async () => {
+    const { container } = await openModal();
+    fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
+    fillDates(container);
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(screen.getByText(/Select an entity/)).toBeInTheDocument());
+    expect(mockAllocApi.create).not.toHaveBeenCalled();
+  });
+
+  it('When percentage is out of range / Then a validation error is shown and create is not called', async () => {
+    const { container } = await openModal();
+    fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
+    await pickEntity();
+    fillDates(container);
+    const pctInput = container.querySelector('input[type="number"]') as HTMLInputElement;
+    fireEvent.change(pctInput, { target: { value: '150' } });
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(screen.getByText(/between 1 and 100/)).toBeInTheDocument());
+    expect(mockAllocApi.create).not.toHaveBeenCalled();
+  });
+
+  it('When entity is picked and percentage is valid / Then create is called with UUID and numeric allocation_percentage (not allocation_value)', async () => {
+    const { container } = await openModal();
+    fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
+    await pickEntity();
+    fillDates(container);
+    const pctInput = container.querySelector('input[type="number"]') as HTMLInputElement;
+    fireEvent.change(pctInput, { target: { value: '60' } });
+    fireEvent.submit(container.querySelector('form')!);
+
+    await waitFor(() => expect(mockAllocApi.create).toHaveBeenCalledTimes(1));
+    const payload = mockAllocApi.create.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      person_id: PERSON_UUID,
+      entity_type: 'project',
+      entity_id: ENTITY_UUID,
+      entity_name: 'Website Redesign',
+      allocation_percentage: 60,
+    });
+    // Must send allocation_percentage, never allocation_value
+    expect(typeof payload.allocation_percentage).toBe('number');
+    expect('allocation_value' in payload).toBe(false);
+  });
+});
+
+/*
+ * Regression: clicking an allocated person's name previously called
+ * navigate('/people/<id>'), which — because the people-connect MFE is mounted
+ * under the shell at '/people/*' and the person-detail route lives at
+ * '/people/people/:id' — escaped to a non-existent route and hit the shell's
+ * "Page Not Found". The correct target is '/people/people/<id>'.
+ */
+describe('Given an allocation card person link', () => {
+  beforeEach(() => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [{ ...mockAllocation, id: 'a1', person_id: 'p1' }] });
+  });
+
+  it('When the person name is clicked / Then it navigates to the shell-prefixed person route', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Alice'));
+    expect(mockNavigate).toHaveBeenCalledWith('/people/people/p1');
+  });
+
+  it('When the person name is clicked / Then it does NOT navigate to the bare /people/<id> path (regression guard)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Alice'));
+    expect(mockNavigate).not.toHaveBeenCalledWith('/people/p1');
+  });
+});
+
+/*
+ * Create Allocation — real-time validation.
+ *
+ * Previously the form only spoke up on submit: mandatory fields were silent,
+ * an end date before the start date was accepted, and Create Allocation stayed
+ * clickable on an empty form.
+ */
+describe('Given the Create Allocation form is open', () => {
+  const PERSON_UUID = '11111111-1111-4111-8111-111111111111';
+  const ENTITY_UUID = '550e8400-e29b-41d4-a716-446655440000';
+
+  beforeEach(() => {
+    mockAllocApi.getAll.mockResolvedValue({ data: [] });
+    mockPeopleApi.getAll.mockResolvedValue({
+      data: [{ id: PERSON_UUID, full_name: 'Alice', job_title: 'Dev', type: 'employee', cost_rate: 50, cost_rate_unit: 'hour' }],
+    });
+    mockEntitiesApi.list.mockResolvedValue({ data: [{ id: ENTITY_UUID, name: 'Website Redesign' }] });
+    mockAllocApi.create.mockResolvedValue({ id: 'a-new' });
+  });
+
+  const openModal = async () => {
+    const view = renderPage();
+    await waitFor(() => expect(screen.getByText('No allocations')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Allocation'));
+    await waitFor(() => expect(screen.getByRole('option', { name: /Alice/ })).toBeInTheDocument());
+    return view;
+  };
+
+  // Scoped to the form: the page's empty-state CTA carries the same label.
+  const submitButton = (container: HTMLElement) =>
+    container.querySelector('form button[type="submit"]') as HTMLButtonElement;
+
+  const completeForm = async (container: HTMLElement) => {
+    fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
+    fireEvent.click(screen.getByText('Select project...'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2027-06-30' } });
+    fireEvent.change(container.querySelector('input[type="number"]')!, { target: { value: '60' } });
+  };
+
+  it('When mandatory fields are empty / Then Create Allocation is disabled', async () => {
+    const { container } = await openModal();
+    expect(submitButton(container)).toBeDisabled();
+  });
+
+  it('When every mandatory field is valid / Then Create Allocation becomes enabled', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+    await waitFor(() => expect(submitButton(container)).toBeEnabled());
+  });
+
+  it('When the end date precedes the start date / Then a field-level error appears immediately', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2020-01-01' } });
+
+    await waitFor(() =>
+      expect(screen.getByText('End date cannot be earlier than start date.')).toBeInTheDocument(),
+    );
+    expect(submitButton(container)).toBeDisabled();
+  });
+
+  it('When the end date is corrected / Then the error clears and submit re-enables', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2020-01-01' } });
+    await waitFor(() => expect(submitButton(container)).toBeDisabled());
+
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2027-06-30' } });
+
+    await waitFor(() => expect(submitButton(container)).toBeEnabled());
+    expect(screen.queryByText('End date cannot be earlier than start date.')).not.toBeInTheDocument();
+  });
+
+  it('When the percentage is out of range / Then the error shows without submitting', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+
+    fireEvent.change(container.querySelector('input[type="number"]')!, { target: { value: '150' } });
+
+    await waitFor(() => expect(screen.getByText(/whole number between 1 and 100/i)).toBeInTheDocument());
+    expect(submitButton(container)).toBeDisabled();
+    expect(mockAllocApi.create).not.toHaveBeenCalled();
+  });
+
+  it('When the percentage is cleared / Then it is reported as required, not silently allowed', async () => {
+    const { container } = await openModal();
+    await completeForm(container);
+
+    fireEvent.change(container.querySelector('input[type="number"]')!, { target: { value: '' } });
+
+    await waitFor(() => expect(screen.getByText(/percentage is required/i)).toBeInTheDocument());
+    expect(submitButton(container)).toBeDisabled();
+  });
+
+  it('When the form opens / Then the default start date is explained', async () => {
+    await openModal();
+    expect(screen.getByText(/Defaults to today/i)).toBeInTheDocument();
+  });
+
+  it('When the form opens / Then the percentage field explains its link to the capacity bar', async () => {
+    await openModal();
+    expect(screen.getByText(/bar below previews the value entered here/i)).toBeInTheDocument();
   });
 });

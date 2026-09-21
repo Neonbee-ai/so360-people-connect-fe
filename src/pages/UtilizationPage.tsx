@@ -4,15 +4,24 @@ import {
     Calendar, DollarSign, Clock, Target, Users,
     ChevronLeft, ChevronRight, RefreshCw,
 } from 'lucide-react';
+import { useBusinessSettings } from '@so360/shell-context';
+import { useFormatters } from '@so360/formatters';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { utilizationApi } from '../services/peopleService';
+import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import type { UtilizationData, UtilizationSummary } from '../types/people';
 
 const UtilizationPage: React.FC = () => {
+    const { settings } = useBusinessSettings();
+    const formatters = useFormatters({
+        currency: settings?.base_currency || 'USD',
+        locale: settings?.document_language || 'en-US',
+        timezone: settings?.timezone || 'UTC',
+    });
     const [utilizationData, setUtilizationData] = useState<UtilizationData[]>([]);
     const [summary, setSummary] = useState<UtilizationSummary | null>(null);
     const [loading, setLoading] = useState(true);
@@ -20,7 +29,6 @@ const UtilizationPage: React.FC = () => {
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
     const [sortBy, setSortBy] = useState<'name' | 'utilization' | 'cost'>('utilization');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     // Compute initial week
     const getWeekDates = (offset: number = 0) => {
@@ -33,8 +41,8 @@ const UtilizationPage: React.FC = () => {
         const end = new Date(start);
         end.setDate(end.getDate() + 4);
         return {
-            start: start.toISOString().split('T')[0],
-            end: end.toISOString().split('T')[0],
+            start: formatters.toBusinessDate(start),
+            end: formatters.toBusinessDate(end),
         };
     };
 
@@ -55,7 +63,7 @@ const UtilizationPage: React.FC = () => {
             setSummary(summaryData);
         } catch (error) {
             console.error('Failed to load utilization:', error);
-            setToast({ message: 'Failed to load utilization data', type: 'error' });
+            toast.error('Failed to load utilization data');
         } finally {
             setLoading(false);
         }
@@ -65,33 +73,42 @@ const UtilizationPage: React.FC = () => {
         loadData();
     }, [loadData]);
 
-    // Sort data
-    const sortedData = [...utilizationData].sort((a, b) => {
-        let cmp = 0;
-        switch (sortBy) {
-            case 'name':
-                cmp = a.person.full_name.localeCompare(b.person.full_name);
-                break;
-            case 'utilization':
-                cmp = (a.utilization.utilization_pct || 0) - (b.utilization.utilization_pct || 0);
-                break;
-            case 'cost':
-                cmp = (a.utilization.actual_cost || 0) - (b.utilization.actual_cost || 0);
-                break;
-        }
-        return sortDir === 'asc' ? cmp : -cmp;
-    });
+    // Null-safe accessors — a single incomplete/malformed record (missing
+    // `.utilization` or `.person`, e.g. no allocation/timesheet data for that
+    // employee) must never crash the whole page.
+    const safeName = (d?: UtilizationData | null) => d?.person?.full_name || '';
+    const safePct = (d?: UtilizationData | null) => d?.utilization?.utilization_pct ?? 0;
+    const safeCost = (d?: UtilizationData | null) => d?.utilization?.actual_cost ?? 0;
+
+    // Sort data — filter out any null/undefined entries first, then sort
+    // using the null-safe accessors above so a bad record sorts as 0 instead
+    // of throwing.
+    const sortedData = [...utilizationData]
+        .filter((d): d is UtilizationData => Boolean(d))
+        .sort((a, b) => {
+            let cmp = 0;
+            switch (sortBy) {
+                case 'name':
+                    cmp = safeName(a).localeCompare(safeName(b));
+                    break;
+                case 'utilization':
+                    cmp = safePct(a) - safePct(b);
+                    break;
+                case 'cost':
+                    cmp = safeCost(a) - safeCost(b);
+                    break;
+            }
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
 
     // Derived signals
-    const idlePeople = utilizationData.filter(d => d.utilization.is_idle);
-    const overallocated = utilizationData.filter(d => d.utilization.is_overallocated);
+    const idlePeople = utilizationData.filter(d => d?.utilization?.is_idle);
+    const overallocated = utilizationData.filter(d => d?.utilization?.is_overallocated);
     const healthyCount = utilizationData.filter(d =>
-        !d.utilization.is_idle && !d.utilization.is_overallocated && d.utilization.utilization_pct >= 30
+        d?.utilization && !d.utilization.is_idle && !d.utilization.is_overallocated && safePct(d) >= 30
     ).length;
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
-    };
+    const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
 
     const getUtilizationColor = (pct: number) => {
         if (pct >= 90) return 'text-amber-400';
@@ -110,10 +127,11 @@ const UtilizationPage: React.FC = () => {
     };
 
     const getUtilizationLabel = (data: UtilizationData) => {
-        if (data.utilization.is_overallocated) return 'Overallocated';
-        if (data.utilization.is_idle) return 'Idle';
-        if (data.utilization.utilization_pct >= 80) return 'High';
-        if (data.utilization.utilization_pct >= 50) return 'Normal';
+        const pct = safePct(data);
+        if (data?.utilization?.is_overallocated) return 'Overallocated';
+        if (data?.utilization?.is_idle) return 'Idle';
+        if (pct >= 80) return 'High';
+        if (pct >= 50) return 'Normal';
         return 'Low';
     };
 
@@ -142,13 +160,13 @@ const UtilizationPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-                            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white transition-colors"
+                            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 transition-colors"
                         >
                             {viewMode === 'cards' ? 'Table View' : 'Card View'}
                         </button>
                         <button
                             onClick={loadData}
-                            className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors"
+                            className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-slate-50 transition-colors"
                             title="Refresh"
                         >
                             <RefreshCw size={14} />
@@ -161,12 +179,12 @@ const UtilizationPage: React.FC = () => {
             <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-5 py-3">
                 <button
                     onClick={() => setWeekOffset(prev => prev - 1)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
                 >
                     <ChevronLeft size={18} />
                 </button>
                 <div className="text-center">
-                    <div className="text-sm font-medium text-white flex items-center gap-2">
+                    <div className="text-sm font-medium text-slate-50 flex items-center gap-2">
                         <Calendar size={14} className="text-teal-400" />
                         Week of {period.start || 'Loading...'}
                     </div>
@@ -177,7 +195,7 @@ const UtilizationPage: React.FC = () => {
                 <button
                     onClick={() => setWeekOffset(prev => Math.min(prev + 1, 0))}
                     disabled={weekOffset >= 0}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-30"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors disabled:opacity-30"
                 >
                     <ChevronRight size={18} />
                 </button>
@@ -212,18 +230,18 @@ const UtilizationPage: React.FC = () => {
             </div>
 
             {/* Signals Row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className={`bg-slate-900 border rounded-xl p-4 ${idlePeople.length > 0 ? 'border-rose-500/30' : 'border-slate-800'}`}>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-slate-400">Idle Resources</span>
                         <TrendingDown size={14} className="text-rose-400" />
                     </div>
-                    <div className={`text-2xl font-bold ${idlePeople.length > 0 ? 'text-rose-400' : 'text-white'}`}>
+                    <div className={`text-2xl font-bold ${idlePeople.length > 0 ? 'text-rose-400' : 'text-slate-50'}`}>
                         {idlePeople.length}
                     </div>
                     {idlePeople.length > 0 && (
-                        <div className="text-xs text-slate-500 mt-1">
-                            {idlePeople.map(d => d.person.full_name).join(', ')}
+                        <div className="text-xs text-slate-500 mt-1 line-clamp-2">
+                            {idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ')}
                         </div>
                     )}
                 </div>
@@ -232,12 +250,12 @@ const UtilizationPage: React.FC = () => {
                         <span className="text-xs font-medium text-slate-400">Overallocated</span>
                         <TrendingUp size={14} className="text-amber-400" />
                     </div>
-                    <div className={`text-2xl font-bold ${overallocated.length > 0 ? 'text-amber-400' : 'text-white'}`}>
+                    <div className={`text-2xl font-bold ${overallocated.length > 0 ? 'text-amber-400' : 'text-slate-50'}`}>
                         {overallocated.length}
                     </div>
                     {overallocated.length > 0 && (
-                        <div className="text-xs text-slate-500 mt-1">
-                            {overallocated.map(d => d.person.full_name).join(', ')}
+                        <div className="text-xs text-slate-500 mt-1 line-clamp-2">
+                            {overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ')}
                         </div>
                     )}
                 </div>
@@ -252,8 +270,8 @@ const UtilizationPage: React.FC = () => {
             </div>
 
             {/* Sort Controls */}
-            <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-500">Sort by:</span>
+            <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 mr-1">Sort by:</span>
                 {(['utilization', 'name', 'cost'] as const).map(key => (
                     <button
                         key={key}
@@ -261,10 +279,12 @@ const UtilizationPage: React.FC = () => {
                             if (sortBy === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
                             else { setSortBy(key); setSortDir('desc'); }
                         }}
-                        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                        // Border on both states keeps the buttons the same size,
+                        // so selecting one does not nudge the others sideways.
+                        className={`min-w-[92px] px-2.5 py-1 rounded text-xs text-center transition-colors border ${
                             sortBy === key
-                                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30'
-                                : 'text-slate-400 hover:text-white'
+                                ? 'bg-teal-500/10 text-teal-400 border-teal-500/30'
+                                : 'text-slate-400 border-transparent hover:text-slate-50 hover:border-slate-700'
                         }`}
                     >
                         {key.charAt(0).toUpperCase() + key.slice(1)}
@@ -274,7 +294,7 @@ const UtilizationPage: React.FC = () => {
             </div>
 
             {/* Utilization Data */}
-            {utilizationData.length === 0 ? (
+            {sortedData.length === 0 ? (
                 <EmptyState
                     icon={BarChart3}
                     title="No utilization data"
@@ -292,24 +312,26 @@ const UtilizationPage: React.FC = () => {
 
             {/* Idle Cost Signal */}
             {idlePeople.length > 0 && (
-                <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-4">
+                // p-5 matches the resource cards above so this panel shares
+                // their content width and left edge.
+                <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-5">
                     <div className="flex items-start gap-3">
                         <AlertTriangle size={18} className="text-rose-400 mt-0.5 flex-shrink-0" />
-                        <div>
+                        <div className="min-w-0">
                             <div className="text-sm font-medium text-rose-300">Idle Cost Signal</div>
                             <div className="text-xs text-slate-400 mt-1">
                                 {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
                                 Estimated idle cost: {formatCurrency(
                                     idlePeople.reduce((sum, d) => {
-                                        const idleHours = d.utilization.available_hours - d.utilization.actual_hours;
-                                        return sum + (idleHours * (d.person.cost_rate || 0));
+                                        const idleHours = (d?.utilization?.available_hours ?? 0) - (d?.utilization?.actual_hours ?? 0);
+                                        return sum + (idleHours * (d?.person?.cost_rate || 0));
                                     }, 0)
                                 )} this period.
                             </div>
                             <div className="mt-2 flex flex-wrap gap-2">
-                                {idlePeople.map(d => (
-                                    <span key={d.person.id} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-300">
-                                        {d.person.full_name} ({d.utilization.utilization_pct}%)
+                                {idlePeople.map((d, idx) => (
+                                    <span key={d?.person?.id || idx} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-300">
+                                        {d?.person?.full_name || 'Unknown'} ({safePct(d)}%)
                                     </span>
                                 ))}
                             </div>
@@ -323,20 +345,19 @@ const UtilizationPage: React.FC = () => {
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <div className="text-sm font-medium text-white">Burn Rate Signal</div>
+                            <div className="text-sm font-medium text-slate-50">Burn Rate Signal</div>
                             <div className="text-xs text-slate-500 mt-0.5">
                                 Based on approved time entries for the current period
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-lg font-bold text-white">{formatCurrency(summary.burn_rate_daily)}/day</div>
+                            <div className="text-lg font-bold text-slate-50">{formatCurrency(summary.burn_rate_daily)}/day</div>
                             <div className="text-xs text-slate-500">{formatCurrency(summary.burn_rate_daily * 5)}/week</div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
@@ -346,9 +367,21 @@ const UtilizationPage: React.FC = () => {
 // =============================================================================
 
 const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
-    const { person, utilization } = data;
-    const utilizationPct = utilization.utilization_pct || 0;
-    const allocationPct = utilization.allocation_pct || 0;
+    // Compensation privacy tier — rate line hidden without compensation.read.
+    const canViewCompensation = useCanViewCompensation();
+    const { settings: cardSettings } = useBusinessSettings();
+    const cardFormatters = useFormatters({
+        currency: cardSettings?.base_currency || 'USD',
+        locale: cardSettings?.document_language || 'en-US',
+        timezone: cardSettings?.timezone || 'UTC',
+    });
+    // Guard against an incomplete record (e.g. a person with no allocation
+    // or timesheet data yet) missing `person`/`utilization` entirely.
+    const rawPerson = data?.person ?? ({} as UtilizationData['person']);
+    const person = { ...rawPerson, full_name: rawPerson?.full_name || 'Unknown' };
+    const utilization = data?.utilization ?? ({} as UtilizationData['utilization']);
+    const utilizationPct = utilization.utilization_pct ?? 0;
+    const allocationPct = utilization.allocation_pct ?? 0;
 
     const getBarColor = (pct: number) => {
         if (pct >= 90) return 'bg-amber-500';
@@ -382,15 +415,20 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-white truncate">{person.full_name}</span>
-                        {person.job_title && <span className="text-xs text-slate-500">{person.job_title}</span>}
-                        {utilization.is_idle && (
-                            <span className="px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded text-xs">Idle</span>
-                        )}
-                        {utilization.is_overallocated && (
-                            <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded text-xs">Over</span>
-                        )}
+                    {/* Name + role share the elastic space and truncate; the status
+                        badges keep a fixed slot on the right so a long name never
+                        shifts them between cards. */}
+                    <div className="flex items-center gap-2 mb-1 h-6">
+                        <span className="text-sm font-medium text-slate-50 truncate max-w-[45%]">{person.full_name}</span>
+                        {person.job_title && <span className="text-xs text-slate-500 truncate min-w-0">{person.job_title}</span>}
+                        <span className="ml-auto flex items-center gap-2 flex-shrink-0">
+                            {utilization.is_idle && (
+                                <span className="px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded text-xs">Idle</span>
+                            )}
+                            {utilization.is_overallocated && (
+                                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded text-xs">Over</span>
+                            )}
+                        </span>
                     </div>
 
                     {/* Utilization Bar */}
@@ -403,7 +441,7 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                                     style={{ width: `${Math.min(utilizationPct, 100)}%` }}
                                 />
                             </div>
-                            <span className={`text-xs font-medium w-10 text-right ${getTextColor(utilizationPct)}`}>
+                            <span className={`text-xs font-medium w-10 text-right tabular-nums ${getTextColor(utilizationPct)}`}>
                                 {utilizationPct}%
                             </span>
                         </div>
@@ -415,45 +453,52 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                                     style={{ width: `${Math.min(allocationPct, 100)}%` }}
                                 />
                             </div>
-                            <span className={`text-xs font-medium w-10 text-right ${allocationPct > 100 ? 'text-amber-400' : 'text-slate-400'}`}>
+                            <span className={`text-xs font-medium w-10 text-right tabular-nums ${allocationPct > 100 ? 'text-amber-400' : 'text-slate-400'}`}>
                                 {allocationPct}%
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Metrics */}
-                <div className="flex-shrink-0 grid grid-cols-3 gap-4 text-center">
-                    <div>
+                {/* Metrics — fixed column widths so Available / Actual / Cost sit
+                    on the same vertical lines in every card regardless of value length. */}
+                <div className="flex-shrink-0 grid grid-cols-3 gap-4 w-[264px]">
+                    <div className="text-right">
                         <div className="text-xs text-slate-500">Available</div>
-                        <div className="text-sm font-medium text-white">{utilization.available_hours}h</div>
+                        <div className="text-sm font-medium text-slate-50 tabular-nums">{utilization.available_hours}h</div>
                     </div>
-                    <div>
+                    <div className="text-right">
                         <div className="text-xs text-slate-500">Actual</div>
-                        <div className="text-sm font-medium text-white">{utilization.actual_hours}h</div>
+                        <div className="text-sm font-medium text-slate-50 tabular-nums">{utilization.actual_hours}h</div>
                     </div>
-                    <div>
+                    <div className="text-right">
                         <div className="text-xs text-slate-500">Cost</div>
-                        <div className="text-sm font-medium text-white">
-                            ${Math.round(utilization.actual_cost || 0)}
+                        <div className="text-sm font-medium text-slate-50 tabular-nums truncate">
+                            {cardFormatters.formatCurrency(Math.round(utilization.actual_cost || 0))}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Variance indicator */}
-            {utilization.variance_hours !== 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-800/50 flex items-center gap-2 text-xs">
-                    <span className="text-slate-500">Variance:</span>
-                    <span className={utilization.variance_hours > 0 ? 'text-emerald-400' : 'text-amber-400'}>
-                        {utilization.variance_hours > 0 ? '+' : ''}{utilization.variance_hours}h vs planned
-                    </span>
-                    <span className="text-slate-600">|</span>
-                    <span className="text-slate-500">
-                        Rate: ${person.cost_rate}/{person.available_hours_per_day ? 'hour' : 'day'}
-                    </span>
-                </div>
-            )}
+            {/* Variance indicator — always rendered so every card keeps the same
+                footer baseline; a zero variance simply reads as 0h. */}
+            <div className="mt-3 pt-3 border-t border-slate-800/50 flex items-center gap-2 text-xs">
+                <span className="text-slate-500">Variance:</span>
+                <span className={
+                    utilization.variance_hours > 0 ? 'text-emerald-400' :
+                    utilization.variance_hours < 0 ? 'text-amber-400' : 'text-slate-400'
+                }>
+                    {utilization.variance_hours > 0 ? '+' : ''}{utilization.variance_hours ?? 0}h vs planned
+                </span>
+                {canViewCompensation && (
+                    <>
+                        <span className="text-slate-600">|</span>
+                        <span className="text-slate-500">
+                            Rate: {cardFormatters.formatCurrency(person.cost_rate || 0)}/{person.available_hours_per_day ? 'hour' : 'day'}
+                        </span>
+                    </>
+                )}
+            </div>
         </div>
     );
 };
@@ -463,9 +508,30 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
 // =============================================================================
 
 const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
-    };
+    const { settings } = useBusinessSettings();
+    const formatters = useFormatters({
+        currency: settings?.base_currency || 'USD',
+        locale: settings?.document_language || 'en-US',
+        timezone: settings?.timezone || 'UTC',
+    });
+    const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
+
+    // Normalize each row up-front so a single incomplete/malformed record
+    // (missing `person` or `utilization`) never crashes this component.
+    const rows = data.filter(Boolean).map((item, idx) => ({
+        key: item?.person?.id || `row-${idx}`,
+        fullName: item?.person?.full_name || 'Unknown',
+        jobTitle: item?.person?.job_title || '',
+        isIdle: !!item?.utilization?.is_idle,
+        isOverallocated: !!item?.utilization?.is_overallocated,
+        availableHours: item?.utilization?.available_hours ?? 0,
+        plannedHours: item?.utilization?.planned_hours ?? 0,
+        actualHours: item?.utilization?.actual_hours ?? 0,
+        utilizationPct: item?.utilization?.utilization_pct ?? 0,
+        allocationPct: item?.utilization?.allocation_pct ?? 0,
+        varianceHours: item?.utilization?.variance_hours ?? 0,
+        actualCost: item?.utilization?.actual_cost ?? 0,
+    }));
 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -480,72 +546,72 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
                 <div className="text-right">Cost</div>
             </div>
             <div className="divide-y divide-slate-800">
-                {data.map((item) => (
+                {rows.map((row) => (
                     <div
-                        key={item.person.id}
+                        key={row.key}
                         className={`grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 items-center hover:bg-slate-800/30 ${
-                            item.utilization.is_idle ? 'bg-rose-500/3' :
-                            item.utilization.is_overallocated ? 'bg-amber-500/3' : ''
+                            row.isIdle ? 'bg-rose-500/3' :
+                            row.isOverallocated ? 'bg-amber-500/3' : ''
                         }`}
                     >
                         <div className="flex items-center gap-2 min-w-0">
                             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
                                 <span className="text-[10px] font-medium text-teal-400">
-                                    {item.person.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                    {row.fullName.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                 </span>
                             </div>
                             <div className="min-w-0">
-                                <div className="text-sm text-white truncate">{item.person.full_name}</div>
-                                <div className="text-xs text-slate-500 truncate">{item.person.job_title}</div>
+                                <div className="text-sm text-slate-50 truncate">{row.fullName}</div>
+                                <div className="text-xs text-slate-500 truncate">{row.jobTitle}</div>
                             </div>
                         </div>
-                        <div className="text-right text-sm text-slate-300">{item.utilization.available_hours}h</div>
-                        <div className="text-right text-sm text-slate-300">{item.utilization.planned_hours}h</div>
-                        <div className="text-right text-sm text-white font-medium">{item.utilization.actual_hours}h</div>
+                        <div className="text-right text-sm text-slate-300">{row.availableHours}h</div>
+                        <div className="text-right text-sm text-slate-300">{row.plannedHours}h</div>
+                        <div className="text-right text-sm text-slate-50 font-medium">{row.actualHours}h</div>
                         <div className={`text-right text-sm font-bold ${
-                            item.utilization.utilization_pct >= 70 ? 'text-emerald-400' :
-                            item.utilization.utilization_pct >= 50 ? 'text-teal-400' :
-                            item.utilization.utilization_pct >= 30 ? 'text-blue-400' : 'text-rose-400'
+                            row.utilizationPct >= 70 ? 'text-emerald-400' :
+                            row.utilizationPct >= 50 ? 'text-teal-400' :
+                            row.utilizationPct >= 30 ? 'text-blue-400' : 'text-rose-400'
                         }`}>
-                            {item.utilization.utilization_pct}%
+                            {row.utilizationPct}%
                         </div>
-                        <div className={`text-right text-sm ${item.utilization.allocation_pct > 100 ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
-                            {item.utilization.allocation_pct}%
+                        <div className={`text-right text-sm ${row.allocationPct > 100 ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
+                            {row.allocationPct}%
                         </div>
                         <div className={`text-right text-sm ${
-                            item.utilization.variance_hours > 0 ? 'text-emerald-400' :
-                            item.utilization.variance_hours < -5 ? 'text-amber-400' : 'text-slate-400'
+                            row.varianceHours > 0 ? 'text-emerald-400' :
+                            row.varianceHours < -5 ? 'text-amber-400' : 'text-slate-400'
                         }`}>
-                            {item.utilization.variance_hours > 0 ? '+' : ''}{item.utilization.variance_hours}h
+                            {row.varianceHours > 0 ? '+' : ''}{row.varianceHours}h
                         </div>
-                        <div className="text-right text-sm text-slate-300">{formatCurrency(item.utilization.actual_cost || 0)}</div>
+                        <div className="text-right text-sm text-slate-300">{formatCurrency(row.actualCost)}</div>
                     </div>
                 ))}
             </div>
 
             {/* Totals row */}
             <div className="grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 bg-slate-800/50 border-t border-slate-700">
-                <div className="text-xs font-medium text-slate-400">TOTALS ({data.length} people)</div>
+                <div className="text-xs font-medium text-slate-400">TOTALS ({rows.length} people)</div>
                 <div className="text-right text-xs font-medium text-slate-300">
-                    {data.reduce((sum, d) => sum + d.utilization.available_hours, 0)}h
+                    {rows.reduce((sum, r) => sum + r.availableHours, 0)}h
                 </div>
                 <div className="text-right text-xs font-medium text-slate-300">
-                    {data.reduce((sum, d) => sum + d.utilization.planned_hours, 0)}h
+                    {rows.reduce((sum, r) => sum + r.plannedHours, 0)}h
                 </div>
-                <div className="text-right text-xs font-medium text-white">
-                    {data.reduce((sum, d) => sum + d.utilization.actual_hours, 0)}h
+                <div className="text-right text-xs font-medium text-slate-50">
+                    {rows.reduce((sum, r) => sum + r.actualHours, 0)}h
                 </div>
                 <div className="text-right text-xs font-medium text-teal-400">
-                    {data.length > 0 ? Math.round(data.reduce((sum, d) => sum + d.utilization.utilization_pct, 0) / data.length) : 0}%
+                    {rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.utilizationPct, 0) / rows.length) : 0}%
                 </div>
                 <div className="text-right text-xs font-medium text-slate-400">
-                    {data.length > 0 ? Math.round(data.reduce((sum, d) => sum + d.utilization.allocation_pct, 0) / data.length) : 0}%
+                    {rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.allocationPct, 0) / rows.length) : 0}%
                 </div>
                 <div className="text-right text-xs font-medium text-slate-400">
-                    {data.reduce((sum, d) => sum + d.utilization.variance_hours, 0)}h
+                    {rows.reduce((sum, r) => sum + r.varianceHours, 0)}h
                 </div>
-                <div className="text-right text-xs font-medium text-white">
-                    {formatCurrency(data.reduce((sum, d) => sum + (d.utilization.actual_cost || 0), 0))}
+                <div className="text-right text-xs font-medium text-slate-50">
+                    {formatCurrency(rows.reduce((sum, r) => sum + r.actualCost, 0))}
                 </div>
             </div>
         </div>

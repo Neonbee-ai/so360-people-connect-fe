@@ -86,3 +86,26 @@ describe('Given departmentsApi.getById', () => {
     expect(mockApi.get).toHaveBeenCalledWith('/departments/d1');
   });
 });
+
+describe('Given departmentsApi.getEmployees', () => {
+  it('When called with id / Then it calls GET /departments/:id/employees', async () => {
+    mockApi.get.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100, totalPages: 0 });
+    await departmentsApi.getEmployees('d1');
+    expect(mockApi.get).toHaveBeenCalledWith('/departments/d1/employees', undefined);
+  });
+
+  it('When called with pagination params / Then it passes them to the API', async () => {
+    mockApi.get.mockResolvedValue({ data: [], total: 0 });
+    await departmentsApi.getEmployees('d1', { page: 2, limit: 50 });
+    expect(mockApi.get).toHaveBeenCalledWith('/departments/d1/employees', { page: 2, limit: 50 });
+  });
+
+  it('When API resolves / Then it returns paginated employee data', async () => {
+    const mockEmployees = { data: [{ id: 'e1', full_name: 'Dhanooj', status: 'active' }], total: 1, page: 1, limit: 100, totalPages: 1 };
+    mockApi.get.mockResolvedValue(mockEmployees);
+    const result = await departmentsApi.getEmployees('d1');
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].full_name).toBe('Dhanooj');
+    expect(result.total).toBe(1);
+  });
+});

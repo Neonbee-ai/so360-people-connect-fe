@@ -1,57 +1,125 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Mail, Phone, Calendar, DollarSign, Clock, Target,
     Tag, Plus, Trash2, Edit2, Save, X, History, User, UserCheck, UserPlus,
+    Briefcase, Shield, Wallet, ClipboardCheck, CalendarDays,
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
+import PayrollProfileTab from '../components/payroll/PayrollProfileTab';
+import PersonLeaveConfigTab from '../components/leave/PersonLeaveConfigTab';
+import PersonOnboardingTab from '../components/PersonOnboardingTab';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
 import { useActivity } from '@so360/shell-context';
-import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
+import { usePeopleFormatters } from '../utils/formatters';
+import { peopleApi, allocationsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
+import type { TimesheetEntry } from '../services/timesheetApi';
 import { goalsApi, Goal } from '../services/goalsService';
-import type { Person, Allocation, TimeEntry, PersonRole } from '../types/people';
+import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
+import DepartmentSelector from '../components/DepartmentSelector';
+import UserSelector from '../components/UserSelector';
+import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
+import { useCanConfigureLeave } from '../hooks/useCanConfigureLeave';
+import type { Person, Allocation, PersonRole } from '../types/people';
 
 const PersonDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
+    const formatters = usePeopleFormatters();
+    // Compensation privacy tier — rate/salary fields are hidden unless the
+    // user holds compensation.read (fail open while permissions load).
+    const canViewCompensation = useCanViewCompensation();
+    // Employees must not be able to grant themselves leave types.
+    const canConfigureLeave = useCanConfigureLeave();
     const [person, setPerson] = useState<Person | null>(null);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
-    const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+    const [timeEntries, setTimeEntries] = useState<TimesheetEntry[]>([]);
+    // Time entries come from the Timesheets module over a bridge that can be down
+    // (503), forbidden (403) or unreachable. Those are NOT the same thing as an
+    // employee who logged no time, so the tab tracks its own three states.
+    const [timeEntriesStatus, setTimeEntriesStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
     const [employmentHistory, setEmploymentHistory] = useState<any[]>([]);
     const [rateHistory, setRateHistory] = useState<any[]>([]);
     const [goals, setGoals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<'not_found' | 'load_failed' | null>(null);
     const [editing, setEditing] = useState(false);
     const [editData, setEditData] = useState<Partial<Person>>({});
     const [showRoleModal, setShowRoleModal] = useState(false);
+    const [showSystemRoleModal, setShowSystemRoleModal] = useState(false);
     const [showLinkUserModal, setShowLinkUserModal] = useState(false);
     const [showUpdateRateModal, setShowUpdateRateModal] = useState(false);
-    const [activeTab, setActiveTab] = useState<string>('overview');
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    // Deep links (e.g. payroll alert "Fix" flow) may land with ?tab=payroll.
+    const [searchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState<string>(searchParams.get('tab') ?? 'overview');
+    const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
 
     useEffect(() => {
         if (!id) return;
+        let cancelled = false;
         const loadData = async () => {
+            setLoading(true);
+            setLoadError(null);
+            setTimeEntriesStatus('loading');
+
+            // 1. Critical fetch: the employee record itself. A failure here (or an
+            //    empty/invalid record) must surface a proper error/not-found state,
+            //    never a blank page.
+            let personData: Person | null = null;
             try {
-                const [personData, allocData, timeData] = await Promise.all([
-                    peopleApi.getById(id),
-                    allocationsApi.getAll({ person_id: id }),
-                    timeEntriesApi.getAll({ person_id: id, limit: 10 }),
-                ]);
-                setPerson(personData);
-                setAllocations(allocData.data);
-                setTimeEntries(timeData.data);
+                personData = await peopleApi.getById(id);
             } catch (error) {
                 console.error('Failed to load person:', error);
-                setToast({ message: 'Failed to load person details', type: 'error' });
-            } finally {
+                if (cancelled) return;
+                setPerson(null);
+                setLoadError('load_failed');
+                toast.error('Failed to load employee details');
                 setLoading(false);
+                return;
             }
+            if (cancelled) return;
+            if (!personData || !personData.id) {
+                setPerson(null);
+                setLoadError('not_found');
+                setLoading(false);
+                return;
+            }
+            setPerson(personData);
+
+            // 2. Secondary data: allocations, time entries, work locations. A failure
+            //    in any of these must NOT blank the page — degrade gracefully to [].
+            const [allocRes, timeRes, locRes] = await Promise.allSettled([
+                allocationsApi.getAll({ person_id: id }),
+                // Read-only: time entries come from the Timesheets module
+                timesheetApi.getEntries({ person_id: id, limit: 10 }),
+                workLocationsApi.getAll(),
+            ]);
+            if (cancelled) return;
+            setAllocations(allocRes.status === 'fulfilled' ? (allocRes.value?.data ?? []) : []);
+            setTimeEntries(timeRes.status === 'fulfilled' ? (timeRes.value?.data ?? []) : []);
+            setTimeEntriesStatus(timeRes.status === 'fulfilled' ? 'loaded' : 'error');
+            setWorkLocations(locRes.status === 'fulfilled' ? (locRes.value?.data ?? []) : []);
+            // Log secondary failures but do not surface a page-level error toast.
+            // Timesheet 403 is expected for users without timesheet access; work
+            // location failures are non-critical. Each tab shows its own state —
+            // the Time Entries tab distinguishes "unavailable" from "none logged".
+            if (timeRes.status === 'rejected') {
+                console.warn('[PersonDetail] Timesheet data unavailable (user may lack timesheet permissions):', (timeRes as PromiseRejectedResult).reason);
+            }
+            if (locRes.status === 'rejected') {
+                console.warn('[PersonDetail] Work locations unavailable:', (locRes as PromiseRejectedResult).reason);
+            }
+            if (allocRes.status === 'rejected') {
+                console.warn('[PersonDetail] Allocations unavailable:', (allocRes as PromiseRejectedResult).reason);
+            }
+            setLoading(false);
         };
         loadData();
+        return () => { cancelled = true; };
     }, [id]);
 
     const handleSave = async () => {
@@ -60,7 +128,7 @@ const PersonDetailPage: React.FC = () => {
             const updated = await peopleApi.update(id, editData);
             setPerson({ ...person, ...updated });
             setEditing(false);
-            setToast({ message: 'Person updated', type: 'success' });
+            toast.success('Person updated');
             const statusChanged = editData.status && editData.status !== person.status;
             if (statusChanged) {
                 recordActivity({ eventType: 'people.person.status_changed', eventCategory: 'identity', description: `Person ${person.full_name} status changed to ${editData.status}`, resourceType: 'person', resourceId: id }).catch(() => {});
@@ -68,30 +136,89 @@ const PersonDetailPage: React.FC = () => {
                 recordActivity({ eventType: 'people.person.updated', eventCategory: 'identity', description: `Person ${person.full_name} was updated`, resourceType: 'person', resourceId: id }).catch(() => {});
             }
         } catch (error) {
-            setToast({ message: 'Failed to update', type: 'error' });
+            toast.error('Failed to update');
         }
     };
 
-    const handleAddRole = async (roleData: { role_name: string; skill_category: string; proficiency: string; is_primary: boolean }) => {
+    // Skills & Competencies — a capability tracker, intentionally separate from the
+    // System Role (which is the Core IAM access role, edited via handleUpdateSystemRole).
+    const handleAddSkill = async (skillData: { role_name: string; skill_category: string; proficiency: string; is_primary: boolean }) => {
         if (!id) return;
         try {
-            const newRole = await peopleApi.addRole(id, roleData as Omit<PersonRole, 'id' | 'person_id' | 'org_id' | 'tenant_id' | 'created_at'>);
-            setPerson(prev => prev ? { ...prev, people_roles: [...(prev.people_roles || []), newRole] } : prev);
+            const newSkill = await peopleApi.addRole(id, skillData as Omit<PersonRole, 'id' | 'person_id' | 'org_id' | 'tenant_id' | 'created_at'>);
+            setPerson(prev => prev ? { ...prev, people_roles: [...(prev.people_roles || []), newSkill] } : prev);
             setShowRoleModal(false);
-            setToast({ message: 'Role added', type: 'success' });
+            toast.success('Skill added');
         } catch (error) {
-            setToast({ message: 'Failed to add role', type: 'error' });
+            toast.error('Failed to add skill');
         }
     };
 
-    const handleRemoveRole = async (roleId: string) => {
+    const handleRemoveSkill = async (skillId: string) => {
         if (!id) return;
         try {
-            await peopleApi.removeRole(id, roleId);
-            setPerson(prev => prev ? { ...prev, people_roles: prev.people_roles?.filter(r => r.id !== roleId) } : prev);
-            setToast({ message: 'Role removed', type: 'success' });
+            await peopleApi.removeRole(id, skillId);
+            setPerson(prev => prev ? { ...prev, people_roles: prev.people_roles?.filter(r => r.id !== skillId) } : prev);
+            toast.success('Skill removed');
         } catch (error) {
-            setToast({ message: 'Failed to remove role', type: 'error' });
+            toast.error('Failed to remove skill');
+        }
+    };
+
+    // System Role — the single source of truth for access. Updating it patches the
+    // person's Core IAM org membership, which keeps the employee profile, Team
+    // Management, and permissions in sync automatically (one membership, one role).
+    const handleUpdateSystemRole = async (roleId: string, roleName: string) => {
+        if (!id) return;
+        try {
+            await peopleApi.updateSystemRole(id, roleId);
+            setPerson(prev => prev ? { ...prev, system_role: roleName } : prev);
+            setShowSystemRoleModal(false);
+            toast.success('System role updated');
+            recordActivity({ eventType: 'people.person.role_changed', eventCategory: 'identity', description: `${person?.full_name ?? 'Person'} system role changed to ${roleName}`, resourceType: 'person', resourceId: id }).catch(() => {});
+        } catch (error) {
+            toast.error('Failed to update system role');
+        }
+    };
+
+    // Link this person to an existing platform user account. The button used to
+    // only flip `showLinkUserModal`, which nothing rendered — clicking it did
+    // nothing at all. The modal below is the missing half.
+    const handleLinkUser = async (userId: string) => {
+        if (!id) return;
+        const updated = await peopleApi.linkUser(id, userId);
+        setPerson(prev => (prev ? { ...prev, ...updated, user_id: updated?.user_id ?? userId } : prev));
+        setShowLinkUserModal(false);
+        toast.success(`${person?.full_name ?? 'Person'} is now linked to a user account`);
+        recordActivity({ eventType: 'people.person.user_linked', eventCategory: 'identity', description: `${person?.full_name ?? 'Person'} was linked to a user account`, resourceType: 'person', resourceId: id }).catch(() => {});
+    };
+
+    // Records a new effective-dated rate (employment_history row). The Update Rate
+    // button used to only flip `showUpdateRateModal`, which nothing rendered —
+    // clicking it did nothing at all. The modal below is the missing half.
+    const handleAddNewRate = async (dto: { cost_rate: number; billing_rate?: number; effective_date?: string; reason?: string }) => {
+        if (!id) return;
+        await peopleApi.updateRate(id, dto);
+        setShowUpdateRateModal(false);
+        toast.success('New rate recorded');
+        loadRateHistory();
+        recordActivity({ eventType: 'people.person.rate_changed', eventCategory: 'compensation', description: `${person?.full_name ?? 'Person'} rate changed`, resourceType: 'person', resourceId: id }).catch(() => {});
+    };
+
+    // Re-fetch just the time entries. Backs the Retry action on the Time Entries
+    // tab so a transient timesheet-bridge failure can be recovered without a
+    // full page reload.
+    const loadTimeEntries = async () => {
+        if (!id) return;
+        setTimeEntriesStatus('loading');
+        try {
+            const res = await timesheetApi.getEntries({ person_id: id, limit: 10 });
+            setTimeEntries(res?.data ?? []);
+            setTimeEntriesStatus('loaded');
+        } catch (error) {
+            console.warn('[PersonDetail] Timesheet data unavailable:', error);
+            setTimeEntries([]);
+            setTimeEntriesStatus('error');
         }
     };
 
@@ -151,8 +278,8 @@ const PersonDetailPage: React.FC = () => {
     if (!person) {
         return (
             <div className="p-6 text-center text-slate-400">
-                Person not found.
-                <button onClick={() => navigate('/people')} className="ml-2 text-teal-400 hover:text-teal-300">
+                {loadError === 'load_failed' ? 'Unable to load employee details.' : 'Person not found.'}
+                <button onClick={() => navigate('/people/people')} className="ml-2 text-teal-400 hover:text-teal-300">
                     Back to list
                 </button>
             </div>
@@ -161,14 +288,14 @@ const PersonDetailPage: React.FC = () => {
 
     const totalAllocated = allocations
         .filter(a => a.status === 'active')
-        .reduce((sum, a) => sum + (a.allocation_type === 'percentage' ? a.allocation_value : 0), 0);
+        .reduce((sum, a) => sum + (a.allocation_value ?? 0), 0);
 
     const totalHoursLogged = timeEntries.reduce((sum, te) => sum + te.hours, 0);
 
     return (
         <div className="p-6 space-y-6">
             {/* Back Navigation */}
-            <button onClick={() => navigate('/people')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
+            <button onClick={() => navigate('/people/people')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
                 <ArrowLeft size={16} />
                 Back to People
             </button>
@@ -178,12 +305,12 @@ const PersonDetailPage: React.FC = () => {
                 <div className="flex items-start gap-4">
                     <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
                         <span className="text-lg font-bold text-teal-400">
-                            {person.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                            {(person.full_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </span>
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
-                            <h2 className="text-xl font-bold text-white">{person.full_name}</h2>
+                            <h2 className="text-xl font-bold text-slate-50">{person.full_name || 'Unknown'}</h2>
                             <StatusBadge status={person.type} />
                             <StatusBadge status={person.status} />
                             {person.user_id && (
@@ -195,7 +322,7 @@ const PersonDetailPage: React.FC = () => {
                             {!person.user_id && (
                                 <button
                                     onClick={() => setShowLinkUserModal(true)}
-                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md text-xs text-slate-400 hover:text-white transition-colors"
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md text-xs text-slate-400 hover:text-slate-50 transition-colors"
                                 >
                                     <UserPlus size={12} />
                                     Link User
@@ -204,8 +331,17 @@ const PersonDetailPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-4 text-sm text-slate-400">
                             {person.job_title && <span>{person.job_title}</span>}
-                            {person.department && <span className="text-slate-600">|</span>}
-                            {person.department && <span>{person.department}</span>}
+                            {(person.department_info?.name || person.department) && <span className="text-slate-600">|</span>}
+                            {(person.department_info?.name || person.department) && <span>{person.department_info?.name || person.department}</span>}
+                            {person.work_location && (
+                                <>
+                                    <span className="text-slate-600">|</span>
+                                    <span className="flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                        {person.work_location.name}
+                                    </span>
+                                </>
+                            )}
                         </div>
                         <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                             {person.email && <span className="flex items-center gap-1"><Mail size={12} />{person.email}</span>}
@@ -217,7 +353,7 @@ const PersonDetailPage: React.FC = () => {
                         {!editing ? (
                             <button
                                 onClick={() => { setEditing(true); setEditData(person); }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white hover:border-slate-600 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
                             >
                                 <Edit2 size={13} /> Edit
                             </button>
@@ -226,7 +362,7 @@ const PersonDetailPage: React.FC = () => {
                                 <button onClick={handleSave} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 rounded-lg text-xs text-white hover:bg-teal-500 transition-colors">
                                     <Save size={13} /> Save
                                 </button>
-                                <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white transition-colors">
+                                <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 transition-colors">
                                     <X size={13} /> Cancel
                                 </button>
                             </>
@@ -238,27 +374,40 @@ const PersonDetailPage: React.FC = () => {
                 {editing && (
                     <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-4 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-500 mb-1">Cost Rate</label>
-                            <input
-                                type="number" value={editData.cost_rate || 0}
-                                onChange={e => setEditData(d => ({ ...d, cost_rate: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
+                            <label className="block text-xs text-slate-500 mb-1">Department</label>
+                            <DepartmentSelector
+                                value={editData.department_id || ''}
+                                onChange={(id) => setEditData(d => ({ ...d, department_id: id }))}
+                                placeholder="Select department..."
+                                allowClear
                             />
                         </div>
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">Billing Rate</label>
-                            <input
-                                type="number" value={editData.billing_rate || 0}
-                                onChange={e => setEditData(d => ({ ...d, billing_rate: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
+                        {canViewCompensation && (
+                            <div>
+                                <label className="block text-xs text-slate-500 mb-1">Cost Rate</label>
+                                <input
+                                    type="number" value={editData.cost_rate || 0}
+                                    onChange={e => setEditData(d => ({ ...d, cost_rate: parseFloat(e.target.value) }))}
+                                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                />
+                            </div>
+                        )}
+                        {canViewCompensation && (
+                            <div>
+                                <label className="block text-xs text-slate-500 mb-1">Billing Rate</label>
+                                <input
+                                    type="number" value={editData.billing_rate || 0}
+                                    onChange={e => setEditData(d => ({ ...d, billing_rate: parseFloat(e.target.value) }))}
+                                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                />
+                            </div>
+                        )}
                         <div>
                             <label className="block text-xs text-slate-500 mb-1">Status</label>
                             <select
                                 value={editData.status || 'active'}
                                 onChange={e => setEditData(d => ({ ...d, status: e.target.value as Person['status'] }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
@@ -270,8 +419,21 @@ const PersonDetailPage: React.FC = () => {
                             <input
                                 type="number" value={editData.available_hours_per_day || 8}
                                 onChange={e => setEditData(d => ({ ...d, available_hours_per_day: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">Work Location</label>
+                            <select
+                                value={editData.work_location_id || ''}
+                                onChange={e => setEditData(d => ({ ...d, work_location_id: e.target.value || undefined }))}
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            >
+                                <option value="">None</option>
+                                {workLocations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                 )}
@@ -279,61 +441,114 @@ const PersonDetailPage: React.FC = () => {
 
             {/* Stats Row */}
             <div className="grid grid-cols-4 gap-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                        <DollarSign size={14} className="text-emerald-400" />
-                        <span className="text-xs text-slate-400">Cost Rate</span>
+                {canViewCompensation && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <DollarSign size={14} className="text-emerald-400" />
+                            <span className="text-xs text-slate-400">Cost Rate</span>
+                        </div>
+                        <div className="text-lg font-bold text-slate-50">{formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}</div>
                     </div>
-                    <div className="text-lg font-bold text-white">${person.cost_rate}/{person.cost_rate_unit}</div>
-                </div>
+                )}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                         <Target size={14} className="text-blue-400" />
                         <span className="text-xs text-slate-400">Total Allocated</span>
                     </div>
-                    <div className="text-lg font-bold text-white">{totalAllocated}%</div>
+                    <div className="text-lg font-bold text-slate-50">{totalAllocated}%</div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                         <Clock size={14} className="text-amber-400" />
                         <span className="text-xs text-slate-400">Hours Logged</span>
                     </div>
-                    <div className="text-lg font-bold text-white">{totalHoursLogged}h</div>
+                    {/* Never report a confident "0h" when the timesheet source failed. */}
+                    <div className="text-lg font-bold text-slate-50">
+                        {timeEntriesStatus === 'error' ? '—' : `${totalHoursLogged}h`}
+                    </div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                         <Clock size={14} className="text-teal-400" />
                         <span className="text-xs text-slate-400">Availability</span>
                     </div>
-                    <div className="text-lg font-bold text-white">{person.available_hours_per_day}h/day</div>
+                    <div className="text-lg font-bold text-slate-50">{person.available_hours_per_day}h/day</div>
                 </div>
             </div>
 
-            {/* Roles & Skills */}
+            {/* Employment Information — single source of truth, populated from the
+                employee record + Core IAM membership captured at registration. The
+                System Role here IS the access role (no separate role structure). */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl">
                 <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                        <Tag size={14} /> Roles & Skills
+                    <h3 className="text-sm font-semibold text-slate-50 flex items-center gap-2">
+                        <Briefcase size={14} /> Employment Information
+                    </h3>
+                    <button
+                        onClick={() => setShowSystemRoleModal(true)}
+                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
+                    >
+                        <Edit2 size={12} /> Edit Role
+                    </button>
+                </div>
+                <div className="p-5 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1">Job Title</div>
+                        <div className="text-sm text-slate-50">{person.job_title || '—'}</div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Shield size={11} /> System Role</div>
+                        <div className="text-sm text-slate-50">
+                            {person.system_role || <span className="text-slate-500">No system access</span>}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1">Department</div>
+                        <div className="text-sm text-slate-50">{person.department_info?.name || person.department || '—'}</div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1">Employment Type</div>
+                        <div className="text-sm text-slate-50 capitalize">{person.type || '—'}</div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-slate-500 mb-1">Access Status</div>
+                        <div><StatusBadge status={person.access_status || 'no_access'} /></div>
+                    </div>
+                    {person.invitation_status && (
+                        <div>
+                            <div className="text-xs text-slate-500 mb-1">Invitation</div>
+                            <div><StatusBadge status={person.invitation_status} /></div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Skills & Competencies — capability tracker only; NOT an access role.
+                Intentionally distinct from the System Role above. */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl">
+                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-50 flex items-center gap-2">
+                        <Tag size={14} /> Skills &amp; Competencies
                     </h3>
                     <button
                         onClick={() => setShowRoleModal(true)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white hover:border-slate-600 transition-colors"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
                     >
-                        <Plus size={12} /> Add Role
+                        <Plus size={12} /> Add Skill
                     </button>
                 </div>
                 <div className="p-5">
                     {!person.people_roles || person.people_roles.length === 0 ? (
-                        <p className="text-sm text-slate-500">No roles assigned yet</p>
+                        <p className="text-sm text-slate-500">No skills added yet</p>
                     ) : (
                         <div className="flex flex-wrap gap-2">
-                            {person.people_roles.map(role => (
-                                <div key={role.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
-                                    <span className="text-sm text-white">{role.role_name}</span>
-                                    {role.skill_category && <span className="text-xs text-slate-500">{role.skill_category}</span>}
-                                    <StatusBadge status={role.proficiency} />
-                                    {role.is_primary && <span className="text-xs text-teal-400 font-medium">Primary</span>}
-                                    <button onClick={() => handleRemoveRole(role.id)} className="ml-1 text-slate-500 hover:text-rose-400">
+                            {person.people_roles.map(skill => (
+                                <div key={skill.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
+                                    <span className="text-sm text-slate-50">{skill.role_name}</span>
+                                    {skill.skill_category && <span className="text-xs text-slate-500">{skill.skill_category}</span>}
+                                    <StatusBadge status={skill.proficiency} />
+                                    {skill.is_primary && <span className="text-xs text-teal-400 font-medium">Primary</span>}
+                                    <button onClick={() => handleRemoveSkill(skill.id)} className="ml-1 text-slate-500 hover:text-rose-400">
                                         <Trash2 size={12} />
                                     </button>
                                 </div>
@@ -352,7 +567,7 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'overview'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <User size={14} className="inline mr-1.5" />
@@ -363,7 +578,7 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'allocations'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <Target size={14} className="inline mr-1.5" />
@@ -374,7 +589,7 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'time'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <Clock size={14} className="inline mr-1.5" />
@@ -385,33 +600,68 @@ const PersonDetailPage: React.FC = () => {
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'employment-history'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <History size={14} className="inline mr-1.5" />
                             Employment History
                         </button>
-                        <button
-                            onClick={() => setActiveTab('rate-history')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'rate-history'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                            }`}
-                        >
-                            <DollarSign size={14} className="inline mr-1.5" />
-                            Rate History
-                        </button>
+                        {canViewCompensation && (
+                            <button
+                                onClick={() => setActiveTab('rate-history')}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                    activeTab === 'rate-history'
+                                        ? 'bg-teal-500/10 text-teal-400'
+                                        : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                }`}
+                            >
+                                <DollarSign size={14} className="inline mr-1.5" />
+                                Rate History
+                            </button>
+                        )}
                         <button
                             onClick={() => setActiveTab('goals')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'goals'
                                     ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
                             }`}
                         >
                             <Target size={14} className="inline mr-1.5" />
                             Goals
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('onboarding')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                activeTab === 'onboarding'
+                                    ? 'bg-teal-500/10 text-teal-400'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                            }`}
+                        >
+                            <ClipboardCheck size={14} className="inline mr-1.5" />
+                            Onboarding
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('leave')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                activeTab === 'leave'
+                                    ? 'bg-teal-500/10 text-teal-400'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                            }`}
+                        >
+                            <CalendarDays size={14} className="inline mr-1.5" />
+                            Leave
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('payroll')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                activeTab === 'payroll'
+                                    ? 'bg-teal-500/10 text-teal-400'
+                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                            }`}
+                        >
+                            <Wallet size={14} className="inline mr-1.5" />
+                            Payroll
                         </button>
                     </div>
                 </div>
@@ -421,7 +671,7 @@ const PersonDetailPage: React.FC = () => {
                     {activeTab === 'overview' && (
                         <div className="space-y-4">
                             <div className="text-sm text-slate-400">
-                                <p className="mb-2">This is the overview of {person.full_name}'s profile.</p>
+                                <p className="mb-2">This is the overview of {person.full_name || 'this person'}'s profile.</p>
                                 <p>Use the tabs above to view allocations, time entries, employment history, rate changes, and goals.</p>
                             </div>
                         </div>
@@ -441,14 +691,14 @@ const PersonDetailPage: React.FC = () => {
                                     <div key={alloc.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-sm text-white">{alloc.entity_name || alloc.entity_id}</div>
+                                                <div className="text-sm text-slate-50">{alloc.entity_name || alloc.entity_id}</div>
                                                 <div className="text-xs text-slate-500">
                                                     {alloc.start_date} to {alloc.end_date} | {alloc.entity_type}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-sm font-medium text-white">
-                                                    {alloc.allocation_value}{alloc.allocation_type === 'percentage' ? '%' : 'h'}
+                                                <span className="text-sm font-medium text-slate-50">
+                                                    {alloc.allocation_value}%
                                                 </span>
                                                 <StatusBadge status={alloc.status} />
                                             </div>
@@ -462,7 +712,21 @@ const PersonDetailPage: React.FC = () => {
                     {/* Time Entries Tab */}
                     {activeTab === 'time' && (
                         <div className="space-y-3">
-                            {timeEntries.length === 0 ? (
+                            {timeEntriesStatus === 'loading' ? (
+                                <div data-testid="time-entries-loading" role="status" aria-busy="true" className="animate-pulse space-y-3">
+                                    <span className="sr-only">Loading time entries…</span>
+                                    <div className="h-16 bg-slate-800 rounded-lg" />
+                                    <div className="h-16 bg-slate-800 rounded-lg" />
+                                    <div className="h-16 bg-slate-800 rounded-lg" />
+                                </div>
+                            ) : timeEntriesStatus === 'error' ? (
+                                <EmptyState
+                                    icon={Clock}
+                                    title="Unable to load time entries"
+                                    description="The Timesheets service did not respond. This is a connection problem, not an empty timesheet."
+                                    action={{ label: 'Retry', onClick: () => { loadTimeEntries(); } }}
+                                />
+                            ) : timeEntries.length === 0 ? (
                                 <EmptyState
                                     icon={Clock}
                                     title="No time entries"
@@ -473,14 +737,14 @@ const PersonDetailPage: React.FC = () => {
                                     <div key={entry.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-sm text-white">{entry.entity_name || entry.entity_type}</div>
+                                                <div className="text-sm text-slate-50">{entry.entity_name || entry.entity_type || 'Time entry'}</div>
                                                 <div className="text-xs text-slate-500">
-                                                    {entry.work_date} | {entry.description || 'No description'}
+                                                    {entry.entry_date} | {entry.description || 'No description'}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-sm font-medium text-white">{entry.hours}h</span>
-                                                <span className="text-xs text-slate-400">${entry.total_cost}</span>
+                                                <span className="text-sm font-medium text-slate-50">{entry.hours}h</span>
+                                                <span className="text-xs text-slate-400">${entry.calculated_cost || 0}</span>
                                                 <StatusBadge status={entry.status} />
                                             </div>
                                         </div>
@@ -498,11 +762,11 @@ const PersonDetailPage: React.FC = () => {
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-medium text-white capitalize">{event.event_type.replace('_', ' ')}</span>
+                                                <span className="text-sm font-medium text-slate-50 capitalize">{event.event_type.replace('_', ' ')}</span>
                                                 <StatusBadge status={event.event_type} />
                                             </div>
                                             <div className="text-xs text-slate-500">
-                                                {new Date(event.effective_date).toLocaleDateString()}
+                                                {formatters.formatDate(event.effective_date)}
                                             </div>
                                             {event.notes && (
                                                 <div className="mt-2 text-sm text-slate-400">{event.notes}</div>
@@ -519,7 +783,7 @@ const PersonDetailPage: React.FC = () => {
                                             )}
                                         </div>
                                         <div className="text-xs text-slate-600">
-                                            {new Date(event.created_at).toLocaleString()}
+                                            {formatters.formatDateTime(event.created_at)}
                                         </div>
                                     </div>
                                 </div>
@@ -534,8 +798,8 @@ const PersonDetailPage: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Rate History Tab */}
-                    {activeTab === 'rate-history' && (
+                    {/* Rate History Tab — compensation-gated */}
+                    {activeTab === 'rate-history' && canViewCompensation && (
                         <div className="space-y-3">
                             {rateHistory.map((event) => (
                                 <div key={event.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
@@ -544,21 +808,21 @@ const PersonDetailPage: React.FC = () => {
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div>
                                                     <div className="text-xs text-slate-500">Cost Rate</div>
-                                                    <div className="text-lg font-medium text-white">
-                                                        ${event.new_cost_rate}/{person.cost_rate_unit}
+                                                    <div className="text-lg font-medium text-slate-50">
+                                                        {formatters.formatCurrency(event.new_cost_rate)}/{person.cost_rate_unit}
                                                     </div>
                                                 </div>
                                                 {event.new_billing_rate && (
                                                     <div>
                                                         <div className="text-xs text-slate-500">Billing Rate</div>
                                                         <div className="text-lg font-medium text-teal-400">
-                                                            ${event.new_billing_rate}/{person.cost_rate_unit}
+                                                            {formatters.formatCurrency(event.new_billing_rate)}/{person.cost_rate_unit}
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="text-xs text-slate-500">
-                                                Effective: {new Date(event.effective_date).toLocaleDateString()}
+                                                Effective: {formatters.formatDate(event.effective_date)}
                                             </div>
                                             {event.reason && (
                                                 <div className="mt-2 text-sm text-slate-400">{event.reason}</div>
@@ -574,15 +838,37 @@ const PersonDetailPage: React.FC = () => {
                                     description="Rate changes will appear here"
                                 />
                             )}
-                            <button
-                                onClick={() => setShowUpdateRateModal(true)}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm text-white transition-colors"
-                            >
-                                <DollarSign size={16} />
-                                Update Rate
-                            </button>
+                            <div className="border-t border-slate-800 pt-3">
+                                <button
+                                    onClick={() => setShowUpdateRateModal(true)}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm text-slate-50 transition-colors"
+                                >
+                                    <DollarSign size={16} />
+                                    Add New Rate
+                                </button>
+                                <p className="mt-2 text-xs text-slate-500">
+                                    This records a new effective-dated rate. Records above are read-only history and are never edited.
+                                </p>
+                            </div>
                         </div>
                     )}
+
+                    {/* Onboarding Tab */}
+                    {activeTab === 'onboarding' && id && <PersonOnboardingTab personId={id} />}
+
+                    {/* Leave Configuration Tab — which leave types apply to this
+                        employee, and whether each came from their employment type
+                        or was set for them specifically. */}
+                    {activeTab === 'leave' && id && (
+                        <PersonLeaveConfigTab
+                            personId={id}
+                            employmentTypeLabel={person?.employment_type ?? null}
+                            canEdit={canConfigureLeave}
+                        />
+                    )}
+
+                    {/* Payroll Tab */}
+                    {activeTab === 'payroll' && person && <PayrollProfileTab person={person} />}
 
                     {/* Goals Tab */}
                     {activeTab === 'goals' && (
@@ -592,7 +878,7 @@ const PersonDetailPage: React.FC = () => {
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-medium text-white">{goal.title}</span>
+                                                <span className="text-sm font-medium text-slate-50">{goal.title}</span>
                                                 <StatusBadge status={goal.status} />
                                                 <StatusBadge status={goal.goal_type} />
                                             </div>
@@ -601,7 +887,7 @@ const PersonDetailPage: React.FC = () => {
                                             )}
                                         </div>
                                         <div className="text-xs text-slate-600">
-                                            Due: {new Date(goal.target_date).toLocaleDateString()}
+                                            Due: {formatters.formatDate(goal.target_date)}
                                         </div>
                                     </div>
                                     <div className="w-full bg-slate-900 rounded-full h-2">
@@ -625,51 +911,237 @@ const PersonDetailPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Add Role Modal */}
-            <AddRoleModal isOpen={showRoleModal} onClose={() => setShowRoleModal(false)} onAdd={handleAddRole} />
+            {/* Add Skill Modal */}
+            <AddSkillModal isOpen={showRoleModal} onClose={() => setShowRoleModal(false)} onAdd={handleAddSkill} />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            {/* Edit System Role Modal — updates the existing IAM membership role */}
+            <EditSystemRoleModal
+                isOpen={showSystemRoleModal}
+                onClose={() => setShowSystemRoleModal(false)}
+                currentRole={person.system_role ?? null}
+                hasAccess={!!person.linked_user_id || !!person.user_id}
+                onSave={handleUpdateSystemRole}
+            />
+
+            {/* Link User Modal */}
+            <LinkUserModal
+                isOpen={showLinkUserModal}
+                onClose={() => setShowLinkUserModal(false)}
+                personName={person.full_name || 'This person'}
+                onLink={handleLinkUser}
+            />
+
+            {/* Add New Rate Modal — creates a new employment_history entry, never edits history */}
+            <AddNewRateModal
+                isOpen={showUpdateRateModal}
+                onClose={() => setShowUpdateRateModal(false)}
+                personName={person.full_name || 'This person'}
+                onSave={handleAddNewRate}
+            />
+
         </div>
     );
 };
 
-// Add Role Modal Component
-const AddRoleModal: React.FC<{
+// Link User Modal — picks an existing platform user and links it to the person.
+const LinkUserModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    personName: string;
+    onLink: (userId: string) => Promise<void>;
+}> = ({ isOpen, onClose, personName, onLink }) => {
+    const [userId, setUserId] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) { setUserId(null); setError(''); setSaving(false); }
+    }, [isOpen]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!userId) { setError('Select a user account to link.'); return; }
+        setSaving(true);
+        setError('');
+        try {
+            await onLink(userId);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to link the user account. Please try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Link User Account" size="md">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                <p className="text-sm text-slate-400">
+                    Link <span className="text-slate-200 font-medium">{personName}</span> to an existing
+                    platform user so they can sign in and see their own records.
+                </p>
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1">User Account *</label>
+                    <UserSelector
+                        value={userId}
+                        onChange={(next) => { setUserId(next); setError(''); }}
+                        placeholder="Search users by name or email..."
+                    />
+                    {error && <p role="alert" className="mt-1 text-xs text-rose-400">{error}</p>}
+                </div>
+                <p className="text-xs text-slate-500">
+                    Don't see the person here? They don't have an account yet — use
+                    <span className="text-slate-300"> Invite</span> from the People Registry instead.
+                </p>
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={saving || !userId}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {saving ? 'Linking…' : 'Link Account'}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+// Add New Rate Modal — records a new effective-dated rate. Rate History rows
+// above are read-only; this always creates a new employment_history entry,
+// it never edits an existing one.
+const AddNewRateModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    personName: string;
+    onSave: (dto: { cost_rate: number; billing_rate?: number; effective_date?: string; reason?: string }) => Promise<void>;
+}> = ({ isOpen, onClose, personName, onSave }) => {
+    const [costRate, setCostRate] = useState('');
+    const [billingRate, setBillingRate] = useState('');
+    const [effectiveDate, setEffectiveDate] = useState('');
+    const [reason, setReason] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setCostRate(''); setBillingRate(''); setEffectiveDate(''); setReason('');
+            setError(''); setSaving(false);
+        }
+    }, [isOpen]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const parsedCostRate = Number(costRate);
+        if (!costRate || Number.isNaN(parsedCostRate) || parsedCostRate <= 0) {
+            setError('Enter a valid cost rate.');
+            return;
+        }
+        setSaving(true);
+        setError('');
+        try {
+            await onSave({
+                cost_rate: parsedCostRate,
+                billing_rate: billingRate ? Number(billingRate) : undefined,
+                effective_date: effectiveDate || undefined,
+                reason: reason || undefined,
+            });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to record the new rate. Please try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Add New Rate" size="md">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                <p className="text-sm text-slate-400">
+                    Records a new effective-dated rate for <span className="text-slate-200 font-medium">{personName}</span>.
+                    Previous rate history is preserved and never edited.
+                </p>
+                <div>
+                    <label htmlFor="add-rate-cost" className="block text-xs text-slate-400 mb-1">Cost Rate *</label>
+                    <input id="add-rate-cost" type="number" min="0" step="0.01" required value={costRate}
+                        onChange={e => { setCostRate(e.target.value); setError(''); }}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                </div>
+                <div>
+                    <label htmlFor="add-rate-billing" className="block text-xs text-slate-400 mb-1">Billing Rate</label>
+                    <input id="add-rate-billing" type="number" min="0" step="0.01" value={billingRate}
+                        onChange={e => setBillingRate(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                </div>
+                <div>
+                    <label htmlFor="add-rate-effective-date" className="block text-xs text-slate-400 mb-1">Effective Date</label>
+                    <input id="add-rate-effective-date" type="date" value={effectiveDate}
+                        onChange={e => setEffectiveDate(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                    <p className="mt-1 text-xs text-slate-500">Defaults to today if left blank.</p>
+                </div>
+                <div>
+                    <label htmlFor="add-rate-reason" className="block text-xs text-slate-400 mb-1">Reason</label>
+                    <input id="add-rate-reason" type="text" value={reason} onChange={e => setReason(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        placeholder="e.g., Annual review, Promotion" />
+                </div>
+                {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {saving ? 'Saving…' : 'Add Rate'}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+// Add Skill Modal Component — captures a capability/competency (NOT an access role).
+const AddSkillModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
     onAdd: (data: { role_name: string; skill_category: string; proficiency: string; is_primary: boolean }) => void;
 }> = ({ isOpen, onClose, onAdd }) => {
-    const [roleName, setRoleName] = useState('');
+    const [skillName, setSkillName] = useState('');
     const [category, setCategory] = useState('');
     const [proficiency, setProficiency] = useState('intermediate');
     const [isPrimary, setIsPrimary] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!roleName) return;
-        onAdd({ role_name: roleName, skill_category: category, proficiency, is_primary: isPrimary });
-        setRoleName(''); setCategory(''); setProficiency('intermediate'); setIsPrimary(false);
+        if (!skillName) return;
+        onAdd({ role_name: skillName, skill_category: category, proficiency, is_primary: isPrimary });
+        setSkillName(''); setCategory(''); setProficiency('intermediate'); setIsPrimary(false);
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Add Role / Skill" size="sm">
+        <Modal isOpen={isOpen} onClose={onClose} title="Add Skill" size="sm">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Role Name *</label>
-                    <input type="text" required value={roleName} onChange={e => setRoleName(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
-                        placeholder="e.g., Full Stack Developer" />
+                    <label className="block text-xs text-slate-400 mb-1">Skill Name *</label>
+                    <input type="text" required value={skillName} onChange={e => setSkillName(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        placeholder="e.g., React, Financial Modelling" />
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Skill Category</label>
                     <input type="text" value={category} onChange={e => setCategory(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         placeholder="e.g., Engineering, Design" />
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Proficiency</label>
                     <select value={proficiency} onChange={e => setProficiency(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500">
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500">
                         <option value="beginner">Beginner</option>
                         <option value="intermediate">Intermediate</option>
                         <option value="advanced">Advanced</option>
@@ -679,13 +1151,85 @@ const AddRoleModal: React.FC<{
                 <label className="flex items-center gap-2 text-sm text-slate-300">
                     <input type="checkbox" checked={isPrimary} onChange={e => setIsPrimary(e.target.checked)}
                         className="rounded border-slate-600" />
-                    Primary role
+                    Primary skill
                 </label>
                 <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-white">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg">Add Role</button>
+                    <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg">Add Skill</button>
                 </div>
             </form>
+        </Modal>
+    );
+};
+
+// Edit System Role Modal — updates the person's existing Core IAM org membership
+// role. This is the single source of truth; it does NOT create a new role record.
+const EditSystemRoleModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    currentRole: string | null;
+    hasAccess: boolean;
+    onSave: (roleId: string, roleName: string) => void;
+}> = ({ isOpen, onClose, currentRole, hasAccess, onSave }) => {
+    const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
+    const [roleId, setRoleId] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        setRoleId('');
+        peopleApi.getOrgRoles().then(r => setOrgRoles(r.data ?? [])).catch(() => setOrgRoles([]));
+    }, [isOpen]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!roleId) return;
+        const selected = orgRoles.find(r => r.id === roleId);
+        setSaving(true);
+        try {
+            await onSave(roleId, selected?.name ?? '');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Edit System Role" size="sm">
+            {!hasAccess ? (
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-300">
+                        This person has no system access yet. Invite them to a user account from the
+                        People list to assign a system role.
+                    </p>
+                    <div className="flex justify-end pt-2">
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50">Close</button>
+                    </div>
+                </div>
+            ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">Current Role</label>
+                        <div className="text-sm text-slate-50">{currentRole || '—'}</div>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">New System Role *</label>
+                        <select required value={roleId} onChange={e => setRoleId(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500">
+                            <option value="">Select role...</option>
+                            {orgRoles.map(role => (
+                                <option key={role.id} value={role.id}>{role.name}</option>
+                            ))}
+                        </select>
+                        <p className="mt-1 text-xs text-slate-500">Updates access across the profile, Team Management, and permissions.</p>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
+                        <button type="submit" disabled={saving || !roleId} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg">
+                            {saving ? 'Saving…' : 'Save Role'}
+                        </button>
+                    </div>
+                </form>
+            )}
         </Modal>
     );
 };

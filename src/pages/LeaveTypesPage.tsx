@@ -4,17 +4,18 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
+import { toast } from '@so360/design-system';
+import { useActivity, useShellBridge } from '@so360/shell-context';
 import { leaveTypesApi, LeaveType, CreateLeaveTypePayload } from '../services/leaveTypesService';
 
 const LeaveTypesPage: React.FC = () => {
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const canCreate = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:leave_types:create') ?? true);
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingLeaveType, setEditingLeaveType] = useState<LeaveType | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadLeaveTypes = useCallback(async () => {
         try {
@@ -23,7 +24,7 @@ const LeaveTypesPage: React.FC = () => {
             setLeaveTypes(result.data);
         } catch (error) {
             console.error('Failed to load leave types:', error);
-            setToast({ message: 'Failed to load leave types', type: 'error' });
+            toast.error('Failed to load leave types');
         } finally {
             setLoading(false);
         }
@@ -37,11 +38,11 @@ const LeaveTypesPage: React.FC = () => {
         try {
             const created = await leaveTypesApi.create(data);
             setShowCreateModal(false);
-            setToast({ message: `Leave type ${data.name} has been created`, type: 'success' });
+            toast.success(`Leave type ${data.name} has been created`);
             recordActivity({ eventType: 'people.leave_type.created', eventCategory: 'data', description: `Leave type ${data.name} was created`, resourceType: 'leave_type', resourceId: created?.id }).catch(() => {});
             loadLeaveTypes();
         } catch (error) {
-            setToast({ message: 'Failed to create leave type', type: 'error' });
+            toast.error('Failed to create leave type');
         }
     };
 
@@ -49,11 +50,11 @@ const LeaveTypesPage: React.FC = () => {
         try {
             await leaveTypesApi.update(id, data);
             setEditingLeaveType(null);
-            setToast({ message: 'Leave type updated successfully', type: 'success' });
+            toast.success('Leave type updated successfully');
             recordActivity({ eventType: 'people.leave_type.updated', eventCategory: 'data', description: `Leave type ${data.name || id} was updated`, resourceType: 'leave_type', resourceId: id }).catch(() => {});
             loadLeaveTypes();
         } catch (error) {
-            setToast({ message: 'Failed to update leave type', type: 'error' });
+            toast.error('Failed to update leave type');
         }
     };
 
@@ -63,7 +64,7 @@ const LeaveTypesPage: React.FC = () => {
                 title="Leave Types"
                 subtitle="Configure leave policies and accrual rules"
                 actions={
-                    <button
+                    canCreate && <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
@@ -85,7 +86,7 @@ const LeaveTypesPage: React.FC = () => {
                     icon={CalendarClock}
                     title="No leave types found"
                     description="Create leave types to manage employee time off."
-                    action={{ label: 'Create Leave Type', onClick: () => setShowCreateModal(true) }}
+                    action={canCreate ? { label: 'Create Leave Type', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -104,11 +105,17 @@ const LeaveTypesPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">
+                            {/*
+                              * Rows are not navigation targets — the Actions
+                              * column owns editing. A row-wide click plus a
+                              * dedicated Edit button were two ways to do the
+                              * same thing, and the row swallowed clicks meant
+                              * only to read a value.
+                              */}
                             {leaveTypes.map(leaveType => (
                                 <tr
                                     key={leaveType.id}
-                                    className="hover:bg-slate-800/50 cursor-pointer transition-colors"
-                                    onClick={() => setEditingLeaveType(leaveType)}
+                                    className="hover:bg-slate-800/50 transition-colors"
                                 >
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
@@ -118,7 +125,7 @@ const LeaveTypesPage: React.FC = () => {
                                                     style={{ backgroundColor: leaveType.color }}
                                                 />
                                             )}
-                                            <span className="text-sm font-medium text-white">{leaveType.name}</span>
+                                            <span className="text-sm font-medium text-slate-50">{leaveType.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">{leaveType.code}</td>
@@ -139,15 +146,12 @@ const LeaveTypesPage: React.FC = () => {
                                         <StatusBadge status={leaveType.is_active ? 'active' : 'inactive'} />
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingLeaveType(leaveType);
-                                            }}
-                                            className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                                        {canCreate && <button
+                                            onClick={() => setEditingLeaveType(leaveType)}
+                                            className="text-sm font-semibold text-teal-400 hover:text-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500/40 rounded transition-colors"
                                         >
                                             Edit
-                                        </button>
+                                        </button>}
                                     </td>
                                 </tr>
                             ))}
@@ -168,7 +172,6 @@ const LeaveTypesPage: React.FC = () => {
                 leaveType={editingLeaveType}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
@@ -253,7 +256,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 required
                                 value={formData.code}
                                 onChange={(e) => updateField('code', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="AL"
                             />
                         </div>
@@ -264,7 +267,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 required
                                 value={formData.name}
                                 onChange={(e) => updateField('name', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 placeholder="Annual Leave"
                             />
                         </div>
@@ -273,7 +276,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                             <textarea
                                 value={formData.description || ''}
                                 onChange={(e) => updateField('description', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                                 rows={2}
                             />
                         </div>
@@ -350,7 +353,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                             <select
                                 value={formData.accrual_type}
                                 onChange={(e) => updateField('accrual_type', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
                                 <option value="annual">Annual</option>
                                 <option value="monthly">Monthly</option>
@@ -365,7 +368,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 step="0.5"
                                 value={formData.max_days_per_year || ''}
                                 onChange={(e) => updateField('max_days_per_year', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -376,7 +379,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 step="0.01"
                                 value={formData.accrual_rate || ''}
                                 onChange={(e) => updateField('accrual_rate', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -387,7 +390,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 step="0.5"
                                 value={formData.max_carry_forward_days || ''}
                                 onChange={(e) => updateField('max_carry_forward_days', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                         <div>
@@ -397,7 +400,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                                 min="0"
                                 value={formData.notice_period_days || ''}
                                 onChange={(e) => updateField('notice_period_days', parseInt(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             />
                         </div>
                     </div>
@@ -408,7 +411,7 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>

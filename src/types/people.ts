@@ -18,7 +18,11 @@ export interface Person {
 
   // Classification
   type: 'employee' | 'contractor';
+  /** @deprecated free-text department; use department_id + department_info */
   department?: string;
+  department_id?: string | null;
+  /** Hydrated department master record (resolves name even when archived) */
+  department_info?: { id: string; name: string; code: string; is_active: boolean } | null;
   job_title?: string;
 
   // Cost
@@ -26,6 +30,11 @@ export interface Person {
   cost_rate_unit: 'hour' | 'day';
   currency: string;
   billing_rate?: number;
+
+  // Timesheet costing defaults — consumed by the Log Time precheck.
+  // Null/undefined means UNCONFIGURED, which is distinct from any default value.
+  default_labor_category_id?: string | null;
+  billing_type?: 'billable' | 'non_billable' | 'internal' | null;
 
   // Availability
   status: PersonStatus;
@@ -43,11 +52,52 @@ export interface Person {
   created_by?: string;
   updated_by?: string;
 
+  // Work Location
+  work_location_id?: string;
+  work_location?: { id: string; name: string; location_type: string } | null;
+
+  employee_id?: string;
+  employment_type?: 'full_time' | 'part_time' | 'contract' | 'intern';
+
+  // System access / identity unification (People Registry ↔ Team Management).
+  // All optional — older payloads predate these and must still render.
+  /** Whether this person has a usable login: active / pending invite / none. */
+  access_status?: AccessStatus;
+  /** Lifecycle of an outstanding user invitation, null when not invited. */
+  invitation_status?: InvitationStatus | null;
+  /** Core IAM login role name (e.g. 'Admin', 'Member'). Distinct from people_roles/skills. */
+  system_role?: string | null;
+  /** Login account state — 'blocked' overrides the access badge. */
+  login_status?: LoginStatus;
+  /** Linked Core user account, when one exists. */
+  linked_user_id?: string | null;
+  /** Last active timestamp (ISO) of the linked user. */
+  last_active?: string | null;
+
   // Relations
   people_roles?: PersonRole[];
 }
 
-export type PersonStatus = 'active' | 'inactive' | 'on_leave' | 'terminated';
+export type PersonStatus = 'active' | 'inactive' | 'on_leave' | 'terminated' | 'archived';
+
+export type AccessStatus = 'active' | 'pending' | 'no_access';
+export type InvitationStatus = 'pending' | 'accepted' | 'expired';
+export type LoginStatus = 'active' | 'blocked' | 'pending' | 'none';
+
+/**
+ * A labor category option for the employee cost-config selector.
+ * `rate_configured` is false when base_hourly_rate is 0 — a legal value that
+ * nonetheless means "unconfigured", so the UI can warn that picking this
+ * category alone will not make a rateless employee costable.
+ */
+export interface LaborCategoryOption {
+  id: string;
+  code: string | null;
+  name: string | null;
+  base_hourly_rate: number;
+  overtime_multiplier: number;
+  rate_configured: boolean;
+}
 
 export interface PersonRole {
   id: string;
@@ -67,7 +117,9 @@ export interface CreatePersonPayload {
   phone?: string;
   avatar_url?: string;
   type: 'employee' | 'contractor';
+  /** @deprecated free-text department; use department_id */
   department?: string;
+  department_id?: string | null;
   job_title?: string;
   cost_rate: number;
   cost_rate_unit?: 'hour' | 'day';
@@ -80,6 +132,12 @@ export interface CreatePersonPayload {
   end_date?: string;
   roles?: Omit<PersonRole, 'id' | 'person_id' | 'org_id' | 'tenant_id' | 'created_at'>[];
   meta?: Record<string, unknown>;
+  work_location_id?: string;
+  userLinkageMode?: 'none' | 'link' | 'invite';
+  existingUserId?: string;
+  inviteEmail?: string;
+  inviteRole?: string;
+  sendInviteEmail?: boolean;
 }
 
 // Allocation
@@ -96,9 +154,8 @@ export interface Allocation {
   start_date: string;
   end_date: string;
 
-  allocation_type: 'percentage' | 'hours';
   allocation_value: number;
-  allocation_period: 'daily' | 'weekly';
+  allocation_type: string;
 
   status: AllocationStatus;
   approved_by?: string;
@@ -123,63 +180,42 @@ export interface CreateAllocationPayload {
   entity_id: string;
   entity_name?: string;
   start_date: string;
-  end_date: string;
-  allocation_type?: 'percentage' | 'hours';
-  allocation_value: number;
-  allocation_period?: 'daily' | 'weekly';
-  status?: AllocationStatus;
+  end_date?: string;
+  // Backend contract: percentage allocation, integer-ish number in [1, 100].
+  allocation_percentage: number;
+  role?: string;
+  budgeted_hours?: number;
+  rate_override?: number;
   notes?: string;
   meta?: Record<string, unknown>;
 }
 
-// Time Entry
-export interface TimeEntry {
-  id: string;
-  org_id: string;
-  tenant_id: string;
-  person_id: string;
-  allocation_id?: string;
-
-  entity_type: string;
-  entity_id: string;
-  entity_name?: string;
-
-  work_date: string;
-  hours: number;
-  description?: string;
-
-  cost_rate: number;
-  cost_rate_unit: string;
-  total_cost: number;
-  currency: string;
-
-  status: TimeEntryStatus;
-  submitted_at?: string;
-  approved_by?: string;
-  approved_at?: string;
-  rejection_reason?: string;
-
-  meta?: Record<string, unknown>;
-  created_at: string;
-  updated_at?: string;
-  created_by?: string;
-
-  // Joined
-  person?: Pick<Person, 'id' | 'full_name' | 'email' | 'avatar_url' | 'job_title' | 'cost_rate'>;
+export interface UpdateAllocationPayload {
+  start_date?: string;
+  end_date?: string;
+  allocation_percentage?: number;
+  status?: AllocationStatus;
+  notes?: string;
 }
 
-export type TimeEntryStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+// Time Entry types removed — time logging is consolidated into the Timesheets
+// module. See src/services/timesheetApi.ts for the read-only consumer types.
 
-export interface CreateTimeEntryPayload {
-  person_id: string;
-  allocation_id?: string;
-  entity_type: string;
-  entity_id: string;
-  entity_name?: string;
-  work_date: string;
-  hours: number;
-  description?: string;
-  meta?: Record<string, unknown>;
+// Entity Lookup (execution entities resolved from sibling services)
+// `id` is always a real UUID — these populate the entity dropdowns so users
+// never type a UUID by hand.
+export type LookupEntityType =
+  | 'project'
+  | 'task'
+  | 'deal'
+  | 'opportunity'
+  | 'lead'
+  | 'customer'
+  | 'department';
+
+export interface EntityOption {
+  id: string;
+  name: string;
 }
 
 // Utilization
@@ -198,6 +234,11 @@ export interface UtilizationData {
   };
 }
 
+export interface DepartmentHeadcountEntry {
+  name: string;
+  count: number;
+}
+
 export interface UtilizationSummary {
   total_people: number;
   active_allocations: number;
@@ -206,7 +247,13 @@ export interface UtilizationSummary {
   total_cost_this_week: number;
   pending_approvals: number;
   burn_rate_daily: number;
-  period: { start: string; end: string };
+  available_resources: number;
+  fully_allocated_resources: number;
+  overallocated_resources: number;
+  pending_leave_count: number;
+  approved_leave_count: number;
+  on_leave_today_count: number;
+  department_headcount: DepartmentHeadcountEntry[];
 }
 
 // People Event

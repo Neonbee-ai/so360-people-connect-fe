@@ -79,7 +79,7 @@ describe('Given DepartmentSelector with search', () => {
 
 describe('Given DepartmentSelector API failure', () => {
   it('When getTree fails / Then no departments are shown', async () => {
-    mockApi.getTree.mockRejectedValue(new Error('Network error'));
+    mockApi.getTree.mockImplementation(async () => { throw new Error('Network error'); });
     render(<DepartmentSelector value="" onChange={() => {}} />);
     await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
     fireEvent.click(screen.getByText('Select department...'));

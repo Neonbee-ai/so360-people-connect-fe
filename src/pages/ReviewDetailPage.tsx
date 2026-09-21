@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import Toast, { ToastType } from '../components/Toast';
+import { toast } from '@so360/design-system';
 import { useActivity } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
 import { reviewTemplatesApi, ReviewTemplate, ReviewTemplateSection } from '../services/reviewTemplatesService';
+import PerformanceEvidencePanel from '../components/PerformanceEvidencePanel';
 
 // Dynamic review form that renders template sections and fields
 const ReviewForm: React.FC<{
@@ -28,7 +30,7 @@ const ReviewForm: React.FC<{
         <div className="space-y-6">
             {sections.map((section) => (
                 <div key={section.id} className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
-                    <h4 className="text-sm font-medium text-white mb-1">{section.title}</h4>
+                    <h4 className="text-sm font-medium text-slate-50 mb-1">{section.title}</h4>
                     {section.description && <p className="text-xs text-slate-400 mb-4">{section.description}</p>}
                     {section.weight && <p className="text-xs text-teal-400 mb-3">Weight: {section.weight}%</p>}
 
@@ -60,7 +62,7 @@ const ReviewForm: React.FC<{
                                             </button>
                                         ))}
                                         {getFieldValue(section.id, field.label) != null ? (
-                                            <span className="text-sm text-white ml-2">
+                                            <span className="text-sm text-slate-50 ml-2">
                                                 {String(getFieldValue(section.id, field.label))} / {field.max || ratingScale}
                                             </span>
                                         ) : null}
@@ -73,7 +75,7 @@ const ReviewForm: React.FC<{
                                         onChange={(e) => updateField(section.id, field.label, e.target.value)}
                                         disabled={readOnly}
                                         rows={3}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
                                 )}
 
@@ -83,7 +85,7 @@ const ReviewForm: React.FC<{
                                         value={(getFieldValue(section.id, field.label) as string) || ''}
                                         onChange={(e) => updateField(section.id, field.label, e.target.value)}
                                         disabled={readOnly}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
                                 )}
 
@@ -93,7 +95,7 @@ const ReviewForm: React.FC<{
                                         value={(getFieldValue(section.id, field.label) as number) || ''}
                                         onChange={(e) => updateField(section.id, field.label, parseFloat(e.target.value))}
                                         disabled={readOnly}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
                                 )}
 
@@ -122,6 +124,7 @@ const ReviewDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
+    const formatters = usePeopleFormatters();
     const [review, setReview] = useState<PerformanceReview | null>(null);
     const [template, setTemplate] = useState<ReviewTemplate | null>(null);
     const [loading, setLoading] = useState(true);
@@ -130,7 +133,6 @@ const ReviewDetailPage: React.FC = () => {
     const [managerFormData, setManagerFormData] = useState<Record<string, unknown>>({});
     const [overallRating, setOverallRating] = useState<number>(0);
     const [submitting, setSubmitting] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     useEffect(() => {
         if (id) loadReview(id);
@@ -164,7 +166,7 @@ const ReviewDetailPage: React.FC = () => {
             }
         } catch (error) {
             console.error('Failed to load review:', error);
-            setToast({ message: 'Failed to load review', type: 'error' });
+            toast.error('Failed to load review');
         } finally {
             setLoading(false);
         }
@@ -201,11 +203,11 @@ const ReviewDetailPage: React.FC = () => {
         setSubmitting(true);
         try {
             await performanceReviewsApi.submitSelfReview(review.id, selfFormData);
-            setToast({ message: 'Self review submitted successfully', type: 'success' });
+            toast.success('Self review submitted successfully');
             recordActivity({ eventType: 'people.review.submitted', eventCategory: 'data', description: `Self review submitted for ${review.person?.full_name || 'person'}`, resourceType: 'review', resourceId: review.id }).catch(() => {});
             if (id) loadReview(id);
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to submit self review', type: 'error' });
+            toast.error(error.message || 'Failed to submit self review');
         } finally {
             setSubmitting(false);
         }
@@ -217,11 +219,11 @@ const ReviewDetailPage: React.FC = () => {
         try {
             const calculatedRating = overallRating || calculateOverallFromForm(managerFormData, template.sections, template.rating_scale);
             await performanceReviewsApi.submitManagerReview(review.id, managerFormData, calculatedRating);
-            setToast({ message: 'Manager review submitted successfully', type: 'success' });
+            toast.success('Manager review submitted successfully');
             recordActivity({ eventType: 'people.review.updated', eventCategory: 'data', description: `Manager review submitted for ${review.person?.full_name || 'person'}`, resourceType: 'review', resourceId: review.id }).catch(() => {});
             if (id) loadReview(id);
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to submit manager review', type: 'error' });
+            toast.error(error.message || 'Failed to submit manager review');
         } finally {
             setSubmitting(false);
         }
@@ -232,11 +234,11 @@ const ReviewDetailPage: React.FC = () => {
         setSubmitting(true);
         try {
             await performanceReviewsApi.complete(review.id);
-            setToast({ message: 'Review completed successfully', type: 'success' });
+            toast.success('Review completed successfully');
             recordActivity({ eventType: 'people.review.completed', eventCategory: 'data', description: `Performance review completed for ${review.person?.full_name || 'person'}`, resourceType: 'review', resourceId: review.id }).catch(() => {});
             if (id) loadReview(id);
         } catch (error: any) {
-            setToast({ message: error.message || 'Failed to complete review', type: 'error' });
+            toast.error(error.message || 'Failed to complete review');
         } finally {
             setSubmitting(false);
         }
@@ -279,14 +281,25 @@ const ReviewDetailPage: React.FC = () => {
             {/* Header with back button */}
             <div className="flex items-center gap-4">
                 <button
-                    onClick={() => navigate('/reviews')}
+                    onClick={() => navigate('/people/reviews')}
                     className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
                 >
                     <ArrowLeft size={20} className="text-slate-400" />
                 </button>
                 <PageHeader
                     title={`${review.person?.full_name || 'Unknown'} - ${review.template?.name || 'Review'}`}
-                    subtitle={`Review Period: ${new Date(review.review_period_start).toLocaleDateString()} - ${new Date(review.review_period_end).toLocaleDateString()}`}
+                    subtitle={`Review Period: ${formatters.formatDate(review.review_period_start)} - ${formatters.formatDate(review.review_period_end)}`}
+                />
+            </div>
+
+            {/* Measured evidence from CRM, scoped to this review's period.
+                Placed above the rating form on purpose: the reviewer should
+                see the numbers before writing the assessment, not after. */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <PerformanceEvidencePanel
+                    personId={review.person_id}
+                    periodStart={review.review_period_start}
+                    periodEnd={review.review_period_end}
                 />
             </div>
 
@@ -295,27 +308,27 @@ const ReviewDetailPage: React.FC = () => {
                 <div className="grid grid-cols-4 gap-6">
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Reviewer</label>
-                        <p className="text-sm text-white">{review.reviewer?.full_name || '-'}</p>
+                        <p className="text-sm text-slate-50">{review.reviewer?.full_name || '-'}</p>
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Status</label>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-white ${getStatusColor(review.status)}`}>
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(review.status)}`}>
                             {review.status.replace(/_/g, ' ')}
                         </span>
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Self Review Deadline</label>
-                        <p className="text-sm text-white">
+                        <p className="text-sm text-slate-50">
                             {review.self_review_deadline
-                                ? new Date(review.self_review_deadline).toLocaleDateString()
+                                ? formatters.formatDate(review.self_review_deadline)
                                 : '-'}
                         </p>
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Manager Review Deadline</label>
-                        <p className="text-sm text-white">
+                        <p className="text-sm text-slate-50">
                             {review.manager_review_deadline
-                                ? new Date(review.manager_review_deadline).toLocaleDateString()
+                                ? formatters.formatDate(review.manager_review_deadline)
                                 : '-'}
                         </p>
                     </div>
@@ -332,7 +345,7 @@ const ReviewDetailPage: React.FC = () => {
                                     className={i < Math.round(review.overall_rating!) ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600'}
                                 />
                             ))}
-                            <span className="text-lg font-medium text-white ml-2">{review.overall_rating.toFixed(1)}</span>
+                            <span className="text-lg font-medium text-slate-50 ml-2">{review.overall_rating.toFixed(1)}</span>
                         </div>
                     </div>
                 )}
@@ -406,7 +419,7 @@ const ReviewDetailPage: React.FC = () => {
                                                 </button>
                                             ))}
                                             {overallRating > 0 && (
-                                                <span className="text-sm text-white ml-2">{overallRating} / 5</span>
+                                                <span className="text-sm text-slate-50 ml-2">{overallRating} / 5</span>
                                             )}
                                         </div>
                                     </div>
@@ -417,13 +430,13 @@ const ReviewDetailPage: React.FC = () => {
                             <div className="space-y-6">
                                 {selfSubmitted && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-white mb-3">Self Review (Submitted {new Date(review.self_review_submitted_at!).toLocaleDateString()})</h4>
+                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Self Review (Submitted {formatters.formatDate(review.self_review_submitted_at!)})</h4>
                                         <ReviewForm sections={sections} ratingScale={ratingScale} data={selfFormData} onChange={() => {}} readOnly />
                                     </div>
                                 )}
                                 {managerSubmitted && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-white mb-3">Manager Review (Submitted {new Date(review.manager_review_submitted_at!).toLocaleDateString()})</h4>
+                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Manager Review (Submitted {formatters.formatDate(review.manager_review_submitted_at!)})</h4>
                                         <ReviewForm sections={sections} ratingScale={ratingScale} data={managerFormData} onChange={() => {}} readOnly />
                                     </div>
                                 )}
@@ -471,7 +484,6 @@ const ReviewDetailPage: React.FC = () => {
                 )}
             </div>
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

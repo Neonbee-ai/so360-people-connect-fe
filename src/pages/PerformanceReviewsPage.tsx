@@ -5,9 +5,11 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import Toast, { ToastType } from '../components/Toast';
-import { useActivity } from '@so360/shell-context';
-import { performanceReviewsApi, PerformanceReview, CreatePerformanceReviewPayload } from '../services/performanceReviewsService';
+import PersonPicker, { PickablePerson } from '../components/PersonPicker';
+import { toast, getErrorMessage } from '@so360/design-system';
+import { useActivity, useShellBridge } from '@so360/shell-context';
+import { usePeopleFormatters } from '../utils/formatters';
+import { performanceReviewsApi, PerformanceReview, CreatePerformanceReviewPayload, EligibleReviewer } from '../services/performanceReviewsService';
 import { reviewTemplatesApi, ReviewTemplate } from '../services/reviewTemplatesService';
 import { peopleApi } from '../services/peopleService';
 import type { Person } from '../types/people';
@@ -15,12 +17,14 @@ import type { Person } from '../types/people';
 const PerformanceReviewsPage: React.FC = () => {
     const navigate = useNavigate();
     const { recordActivity } = useActivity();
+    const shell = useShellBridge();
+    const formatters = usePeopleFormatters();
+    const canCreateReview = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:reviews:create') ?? true);
     const [reviews, setReviews] = useState<PerformanceReview[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'all' | 'my' | 'team'>('all');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const loadReviews = useCallback(async () => {
         try {
@@ -37,7 +41,7 @@ const PerformanceReviewsPage: React.FC = () => {
             setReviews(result.data);
         } catch (error) {
             console.error('Failed to load performance reviews:', error);
-            setToast({ message: 'Failed to load performance reviews', type: 'error' });
+            toast.error('Failed to load performance reviews');
         } finally {
             setLoading(false);
         }
@@ -51,11 +55,14 @@ const PerformanceReviewsPage: React.FC = () => {
         try {
             const created = await performanceReviewsApi.create(data);
             setShowCreateModal(false);
-            setToast({ message: 'Performance review created successfully', type: 'success' });
+            toast.success('Performance review created successfully');
             recordActivity({ eventType: 'people.review.created', eventCategory: 'data', description: `Performance review was created`, resourceType: 'review', resourceId: created?.id }).catch(() => {});
             loadReviews();
         } catch (error) {
-            setToast({ message: 'Failed to create performance review', type: 'error' });
+            // Reviewer-eligibility and review-period rejections carry an
+            // actionable message from the API — show it rather than a generic
+            // failure the user cannot act on.
+            toast.error(getErrorMessage(error, 'Failed to create performance review'));
         }
     };
 
@@ -90,7 +97,7 @@ const PerformanceReviewsPage: React.FC = () => {
             <PageHeader
                 title="Performance Reviews"
                 subtitle="Track employee performance evaluations"
-                actions={
+                actions={canCreateReview ? (
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -98,7 +105,7 @@ const PerformanceReviewsPage: React.FC = () => {
                         <TrendingUp size={16} />
                         Create Review
                     </button>
-                }
+                ) : undefined}
             />
 
             {/* Tabs */}
@@ -140,7 +147,7 @@ const PerformanceReviewsPage: React.FC = () => {
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                 >
                     <option value="">All Statuses</option>
                     <option value="draft">Draft</option>
@@ -163,7 +170,7 @@ const PerformanceReviewsPage: React.FC = () => {
                     icon={TrendingUp}
                     title="No performance reviews found"
                     description="Create performance reviews to track employee development."
-                    action={{ label: 'Create Review', onClick: () => setShowCreateModal(true) }}
+                    action={canCreateReview ? { label: 'Create Review', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -182,7 +189,7 @@ const PerformanceReviewsPage: React.FC = () => {
                             {reviews.map(review => (
                                 <tr
                                     key={review.id}
-                                    onClick={() => navigate(`/reviews/${review.id}`)}
+                                    onClick={() => navigate(`/people/reviews/${review.id}`)}
                                     className="hover:bg-slate-800/50 cursor-pointer transition-colors"
                                 >
                                     <td className="px-4 py-3">
@@ -197,23 +204,23 @@ const PerformanceReviewsPage: React.FC = () => {
                                                 )}
                                             </div>
                                             <div>
-                                                <div className="text-sm font-medium text-white">{review.person?.full_name}</div>
+                                                <div className="text-sm font-medium text-slate-50">{review.person?.full_name}</div>
                                                 <div className="text-xs text-slate-500">{review.person?.job_title}</div>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="text-sm text-white">{review.template?.name}</div>
+                                        <div className="text-sm text-slate-50">{review.template?.name}</div>
                                         <div className="text-xs text-slate-500 capitalize">
                                             {review.template?.review_type.replace('_', ' ')}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-400">
-                                        {new Date(review.review_period_start).toLocaleDateString()} -{' '}
-                                        {new Date(review.review_period_end).toLocaleDateString()}
+                                        {formatters.formatDate(review.review_period_start)} -{' '}
+                                        {formatters.formatDate(review.review_period_end)}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-white ${getStatusColor(review.status)}`}>
+                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(review.status)}`}>
                                             {review.status.replace('_', ' ')}
                                         </span>
                                     </td>
@@ -229,7 +236,7 @@ const PerformanceReviewsPage: React.FC = () => {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                navigate(`/reviews/${review.id}`);
+                                                navigate(`/people/reviews/${review.id}`);
                                             }}
                                             className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
                                         >
@@ -250,7 +257,6 @@ const PerformanceReviewsPage: React.FC = () => {
                 onCreate={handleCreate}
             />
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
@@ -266,16 +272,22 @@ interface CreateReviewModalProps {
 }
 
 const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, onCreate }) => {
+    // This modal is a SIBLING of the page component, so it cannot see the
+    // page's formatters — it needs its own hook to reach the org timezone.
+    const formatters = usePeopleFormatters();
     const [templates, setTemplates] = useState<ReviewTemplate[]>([]);
+    const [templatesLoaded, setTemplatesLoaded] = useState(false);
+    const [seedingTemplates, setSeedingTemplates] = useState(false);
     const [people, setPeople] = useState<Person[]>([]);
-    const [personSearch, setPersonSearch] = useState('');
-    const [reviewerSearch, setReviewerSearch] = useState('');
+    const [eligibleReviewers, setEligibleReviewers] = useState<EligibleReviewer[]>([]);
+    const [reviewersLoading, setReviewersLoading] = useState(false);
+    const [reviewersLoaded, setReviewersLoaded] = useState(false);
     const [formData, setFormData] = useState<CreatePerformanceReviewPayload>({
         person_id: '',
         template_id: '',
         reviewer_id: '',
-        review_period_start: new Date().toISOString().split('T')[0],
-        review_period_end: new Date().toISOString().split('T')[0],
+        review_period_start: formatters.businessToday(),
+        review_period_end: formatters.businessToday(),
         self_review_deadline: '',
         manager_review_deadline: '',
     });
@@ -287,12 +299,75 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
         }
     }, [isOpen]);
 
+    /**
+     * The reviewer list is a function of who is being reviewed — reload it on
+     * every change and drop any previously chosen reviewer who is no longer
+     * eligible, rather than silently submitting a stale id.
+     */
+    useEffect(() => {
+        if (!isOpen || !formData.person_id) {
+            setEligibleReviewers([]);
+            setReviewersLoaded(false);
+            return;
+        }
+
+        let cancelled = false;
+        setReviewersLoading(true);
+        performanceReviewsApi.getEligibleReviewers(formData.person_id)
+            .then(result => {
+                if (cancelled) return;
+                const list = result.data || [];
+                setEligibleReviewers(list);
+                if (list.length === 0) {
+                    // Unrestricted fallback (see reviewerOptions): keep whatever
+                    // is already selected rather than clearing a valid pick.
+                    return;
+                }
+                setFormData(prev => {
+                    // Preselect the direct manager when there is one and nothing
+                    // valid is already chosen; otherwise clear an ineligible pick.
+                    if (prev.reviewer_id && list.some(r => r.id === prev.reviewer_id)) return prev;
+                    const preferred = result.direct_manager_id && list.some(r => r.id === result.direct_manager_id)
+                        ? result.direct_manager_id
+                        : '';
+                    return prev.reviewer_id === preferred ? prev : { ...prev, reviewer_id: preferred };
+                });
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setEligibleReviewers([]);
+                setFormData(prev => (prev.reviewer_id ? { ...prev, reviewer_id: '' } : prev));
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setReviewersLoading(false);
+                    setReviewersLoaded(true);
+                }
+            });
+
+        return () => { cancelled = true; };
+    }, [isOpen, formData.person_id]);
+
     const loadTemplates = async () => {
         try {
-            const result = await reviewTemplatesApi.getAll({ is_active: true });
+            const result = await reviewTemplatesApi.getAll({ status: 'active' });
             setTemplates(result.data);
         } catch (error) {
             console.error('Failed to load templates:', error);
+        } finally {
+            setTemplatesLoaded(true);
+        }
+    };
+
+    const handleSeedDefaults = async () => {
+        setSeedingTemplates(true);
+        try {
+            const result = await reviewTemplatesApi.seedDefaults();
+            setTemplates(result.data);
+        } catch (error) {
+            console.error('Failed to create default templates:', error);
+        } finally {
+            setSeedingTemplates(false);
         }
     };
 
@@ -305,26 +380,46 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
         }
     };
 
+    /**
+     * When the org has assigned no department heads there is no eligibility
+     * data to restrict against, and the backend stands its check down to match.
+     * Falling back to the full people list keeps review creation working for
+     * orgs that have not modelled their hierarchy yet — the banner below says
+     * why the field is unrestricted and how to restrict it.
+     */
+    const unrestrictedReviewers = reviewersLoaded && !reviewersLoading && eligibleReviewers.length === 0;
+    // Widened to the picker's structural type: the two branches are Person[]
+    // and EligibleReviewer[], and only the pickable fields are used here.
+    const reviewerOptions: PickablePerson[] = unrestrictedReviewers
+        ? people.filter(p => p.id !== formData.person_id)
+        : eligibleReviewers;
+
+    const periodInvalid = Boolean(
+        formData.review_period_start &&
+        formData.review_period_end &&
+        formData.review_period_end < formData.review_period_start
+    );
+
+    const canSubmit = Boolean(
+        formData.person_id && formData.reviewer_id && formData.template_id && !periodInvalid
+    );
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.person_id || !formData.template_id || !formData.reviewer_id) return;
-        onCreate(formData);
+        // Guard, not belt-and-braces: a disabled button does not stop an
+        // implicit submit triggered by Enter inside a text input.
+        if (!canSubmit) return;
+        // The backend DTO validates deadlines as dates — an empty string is not
+        // a date, so unset optional deadlines must be omitted, not sent blank.
+        const payload: CreatePerformanceReviewPayload = { ...formData };
+        if (!payload.self_review_deadline) delete payload.self_review_deadline;
+        if (!payload.manager_review_deadline) delete payload.manager_review_deadline;
+        onCreate(payload);
     };
 
     const updateField = (field: keyof CreatePerformanceReviewPayload, value: unknown) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
-
-    const filteredPeopleForPerson = people.filter(p =>
-        !personSearch || p.full_name.toLowerCase().includes(personSearch.toLowerCase())
-    );
-
-    const filteredPeopleForReviewer = people.filter(p =>
-        !reviewerSearch || p.full_name.toLowerCase().includes(reviewerSearch.toLowerCase())
-    );
-
-    const selectedPerson = people.find(p => p.id === formData.person_id);
-    const selectedReviewer = people.find(p => p.id === formData.reviewer_id);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Create Performance Review">
@@ -332,94 +427,71 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                 {/* Person Selector */}
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Person Being Reviewed *</label>
-                    {selectedPerson ? (
-                        <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
-                            <span className="text-sm text-white">{selectedPerson.full_name}</span>
-                            <button type="button" onClick={() => updateField('person_id', '')} className="text-xs text-slate-400 hover:text-red-400">Clear</button>
-                        </div>
-                    ) : (
-                        <div>
-                            <input
-                                type="text"
-                                placeholder="Search people..."
-                                value={personSearch}
-                                onChange={(e) => setPersonSearch(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
-                            />
-                            {personSearch && (
-                                <div className="mt-1 max-h-32 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg">
-                                    {filteredPeopleForPerson.slice(0, 10).map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => { updateField('person_id', p.id); setPersonSearch(''); }}
-                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white"
-                                        >
-                                            {p.full_name} {p.job_title ? `(${p.job_title})` : ''}
-                                        </button>
-                                    ))}
-                                    {filteredPeopleForPerson.length === 0 && (
-                                        <p className="px-3 py-2 text-xs text-slate-500">No matches found</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    <PersonPicker
+                        options={people}
+                        value={formData.person_id}
+                        onChange={(id) => updateField('person_id', id)}
+                        placeholder="Search people..."
+                        emptyMessage="No active people found"
+                        data-testid="person-picker"
+                    />
                 </div>
 
-                {/* Reviewer Selector */}
+                {/* Reviewer Selector — restricted to managers eligible for this person */}
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Reviewer (Manager) *</label>
-                    {selectedReviewer ? (
-                        <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
-                            <span className="text-sm text-white">{selectedReviewer.full_name}</span>
-                            <button type="button" onClick={() => updateField('reviewer_id', '')} className="text-xs text-slate-400 hover:text-red-400">Clear</button>
-                        </div>
-                    ) : (
-                        <div>
-                            <input
-                                type="text"
-                                placeholder="Search reviewer..."
-                                value={reviewerSearch}
-                                onChange={(e) => setReviewerSearch(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
-                            />
-                            {reviewerSearch && (
-                                <div className="mt-1 max-h-32 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg">
-                                    {filteredPeopleForReviewer.slice(0, 10).map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => { updateField('reviewer_id', p.id); setReviewerSearch(''); }}
-                                            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white"
-                                        >
-                                            {p.full_name} {p.job_title ? `(${p.job_title})` : ''}
-                                        </button>
-                                    ))}
-                                    {filteredPeopleForReviewer.length === 0 && (
-                                        <p className="px-3 py-2 text-xs text-slate-500">No matches found</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                    <PersonPicker
+                        options={reviewerOptions}
+                        value={formData.reviewer_id}
+                        onChange={(id) => updateField('reviewer_id', id)}
+                        placeholder={unrestrictedReviewers ? 'Search people...' : 'Search eligible managers...'}
+                        emptyMessage="No people available"
+                        loading={reviewersLoading}
+                        disabled={!formData.person_id}
+                        disabledMessage="Select the person being reviewed first."
+                        data-testid="reviewer-picker"
+                    />
+                    {formData.person_id && unrestrictedReviewers && (
+                        <p className="mt-1 text-xs text-amber-400">
+                            No department heads are configured, so any employee can be selected as
+                            reviewer. Assign a department head in People Connect → Departments to
+                            restrict this list to managers.
+                        </p>
+                    )}
+                    {eligibleReviewers.some(r => r.is_direct_manager && r.id === formData.reviewer_id) && (
+                        <p className="mt-1 text-xs text-slate-500">Their reporting manager.</p>
                     )}
                 </div>
 
                 <div>
                     <label className="block text-xs text-slate-400 mb-1">Review Template *</label>
-                    <select
-                        required
-                        value={formData.template_id}
-                        onChange={(e) => updateField('template_id', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
-                    >
-                        <option value="">Select template</option>
-                        {templates.map(template => (
-                            <option key={template.id} value={template.id}>
-                                {template.name} ({template.review_type})
-                            </option>
-                        ))}
-                    </select>
+                    {templatesLoaded && templates.length === 0 ? (
+                        <div className="px-3 py-3 bg-slate-800 border border-dashed border-slate-700 rounded-lg text-sm text-slate-400">
+                            <p className="mb-2 text-slate-300">No review templates found.</p>
+                            <button
+                                type="button"
+                                onClick={handleSeedDefaults}
+                                disabled={seedingTemplates}
+                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition-colors"
+                            >
+                                {seedingTemplates ? 'Creating…' : 'Create default templates'}
+                            </button>
+                        </div>
+                    ) : (
+                        <select
+                            required
+                            value={formData.template_id}
+                            onChange={(e) => updateField('template_id', e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        >
+                            <option value="">Select template</option>
+                            {templates.map(template => (
+                                <option key={template.id} value={template.id}>
+                                    {template.name} ({template.review_type})
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -430,7 +502,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                             required
                             value={formData.review_period_start}
                             onChange={(e) => updateField('review_period_start', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                     <div>
@@ -438,10 +510,24 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                         <input
                             type="date"
                             required
+                            // Blocks earlier dates in the picker; the explicit
+                            // check below still catches typed-in values, which
+                            // `min` does not prevent.
+                            min={formData.review_period_start || undefined}
+                            aria-invalid={periodInvalid}
                             value={formData.review_period_end}
                             onChange={(e) => updateField('review_period_end', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${
+                                periodInvalid
+                                    ? 'border-red-500 focus:border-red-500'
+                                    : 'border-slate-700 focus:border-teal-500'
+                            }`}
                         />
+                        {periodInvalid && (
+                            <p role="alert" className="mt-1 text-xs text-red-400">
+                                Review Period End date cannot be earlier than Review Period Start date.
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Self Review Deadline</label>
@@ -449,7 +535,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                             type="date"
                             value={formData.self_review_deadline || ''}
                             onChange={(e) => updateField('self_review_deadline', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                     <div>
@@ -458,7 +544,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                             type="date"
                             value={formData.manager_review_deadline || ''}
                             onChange={(e) => updateField('manager_review_deadline', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         />
                     </div>
                 </div>
@@ -467,13 +553,13 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        disabled={!formData.person_id || !formData.reviewer_id || !formData.template_id}
+                        disabled={!canSubmit}
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Create Review

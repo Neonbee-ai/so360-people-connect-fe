@@ -9,8 +9,13 @@ vi.mock('../services/leaveTypesService', () => ({
 }));
 
 
+let mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+  useShellBridge: () => ({ ...mockShellFlags, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),
 }));
 
 import LeaveTypesPage from '../pages/LeaveTypesPage';
@@ -20,7 +25,10 @@ const mockApi = leaveTypesApi as any;
 
 const renderPage = () => render(<MemoryRouter><LeaveTypesPage /></MemoryRouter>);
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+});
 
 describe('LeaveTypesPage', () => {
   describe('Given leave types exist', () => {
@@ -67,5 +75,23 @@ describe('LeaveTypesPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('No leave types found')).toBeInTheDocument());
     });
+  });
+});
+
+describe('LeaveTypesPage — effectiveFlagsLoaded gate', () => {
+  it('When effectiveFlagsLoaded is false / Then Create Leave Type button is absent', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: false, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No leave types found')).toBeInTheDocument());
+    expect(screen.queryByText('Create Leave Type')).not.toBeInTheDocument();
+  });
+
+  it('When effectiveFlagsLoaded is true / Then Create Leave Type button is present', async () => {
+    mockShellFlags = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true };
+    mockApi.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('No leave types found')).toBeInTheDocument());
+    expect(screen.queryAllByText('Create Leave Type').length).toBeGreaterThan(0);
   });
 });

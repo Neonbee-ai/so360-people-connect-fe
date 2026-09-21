@@ -6,6 +6,7 @@ beforeEach(() => {
   apiContext.setTenantId('');
   apiContext.setOrgId('');
   apiContext.setAccessToken('');
+  apiContext.setAccessTokenProvider(null);
 });
 
 describe('Given ApiClient with tenant context set', () => {
@@ -60,6 +61,46 @@ describe('Given ApiClient with tenant context set', () => {
   });
 });
 
+describe('Given a live access-token provider (token rotation)', () => {
+  const callHeaders = async (method: 'get' | 'patch') => {
+    const client = new ApiClient('/test-api');
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve('{}') });
+    vi.stubGlobal('fetch', fetchMock);
+    if (method === 'get') await client.get('/endpoint');
+    else await client.patch('/endpoint/1', { a: 1 });
+    return fetchMock.mock.calls[0][1].headers;
+  };
+
+  it('When a provider is registered / Then each request resolves the freshest token', async () => {
+    let current = 'token-1';
+    apiContext.setAccessTokenProvider(() => current);
+
+    let headers = await callHeaders('get');
+    expect(headers['Authorization']).toBe('Bearer token-1');
+
+    // Shell rotates the JWT — the next request must pick up the new token
+    // without setAccessToken being called again.
+    current = 'token-2';
+    headers = await callHeaders('patch');
+    expect(headers['Authorization']).toBe('Bearer token-2');
+  });
+
+  it('When the provider returns the live token / Then it overrides a previously cached stale token', async () => {
+    // Simulate the original bug: a stale token was cached once.
+    apiContext.setAccessToken('stale-token');
+    apiContext.setAccessTokenProvider(() => 'fresh-token');
+    const headers = await callHeaders('patch');
+    expect(headers['Authorization']).toBe('Bearer fresh-token');
+  });
+
+  it('When the provider returns empty / Then it falls back to the cached token', async () => {
+    apiContext.setAccessToken('cached-token');
+    apiContext.setAccessTokenProvider(() => '');
+    const headers = await callHeaders('get');
+    expect(headers['Authorization']).toBe('Bearer cached-token');
+  });
+});
+
 describe('Given ApiClient receiving error responses', () => {
   it('When response is not ok / Then it throws an error with API status', async () => {
     const client = new ApiClient('/test-api');
@@ -69,6 +110,41 @@ describe('Given ApiClient receiving error responses', () => {
       text: () => Promise.resolve('{"message":"Unauthorized"}'),
     }));
     await expect(client.get('/protected')).rejects.toThrow('Unauthorized');
+  });
+
+  it('When Nest ValidationPipe returns an array of constraints / Then they are joined readably', async () => {
+    // Array coercion would render "a,b" with no separator space.
+    const client = new ApiClient('/test-api');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: () => Promise.resolve(
+        '{"message":["from_month must be YYYY-MM","from_month must be a string"]}',
+      ),
+    }));
+    await expect(client.post('/payroll/periods/generate', {})).rejects.toThrow(
+      'from_month must be YYYY-MM; from_month must be a string',
+    );
+  });
+
+  it('When the error body carries an empty message array / Then the status fallback is kept', async () => {
+    const client = new ApiClient('/test-api');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve('{"message":[]}'),
+    }));
+    await expect(client.get('/boom')).rejects.toThrow('API Error: 500');
+  });
+
+  it('When only `error` is present / Then it is used as the message', async () => {
+    const client = new ApiClient('/test-api');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: () => Promise.resolve('{"error":"Forbidden resource"}'),
+    }));
+    await expect(client.get('/nope')).rejects.toThrow('Forbidden resource');
   });
 
   it('When response JSON is invalid / Then it throws an error', async () => {

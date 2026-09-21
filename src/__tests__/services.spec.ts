@@ -37,7 +37,6 @@ import { reviewTemplatesApi } from '../services/reviewTemplatesService';
 import {
   peopleApi,
   allocationsApi,
-  timeEntriesApi,
   utilizationApi,
   eventsApi,
 } from '../services/peopleService';
@@ -106,10 +105,10 @@ describe('goalsApi', () => {
       expect(mockApi.delete).toHaveBeenCalledWith('/goals/g1');
     });
 
-    it('When updateProgress is called / Then it posts to /goals/:id/update-progress', async () => {
-      mockApi.post.mockResolvedValue({ id: 'g1' });
-      await goalsApi.updateProgress('g1', 75);
-      expect(mockApi.post).toHaveBeenCalledWith('/goals/g1/update-progress', { current_value: 75 });
+    it('When updateProgress is called / Then it PATCHes /goals/:id/progress with computed percentage', async () => {
+      mockApi.patch.mockResolvedValue({ id: 'g1' });
+      await goalsApi.updateProgress('g1', 75, 100);
+      expect(mockApi.patch).toHaveBeenCalledWith('/goals/g1/progress', { current_value: 75, progress_percentage: 75 });
     });
 
     it('When complete is called / Then it posts to /goals/:id/complete', async () => {
@@ -167,7 +166,7 @@ describe('leaveRequestsApi', () => {
     it('When reject is called / Then it posts reason to reject endpoint', async () => {
       mockApi.post.mockResolvedValue({ id: 'lr1' });
       await leaveRequestsApi.reject('lr1', 'Not enough notice');
-      expect(mockApi.post).toHaveBeenCalledWith('/leave-requests/lr1/reject', { reason: 'Not enough notice' });
+      expect(mockApi.post).toHaveBeenCalledWith('/leave-requests/lr1/reject', { rejection_reason: 'Not enough notice' });
     });
 
     it('When getPendingApprovals is called / Then it calls the pending endpoint', async () => {
@@ -179,7 +178,7 @@ describe('leaveRequestsApi', () => {
     it('When getBalances is called / Then it calls the balances endpoint', async () => {
       mockApi.get.mockResolvedValue({ data: [] });
       await leaveRequestsApi.getBalances('p1');
-      expect(mockApi.get).toHaveBeenCalledWith('/leave-balances/p1');
+      expect(mockApi.get).toHaveBeenCalledWith('/leave-balances', { person_id: 'p1' });
     });
   });
 });
@@ -286,8 +285,8 @@ describe('reviewTemplatesApi', () => {
   describe('Given the review templates API', () => {
     it('When getAll is called / Then it calls api.get', async () => {
       mockApi.get.mockResolvedValue({ data: [] });
-      await reviewTemplatesApi.getAll({ is_active: true });
-      expect(mockApi.get).toHaveBeenCalledWith('/review-templates', { is_active: true });
+      await reviewTemplatesApi.getAll({ status: 'active' });
+      expect(mockApi.get).toHaveBeenCalledWith('/review-templates', { status: 'active' });
     });
 
     it('When getById is called / Then it returns the template', async () => {
@@ -384,10 +383,16 @@ describe('peopleApi', () => {
       expect(mockApi.post).toHaveBeenCalledWith('/people/p1/link-user', { user_id: 'u1' });
     });
 
-    it('When inviteUser is called / Then it posts', async () => {
-      mockApi.post.mockResolvedValue({ id: 'p1' });
+    it('When inviteUser is called / Then it posts with the default send_email flag', async () => {
+      mockApi.post.mockResolvedValue({ invite_link: 'https://x', invite_status: 'link_generated' });
       await peopleApi.inviteUser('p1', 'test@test.com', 'member');
-      expect(mockApi.post).toHaveBeenCalledWith('/people/p1/invite-user', { email: 'test@test.com', role: 'member' });
+      expect(mockApi.post).toHaveBeenCalledWith('/people/p1/invite-user', { email: 'test@test.com', role: 'member', send_email: true });
+    });
+
+    it('When inviteUser is called with sendEmail false / Then it posts send_email: false', async () => {
+      mockApi.post.mockResolvedValue({ invite_link: 'https://x', invite_status: 'link_generated' });
+      await peopleApi.inviteUser('p1', 'test@test.com', 'member', false);
+      expect(mockApi.post).toHaveBeenCalledWith('/people/p1/invite-user', { email: 'test@test.com', role: 'member', send_email: false });
     });
   });
 });
@@ -503,51 +508,8 @@ describe('allocationsApi', () => {
   });
 });
 
-describe('timeEntriesApi', () => {
-  describe('Given the time entries API', () => {
-    it('When getAll is called / Then it calls api.get', async () => {
-      mockApi.get.mockResolvedValue({ data: [] });
-      await timeEntriesApi.getAll({ status: 'draft' });
-      expect(mockApi.get).toHaveBeenCalledWith('/time-entries', { status: 'draft' });
-    });
-
-    it('When create is called / Then it posts', async () => {
-      mockApi.post.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.create({} as any);
-      expect(mockApi.post).toHaveBeenCalled();
-    });
-
-    it('When update is called / Then it patches', async () => {
-      mockApi.patch.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.update('te1', {} as any);
-      expect(mockApi.patch).toHaveBeenCalled();
-    });
-
-    it('When delete is called / Then it deletes', async () => {
-      mockApi.delete.mockResolvedValue({ message: 'ok' });
-      await timeEntriesApi.delete('te1');
-      expect(mockApi.delete).toHaveBeenCalledWith('/time-entries/te1');
-    });
-
-    it('When submit is called / Then it posts', async () => {
-      mockApi.post.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.submit('te1');
-      expect(mockApi.post).toHaveBeenCalledWith('/time-entries/te1/submit', {});
-    });
-
-    it('When approve is called / Then it posts', async () => {
-      mockApi.post.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.approve('te1');
-      expect(mockApi.post).toHaveBeenCalledWith('/time-entries/te1/approve', {});
-    });
-
-    it('When reject is called / Then it posts with reason', async () => {
-      mockApi.post.mockResolvedValue({ id: 'te1' });
-      await timeEntriesApi.reject('te1', 'Bad entry');
-      expect(mockApi.post).toHaveBeenCalledWith('/time-entries/te1/reject', { reason: 'Bad entry' });
-    });
-  });
-});
+// timeEntriesApi specs removed — time logging is consolidated into the
+// Timesheets module; see src/services/timesheetApi.spec.ts for the read-only client.
 
 describe('utilizationApi', () => {
   describe('Given the utilization API', () => {

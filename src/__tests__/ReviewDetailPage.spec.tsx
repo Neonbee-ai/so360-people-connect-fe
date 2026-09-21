@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+// Rendered by ReviewDetailPage. Without this the panel reaches the real
+// service, which imports the apiClient this file mocks without an `api`
+// export — and the resulting throw fails assertions about the review itself.
+vi.mock('../services/performanceBlocksService', () => ({
+  performanceBlocksApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+
 vi.mock('../services/performanceReviewsService', () => ({
   performanceReviewsApi: { getById: vi.fn(), submitSelfReview: vi.fn(), submitManagerReview: vi.fn(), complete: vi.fn() },
   PerformanceReview: {},
@@ -15,6 +22,27 @@ vi.mock('../services/reviewTemplatesService', () => ({
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
 }));
 
 import ReviewDetailPage from '../pages/ReviewDetailPage';
@@ -184,7 +212,9 @@ describe('ReviewDetailPage', () => {
 
   describe('Given the review is not found', () => {
     beforeEach(() => {
-      mockReviews.getById.mockRejectedValue(new Error('Not found'));
+      // Use mockImplementation instead of mockRejectedValue to avoid a momentarily
+      // unhandled Promise.reject() during beforeEach setup in vitest 3.x.
+      mockReviews.getById.mockImplementation(async () => { throw new Error('Not found'); });
     });
 
     it('When loading fails / Then it shows review not found', async () => {

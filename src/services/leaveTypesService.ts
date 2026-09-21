@@ -21,6 +21,12 @@ export interface LeaveType {
   carry_forward_allowed: boolean;
   max_carry_forward_days?: number;
   notice_period_days?: number;
+  /**
+   * Org policy switch: when true this leave type may be requested for dates in
+   * the past (e.g. sick leave recorded after the fact). Defaults to false, so
+   * the request form blocks past start dates unless it is explicitly enabled.
+   */
+  allow_backdated_requests?: boolean;
   color?: string;
   is_active: boolean;
   created_at: string;

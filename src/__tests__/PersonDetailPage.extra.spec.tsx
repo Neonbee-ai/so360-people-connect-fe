@@ -23,9 +23,14 @@ vi.mock('../services/peopleService', () => ({
     getRateHistory: vi.fn(),
     linkUser: vi.fn(),
     inviteUser: vi.fn(),
+    getOrgRoles: vi.fn().mockResolvedValue({ data: [] }),
+    updateSystemRole: vi.fn(),
   },
   allocationsApi: { getAll: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
+}));
+
+vi.mock('../services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn() },
 }));
 
 vi.mock('../services/goalsService', () => ({
@@ -33,18 +38,46 @@ vi.mock('../services/goalsService', () => ({
   Goal: {},
 }));
 
+vi.mock('../services/workLocationsService', () => ({
+  workLocationsApi: { getAll: vi.fn().mockResolvedValue([]) },
+  WorkLocation: {},
+}));
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
 }));
 
 import PersonDetailPage from '../pages/PersonDetailPage';
-import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
+import { peopleApi, allocationsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
 import { goalsApi } from '../services/goalsService';
+import { workLocationsApi } from '../services/workLocationsService';
+import { toast } from '@so360/design-system';
 
 const mockPeople = peopleApi as any;
 const mockAlloc = allocationsApi as any;
-const mockTime = timeEntriesApi as any;
+const mockTime = timesheetApi as any;
 const mockGoals = goalsApi as any;
 
 const alicePerson = {
@@ -70,25 +103,27 @@ const renderPage = (id = 'p1') => render(
 beforeEach(() => {
   vi.resetAllMocks();
   mockAlloc.getAll.mockResolvedValue({ data: [] });
-  mockTime.getAll.mockResolvedValue({ data: [] });
+  mockTime.getEntries.mockResolvedValue({ data: [] });
   mockGoals.getAll.mockResolvedValue({ data: [] });
   mockPeople.getEmploymentHistory.mockResolvedValue([]);
   mockPeople.getRateHistory.mockResolvedValue([]);
+  (workLocationsApi as any).getAll.mockResolvedValue({ data: [] });
 });
 
 describe('PersonDetailPage — extra scenarios', () => {
   describe('Given save edit fails', () => {
     beforeEach(() => {
       mockPeople.getById.mockResolvedValue(alicePerson);
-      mockPeople.update.mockRejectedValue(new Error('Update failed'));
+      mockPeople.update.mockImplementation(async () => { throw new Error('Update failed'); });
     });
 
     it('When save is clicked and update fails / Then shows failure toast', async () => {
+      const toastErrorSpy = vi.spyOn(toast, 'error');
       renderPage();
       await waitFor(() => screen.getByText('Alice Smith'));
       fireEvent.click(screen.getByText('Edit'));
       fireEvent.click(screen.getByText('Save'));
-      await waitFor(() => expect(screen.getByText('Failed to update')).toBeInTheDocument());
+      await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to update'));
     });
   });
 
@@ -163,14 +198,12 @@ describe('PersonDetailPage — extra scenarios', () => {
       mockPeople.getById.mockResolvedValue(alicePerson);
     });
 
-    it('When back arrow / Back button is clicked / Then navigates to people list', async () => {
+    it('When back arrow / Back button is clicked / Then navigates to the shell-scoped list path', async () => {
       renderPage();
       await waitFor(() => screen.getByText('Alice Smith'));
-      const backBtn = screen.queryByRole('button', { name: /back/i });
-      if (backBtn) {
-        fireEvent.click(backBtn);
-        expect(mockNavigate).toHaveBeenCalledWith('/people');
-      }
+      // The shell mounts People Connect at /people/*; the list lives at /people/people.
+      fireEvent.click(screen.getByText('Back to People'));
+      expect(mockNavigate).toHaveBeenCalledWith('/people/people');
     });
   });
 
@@ -191,7 +224,8 @@ describe('PersonDetailPage — extra scenarios', () => {
 
     it('When person loads / Then shows job title', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Developer')).toBeInTheDocument());
+      // Job title renders in both the header and the Employment Information card.
+      await waitFor(() => expect(screen.getAllByText('Developer').length).toBeGreaterThanOrEqual(1));
     });
   });
 });

@@ -2,10 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../services/peopleService', () => ({
-  peopleApi: { getById: vi.fn(), update: vi.fn(), addRole: vi.fn(), removeRole: vi.fn(), getEmploymentHistory: vi.fn(), getRateHistory: vi.fn(), linkUser: vi.fn(), inviteUser: vi.fn() },
+  peopleApi: { getById: vi.fn(), update: vi.fn(), addRole: vi.fn(), removeRole: vi.fn(), getEmploymentHistory: vi.fn(), getRateHistory: vi.fn(), linkUser: vi.fn(), inviteUser: vi.fn(), getOrgRoles: vi.fn().mockResolvedValue({ data: [] }), updateSystemRole: vi.fn() },
   allocationsApi: { getAll: vi.fn() },
-  timeEntriesApi: { getAll: vi.fn() },
+}));
+
+vi.mock('../services/timesheetApi', () => ({
+  timesheetApi: { getEntries: vi.fn() },
 }));
 
 vi.mock('../services/goalsService', () => ({
@@ -13,18 +22,49 @@ vi.mock('../services/goalsService', () => ({
   Goal: {},
 }));
 
+vi.mock('../services/workLocationsService', () => ({
+  workLocationsApi: { getAll: vi.fn().mockResolvedValue([]) },
+  WorkLocation: {},
+}));
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+
+// Symbol the org formatter renders. Defaults to '$' (USD) so existing
+// assertions hold; BDD currency specs flip it to prove rates are formatted
+// via the org's business-settings currency rather than a hardcoded '$'.
+let mockCurrencySymbol = '$';
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `${mockCurrencySymbol}${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
 }));
 
 import PersonDetailPage from '../pages/PersonDetailPage';
-import { peopleApi, allocationsApi, timeEntriesApi } from '../services/peopleService';
+import { peopleApi, allocationsApi } from '../services/peopleService';
+import { timesheetApi } from '../services/timesheetApi';
 import { goalsApi } from '../services/goalsService';
+import { workLocationsApi } from '../services/workLocationsService';
 
 const mockPeople = peopleApi as any;
 const mockAlloc = allocationsApi as any;
-const mockTime = timeEntriesApi as any;
+const mockTime = timesheetApi as any;
 const mockGoals = goalsApi as any;
 
 const renderPage = (id = 'p1') => render(
@@ -36,7 +76,11 @@ const renderPage = (id = 'p1') => render(
   </MemoryRouter>
 );
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockNavigate.mockReset();
+  (workLocationsApi as any).getAll.mockResolvedValue({ data: [] });
+});
 
 describe('PersonDetailPage', () => {
   describe('Given a person exists', () => {
@@ -53,12 +97,12 @@ describe('PersonDetailPage', () => {
       });
       mockAlloc.getAll.mockResolvedValue({
         data: [
-          { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_type: 'percentage', allocation_value: 50, status: 'active' },
+          { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_value: 50, allocation_type: 'percentage', status: 'active' },
         ],
       });
-      mockTime.getAll.mockResolvedValue({
+      mockTime.getEntries.mockResolvedValue({
         data: [
-          { id: 'te1', entity_name: 'Website', entity_type: 'project', work_date: '2025-06-01', hours: 8, total_cost: 400, status: 'approved', description: 'Dev work' },
+          { id: 'te1', entity_name: 'Website', entity_type: 'project', entry_date: '2025-06-01', hours: 8, calculated_cost: 400, status: 'approved', description: 'Dev work' },
         ],
       });
     });
@@ -67,7 +111,8 @@ describe('PersonDetailPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
       expect(screen.getByText('alice@test.com')).toBeInTheDocument();
-      expect(screen.getByText('Developer')).toBeInTheDocument();
+      // Job title renders in both the header and the Employment Information card.
+      expect(screen.getAllByText('Developer').length).toBeGreaterThanOrEqual(1);
     });
 
     it('When the page loads / Then it shows roles', async () => {
@@ -103,16 +148,58 @@ describe('PersonDetailPage', () => {
       await waitFor(() => expect(screen.getAllByText('Cost Rate').length).toBeGreaterThan(1));
     });
 
-    it('When Add Role is clicked / Then the add role modal opens', async () => {
+    it('When Add Skill is clicked / Then the add skill modal opens', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Add Role')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Role'));
-      await waitFor(() => expect(screen.getByText('Add Role / Skill')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Add Skill')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Add Skill'));
+      // Modal opened — assert on a field unique to the modal (the button label also reads "Add Skill").
+      await waitFor(() => expect(screen.getByText('Skill Name *')).toBeInTheDocument());
     });
 
     it('When Link User is shown for unlinked person / Then it is visible', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Link User')).toBeInTheDocument());
+    });
+
+    it('When the Back arrow button is clicked / Then it navigates to the shell-scoped list path', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+      // The shell mounts People Connect at /people/*; the list is at /people/people
+      // not /people — otherwise the router strips the MFE prefix and shows the dashboard.
+      fireEvent.click(screen.getByText('Back to People'));
+      expect(mockNavigate).toHaveBeenCalledWith('/people/people');
+    });
+  });
+
+  describe('Given the org-wide currency is not USD', () => {
+    beforeEach(() => {
+      mockCurrencySymbol = 'AED ';
+      mockPeople.getById.mockResolvedValue({
+        id: 'p1', full_name: 'Alice Smith', type: 'employee', status: 'active',
+        email: 'alice@test.com', job_title: 'Developer', department: 'Engineering',
+        cost_rate: 50, cost_rate_unit: 'hour', billing_rate: 75,
+        available_hours_per_day: 8, start_date: '2024-01-01', people_roles: [], user_id: null,
+      });
+      mockAlloc.getAll.mockResolvedValue({ data: [] });
+      mockTime.getEntries.mockResolvedValue({ data: [] });
+    });
+    afterEach(() => { mockCurrencySymbol = '$'; });
+
+    it('When the cost rate is shown / Then it renders in the org currency, not a hardcoded $', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('AED 50/hour')).toBeInTheDocument());
+      expect(screen.queryByText('$50/hour')).not.toBeInTheDocument();
+    });
+
+    it('When the rate history is shown / Then cost and billing rates render in the org currency', async () => {
+      mockPeople.getRateHistory.mockResolvedValue([
+        { id: 'rh1', new_cost_rate: 60, new_billing_rate: 90, effective_date: '2025-03-01', reason: 'Annual review' },
+      ]);
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Rate History'));
+      await waitFor(() => expect(screen.getByText('AED 60/hour')).toBeInTheDocument());
+      expect(screen.getByText('AED 90/hour')).toBeInTheDocument();
     });
   });
 
@@ -130,12 +217,12 @@ describe('PersonDetailPage', () => {
       });
       mockAlloc.getAll.mockResolvedValue({
         data: [
-          { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_type: 'percentage', allocation_value: 50, status: 'active' },
+          { id: 'a1', entity_name: 'Website', entity_id: 'pr1', entity_type: 'project', start_date: '2025-01-01', end_date: '2025-06-30', allocation_value: 50, allocation_type: 'percentage', status: 'active' },
         ],
       });
-      mockTime.getAll.mockResolvedValue({
+      mockTime.getEntries.mockResolvedValue({
         data: [
-          { id: 'te1', entity_name: 'Website', entity_type: 'project', work_date: '2025-06-01', hours: 8, total_cost: 400, status: 'approved', description: 'Dev work' },
+          { id: 'te1', entity_name: 'Website', entity_type: 'project', entry_date: '2025-06-01', hours: 8, calculated_cost: 400, status: 'approved', description: 'Dev work' },
         ],
       });
     });
@@ -229,16 +316,82 @@ describe('PersonDetailPage', () => {
     });
   });
 
-  describe('Given the person does not exist', () => {
+  describe('Given the employee record fetch fails', () => {
     beforeEach(() => {
-      mockPeople.getById.mockRejectedValue(new Error('Not found'));
+      mockPeople.getById.mockImplementation(async () => { throw new Error('Network error'); });
       mockAlloc.getAll.mockResolvedValue({ data: [] });
-      mockTime.getAll.mockResolvedValue({ data: [] });
+      mockTime.getEntries.mockResolvedValue({ data: [] });
     });
 
-    it('When loading fails / Then it shows person not found', async () => {
+    it('When the detail fetch rejects / Then it shows an error state instead of a blank page', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Unable to load employee details.')).toBeInTheDocument());
+      expect(screen.getByText('Back to list')).toBeInTheDocument();
+    });
+
+    it('When Back to list is clicked in the error state / Then it navigates to the shell-scoped list path', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Back to list')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Back to list'));
+      expect(mockNavigate).toHaveBeenCalledWith('/people/people');
+    });
+  });
+
+  describe('Given the employee id resolves to no record', () => {
+    beforeEach(() => {
+      mockPeople.getById.mockResolvedValue(null);
+      mockAlloc.getAll.mockResolvedValue({ data: [] });
+      mockTime.getEntries.mockResolvedValue({ data: [] });
+    });
+
+    it('When the record is empty / Then it shows the not-found state', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Person not found.')).toBeInTheDocument());
+    });
+
+    it('When Back to list is clicked in the not-found state / Then it navigates to the shell-scoped list path', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Back to list')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Back to list'));
+      expect(mockNavigate).toHaveBeenCalledWith('/people/people');
+    });
+  });
+
+  describe('Given the person loads but secondary data fails', () => {
+    beforeEach(() => {
+      mockPeople.getById.mockResolvedValue({
+        id: 'p1', full_name: 'Bob Jones', type: 'employee', status: 'active',
+        cost_rate: 40, cost_rate_unit: 'hour', currency: 'USD', available_hours_per_day: 8,
+        people_roles: [],
+      });
+      mockAlloc.getAll.mockImplementation(async () => { throw new Error('allocations down'); });
+      mockTime.getEntries.mockImplementation(async () => { throw new Error('time entries down'); });
+    });
+
+    it('When allocations and time entries reject / Then the profile still renders (no blank page)', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Bob Jones')).toBeInTheDocument());
+      // Allocations tab still works and shows its empty state rather than crashing.
+      fireEvent.click(screen.getByText('Allocations'));
+      await waitFor(() => expect(screen.getByText('No allocations')).toBeInTheDocument());
+    });
+  });
+
+  describe('Given the person record is missing optional fields', () => {
+    beforeEach(() => {
+      // full_name intentionally null — the previous code crashed on .split(' ') here.
+      mockPeople.getById.mockResolvedValue({
+        id: 'p1', full_name: null, type: 'employee', status: 'active',
+        cost_rate: 0, cost_rate_unit: 'hour', currency: 'USD', available_hours_per_day: 8,
+        people_roles: [],
+      });
+      mockAlloc.getAll.mockResolvedValue({ data: [] });
+      mockTime.getEntries.mockResolvedValue({ data: [] });
+    });
+
+    it('When full_name is null / Then the page renders a fallback instead of crashing', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Unknown')).toBeInTheDocument());
     });
   });
 });

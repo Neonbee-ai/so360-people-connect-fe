@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
+
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 vi.mock('../services/performanceReviewsService', () => ({
   performanceReviewsApi: {
@@ -14,6 +21,13 @@ vi.mock('../services/performanceReviewsService', () => ({
   ReviewTemplateSection: {},
 }));
 
+// The appraisal evidence panel is a child of this page, so its service must
+// be mocked here too — otherwise it reaches the real apiClient during render
+// and takes the whole page down with it.
+vi.mock('../services/performanceBlocksService', () => ({
+  performanceBlocksApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+
 vi.mock('../services/reviewTemplatesService', () => ({
   reviewTemplatesApi: { getById: vi.fn() },
   ReviewTemplate: {},
@@ -22,6 +36,27 @@ vi.mock('../services/reviewTemplatesService', () => ({
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
+
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),
+  useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
+
+vi.mock('../utils/formatters', () => ({
+  usePeopleFormatters: () => ({
+    // Date-only primitives — this factory is a CLOSED LIST, so a component that
+    // adopts formatters.businessToday()/toBusinessDate() throws here otherwise.
+    toBusinessDate: (d: any) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10)),
+    businessToday: () => '2026-09-15',
+    startOfBusinessDayUtc: (d: string) => new Date(`${d}T00:00:00Z`),
+    endOfBusinessDayUtcExclusive: (d: string) => new Date(`${d}T00:00:00Z`),
+    formatDate: (d: string, _opts?: any) => d ?? '',
+    formatDateTime: (d: string) => d ?? '',
+    formatCurrency: (v: number) => `$${v}`,
+    formatNumber: (n: number) => String(n),
+    currency: 'USD',
+    locale: 'en-US',
+    timezone: 'UTC',
+  }),
 }));
 
 import ReviewDetailPage from './ReviewDetailPage';
@@ -103,7 +138,7 @@ describe('Given ReviewDetailPage loads successfully', () => {
 
 describe('Given ReviewDetailPage API failure', () => {
   beforeEach(() => {
-    mockReviewsApi.getById.mockRejectedValue(new Error('Not found'));
+    mockReviewsApi.getById.mockImplementation(async () => { throw new Error('Not found'); });
     mockTemplatesApi.getById.mockResolvedValue(mockTemplate);
   });
 
@@ -124,5 +159,32 @@ describe('Given ReviewDetailPage with template sections', () => {
   it('When template sections load / Then section title is displayed', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Technical Skills')).toBeInTheDocument());
+  });
+});
+
+/*
+ * Regression: the header back button previously called navigate('/reviews'),
+ * which — because the people-connect MFE is mounted under the shell at
+ * '/people/*' — escaped the module and hit the shell's "Page Not Found".
+ * The correct target is '/people/reviews'.
+ */
+describe('Given the ReviewDetailPage back button', () => {
+  beforeEach(() => {
+    mockReviewsApi.getById.mockResolvedValue(mockReview);
+    mockTemplatesApi.getById.mockResolvedValue(mockTemplate);
+  });
+
+  it('When back is clicked / Then it navigates to the shell-prefixed reviews list', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Alice - Annual 2024/i })).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button')[0]);
+    expect(mockNavigate).toHaveBeenCalledWith('/people/reviews');
+  });
+
+  it('When back is clicked / Then it does NOT navigate to the bare /reviews path (regression guard)', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Alice - Annual 2024/i })).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button')[0]);
+    expect(mockNavigate).not.toHaveBeenCalledWith('/reviews');
   });
 });
