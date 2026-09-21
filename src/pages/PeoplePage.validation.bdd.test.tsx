@@ -466,3 +466,22 @@ describe('Given the People Registry Import action', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/people/import-export?tab=import');
   });
 });
+
+describe('Given the People Registry Export action', () => {
+  it('When Export is clicked / Then it navigates straight to the Export workflow, matching Import', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /^export$/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/people/import-export?tab=export');
+  });
+
+  it('When rendered / Then it is a single button with no dropdown menu', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+
+    expect(screen.queryByText('Export as CSV')).not.toBeInTheDocument();
+    expect(screen.queryByText('Export as Excel')).not.toBeInTheDocument();
+  });
+});
