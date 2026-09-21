@@ -107,6 +107,7 @@ import { workLocationsApi } from '../services/workLocationsService';
 import { mastersApi } from '../services/mastersService';
 import { leaveConfigApi } from '../services/leaveConfigService';
 import { leaveTypesApi } from '../services/leaveTypesService';
+import { customFieldDefsApi, personCustomFieldsApi } from '../services/customFieldsService';
 
 const mockPeopleApi = peopleApi as any;
 const mockDepartmentsApi = departmentsApi as any;
@@ -114,6 +115,8 @@ const mockWorkLocationsApi = workLocationsApi as any;
 const mockMastersApi = mastersApi as any;
 const mockLeaveConfigApi = leaveConfigApi as any;
 const mockLeaveTypesApi = leaveTypesApi as any;
+const mockDefsApi = customFieldDefsApi as any;
+const mockValuesApi = personCustomFieldsApi as any;
 
 const renderPage = () => render(<MemoryRouter><PeoplePage /></MemoryRouter>);
 
@@ -157,6 +160,12 @@ beforeEach(() => {
   });
   mockLeaveConfigApi.getForEmploymentType.mockResolvedValue(defaultEmploymentTypeConfig);
   mockLeaveConfigApi.setPersonOverride.mockResolvedValue({});
+  // resetAllMocks() above clears the module-level defaults set in vi.mock() —
+  // PeoplePage loads custom field definitions on mount (create modal) and on
+  // Edit open, same as PeoplePage.customFields.spec.tsx.
+  mockDefsApi.getAll.mockResolvedValue({ data: [] });
+  mockValuesApi.getForPerson.mockResolvedValue({ data: [] });
+  mockValuesApi.setForPerson.mockResolvedValue({ data: [] });
   mockLeaveTypesApi.getAll.mockResolvedValue({
     data: [
       { id: 'lt-annual', name: 'Annual Leave' },
