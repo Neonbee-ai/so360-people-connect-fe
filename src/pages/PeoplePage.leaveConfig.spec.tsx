@@ -187,12 +187,16 @@ const fillMinimalPersonAndSelectEmploymentType = async () => {
   fireEvent.change(nameInput, { target: { value: 'New Hire' } });
   await waitFor(() => expect(nameInput).toHaveValue('New Hire'));
 
+  // "Employment Details" and "Leave Configuration" are separate, independent
+  // accordions (Section defaultOpen=false) — neither's content is in the DOM
+  // at all until each is expanded.
+  fireEvent.click(screen.getByText('Employment Details'));
+  fireEvent.click(screen.getByText('Leave Configuration'));
+
   // "Employee Only" — the default invite mode requires an email + role, which
   // these leave-config scenarios are not about.
   fireEvent.click(screen.getByText('Employee Only (No System Access)'));
 
-  // The Employment Type field only mounts once the invite-mode switch commits
-  // its re-render — a synchronous query here races that update.
   const employmentTypeSelect = await screen.findByDisplayValue('Select Employment Type');
   fireEvent.change(employmentTypeSelect, { target: { value: 'full_time' } });
   await waitFor(() => expect(mockLeaveConfigApi.getForEmploymentType).toHaveBeenCalledWith('et-full'));
@@ -301,6 +305,9 @@ describe('Given the person is created successfully but the leave override write 
 describe('Given no Employment Type has been selected in the create modal', () => {
   it('When the Leave Configuration section renders / Then it prompts to select an Employment Type instead of showing leave types', async () => {
     await openCreateModal();
+    // Leave Configuration is its own collapsed-by-default accordion — its
+    // content isn't in the DOM until expanded.
+    fireEvent.click(screen.getByText('Leave Configuration'));
     expect(screen.getByText('Select an Employment Type to load the default leave structure.')).toBeInTheDocument();
     expect(mockLeaveConfigApi.getForEmploymentType).not.toHaveBeenCalled();
   });
