@@ -214,8 +214,9 @@ describe('Given the Add Person modal is open', () => {
 
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
     expect(screen.getByText('Sick Leave')).toBeInTheDocument();
-    // Still the create modal — not a navigation to the person's profile.
-    expect(screen.getByText('Add New Person')).toBeInTheDocument();
+    // Still the create modal — not a navigation to the person's profile: the
+    // Full Name input (create-mode only) is still mounted alongside it.
+    expect(screen.getByPlaceholderText('John Doe')).toBeInTheDocument();
   });
 });
 
