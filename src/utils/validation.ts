@@ -31,7 +31,9 @@ const HAS_LETTER_RE = /\p{L}/u;
 // Letters, spaces and the punctuation that occurs in real names.
 const PERSON_NAME_RE = /^[\p{L}\p{M}][\p{L}\p{M}\s.'’-]*$/u;
 // Practical RFC-5322 subset: no spaces, single @, dotted TLD of 2+ letters.
-const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
+// Username disallows consecutive/leading/trailing periods; each domain label
+// disallows consecutive hyphens (e.g. "gm--ail.com").
+const EMAIL_RE = /^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:-?[A-Za-z0-9])*(?:\.[A-Za-z0-9](?:-?[A-Za-z0-9])*)*\.[A-Za-z]{2,}$/;
 // Digits with an optional leading +, plus the usual separators.
 const PHONE_RE = /^\+?[0-9\s().-]+$/;
 // Business code: alphanumeric, optionally separated by - or _.
@@ -58,8 +60,25 @@ export function validateEmail(value: unknown, required = false): string | null {
   const email = typeof value === 'string' ? value.trim() : '';
   if (!email) return required ? 'Email is required.' : null;
   if (email.length > 254) return 'Email must be 254 characters or fewer.';
-  if (!EMAIL_RE.test(email)) return 'Please enter a valid email address.';
+  if (!EMAIL_RE.test(email)) {
+    return (
+      'Please enter a valid email address (e.g., name@example.com). ' +
+      'Username may contain letters (A–Z, a–z), numbers (0–9), periods (.), underscores (_), hyphens (-), and plus signs (+). ' +
+      'Domain must contain valid letters or numbers, may include single hyphens (-), and cannot contain consecutive hyphens (--), ' +
+      'consecutive periods (..), spaces, or start/end with a hyphen or period.'
+    );
+  }
   return null;
+}
+
+/**
+ * Strips characters `validatePhone` would reject, at keystroke/paste time.
+ * The submit-time regex already blocked invalid values from being saved,
+ * but nothing stopped a user from typing/pasting them in the first place —
+ * this closes that input-level gap without changing what's ultimately valid.
+ */
+export function sanitizePhoneInput(value: string): string {
+  return value.replace(/[^0-9\s().+-]/g, '').slice(0, 20);
 }
 
 /** Phone: digits (7–15) with an optional leading +. Empty is allowed. */

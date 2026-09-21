@@ -26,7 +26,7 @@ import { usePeopleFormatters } from '../utils/formatters';
 import { leaveConfigApi } from '../services/leaveConfigService';
 import PersonLeaveConfigSection, { type PendingLeaveOverride } from '../components/leave/PersonLeaveConfigSection';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
-import { validatePersonName, validateEmail, validatePhone, focusFirstInvalid } from '../utils/validation';
+import { validatePersonName, validateEmail, validatePhone, sanitizePhoneInput, focusFirstInvalid } from '../utils/validation';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 
@@ -252,7 +252,6 @@ const PeoplePage: React.FC = () => {
     // of silently querying and showing a misleading "No people found".
     const joinedRangeInvalid = !!(joiningFromFilter && joiningToFilter && joiningFromFilter > joiningToFilter);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showExportMenu, setShowExportMenu] = useState(false);
     // `emailRequested` distinguishes "admin opted out of the email" from "we tried to
     // email it and it didn't go out" — the modal must not claim delivery either way.
     const [inviteResult, setInviteResult] = useState<{ link: string; email: string; emailSent: boolean; emailRequested: boolean } | null>(null);
@@ -586,28 +585,6 @@ const PeoplePage: React.FC = () => {
         }
     };
 
-    const handleExport = async (format: 'csv' | 'excel') => {
-        try {
-            const blob = await peopleApi.export(format, {
-                status: statusFilter,
-                type: typeFilter,
-                department_id: departmentFilter,
-                employment_type: employmentTypeFilter,
-                date_of_joining_from: joiningFromFilter,
-                date_of_joining_to: joiningToFilter,
-            });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `people-${formatters.businessToday()}.${format === 'csv' ? 'csv' : 'xlsx'}`;
-            a.click();
-            setShowExportMenu(false);
-            toast.success(`Exported ${people.length} people as ${format.toUpperCase()}`);
-        } catch (error) {
-            toast.error('Failed to export people');
-        }
-    };
-
     return (
         <div className="p-6 space-y-5">
             <PageHeader
@@ -628,34 +605,17 @@ const PeoplePage: React.FC = () => {
                         </button>
                         )}
 
-                        {/* Export Dropdown */}
+                        {/* Export Button */}
                         {canExportEmployees && (
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowExportMenu(!showExportMenu)}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
-                            >
-                                <Download size={16} />
-                                Export
-                                <ChevronDown size={14} />
-                            </button>
-                            {showExportMenu && (
-                                <div className="absolute right-0 mt-2 w-40 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-10">
-                                    <button
-                                        onClick={() => handleExport('csv')}
-                                        className="w-full px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700 rounded-t-lg"
-                                    >
-                                        Export as CSV
-                                    </button>
-                                    <button
-                                        onClick={() => handleExport('excel')}
-                                        className="w-full px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700 rounded-b-lg"
-                                    >
-                                        Export as Excel
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                        <button
+                            // Land directly on the Export tab, mirroring the Import
+                            // button — clicking Export must never require a second click.
+                            onClick={() => navigate('/people/import-export?tab=export')}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
+                        >
+                            <Download size={16} />
+                            Export
+                        </button>
                         )}
 
                         {/* Add Person Button */}
@@ -1653,7 +1613,8 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 id="person-phone"
                                 data-field="phone"
                                 type="text" inputMode="tel" value={formData.phone || ''}
-                                onChange={(e) => updateField('phone', e.target.value)}
+                                onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))}
+                                maxLength={20}
                                 aria-invalid={!!errors.phone}
                                 className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                                 placeholder="+1-555-0100"
@@ -2300,7 +2261,8 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                 id="edit-person-phone"
                                 data-field="phone"
                                 type="text" inputMode="tel" value={formData.phone || ''}
-                                onChange={(e) => updateField('phone', e.target.value)}
+                                onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))}
+                                maxLength={20}
                                 aria-invalid={!!errors.phone}
                                 className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             />
