@@ -26,7 +26,7 @@ import { usePeopleFormatters } from '../utils/formatters';
 import { leaveConfigApi } from '../services/leaveConfigService';
 import PersonLeaveConfigSection, { type PendingLeaveOverride } from '../components/leave/PersonLeaveConfigSection';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
-import { validatePersonName, validateEmail, validatePhone, focusFirstInvalid } from '../utils/validation';
+import { validatePersonName, validateEmail, validatePhone, sanitizePhoneInput, focusFirstInvalid } from '../utils/validation';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 
@@ -1613,7 +1613,8 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 id="person-phone"
                                 data-field="phone"
                                 type="text" inputMode="tel" value={formData.phone || ''}
-                                onChange={(e) => updateField('phone', e.target.value)}
+                                onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))}
+                                maxLength={20}
                                 aria-invalid={!!errors.phone}
                                 className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                                 placeholder="+1-555-0100"
@@ -2260,7 +2261,8 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                 id="edit-person-phone"
                                 data-field="phone"
                                 type="text" inputMode="tel" value={formData.phone || ''}
-                                onChange={(e) => updateField('phone', e.target.value)}
+                                onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))}
+                                maxLength={20}
                                 aria-invalid={!!errors.phone}
                                 className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
                             />
