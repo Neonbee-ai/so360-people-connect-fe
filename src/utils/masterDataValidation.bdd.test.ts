@@ -55,7 +55,12 @@ describe('Given the Email field on Add Person', () => {
   });
 
   it('When the reported junk value "henry@gmail.com74166^(*)_)" is entered / Then it is rejected', () => {
-    expect(validateEmail('henry@gmail.com74166^(*)_)')).toBe('Please enter a valid email address.');
+    expect(validateEmail('henry@gmail.com74166^(*)_)')).toBe(
+      'Please enter a valid email address (e.g., name@example.com). ' +
+        'Username may contain letters (A–Z, a–z), numbers (0–9), periods (.), underscores (_), hyphens (-), and plus signs (+). ' +
+        'Domain must contain valid letters or numbers, may include single hyphens (-), and cannot contain consecutive hyphens (--), ' +
+        'consecutive periods (..), spaces, or start/end with a hyphen or period.'
+    );
   });
 
   it('When the address is malformed / Then it is rejected', () => {

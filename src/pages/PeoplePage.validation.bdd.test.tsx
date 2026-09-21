@@ -168,7 +168,9 @@ describe('Given the Add Person modal', () => {
     fireEvent.change(emailInput(), { target: { value: 'henry@gmail.com74166^(*)_)' } });
 
     // Shown for both the identity email and the invite email, which mirrors it.
-    expect((await screen.findAllByText('Please enter a valid email address.')).length).toBeGreaterThan(0);
+    expect(
+      (await screen.findAllByText(/Please enter a valid email address/)).length
+    ).toBeGreaterThan(0);
     expect(addButton()).toBeDisabled();
   });
 
