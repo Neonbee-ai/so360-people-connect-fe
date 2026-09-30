@@ -190,6 +190,19 @@ describe('Given the Add Person form', () => {
     expect(inForm('create-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Contractor');
   });
 
+  it('When Freelancer is selected and then cleared / Then the hint returns to Employee and no employment type is sent', async () => {
+    await openCreate();
+    fireEvent.change(employmentTypeSelect('create-employment-type'), { target: { value: 'freelancer' } });
+    expect(inForm('create-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Contractor');
+
+    fireEvent.change(employmentTypeSelect('create-employment-type'), { target: { value: '' } });
+
+    expect(inForm('create-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Employee');
+    const payload = await fillAndSubmit();
+    expect(payload.employment_type).toBeUndefined();
+    expect(payload.type).toBe('employee');
+  });
+
   it('When saved as Freelancer / Then the person is created as a contractor with that employment type', async () => {
     await openCreate();
 
@@ -256,6 +269,17 @@ describe('Given the Edit Person form', () => {
 
     expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Contractor');
     expect((await save()).type).toBe('contractor');
+  });
+
+  it('When a freelancer\'s employment type is cleared / Then their stored contractor type is kept, not flipped to employee', async () => {
+    await openEdit({ ...basePerson, type: 'contractor', employment_type: 'freelancer' });
+
+    fireEvent.change(employmentTypeSelect('edit-employment-type'), { target: { value: '' } });
+
+    expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Contractor');
+    const payload = await save();
+    expect(payload.employment_type).toBeUndefined();
+    expect(payload.type).toBe('contractor');
   });
 
   it('When a contractor is given a Full Time employment type / Then they are saved as an employee', async () => {
