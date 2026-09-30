@@ -47,6 +47,10 @@ export interface Person {
 
   // Metadata
   meta?: Record<string, unknown>;
+  /** Data Layer Class B custom-field values (people.person). */
+  custom_fields?: Record<string, unknown>;
+  /** Optimistic-concurrency token when the backend exposes one. */
+  version?: number;
   created_at: string;
   updated_at: string;
   created_by?: string;
@@ -132,6 +136,8 @@ export interface CreatePersonPayload {
   end_date?: string;
   roles?: Omit<PersonRole, 'id' | 'person_id' | 'org_id' | 'tenant_id' | 'created_at'>[];
   meta?: Record<string, unknown>;
+  /** Data Layer Class B custom-field values (people.person). */
+  custom_fields?: Record<string, unknown>;
   work_location_id?: string;
   userLinkageMode?: 'none' | 'link' | 'invite';
   existingUserId?: string;

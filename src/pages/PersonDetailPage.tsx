@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Mail, Phone, Calendar, DollarSign, Clock, Target,
@@ -24,6 +24,10 @@ import UserSelector from '../components/UserSelector';
 import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useCanConfigureLeave } from '../hooks/useCanConfigureLeave';
 import type { Person, Allocation, PersonRole } from '../types/people';
+import {
+    usePeopleDataLayer, usePeopleInjectedTabs, PeopleRecordScope, PeopleSlotRegion, PEOPLE_DATA_LAYER_ENTITIES,
+} from '../dataLayer/peopleDataLayer';
+import { usePeopleRecordContext } from '../dataLayer/usePeopleRecordContext';
 
 const PersonDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -125,7 +129,10 @@ const PersonDetailPage: React.FC = () => {
     const handleSave = async () => {
         if (!id || !person) return;
         try {
-            const updated = await peopleApi.update(id, editData);
+            // Class B custom_fields are written only by the data-layer renderers
+            // (merge-on-save) — never echo a possibly stale copy from the edit form.
+            const { custom_fields: _classB, ...nativeEdit } = editData;
+            const updated = await peopleApi.update(id, nativeEdit);
             setPerson({ ...person, ...updated });
             setEditing(false);
             toast.success('Person updated');
@@ -264,6 +271,18 @@ const PersonDetailPage: React.FC = () => {
         }
     }, [activeTab, person]);
 
+    // ── Data Layer (Class B, people.person) — hooks stay above the early returns.
+    // Everything below renders nothing unless submodule:data_layer:custom_fields
+    // is on AND the Shell registered a renderer for the slot.
+    const dataLayer = usePeopleDataLayer(PEOPLE_DATA_LAYER_ENTITIES.PERSON);
+    const onPersonClassBSaved = useCallback((values: Record<string, unknown>) => {
+        setPerson((p) => (p ? { ...p, custom_fields: values } : p));
+    }, []);
+    // canEdit mirrors the native page, which offers Edit to anyone who can open it.
+    const dlCtx = usePeopleRecordContext(dataLayer, person?.id, person, { canEdit: true, onSaved: onPersonClassBSaved });
+    const dlTabs = usePeopleInjectedTabs(dataLayer, dlCtx);
+    const activeDlTab = dlTabs.find((t) => t.id === activeTab);
+
     if (loading) {
         return (
             <div className="p-6">
@@ -293,6 +312,7 @@ const PersonDetailPage: React.FC = () => {
     const totalHoursLogged = timeEntries.reduce((sum, te) => sum + te.hours, 0);
 
     return (
+        <PeopleRecordScope dl={dataLayer} recordId={person.id}>
         <div className="p-6 space-y-6">
             {/* Back Navigation */}
             <button onClick={() => navigate('/people/people')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
@@ -350,6 +370,7 @@ const PersonDetailPage: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <PeopleSlotRegion dl={dataLayer} slot="detail.actions" region="actions" ctx={dlCtx} className="flex items-center gap-2" />
                         {!editing ? (
                             <button
                                 onClick={() => { setEditing(true); setEditData(person); }}
@@ -558,6 +579,11 @@ const PersonDetailPage: React.FC = () => {
                 </div>
             </div>
 
+            {/* Data Layer: custom fields (main) + sidebar renderers. This page has no
+                native sidebar column, so the sidebar region stacks below the main one. */}
+            <PeopleSlotRegion dl={dataLayer} slot="detail.section" region="main" ctx={dlCtx} className="space-y-6" />
+            <PeopleSlotRegion dl={dataLayer} slot="detail.sidebar" region="sidebar" ctx={dlCtx} className="space-y-6" />
+
             {/* Tabs */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl">
                 <div className="border-b border-slate-800">
@@ -663,6 +689,20 @@ const PersonDetailPage: React.FC = () => {
                             <Wallet size={14} className="inline mr-1.5" />
                             Payroll
                         </button>
+                        {dlTabs.map((t) => (
+                            <button
+                                key={t.id}
+                                data-dl-tab={t.id}
+                                onClick={() => setActiveTab(t.id)}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                    activeTab === t.id
+                                        ? 'bg-teal-500/10 text-teal-400'
+                                        : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                }`}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -870,6 +910,9 @@ const PersonDetailPage: React.FC = () => {
                     {/* Payroll Tab */}
                     {activeTab === 'payroll' && person && <PayrollProfileTab person={person} />}
 
+                    {/* Data Layer injected tabs (e.g. field history) */}
+                    {activeDlTab && activeDlTab.render()}
+
                     {/* Goals Tab */}
                     {activeTab === 'goals' && (
                         <div className="space-y-3">
@@ -940,6 +983,7 @@ const PersonDetailPage: React.FC = () => {
             />
 
         </div>
+        </PeopleRecordScope>
     );
 };
 

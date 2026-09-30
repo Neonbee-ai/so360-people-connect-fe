@@ -27,6 +27,7 @@ import { leaveConfigApi } from '../services/leaveConfigService';
 import PersonLeaveConfigSection, { type PendingLeaveOverride } from '../components/leave/PersonLeaveConfigSection';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
 import { validatePersonName, validateEmail, validatePhone, sanitizePhoneInput, focusFirstInvalid } from '../utils/validation';
+import { usePeopleDataLayer, usePeopleCustomColumns, formatCustomFieldValue, PeopleCreateSection, missingRequiredCustomFields, PEOPLE_DATA_LAYER_ENTITIES } from '../dataLayer/peopleDataLayer';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 
@@ -231,6 +232,9 @@ const PeoplePage: React.FC = () => {
     const { isSandboxMode, sandboxEntryLimit, limitItems, isLimited } = useSandboxLimit();
     const [people, setPeople] = useState<Person[]>([]);
     const [loading, setLoading] = useState(true);
+    // Data Layer Class B list columns (empty unless submodule:data_layer:custom_fields is on)
+    const personDataLayer = usePeopleDataLayer(PEOPLE_DATA_LAYER_ENTITIES.PERSON);
+    const dataLayerColumns = usePeopleCustomColumns(personDataLayer);
     const [search, setSearch] = useState('');
     // Debounced copy of `search` that actually drives the list query. The input
     // stays bound to raw `search` (instant typing); only the fetch waits for a
@@ -849,6 +853,17 @@ const PeoplePage: React.FC = () => {
                                             </span>
                                         )}
                                     </div>
+                                    {/* Data Layer Class B custom-field columns (display-only; the row list has no sort header) */}
+                                    {dataLayerColumns.length > 0 && (
+                                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 min-w-0 truncate">
+                                            {dataLayerColumns.map((c) => (
+                                                <span key={c.key} data-dl-column={c.key} className="truncate">
+                                                    <span className="text-slate-600">{c.label}:</span>{' '}
+                                                    {formatCustomFieldValue(person.custom_fields?.[c.key])}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Cost Info — compensation-gated */}
@@ -1322,6 +1337,10 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
     const [customFieldsError, setCustomFieldsError] = useState(false);
     const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
+    // Data Layer Class B values (person row `custom_fields`; legacy custom-field-defs stay separate).
+    const dl = usePeopleDataLayer(PEOPLE_DATA_LAYER_ENTITIES.PERSON);
+    const [classBValues, setClassBValues] = useState<Record<string, unknown>>({});
+    const [classBError, setClassBError] = useState<string | null>(null);
     // Employee-level leave deviations, staged here and applied after the person
     // row exists (overrides are keyed by person_id).
     const [leaveOverrides, setLeaveOverrides] = useState<PendingLeaveOverride[]>([]);
@@ -1424,6 +1443,14 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         }
     }, [isOpen, resolvedCurrency]);
 
+    // Fresh Class B values every time the modal opens.
+    useEffect(() => {
+        if (isOpen) {
+            setClassBValues({});
+            setClassBError(null);
+        }
+    }, [isOpen]);
+
     const validate = (data: typeof formData): Record<string, string> => {
         const next: Record<string, string> = {};
         const nameError = validatePersonName(data.full_name);
@@ -1462,6 +1489,13 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
             focusFirstInvalid(formRef.current, [...FIELD_ORDER, 'existingUserId'], validationErrors);
             return;
         }
+        const missingClassB = missingRequiredCustomFields(dl, classBValues);
+        if (missingClassB.length > 0) {
+            const labels = missingClassB.map(k => dl.fields.find(f => f.field_key === k)?.label ?? k);
+            setClassBError(`Please fill in: ${labels.join(', ')}`);
+            return;
+        }
+        setClassBError(null);
         // Omit an unselected department so the backend @IsUUID validation is not
         // triggered by an empty string.
         const payload: any = { ...formData, full_name: formData.full_name.trim() };
@@ -1471,6 +1505,10 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         if (Object.keys(customFieldValues).length > 0) {
             payload.customFieldValues = customFieldValues;
         }
+        // Class B values ride the native create payload (person row `custom_fields`).
+        if (dl.enabled && Object.keys(classBValues).length > 0) {
+            payload.custom_fields = classBValues;
+        }
         // Applied by handleCreate once the person id exists. Only sent when the
         // user actually deviated from the inherited defaults — an untouched
         // Leave Configuration section writes nothing at all.
@@ -1479,6 +1517,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         }
         onCreate(payload);
         setCustomFieldValues({});
+        setClassBValues({});
         setLeaveOverrides([]);
         // Reset form
         setFormData({
@@ -1832,6 +1871,17 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                     onChange={updateCustomFieldValue}
                     loadError={customFieldsError}
                 />
+
+                {/* Data Layer Class B custom fields (renders nothing unless the flag is on) */}
+                <PeopleCreateSection
+                    dl={dl}
+                    mode="create"
+                    values={classBValues}
+                    onValuesChange={(next) => { setClassBValues(next); setClassBError(null); }}
+                />
+                {classBError && (
+                    <p role="alert" data-dl-error="required" className="text-xs text-red-400">{classBError}</p>
+                )}
 
                 {/* User Linkage */}
                 <div>
