@@ -51,6 +51,8 @@ export interface Person {
   custom_fields?: Record<string, unknown>;
   /** Optimistic-concurrency token when the backend exposes one. */
   version?: number;
+  /** Class B optimistic-concurrency token (bumped on every custom_fields write). */
+  custom_fields_version?: number;
   created_at: string;
   updated_at: string;
   created_by?: string;

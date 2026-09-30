@@ -27,7 +27,7 @@ import type { Person, Allocation, PersonRole } from '../types/people';
 import {
     usePeopleDataLayer, usePeopleInjectedTabs, PeopleRecordScope, PeopleSlotRegion, PEOPLE_DATA_LAYER_ENTITIES,
 } from '../dataLayer/peopleDataLayer';
-import { usePeopleRecordContext } from '../dataLayer/usePeopleRecordContext';
+import { usePeopleRecordContext, type ClassBRowRefresh } from '../dataLayer/usePeopleRecordContext';
 
 const PersonDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -275,11 +275,22 @@ const PersonDetailPage: React.FC = () => {
     // Everything below renders nothing unless submodule:data_layer:custom_fields
     // is on AND the Shell registered a renderer for the slot.
     const dataLayer = usePeopleDataLayer(PEOPLE_DATA_LAYER_ENTITIES.PERSON);
-    const onPersonClassBSaved = useCallback((values: Record<string, unknown>) => {
-        setPerson((p) => (p ? { ...p, custom_fields: values } : p));
+    const onPersonClassBSaved = useCallback((values: Record<string, unknown>, refresh: ClassBRowRefresh) => {
+        setPerson((p) => (p ? { ...p, ...refresh, custom_fields: values } : p));
     }, []);
+    // Refetch the person row (conflict reload, or a save that returned no new
+    // custom_fields_version) without resetting the rest of the page.
+    const refetchPerson = useCallback(async () => {
+        if (!id) return;
+        try {
+            const fresh = await peopleApi.getById(id);
+            if (fresh?.id) setPerson((p) => (p ? { ...p, ...fresh } : fresh));
+        } catch (error) {
+            console.error('Failed to refresh person:', error);
+        }
+    }, [id]);
     // canEdit mirrors the native page, which offers Edit to anyone who can open it.
-    const dlCtx = usePeopleRecordContext(dataLayer, person?.id, person, { canEdit: true, onSaved: onPersonClassBSaved });
+    const dlCtx = usePeopleRecordContext(dataLayer, person?.id, person, { canEdit: true, onChanged: refetchPerson, onSaved: onPersonClassBSaved });
     const dlTabs = usePeopleInjectedTabs(dataLayer, dlCtx);
     const activeDlTab = dlTabs.find((t) => t.id === activeTab);
 

@@ -129,8 +129,10 @@ export class ApiClient {
 
       if (!response.ok) {
         let errorMessage = `API Error: ${response.status}`;
+        let errorBody: any;
         try {
           const errorJson = JSON.parse(text);
+          errorBody = errorJson;
           // NestJS ValidationPipe returns `message` as an array of constraint
           // strings; joining keeps them readable instead of relying on Array
           // coercion, which glues them together without spaces.
@@ -141,7 +143,13 @@ export class ApiClient {
         } catch {
           errorMessage = text || errorMessage;
         }
-        throw new Error(errorMessage);
+        // Carry status/code/body so callers can branch on e.g. 409
+        // DATASET_VERSION_CONFLICT without parsing the message.
+        throw Object.assign(new Error(errorMessage), {
+          status: response.status,
+          body: errorBody,
+          code: typeof errorBody?.code === 'string' ? errorBody.code : undefined,
+        });
       }
 
       try {

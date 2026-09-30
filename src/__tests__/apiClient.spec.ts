@@ -94,6 +94,23 @@ describe('ApiClient', () => {
     });
   });
 
+  describe('Given a 409 version-conflict response', () => {
+    it('When the PATCH is rejected / Then the error carries status, code and body', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 409,
+        text: () => Promise.resolve('{"code":"DATASET_VERSION_CONFLICT","message":"Record changed"}'),
+      });
+
+      await expect(client.patch('/people/p1', { custom_fields: {}, version: 1 })).rejects.toMatchObject({
+        message: 'Record changed',
+        status: 409,
+        code: 'DATASET_VERSION_CONFLICT',
+        body: { code: 'DATASET_VERSION_CONFLICT', message: 'Record changed' },
+      });
+    });
+  });
+
   describe('Given an error response with plain text body', () => {
     it('When the server returns 500 / Then it throws with the text', async () => {
       mockFetch.mockResolvedValue({

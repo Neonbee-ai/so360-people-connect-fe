@@ -7,7 +7,8 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
  * Data Layer Class B on Person Detail (people.person).
  * Shell renderers are hosted in named regions behind
  * submodule:data_layer:custom_fields. Values are saved by People Connect through
- * the native PATCH /people/:id (peopleApi.update) with merged custom_fields.
+ * the native PATCH /people/:id (peopleApi.update) with only the changed custom_fields
+ * plus the row's custom_fields_version.
  */
 
 // One mutable state object, read lazily by the mock factories (vi.mock hoisting).
@@ -231,12 +232,23 @@ describe('Given the data-layer flag is ON', () => {
     expect(screen.queryByTestId('probe-secret')).toBeNull();
   });
 
-  it('When a renderer saves / Then the module PATCHes /people/:id with merged custom_fields and the page reflects it', async () => {
+  it('When a renderer saves / Then the module PATCHes /people/:id with only the changed custom_fields and the page reflects it', async () => {
     mockPeopleApi.update.mockResolvedValueOnce({ ...person, custom_fields: { region: 'south', grade: 'L5' } });
     dl.regs = [reg({ id: 'sec' })];
     await renderLoaded();
     fireEvent.click(screen.getByText('save-sec'));
-    await waitFor(() => expect(mockPeopleApi.update).toHaveBeenCalledWith('p1', { custom_fields: { region: 'south', grade: 'L5' } }));
+    await waitFor(() => expect(mockPeopleApi.update).toHaveBeenCalledWith('p1', { custom_fields: { grade: 'L5' } }));
     await waitFor(() => expect(screen.getByTestId('probe-sec-value').textContent).toBe('L5'));
+  });
+
+  it('When the row carries custom_fields_version / Then it is the slot version, sent on save, and advanced from the response', async () => {
+    mockPeopleApi.getById.mockResolvedValue({ ...person, custom_fields_version: 3 });
+    mockPeopleApi.update.mockResolvedValueOnce({ ...person, custom_fields: { region: 'south', grade: 'L5' }, custom_fields_version: 4 });
+    dl.regs = [reg({ id: 'sec' })];
+    await renderLoaded();
+    expect(screen.getByTestId('probe-sec').getAttribute('data-version')).toBe('3');
+    fireEvent.click(screen.getByText('save-sec'));
+    await waitFor(() => expect(mockPeopleApi.update).toHaveBeenCalledWith('p1', { custom_fields: { grade: 'L5' }, version: 3 }));
+    await waitFor(() => expect(screen.getByTestId('probe-sec').getAttribute('data-version')).toBe('4'));
   });
 });
