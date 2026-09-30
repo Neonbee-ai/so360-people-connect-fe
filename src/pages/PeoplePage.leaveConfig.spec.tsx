@@ -15,7 +15,7 @@
  * `PeoplePage.customFields.spec.tsx`.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -48,7 +48,7 @@ vi.mock('../services/leaveConfigService', () => ({
 }));
 
 vi.mock('../services/leaveTypesService', () => ({
-  leaveTypesApi: { getAll: vi.fn().mockResolvedValue({ data: [] }) },
+  leaveTypesApi: { getAll: vi.fn().mockResolvedValue({ data: [] }), create: vi.fn() },
 }));
 
 vi.mock('../services/peopleService', () => ({
@@ -250,16 +250,11 @@ describe('Given an HR admin customizes leave for this employee during creation',
     const nameInput = await fillMinimalPersonAndSelectEmploymentType();
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('Customize for this employee'));
+    // Untick the inherited Sick Leave for this employee only.
+    fireEvent.click(screen.getByRole('checkbox', { name: /Sick Leave/ }));
 
-    // Remove the inherited Sick Leave for this employee only.
-    const sickLeaveRow = screen.getByText('Sick Leave').closest('li')!;
-    fireEvent.click(within(sickLeaveRow).getByText('Remove'));
-
-    // Add Bereavement Leave, which this employment type does not inherit.
-    fireEvent.click(screen.getByText('Add Leave Type'));
-    await waitFor(() => expect(screen.getByText('Select a leave type…')).toBeInTheDocument());
-    fireEvent.change(screen.getByDisplayValue('Select a leave type…'), { target: { value: 'lt-bereavement' } });
+    // Tick Bereavement Leave, which this employment type does not inherit.
+    fireEvent.click(screen.getByRole('checkbox', { name: /Bereavement Leave/ }));
 
     const form = nameInput.closest('form')!;
     fireEvent.submit(form);
@@ -286,9 +281,7 @@ describe('Given the person is created successfully but the leave override write 
     const nameInput = await fillMinimalPersonAndSelectEmploymentType();
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('Customize for this employee'));
-    const sickLeaveRow = screen.getByText('Sick Leave').closest('li')!;
-    fireEvent.click(within(sickLeaveRow).getByText('Remove'));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Sick Leave/ }));
 
     const form = nameInput.closest('form')!;
     fireEvent.submit(form);
@@ -301,32 +294,47 @@ describe('Given the person is created successfully but the leave override write 
 });
 
 // ============================================================================
-// 5. Navigation out of the section — Pulse task 300309e5: "Configure Leave
-//    Types" used to land on Employment Types
+// 5. Choosing leave types happens IN the drawer — Pulse task 300309e5: the
+//    section used to send the user to another page, discarding the half-filled
+//    Add Person form
 // ============================================================================
-describe('Given the selected employment type has no leave configuration', () => {
-  const openUnconfigured = async () => {
+describe('Given the employment type has no leave defaults', () => {
+  it('When leave types are unticked and the person is saved / Then the drawer never navigates and the choices are applied', async () => {
     mockLeaveConfigApi.getForEmploymentType.mockResolvedValue({ configured: false, leave_types: [] });
+    mockPeopleApi.create.mockResolvedValue({ id: 'new-person-4' });
     await openCreateModal();
-    await fillMinimalPersonAndSelectEmploymentType();
-    await waitFor(() => expect(screen.getByText(/Every active leave type will apply/i)).toBeInTheDocument());
-  };
+    const nameInput = await fillMinimalPersonAndSelectEmploymentType();
 
-  it('When "Configure Leave Types" is clicked / Then it opens Leave Types, not Employment Types', async () => {
-    await openUnconfigured();
+    const bereavement = await screen.findByRole('checkbox', { name: /Bereavement Leave/ });
+    expect(bereavement).toBeChecked();
+    fireEvent.click(bereavement);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Configure Leave Types' }));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(nameInput).toHaveValue('New Hire');
 
-    expect(mockNavigate).toHaveBeenCalledWith('/people/leaves/types');
-    expect(mockNavigate).not.toHaveBeenCalledWith('/people/settings/employment-types');
+    fireEvent.submit(nameInput.closest('form')!);
+
+    await waitFor(() =>
+      expect(mockLeaveConfigApi.setPersonOverride).toHaveBeenCalledWith('new-person-4', 'lt-bereavement', 'exclude'),
+    );
   });
+});
 
-  it('When "Set defaults for Full Time" is clicked / Then it opens Employment Types', async () => {
-    await openUnconfigured();
+describe('Given the org has no leave types yet', () => {
+  it('When HR creates types from the drawer / Then they appear ticked and the half-filled form is kept', async () => {
+    mockLeaveConfigApi.getForEmploymentType.mockResolvedValue({ configured: false, leave_types: [] });
+    mockLeaveTypesApi.getAll.mockResolvedValue({ data: [] });
+    mockLeaveTypesApi.create.mockImplementation(async (p: any) => ({ id: `new-${p.code}`, ...p }));
+    await openCreateModal();
+    const nameInput = await fillMinimalPersonAndSelectEmploymentType();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Set defaults for Full Time' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Annual Leave' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create selected (1)' }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/employment-types');
+    expect(await screen.findByRole('checkbox', { name: /Annual Leave/ })).toBeChecked();
+    expect(mockLeaveTypesApi.create).toHaveBeenCalledWith(expect.objectContaining({ code: 'ANNUAL', name: 'Annual Leave' }));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(nameInput).toHaveValue('New Hire');
   });
 });
 
@@ -339,7 +347,7 @@ describe('Given no Employment Type has been selected in the create modal', () =>
     // Leave Configuration is its own collapsed-by-default accordion — its
     // content isn't in the DOM until expanded.
     fireEvent.click(screen.getByText('Leave Configuration'));
-    expect(screen.getByText('Select an Employment Type to load the default leave structure.')).toBeInTheDocument();
+    expect(screen.getByText('Select an Employment Type above to load its leave defaults.')).toBeInTheDocument();
     expect(mockLeaveConfigApi.getForEmploymentType).not.toHaveBeenCalled();
   });
 });

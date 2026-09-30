@@ -1332,6 +1332,13 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const canManageLeave = !shell?.permissionsLoaded
         ? true
         : (shell?.hasPermission?.('leave.update') ?? true);
+    // Creating org-wide leave types from inside the form. Mirrors the Leave
+    // Types page guard (leave.configure) and the create endpoint's own guard
+    // (leave.create). Fails closed: offering a create that then 403s is worse
+    // than not offering it until permissions resolve.
+    const canCreateLeaveTypes = !!shell?.permissionsLoaded
+        && !!shell?.hasPermission?.('leave.configure')
+        && !!shell?.hasPermission?.('leave.create');
     // Holds the resolved org currency. Initialized from the shell prop when available;
     // falls back to a direct Core BE fetch to avoid the shell's async race condition.
     const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || 'USD');
@@ -1746,8 +1753,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                         overrides={leaveOverrides}
                         onOverridesChange={setLeaveOverrides}
                         canManageLeave={canManageLeave}
-                        onConfigureLeaveTypes={() => navigate('/people/leaves/types')}
-                        onConfigureEmploymentTypeDefaults={() => navigate('/people/settings/employment-types')}
+                        canCreateLeaveTypes={canCreateLeaveTypes}
                     />
                 </Section>
 
