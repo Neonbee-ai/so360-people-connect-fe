@@ -33,9 +33,16 @@ const ANNUAL = { id: 'lt-annual', code: 'AL', name: 'Annual Leave', is_paid: tru
 const SICK = { id: 'lt-sick', code: 'SL', name: 'Sick Leave', is_paid: true, accrual_type: 'yearly', max_days_per_year: 12, color: '#f59e0b', source: 'employment_type' };
 
 /** Test host: owns the staged overrides exactly as the Add Person form does. */
-const Host: React.FC<{ masterId?: string; canManageLeave?: boolean }> = ({
+const Host: React.FC<{
+  masterId?: string;
+  canManageLeave?: boolean;
+  onConfigureLeaveTypes?: () => void;
+  onConfigureEmploymentTypeDefaults?: () => void;
+}> = ({
   masterId = 'et-full-time',
   canManageLeave = true,
+  onConfigureLeaveTypes,
+  onConfigureEmploymentTypeDefaults,
 }) => {
   const [overrides, setOverrides] = React.useState<PendingLeaveOverride[]>([]);
   const [id, setId] = React.useState(masterId);
@@ -49,6 +56,8 @@ const Host: React.FC<{ masterId?: string; canManageLeave?: boolean }> = ({
         overrides={overrides}
         onOverridesChange={setOverrides}
         canManageLeave={canManageLeave}
+        onConfigureLeaveTypes={onConfigureLeaveTypes}
+        onConfigureEmploymentTypeDefaults={onConfigureEmploymentTypeDefaults}
       />
     </div>
   );
@@ -168,6 +177,61 @@ describe('Given an employment type with NO leave configuration', () => {
     await waitFor(() =>
       expect(screen.getByText(/Every active leave type will apply/i)).toBeInTheDocument(),
     );
+  });
+
+  const renderUnconfigured = async (props: React.ComponentProps<typeof Host> = {}) => {
+    mockConfig.getForEmploymentType.mockResolvedValue({ configured: false, leave_types: [] });
+    render(<Host {...props} />);
+    await waitFor(() =>
+      expect(screen.getByText(/Every active leave type will apply/i)).toBeInTheDocument(),
+    );
+  };
+
+  it('When "Configure Leave Types" is clicked / Then only the leave-types callback fires', async () => {
+    const onConfigureLeaveTypes = vi.fn();
+    const onConfigureEmploymentTypeDefaults = vi.fn();
+    await renderUnconfigured({ onConfigureLeaveTypes, onConfigureEmploymentTypeDefaults });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Configure Leave Types' }));
+
+    expect(onConfigureLeaveTypes).toHaveBeenCalledTimes(1);
+    expect(onConfigureEmploymentTypeDefaults).not.toHaveBeenCalled();
+  });
+
+  it('When the employment-type defaults link is clicked / Then only the defaults callback fires, and the link names the type', async () => {
+    const onConfigureLeaveTypes = vi.fn();
+    const onConfigureEmploymentTypeDefaults = vi.fn();
+    await renderUnconfigured({ onConfigureLeaveTypes, onConfigureEmploymentTypeDefaults });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Set defaults for Full Time' }));
+
+    expect(onConfigureEmploymentTypeDefaults).toHaveBeenCalledTimes(1);
+    expect(onConfigureLeaveTypes).not.toHaveBeenCalled();
+  });
+
+  it('When only the leave-types callback is provided / Then the defaults link is not rendered', async () => {
+    await renderUnconfigured({ onConfigureLeaveTypes: vi.fn() });
+
+    expect(screen.getByRole('button', { name: 'Configure Leave Types' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /set defaults for/i })).not.toBeInTheDocument();
+  });
+
+  it('When only the defaults callback is provided / Then the leave-types link is not rendered', async () => {
+    await renderUnconfigured({ onConfigureEmploymentTypeDefaults: vi.fn() });
+
+    expect(screen.getByRole('button', { name: 'Set defaults for Full Time' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Configure Leave Types' })).not.toBeInTheDocument();
+  });
+
+  it('When the viewer cannot manage leave / Then neither configuration link is rendered', async () => {
+    await renderUnconfigured({
+      canManageLeave: false,
+      onConfigureLeaveTypes: vi.fn(),
+      onConfigureEmploymentTypeDefaults: vi.fn(),
+    });
+
+    expect(screen.queryByRole('button', { name: 'Configure Leave Types' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /set defaults for/i })).not.toBeInTheDocument();
   });
 });
 

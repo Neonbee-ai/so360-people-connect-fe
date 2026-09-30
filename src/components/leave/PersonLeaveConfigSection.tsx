@@ -21,7 +21,15 @@ interface PersonLeaveConfigSectionProps {
   onOverridesChange: (next: PendingLeaveOverride[]) => void;
   /** Gates the customise affordance — creating a person ≠ managing their leave. */
   canManageLeave?: boolean;
-  onConfigureEmploymentTypes?: () => void;
+  /** Opens the Leave Types master — the "Configure Leave Types" link. */
+  onConfigureLeaveTypes?: () => void;
+  /**
+   * Opens Employment Types, where the selected type's default leave list is
+   * set. Kept separate from `onConfigureLeaveTypes`: the two used to share one
+   * callback, so a link labelled "Configure Leave Types" landed on Employment
+   * Types.
+   */
+  onConfigureEmploymentTypeDefaults?: () => void;
 }
 
 /**
@@ -44,7 +52,8 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
   overrides,
   onOverridesChange,
   canManageLeave = true,
-  onConfigureEmploymentTypes,
+  onConfigureLeaveTypes,
+  onConfigureEmploymentTypeDefaults,
 }) => {
   const [inherited, setInherited] = useState<ApplicableLeaveType[]>([]);
   const [configured, setConfigured] = useState(false);
@@ -213,14 +222,27 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
             Every active leave type will apply to this employee. To narrow that, configure the
             employment type's defaults.
           </p>
-          {onConfigureEmploymentTypes && canManageLeave && (
-            <button
-              type="button"
-              onClick={onConfigureEmploymentTypes}
-              className="mt-2 text-xs font-medium text-teal-400 underline hover:text-teal-300"
-            >
-              Configure Leave Types
-            </button>
+          {canManageLeave && (onConfigureLeaveTypes || onConfigureEmploymentTypeDefaults) && (
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {onConfigureLeaveTypes && (
+                <button
+                  type="button"
+                  onClick={onConfigureLeaveTypes}
+                  className="text-xs font-medium text-teal-400 underline hover:text-teal-300"
+                >
+                  Configure Leave Types
+                </button>
+              )}
+              {onConfigureEmploymentTypeDefaults && (
+                <button
+                  type="button"
+                  onClick={onConfigureEmploymentTypeDefaults}
+                  className="text-xs font-medium text-teal-400 underline hover:text-teal-300"
+                >
+                  Set defaults for {employmentTypeName || 'this employment type'}
+                </button>
+              )}
+            </div>
           )}
         </div>
       ) : (

@@ -301,7 +301,37 @@ describe('Given the person is created successfully but the leave override write 
 });
 
 // ============================================================================
-// 5. Validation — no Employment Type selected yet
+// 5. Navigation out of the section — Pulse task 300309e5: "Configure Leave
+//    Types" used to land on Employment Types
+// ============================================================================
+describe('Given the selected employment type has no leave configuration', () => {
+  const openUnconfigured = async () => {
+    mockLeaveConfigApi.getForEmploymentType.mockResolvedValue({ configured: false, leave_types: [] });
+    await openCreateModal();
+    await fillMinimalPersonAndSelectEmploymentType();
+    await waitFor(() => expect(screen.getByText(/Every active leave type will apply/i)).toBeInTheDocument());
+  };
+
+  it('When "Configure Leave Types" is clicked / Then it opens Leave Types, not Employment Types', async () => {
+    await openUnconfigured();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Configure Leave Types' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/people/leaves/types');
+    expect(mockNavigate).not.toHaveBeenCalledWith('/people/settings/employment-types');
+  });
+
+  it('When "Set defaults for Full Time" is clicked / Then it opens Employment Types', async () => {
+    await openUnconfigured();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Set defaults for Full Time' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/employment-types');
+  });
+});
+
+// ============================================================================
+// 6. Validation — no Employment Type selected yet
 // ============================================================================
 describe('Given no Employment Type has been selected in the create modal', () => {
   it('When the Leave Configuration section renders / Then it prompts to select an Employment Type instead of showing leave types', async () => {

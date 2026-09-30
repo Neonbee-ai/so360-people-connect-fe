@@ -1746,7 +1746,8 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                         overrides={leaveOverrides}
                         onOverridesChange={setLeaveOverrides}
                         canManageLeave={canManageLeave}
-                        onConfigureEmploymentTypes={() => navigate('/people/settings/employment-types')}
+                        onConfigureLeaveTypes={() => navigate('/people/leaves/types')}
+                        onConfigureEmploymentTypeDefaults={() => navigate('/people/settings/employment-types')}
                     />
                 </Section>
 
