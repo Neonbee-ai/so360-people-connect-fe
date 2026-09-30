@@ -36,15 +36,20 @@ const SICK = { id: 'lt-sick', code: 'SL', name: 'Sick Leave', is_paid: true, acc
 const Host: React.FC<{
   masterId?: string;
   canManageLeave?: boolean;
+  /** Omit the employment type's display name, as when it hasn't resolved yet. */
+  noName?: boolean;
+  initialOverrides?: PendingLeaveOverride[];
   onConfigureLeaveTypes?: () => void;
   onConfigureEmploymentTypeDefaults?: () => void;
 }> = ({
   masterId = 'et-full-time',
   canManageLeave = true,
+  noName = false,
+  initialOverrides = [],
   onConfigureLeaveTypes,
   onConfigureEmploymentTypeDefaults,
 }) => {
-  const [overrides, setOverrides] = React.useState<PendingLeaveOverride[]>([]);
+  const [overrides, setOverrides] = React.useState<PendingLeaveOverride[]>(initialOverrides);
   const [id, setId] = React.useState(masterId);
   return (
     <div>
@@ -52,7 +57,7 @@ const Host: React.FC<{
       <pre data-testid="overrides">{JSON.stringify(overrides)}</pre>
       <PersonLeaveConfigSection
         employmentTypeMasterId={id}
-        employmentTypeName={id === 'et-full-time' ? 'Full Time' : 'Contract'}
+        employmentTypeName={noName ? undefined : id === 'et-full-time' ? 'Full Time' : 'Contract'}
         overrides={overrides}
         onOverridesChange={setOverrides}
         canManageLeave={canManageLeave}
@@ -150,6 +155,111 @@ describe('Given HR customises the structure for one employee', () => {
     await startCustomising();
     expect(screen.getByText(/default is unchanged/i)).toBeInTheDocument();
   });
+
+  it('When an employee-only type is removed again / Then its include is dropped', async () => {
+    await startCustomising();
+    fireEvent.click(screen.getByRole('button', { name: /add leave type/i }));
+    fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'lt-bereave' } });
+    await waitFor(() => expect(overridesJson()).toHaveLength(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Bereavement Leave' }));
+
+    await waitFor(() => expect(overridesJson()).toEqual([]));
+    expect(screen.queryByText('Bereavement Leave')).not.toBeInTheDocument();
+  });
+
+  it('When the leave type picker loses focus without a choice / Then it closes and stages nothing', async () => {
+    await startCustomising();
+    fireEvent.click(screen.getByRole('button', { name: /add leave type/i }));
+    const picker = await screen.findByRole('combobox');
+
+    fireEvent.blur(picker);
+
+    await waitFor(() => expect(screen.queryByRole('combobox')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /add leave type/i })).toBeInTheDocument();
+    expect(overridesJson()).toEqual([]);
+  });
+
+  it('When the picker reports an empty value / Then nothing is staged', async () => {
+    await startCustomising();
+    fireEvent.click(screen.getByRole('button', { name: /add leave type/i }));
+
+    fireEvent.change(await screen.findByRole('combobox'), { target: { value: '' } });
+
+    expect(overridesJson()).toEqual([]);
+  });
+
+  // The picker only lists addable types, so these two reach the guard the way a
+  // stale <option> would: the option is injected and then selected.
+  const selectStaleOption = async (value: string) => {
+    fireEvent.click(screen.getByRole('button', { name: /add leave type/i }));
+    const picker = (await screen.findByRole('combobox')) as HTMLSelectElement;
+    picker.appendChild(new Option('Stale', value));
+    fireEvent.change(picker, { target: { value } });
+  };
+
+  it('When a stale picker value names an inherited type / Then it is not staged as an include', async () => {
+    await startCustomising();
+
+    await selectStaleOption('lt-annual');
+
+    expect(overridesJson()).toEqual([]);
+  });
+
+  it('When a stale picker value names an already-added type / Then it is not staged twice', async () => {
+    await startCustomising();
+    fireEvent.click(screen.getByRole('button', { name: /add leave type/i }));
+    fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'lt-bereave' } });
+    await waitFor(() => expect(overridesJson()).toHaveLength(1));
+
+    await selectStaleOption('lt-bereave');
+
+    expect(overridesJson()).toEqual([{ leave_type_id: 'lt-bereave', mode: 'include' }]);
+  });
+
+  it('When no other leave types exist / Then the picker says so', async () => {
+    mockTypes.getAll.mockResolvedValue({ data: [ANNUAL, SICK] });
+    await startCustomising();
+
+    fireEvent.click(screen.getByRole('button', { name: /add leave type/i }));
+
+    expect(await screen.findByText('No other leave types available')).toBeInTheDocument();
+  });
+
+  it('When customising a second time / Then the leave type list is not fetched again', async () => {
+    await startCustomising();
+    expect(mockTypes.getAll).toHaveBeenCalledTimes(1);
+
+    // Switching employment type closes customisation; reopening must reuse the catalog.
+    fireEvent.click(screen.getByRole('button', { name: /switch to contract/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /customize for this employee/i }));
+
+    await screen.findByRole('button', { name: /add leave type/i });
+    expect(mockTypes.getAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('When the leave type list cannot be loaded / Then an error is shown', async () => {
+    mockTypes.getAll.mockRejectedValue(new Error('boom'));
+    render(<Host />);
+    fireEvent.click(await screen.findByRole('button', { name: /customize for this employee/i }));
+
+    expect(await screen.findByText(/Could not load the leave type list/i)).toBeInTheDocument();
+  });
+});
+
+describe('Given employee-specific types staged before the catalog is loaded', () => {
+  it('When an added type is also in the inherited list / Then it is named from the inherited list', async () => {
+    render(<Host initialOverrides={[{ leave_type_id: 'lt-annual', mode: 'include' }]} />);
+
+    await waitFor(() => expect(screen.getAllByText('Annual Leave')).toHaveLength(2));
+  });
+
+  it('When an added type is in neither list / Then a generic name is shown instead of an id', async () => {
+    render(<Host initialOverrides={[{ leave_type_id: 'lt-unknown', mode: 'include' }]} />);
+
+    expect(await screen.findByText('Leave type')).toBeInTheDocument();
+    expect(screen.queryByText('lt-unknown')).not.toBeInTheDocument();
+  });
 });
 
 describe('Given the employment type is changed after customising', () => {
@@ -166,6 +276,66 @@ describe('Given the employment type is changed after customising', () => {
 
     await waitFor(() => expect(overridesJson()).toEqual([]));
     expect(screen.getByText(/employee-specific changes were cleared/i)).toBeInTheDocument();
+  });
+
+  it('When the notice is dismissed / Then it goes away', async () => {
+    render(<Host initialOverrides={[{ leave_type_id: 'lt-bereave', mode: 'include' }]} />);
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /switch to contract/i }));
+    await screen.findByText(/employee-specific changes were cleared/i);
+
+    fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
+
+    expect(screen.queryByText(/employee-specific changes were cleared/i)).not.toBeInTheDocument();
+  });
+
+  it('When it changes with nothing staged / Then no notice is shown', async () => {
+    render(<Host />);
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /switch to contract/i }));
+
+    await waitFor(() => expect(mockConfig.getForEmploymentType).toHaveBeenCalledWith('et-contract'));
+    expect(screen.queryByText(/employee-specific changes were cleared/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('Given the employment type name is not available', () => {
+  it('When the type is configured / Then generic labels are used for the source', async () => {
+    render(<Host noName />);
+
+    expect(await screen.findByText('Employment type', { selector: 'span.text-slate-300' })).toBeInTheDocument();
+  });
+
+  it('When customising / Then the unchanged-default copy uses a generic label', async () => {
+    render(<Host noName />);
+    fireEvent.click(await screen.findByRole('button', { name: /customize for this employee/i }));
+
+    expect(await screen.findByText(/the employment type default is unchanged/i)).toBeInTheDocument();
+  });
+
+  it('When the type is unconfigured / Then the copy and defaults link say "this employment type"', async () => {
+    mockConfig.getForEmploymentType.mockResolvedValue({ configured: false, leave_types: [] });
+    render(<Host noName onConfigureEmploymentTypeDefaults={vi.fn()} />);
+
+    expect(await screen.findByText(/No leave types are configured for this employment type/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set defaults for this employment type' })).toBeInTheDocument();
+  });
+});
+
+describe('Given the API omits the leave type list', () => {
+  it('When the type is marked configured / Then it is treated as an empty list, not a crash', async () => {
+    mockConfig.getForEmploymentType.mockResolvedValue({ configured: true });
+    render(<Host />);
+
+    expect(await screen.findByText('0 leave types')).toBeInTheDocument();
+  });
+
+  it('When exactly one type applies / Then the count is singular', async () => {
+    mockConfig.getForEmploymentType.mockResolvedValue({ configured: true, leave_types: [ANNUAL] });
+    render(<Host />);
+
+    expect(await screen.findByText('1 leave type')).toBeInTheDocument();
   });
 });
 
@@ -264,5 +434,17 @@ describe('Given the configuration cannot be loaded', () => {
       expect(screen.getByText(/Could not load the leave structure/i)).toBeInTheDocument(),
     );
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+  });
+
+  it('When Retry is clicked and the read succeeds / Then the structure is shown', async () => {
+    mockConfig.getForEmploymentType.mockRejectedValueOnce(new Error('boom'));
+    render(<Host />);
+    await screen.findByText(/Could not load the leave structure/i);
+
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+
+    expect(await screen.findByText('Annual Leave')).toBeInTheDocument();
+    expect(screen.queryByText(/Could not load the leave structure/i)).not.toBeInTheDocument();
+    expect(mockConfig.getForEmploymentType).toHaveBeenCalledTimes(2);
   });
 });
