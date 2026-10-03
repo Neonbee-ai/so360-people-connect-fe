@@ -1,11 +1,6 @@
 import { apiContext } from './apiClient';
 import { notifyQuotaExceeded } from './quotaExceeded';
-
-const _win = typeof window !== 'undefined' ? (window as any) : undefined;
-const CORE_API_BASE =
-    (_win && _win.VITE_SO360_CORE_API) ||
-    (import.meta as any).env?.VITE_SO360_CORE_API ||
-    '/core-api';
+import { coreGatewayUrl } from './coreGateway';
 
 // Fetches the org's configured base currency directly from Core BE.
 // Used by forms that cannot wait for the shell's async businessSettings pre-load.
@@ -13,7 +8,7 @@ export async function fetchOrgBaseCurrency(orgId: string): Promise<string | null
     const token = apiContext.getAccessToken();
     const tenantId = apiContext.getTenantId();
     try {
-        const res = await fetch(`${CORE_API_BASE}/v1/business-settings/${orgId}`, {
+        const res = await fetch(coreGatewayUrl(`/v1/business-settings/${orgId}`, '/core-api'), {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Tenant-Id': tenantId,

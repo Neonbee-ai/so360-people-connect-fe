@@ -1,5 +1,6 @@
 import { apiContext } from './apiClient';
 import { notifyQuotaExceeded } from './quotaExceeded';
+import { coreGatewayUrl } from './coreGateway';
 
 // =============================================================================
 // Department-Scoped Access — calls so360-core directly (not People Connect
@@ -8,12 +9,6 @@ import { notifyQuotaExceeded } from './quotaExceeded';
 // just an opaque value from People Connect's own DB. Mirrors the direct
 // Core-call pattern already used by settingsService.ts's fetchOrgBaseCurrency.
 // =============================================================================
-
-const _win = typeof window !== 'undefined' ? (window as any) : undefined;
-const CORE_API_BASE =
-  (_win && _win.VITE_SO360_CORE_API) ||
-  (import.meta as any).env?.VITE_SO360_CORE_API ||
-  '/core-api';
 
 export interface DepartmentScopeGrantee {
   id: string;
@@ -34,7 +29,7 @@ function coreHeaders(): Record<string, string> {
 }
 
 async function coreRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${CORE_API_BASE}${path}`, {
+  const res = await fetch(coreGatewayUrl(path, '/core-api'), {
     ...init,
     headers: { ...coreHeaders(), ...init?.headers },
   });

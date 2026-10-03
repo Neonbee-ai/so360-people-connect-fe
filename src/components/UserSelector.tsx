@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { apiContext } from '../services/apiClient';
+import { coreGatewayUrl } from '../services/coreGateway';
 
 type User = {
   id: string;
@@ -33,7 +34,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
     const tenantId = apiContext.getTenantId();
     const token = apiContext.getAccessToken();
 
-    fetch(`/v1/tenancy/members?org_id=${orgId}`, {
+    fetch(coreGatewayUrl(`/v1/tenancy/members?org_id=${orgId}`), {
       headers: {
         'Content-Type': 'application/json',
         'X-Tenant-Id': tenantId,
