@@ -268,7 +268,8 @@ describe('Given the Edit Person form', () => {
     await openEdit({ ...basePerson, type: 'contractor' });
 
     expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Contractor');
-    expect((await save()).type).toBe('contractor');
+    // Not rewritten: `type` is omitted unless the Employment Type changed.
+    expect((await save()).type).toBeUndefined();
   });
 
   it('When a freelancer\'s employment type is cleared / Then their stored contractor type is kept, not flipped to employee', async () => {
@@ -279,7 +280,61 @@ describe('Given the Edit Person form', () => {
     expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Contractor');
     const payload = await save();
     expect(payload.employment_type).toBeUndefined();
-    expect(payload.type).toBe('contractor');
+    expect(payload.type).toBeUndefined();
+  });
+
+  it('When only the phone of a consultant with an employment type is edited / Then type is not sent, so the consultant stays a consultant', async () => {
+    await openEdit({ ...basePerson, type: 'consultant', employment_type: 'freelancer' });
+
+    expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Consultant');
+    fireEvent.change(document.getElementById('edit-person-phone') as HTMLInputElement, { target: { value: '+1-555-0199' } });
+
+    const payload = await save();
+    expect(payload.phone).toBe('+1-555-0199');
+    expect(payload).not.toHaveProperty('type');
+  });
+
+  it('When a consultant with no employment type is opened / Then it is labelled Consultant, not Employee', async () => {
+    await openEdit({ ...basePerson, type: 'consultant' });
+
+    expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Consultant');
+    expect(await save()).not.toHaveProperty('type');
+  });
+
+  it('When a consultant is moved between contractor-style employment types / Then they stay a consultant and no type is sent', async () => {
+    await openEdit({ ...basePerson, type: 'consultant', employment_type: 'contract' });
+
+    fireEvent.change(employmentTypeSelect('edit-employment-type'), { target: { value: 'freelancer' } });
+
+    expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Consultant');
+    expect(await save()).not.toHaveProperty('type');
+  });
+
+  it('When a consultant is switched to Full Time / Then the change is announced and type employee is sent', async () => {
+    await openEdit({ ...basePerson, type: 'consultant', employment_type: 'freelancer' });
+
+    fireEvent.change(employmentTypeSelect('edit-employment-type'), { target: { value: 'full_time' } });
+
+    expect(screen.getByTestId('person-type-change-notice')).toHaveTextContent('from Consultant to Employee');
+    expect((await save()).type).toBe('employee');
+  });
+
+  it('When a stored type disagrees with the employment type and only the phone is edited / Then type is not rewritten', async () => {
+    await openEdit({ ...basePerson, type: 'employee', employment_type: 'freelancer' });
+
+    fireEvent.change(document.getElementById('edit-person-phone') as HTMLInputElement, { target: { value: '+1-555-0100' } });
+
+    expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Employee');
+    expect(screen.queryByTestId('person-type-change-notice')).not.toBeInTheDocument();
+    expect(await save()).not.toHaveProperty('type');
+  });
+
+  it('When the employment type is changed to one implying the same stored type / Then type is not sent', async () => {
+    await openEdit({ ...basePerson, type: 'contractor', employment_type: 'contract' });
+
+    fireEvent.change(employmentTypeSelect('edit-employment-type'), { target: { value: 'freelancer' } });
+
+    expect(await save()).not.toHaveProperty('type');
   });
 
   it('When a contractor is given a Full Time employment type / Then they are saved as an employee', async () => {

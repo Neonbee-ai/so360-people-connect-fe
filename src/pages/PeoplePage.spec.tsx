@@ -423,8 +423,12 @@ describe('Given the Employment Type field in the create modal', () => {
     await waitFor(() => expect(screen.getByText(/No employment types configured/i)).toBeInTheDocument());
     expect(screen.queryByText('None')).not.toBeInTheDocument();
 
+    // Opens in a new tab so the half-filled form is not lost.
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     fireEvent.click(screen.getByText('Create Employment Type'));
-    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/employment-types');
+    expect(open).toHaveBeenCalledWith('/people/settings/employment-types', '_blank', 'noopener');
+    expect(mockNavigate).not.toHaveBeenCalledWith('/people/settings/employment-types');
+    open.mockRestore();
   });
 
   it('When the employment types fetch fails / Then an error message is shown instead of silently rendering an empty dropdown', async () => {
