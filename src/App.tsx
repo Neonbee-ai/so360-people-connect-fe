@@ -157,6 +157,7 @@ const LeaveTypesPage = lazy(() => import('./pages/LeaveTypesPage'));
 const LeaveRequestsPage = lazy(() => import('./pages/LeaveRequestsPage'));
 const LeaveCalendarPage = lazy(() => import('./pages/LeaveCalendarPage'));
 const LeaveApprovalsPage = lazy(() => import('./pages/LeaveApprovalsPage'));
+const LeaveRequestDetailPage = lazy(() => import('./pages/LeaveRequestDetailPage'));
 const LeaveBalancesPage = lazy(() => import('./pages/LeaveBalancesPage'));
 const ReviewTemplatesPage = lazy(() => import('./pages/ReviewTemplatesPage'));
 const PerformanceReviewsPage = lazy(() => import('./pages/PerformanceReviewsPage'));
@@ -286,6 +287,7 @@ const App = () => {
                     {/* Leave Management */}
                     <Route path="leaves/types" element={<PermissionGuard permission="leave.configure"><LeaveTypesPage /></PermissionGuard>} />
                     <Route path="leaves/requests" element={<PermissionGuard permission={['leave.read', 'leave.request']}><LeaveRequestsPage /></PermissionGuard>} />
+                    <Route path="leaves/requests/:id" element={<PermissionGuard permission={['leave.read', 'leave.request', 'leave.approve']}><LeaveRequestDetailPage /></PermissionGuard>} />
                     <Route path="leaves/calendar" element={<PermissionGuard permission="leave.read"><LeaveCalendarPage /></PermissionGuard>} />
                     <Route path="leaves/approvals" element={<PermissionGuard permission="leave.approve"><LeaveApprovalsPage /></PermissionGuard>} />
                     <Route path="leaves/balances" element={<PermissionGuard permission="leave.read"><LeaveBalancesPage /></PermissionGuard>} />
