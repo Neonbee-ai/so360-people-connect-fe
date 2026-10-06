@@ -44,28 +44,27 @@ describe('personTypeForEmploymentType', () => {
   });
 });
 
-describe('personTypeForEmploymentType with a stored consultant', () => {
-  it.each(['contract', 'consultant', 'freelancer'])(
-    'Given a stored consultant and the contractor-style code "%s" / Then they stay a consultant',
-    code => {
-      expect(personTypeForEmploymentType(code, 'consultant')).toBe('consultant');
-    },
-  );
-
-  it('Given a stored consultant and Full Time / Then they become an employee (explicit change)', () => {
-    expect(personTypeForEmploymentType('full_time', 'consultant')).toBe('employee');
+describe('personTypeForEmploymentType decisions (PR 34)', () => {
+  it('Given the "consultant" employment type / Then the person type is contractor, never consultant', () => {
+    expect(personTypeForEmploymentType('consultant')).toBe('contractor');
+    expect(personTypeForEmploymentType('consultant', 'consultant')).toBe('contractor');
   });
 
-  it('Given no employment type and a stored consultant / Then the consultant type is kept', () => {
-    expect(personTypeForEmploymentType(undefined, 'consultant')).toBe('consultant');
-  });
-
-  it('Given the seeded "temporary" code / Then it is recorded as an employee (open question, behaviour unchanged)', () => {
+  it('Given the seeded "temporary" code / Then the person is an employee (headcount, leave, payroll)', () => {
     expect(personTypeForEmploymentType('temporary')).toBe('employee');
+    expect(personTypeForEmploymentType('temporary', 'contractor')).toBe('employee');
+  });
+
+  it('Given no employment type and a legacy stored consultant / Then the stored type is kept', () => {
+    expect(personTypeForEmploymentType(undefined, 'consultant')).toBe('consultant');
   });
 });
 
 describe('typeToSendOnEdit', () => {
+  it('Given a legacy stored consultant whose employment type changes to a contractor-style code / Then contractor is sent', () => {
+    expect(typeToSendOnEdit('contract', 'freelancer', 'consultant')).toBe('contractor');
+  });
+
   it('Given the employment type is unchanged / Then no type is sent, even if the stored type disagrees', () => {
     expect(typeToSendOnEdit('freelancer', 'freelancer', 'employee')).toBeUndefined();
     expect(typeToSendOnEdit(undefined, '', 'consultant')).toBeUndefined();
@@ -79,11 +78,12 @@ describe('typeToSendOnEdit', () => {
   it('Given the employment type changed and implies a different type / Then that type is sent', () => {
     expect(typeToSendOnEdit('full_time', 'freelancer', 'employee')).toBe('contractor');
     expect(typeToSendOnEdit('freelancer', 'full_time', 'consultant')).toBe('employee');
+    expect(typeToSendOnEdit('full_time', 'temporary', 'contractor')).toBe('employee');
+    expect(typeToSendOnEdit('full_time', 'consultant', 'employee')).toBe('contractor');
   });
 
   it('Given the employment type changed but implies the stored type / Then no type is sent', () => {
     expect(typeToSendOnEdit('contract', 'freelancer', 'contractor')).toBeUndefined();
-    expect(typeToSendOnEdit('contract', 'freelancer', 'consultant')).toBeUndefined();
     expect(typeToSendOnEdit(undefined, 'full_time', 'employee')).toBeUndefined();
   });
 });

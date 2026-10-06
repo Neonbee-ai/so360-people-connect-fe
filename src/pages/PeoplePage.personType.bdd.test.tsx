@@ -101,6 +101,8 @@ const mockMastersApi = mastersApi as any;
 const EMPLOYMENT_TYPES = [
   { id: 'et-ft', code: 'full_time', name: 'Full Time' },
   { id: 'et-fl', code: 'freelancer', name: 'Freelancer' },
+  { id: 'et-co', code: 'consultant', name: 'Consultant' },
+  { id: 'et-tm', code: 'temporary', name: 'Temporary' },
 ];
 
 const basePerson = {
@@ -211,6 +213,22 @@ describe('Given the Add Person form', () => {
     expect(payload).toEqual(expect.objectContaining({ employment_type: 'freelancer', type: 'contractor' }));
   });
 
+  it('When saved as Consultant / Then the person is created as a contractor, never a consultant', async () => {
+    await openCreate();
+
+    const payload = await fillAndSubmit('consultant');
+
+    expect(payload).toEqual(expect.objectContaining({ employment_type: 'consultant', type: 'contractor' }));
+  });
+
+  it('When saved as Temporary / Then the person is created as an employee', async () => {
+    await openCreate();
+
+    const payload = await fillAndSubmit('temporary');
+
+    expect(payload).toEqual(expect.objectContaining({ employment_type: 'temporary', type: 'employee' }));
+  });
+
   it('When saved as Full Time / Then the person is created as an employee', async () => {
     await openCreate();
 
@@ -301,13 +319,33 @@ describe('Given the Edit Person form', () => {
     expect(await save()).not.toHaveProperty('type');
   });
 
-  it('When a consultant is moved between contractor-style employment types / Then they stay a consultant and no type is sent', async () => {
+  it('When a legacy consultant is moved to another contractor-style employment type / Then contractor is sent and the change is announced', async () => {
     await openEdit({ ...basePerson, type: 'consultant', employment_type: 'contract' });
 
     fireEvent.change(employmentTypeSelect('edit-employment-type'), { target: { value: 'freelancer' } });
 
-    expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Consultant');
-    expect(await save()).not.toHaveProperty('type');
+    expect(inForm('edit-employment-type').getByTestId('derived-person-type')).toHaveTextContent('Recorded as Contractor');
+    expect(screen.getByTestId('person-type-change-notice')).toHaveTextContent('from Consultant to Contractor');
+    expect((await save()).type).toBe('contractor');
+  });
+
+  it('When an employee is switched to the Consultant employment type / Then they are saved as a contractor with the notice', async () => {
+    await openEdit({ ...basePerson, type: 'employee', employment_type: 'full_time' });
+
+    fireEvent.change(employmentTypeSelect('edit-employment-type'), { target: { value: 'consultant' } });
+
+    expect(screen.getByTestId('person-type-change-notice')).toHaveTextContent('from Employee to Contractor');
+    const payload = await save();
+    expect(payload).toEqual(expect.objectContaining({ employment_type: 'consultant', type: 'contractor' }));
+  });
+
+  it('When a contractor is switched to Temporary / Then they are saved as an employee with the notice', async () => {
+    await openEdit({ ...basePerson, type: 'contractor', employment_type: 'freelancer' });
+
+    fireEvent.change(employmentTypeSelect('edit-employment-type'), { target: { value: 'temporary' } });
+
+    expect(screen.getByTestId('person-type-change-notice')).toHaveTextContent('from Contractor to Employee');
+    expect(await save()).toEqual(expect.objectContaining({ employment_type: 'temporary', type: 'employee' }));
   });
 
   it('When a consultant is switched to Full Time / Then the change is announced and type employee is sent', async () => {
