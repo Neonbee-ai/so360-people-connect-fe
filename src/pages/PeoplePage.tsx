@@ -27,6 +27,7 @@ import { leaveConfigApi } from '../services/leaveConfigService';
 import PersonLeaveConfigSection, { type PendingLeaveOverride } from '../components/leave/PersonLeaveConfigSection';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
 import { validatePersonName, validateEmail, validatePhone, sanitizePhoneInput, focusFirstInvalid } from '../utils/validation';
+import { useRefreshOnReturn } from '../hooks/useRefreshOnReturn';
 import { personTypeForEmploymentType, personTypeLabel, typeToSendOnEdit } from '../utils/personType';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
@@ -1320,18 +1321,13 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
     const [employmentTypesError, setEmploymentTypesError] = useState(false);
     // "Create Employment Type" opens in a new tab so a half-filled form is kept;
-    // the list is re-read when the user comes back to this tab.
+    // the list is re-read once, when the user comes back from that tab.
     const employmentTypesHref = useHref('/people/settings/employment-types');
-    useEffect(() => {
-        if (!isOpen) return;
-        const refresh = () => {
-            mastersApi.getAll('employment_type')
-                .then(r => { setEmploymentTypes(r.data ?? []); setEmploymentTypesError(false); })
-                .catch(() => {});
-        };
-        window.addEventListener('focus', refresh);
-        return () => window.removeEventListener('focus', refresh);
-    }, [isOpen]);
+    const markEmploymentTypesPending = useRefreshOnReturn(isOpen, () => {
+        mastersApi.getAll('employment_type')
+            .then(r => { setEmploymentTypes(r.data ?? []); setEmploymentTypesError(false); })
+            .catch(() => {});
+    });
     const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
     const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
     const [customFieldsError, setCustomFieldsError] = useState(false);
@@ -1676,7 +1672,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                     No employment types configured.{' '}
                                     <button
                                         type="button"
-                                        onClick={() => window.open(employmentTypesHref, '_blank', 'noopener')}
+                                        onClick={() => { markEmploymentTypesPending(); window.open(employmentTypesHref, '_blank', 'noopener'); }}
                                         className="text-teal-400 hover:text-teal-300 underline"
                                     >
                                         Create Employment Type
@@ -2051,18 +2047,13 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
     const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
     const [employmentTypesError, setEmploymentTypesError] = useState(false);
     // "Create Employment Type" opens in a new tab so a half-filled form is kept;
-    // the list is re-read when the user comes back to this tab.
+    // the list is re-read once, when the user comes back from that tab.
     const employmentTypesHref = useHref('/people/settings/employment-types');
-    useEffect(() => {
-        if (!isOpen) return;
-        const refresh = () => {
-            mastersApi.getAll('employment_type')
-                .then(r => { setEmploymentTypes(r.data ?? []); setEmploymentTypesError(false); })
-                .catch(() => {});
-        };
-        window.addEventListener('focus', refresh);
-        return () => window.removeEventListener('focus', refresh);
-    }, [isOpen]);
+    const markEmploymentTypesPending = useRefreshOnReturn(isOpen, () => {
+        mastersApi.getAll('employment_type')
+            .then(r => { setEmploymentTypes(r.data ?? []); setEmploymentTypesError(false); })
+            .catch(() => {});
+    });
     const [formData, setFormData] = useState<Partial<Person>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const formRef = useRef<HTMLFormElement>(null);
@@ -2341,7 +2332,7 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                     No employment types configured.{' '}
                                     <button
                                         type="button"
-                                        onClick={() => window.open(employmentTypesHref, '_blank', 'noopener')}
+                                        onClick={() => { markEmploymentTypesPending(); window.open(employmentTypesHref, '_blank', 'noopener'); }}
                                         className="text-teal-400 hover:text-teal-300 underline"
                                     >
                                         Create Employment Type

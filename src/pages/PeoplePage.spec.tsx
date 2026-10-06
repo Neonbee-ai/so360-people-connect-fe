@@ -431,6 +431,25 @@ describe('Given the Employment Type field in the create modal', () => {
     open.mockRestore();
   });
 
+  it('When the user returns from the Create Employment Type tab / Then the list is refetched once; plain focus changes never refetch', async () => {
+    mockMastersApi.getAll.mockResolvedValue({ data: [] });
+    await openModal();
+    await waitFor(() => expect(screen.getByText(/No employment types configured/i)).toBeInTheDocument());
+    const employmentTypeCalls = () => mockMastersApi.getAll.mock.calls.filter((c: any[]) => c[0] === 'employment_type').length;
+    const before = employmentTypeCalls();
+
+    fireEvent.focus(window);
+    expect(employmentTypeCalls()).toBe(before);
+
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    fireEvent.click(screen.getByText('Create Employment Type'));
+    fireEvent.focus(window);
+    fireEvent.focus(window);
+    open.mockRestore();
+
+    await waitFor(() => expect(employmentTypeCalls()).toBe(before + 1));
+  });
+
   it('When the employment types fetch fails / Then an error message is shown instead of silently rendering an empty dropdown', async () => {
     mockMastersApi.getAll.mockImplementation((type: string) =>
       type === 'employment_type'
