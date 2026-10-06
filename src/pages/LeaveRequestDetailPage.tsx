@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CheckCircle, XCircle, CalendarOff } from 'lucide-react';
+import { CheckCircle, XCircle, CalendarDays } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import { toast, getErrorMessage } from '@so360/design-system';
@@ -100,7 +100,7 @@ const LeaveRequestDetailPage: React.FC = () => {
     if (notFound || !request) {
         return (
             <div className="p-6 space-y-4">
-                <EmptyState icon={CalendarOff} title="Leave request not found" description="It may have been deleted, or you may not have access to it." />
+                <EmptyState icon={CalendarDays} title="Leave request not found" description="It may have been deleted, or you may not have access to it." />
                 <Link to="/people/leaves/requests" className="text-sm text-teal-400 hover:underline">Back to leave requests</Link>
             </div>
         );
