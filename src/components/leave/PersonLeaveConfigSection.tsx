@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, X, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Plus } from 'lucide-react';
 import { leaveConfigApi, type ApplicableLeaveType } from '../../services/leaveConfigService';
-import { leaveTypesApi, type LeaveType } from '../../services/leaveTypesService';
+import { leaveTypesApi } from '../../services/leaveTypesService';
 
 /**
  * An employee-level deviation from the employment type's defaults, staged in the
@@ -18,25 +18,80 @@ interface PersonLeaveConfigSectionProps {
   employmentTypeMasterId: string;
   employmentTypeName?: string;
   overrides: PendingLeaveOverride[];
-  onOverridesChange: (next: PendingLeaveOverride[]) => void;
-  /** Gates the customise affordance — creating a person ≠ managing their leave. */
+  /** Accepts an updater like a React setState, so async callers never write back a stale snapshot. */
+  onOverridesChange: (
+    next: PendingLeaveOverride[] | ((prev: PendingLeaveOverride[]) => PendingLeaveOverride[]),
+  ) => void;
+  /** Gates ticking/unticking — creating a person ≠ managing their leave. */
   canManageLeave?: boolean;
-  onConfigureEmploymentTypes?: () => void;
+  /** Gates creating org-wide leave types from inside the form. */
+  canCreateLeaveTypes?: boolean;
 }
+
+/** One row of the picker: an active leave type in the org. */
+interface LeaveTypeRow {
+  id: string;
+  name: string;
+  color?: string | null;
+  max_days_per_year?: number | null;
+}
+
+interface NewLeaveTypeDraft {
+  name: string;
+  days: string;
+  isPaid: boolean;
+}
+
+/** Common starting set offered when the org has no leave types at all. */
+export const QUICK_ADD_PRESETS: NewLeaveTypeDraft[] = [
+  { name: 'Annual Leave', days: '18', isPaid: true },
+  { name: 'Sick Leave', days: '12', isPaid: true },
+  { name: 'Casual Leave', days: '6', isPaid: true },
+  { name: 'Unpaid Leave', days: '', isPaid: false },
+];
+
+/**
+ * Short code for a leave type created from its name: "Annual Leave" → "ANNUAL",
+ * "Work From Home" → "WORK_FROM_HOME". The trailing word "leave" is dropped
+ * because every type is a leave; a name made only of it keeps it.
+ */
+export const leaveCodeFromName = (name: string): string => {
+  const words = name.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+  const meaningful = words.filter(w => w !== 'LEAVE');
+  return (meaningful.length > 0 ? meaningful : words).join('_').slice(0, 20);
+};
+
+/** Returns an error message, or null when the draft can be created. */
+export const validateDraft = (draft: NewLeaveTypeDraft): string | null => {
+  const name = draft.name.trim();
+  if (!name) return 'Enter a name.';
+  if (name.length > 100) return 'Keep the name under 100 characters.';
+  if (!leaveCodeFromName(name)) return 'Use letters or numbers in the name.';
+  if (draft.days.trim() !== '') {
+    const days = Number(draft.days);
+    if (!Number.isFinite(days) || days < 0) return 'Days per year must be 0 or more.';
+  }
+  return null;
+};
+
+const inputClass =
+  'rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-sm text-slate-50 focus:border-teal-500 focus:outline-none';
 
 /**
  * Leave Configuration, shown while creating an employee.
  *
- * This section is a VIEW of the employment type's configured defaults plus a
- * staging area for employee-specific deviations. It never writes to the
- * employment type — adding "Bereavement Leave" for one hire must not hand it to
- * every full-timer, which is why customisation is modelled as per-person
- * include/exclude overrides rather than an edit of the inherited list.
+ * Every active leave type is a checkbox, pre-ticked from the employment type's
+ * defaults. Ticking/unticking never writes to the employment type — adding
+ * "Bereavement Leave" for one hire must not hand it to every full-timer — so a
+ * deviation is staged as a per-person include/exclude override.
  *
- * The `inherits_all` / `configured: false` case is genuinely different from
- * "this employee gets nothing": an unconfigured employment type admits EVERY
- * active leave type. Saying so explicitly is what keeps orgs that never touched
- * leave configuration from thinking their new hire has been locked out.
+ * An UNCONFIGURED employment type admits EVERY active leave type, so all boxes
+ * start ticked; saying so explicitly keeps orgs that never touched leave
+ * configuration from thinking their new hire has been locked out.
+ *
+ * Everything happens in place: this section never navigates, because leaving
+ * the page would throw away the half-filled Add Person form. When the org has
+ * no leave types at all, they can be created right here.
  */
 const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
   employmentTypeMasterId,
@@ -44,19 +99,17 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
   overrides,
   onOverridesChange,
   canManageLeave = true,
-  onConfigureEmploymentTypes,
+  canCreateLeaveTypes = false,
 }) => {
-  const [inherited, setInherited] = useState<ApplicableLeaveType[]>([]);
+  const [defaults, setDefaults] = useState<ApplicableLeaveType[]>([]);
   const [configured, setConfigured] = useState(false);
+  const [catalog, setCatalog] = useState<LeaveTypeRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [customizing, setCustomizing] = useState(false);
-  const [catalog, setCatalog] = useState<LeaveType[]>([]);
-  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     if (!employmentTypeMasterId) {
-      setInherited([]);
+      setDefaults([]);
       setConfigured(false);
       setError(null);
       return;
@@ -64,15 +117,20 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const result = await leaveConfigApi.getForEmploymentType(employmentTypeMasterId);
-      setInherited(result.leave_types ?? []);
-      setConfigured(result.configured);
+      const [config, types] = await Promise.all([
+        leaveConfigApi.getForEmploymentType(employmentTypeMasterId),
+        leaveTypesApi.getAll({ is_active: true }),
+      ]);
+      setDefaults(config.leave_types ?? []);
+      setConfigured(config.configured);
+      setCatalog(types.data ?? []);
     } catch {
-      // Fail visibly. Showing an empty list on a failed read would read as
-      // "this employment type grants no leave", which is a different fact.
-      setInherited([]);
+      // Fail visibly. An empty list on a failed read would read as "this
+      // employee gets no leave", which is a different fact.
+      setDefaults([]);
       setConfigured(false);
-      setError('Could not load the leave structure for this employment type.');
+      setCatalog([]);
+      setError('Could not load the leave types for this employment type.');
     } finally {
       setLoading(false);
     }
@@ -81,10 +139,8 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
   useEffect(() => { void load(); }, [load]);
 
   // Changing employment type re-inherits a different default, so overrides
-  // staged against the previous one no longer mean what they meant (an "exclude
-  // Sick Leave" that the new type never granted is nonsense). They are reset —
-  // but never silently: `resetNotice` tells the user it happened so a
-  // deliberate customisation can't vanish unannounced.
+  // staged against the previous one no longer mean what they meant. They are
+  // reset — but never silently.
   const [resetNotice, setResetNotice] = useState(false);
   const firstRunRef = useRef(true);
 
@@ -95,63 +151,166 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
     }
     setResetNotice(overrides.length > 0);
     if (overrides.length > 0) onOverridesChange([]);
-    setCustomizing(false);
     // Only on employment-type change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employmentTypeMasterId]);
 
-  const openCustomize = async () => {
-    setCustomizing(true);
-    if (catalog.length === 0) {
+  // Catalog first (it is what the org actually has), then any default the
+  // catalog didn't return so a configured default is never hidden.
+  const rows = useMemo<LeaveTypeRow[]>(() => {
+    const seen = new Set(catalog.map(t => t.id));
+    return [...catalog, ...defaults.filter(d => !seen.has(d.id))];
+  }, [catalog, defaults]);
+
+  const defaultIds = useMemo(() => new Set(defaults.map(d => d.id)), [defaults]);
+  const isDefault = (id: string) => !configured || defaultIds.has(id);
+  const hasOverride = (id: string, mode: PendingLeaveOverride['mode']) =>
+    overrides.some(o => o.leave_type_id === id && o.mode === mode);
+  const isChecked = (id: string) =>
+    isDefault(id) ? !hasOverride(id, 'exclude') : hasOverride(id, 'include');
+
+  const toggle = (id: string) => {
+    const mode = isDefault(id) ? 'exclude' : 'include';
+    onOverridesChange(
+      hasOverride(id, mode)
+        ? overrides.filter(o => !(o.leave_type_id === id && o.mode === mode))
+        : [...overrides, { leave_type_id: id, mode }],
+    );
+  };
+
+  // ── Creating leave types in place ─────────────────────────────────────────
+  const [presetPicks, setPresetPicks] = useState<Record<string, boolean>>({});
+  const [presetDays, setPresetDays] = useState<Record<string, string>>(
+    () => Object.fromEntries(QUICK_ADD_PRESETS.map(p => [p.name, p.days])),
+  );
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
+  const [creating, setCreating] = useState(false);
+  const [showCustom, setShowCustom] = useState(false);
+  const [custom, setCustom] = useState<NewLeaveTypeDraft>({ name: '', days: '', isPaid: true });
+  const [customError, setCustomError] = useState<string | null>(null);
+
+  /**
+   * Creates each draft as an org-wide leave type. Successes join the catalog
+   * immediately; a failure is returned per name and the rest still go through.
+   */
+  const createTypes = async (drafts: NewLeaveTypeDraft[]): Promise<Record<string, string>> => {
+    setCreating(true);
+    const created: LeaveTypeRow[] = [];
+    const failures: Record<string, string> = {};
+    for (const draft of drafts) {
+      const name = draft.name.trim();
       try {
-        const result = await leaveTypesApi.getAll({ is_active: true });
-        setCatalog(result.data);
-      } catch {
-        setError('Could not load the leave type list.');
+        const type = await leaveTypesApi.create({
+          code: leaveCodeFromName(name),
+          name,
+          is_paid: draft.isPaid,
+          ...(draft.days.trim() !== '' ? { max_days_per_year: Number(draft.days) } : {}),
+          is_active: true,
+        });
+        created.push(type);
+      } catch (e) {
+        failures[name] = e instanceof Error && e.message ? e.message : 'Could not create this leave type.';
       }
     }
+    setCatalog(prev => [...prev, ...created]);
+    // A new type is meant for this employee: tick it even when the employment
+    // type's configured defaults would leave it out.
+    const includes = created
+      .filter(t => configured && !defaultIds.has(t.id))
+      .map(t => ({ leave_type_id: t.id, mode: 'include' as const }));
+    // Functional update: `overrides` was captured before the awaits above, so a
+    // tick the user made while creating would be overwritten by writing it back.
+    if (includes.length > 0) {
+      onOverridesChange(prev => [
+        ...prev,
+        ...includes.filter(i => !prev.some(o => o.leave_type_id === i.leave_type_id && o.mode === i.mode)),
+      ]);
+    }
+    setPresetPicks(prev => {
+      const next = { ...prev };
+      for (const t of created) delete next[t.name];
+      return next;
+    });
+    setCreating(false);
+    return failures;
   };
 
-  const excluded = useMemo(
-    () => new Set(overrides.filter(o => o.mode === 'exclude').map(o => o.leave_type_id)),
-    [overrides],
-  );
-  const included = useMemo(
-    () => overrides.filter(o => o.mode === 'include'),
-    [overrides],
-  );
+  const pickedPresets = QUICK_ADD_PRESETS
+    .filter(p => presetPicks[p.name])
+    .map(p => ({ ...p, days: presetDays[p.name] }));
 
-  const inheritedIds = useMemo(() => new Set(inherited.map(t => t.id)), [inherited]);
-
-  const addableTypes = catalog.filter(
-    t => !inheritedIds.has(t.id) && !included.some(o => o.leave_type_id === t.id),
-  );
-
-  const nameFor = (id: string) =>
-    catalog.find(t => t.id === id)?.name ?? inherited.find(t => t.id === id)?.name ?? 'Leave type';
-
-  const removeInherited = (id: string) =>
-    onOverridesChange([...overrides, { leave_type_id: id, mode: 'exclude' }]);
-
-  const restoreInherited = (id: string) =>
-    onOverridesChange(overrides.filter(o => !(o.leave_type_id === id && o.mode === 'exclude')));
-
-  const addType = (id: string) => {
-    if (!id) return;
-    // Duplicate-proof: already-inherited and already-added types are filtered
-    // out of `addableTypes`, and this guard covers a stale select value.
-    if (inheritedIds.has(id) || included.some(o => o.leave_type_id === id)) return;
-    onOverridesChange([...overrides, { leave_type_id: id, mode: 'include' }]);
-    setAdding(false);
+  const createPresets = async () => {
+    const invalid: Record<string, string> = {};
+    for (const p of pickedPresets) {
+      const problem = validateDraft(p);
+      if (problem) invalid[p.name] = problem;
+    }
+    if (Object.keys(invalid).length > 0) {
+      setCreateErrors(invalid);
+      return;
+    }
+    setCreateErrors(await createTypes(pickedPresets));
   };
 
-  const removeAdded = (id: string) =>
-    onOverridesChange(overrides.filter(o => !(o.leave_type_id === id && o.mode === 'include')));
+  const createCustom = async () => {
+    const problem = validateDraft(custom);
+    setCustomError(problem);
+    if (problem) return;
+    const failure = Object.values(await createTypes([custom]))[0];
+    if (failure) {
+      setCustomError(failure);
+      return;
+    }
+    setCustom({ name: '', days: '', isPaid: true });
+    setShowCustom(false);
+  };
 
+  const canCreate = canManageLeave && canCreateLeaveTypes;
+
+  const customForm = (
+    <div className="space-y-1.5" data-testid="custom-leave-type-form">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          aria-label="New leave type name"
+          placeholder="Name, e.g. Bereavement Leave"
+          value={custom.name}
+          onChange={e => setCustom({ ...custom, name: e.target.value })}
+          className={`${inputClass} min-w-0 flex-1`}
+        />
+        <input
+          aria-label="New leave type days per year"
+          placeholder="Days/yr"
+          inputMode="decimal"
+          value={custom.days}
+          onChange={e => setCustom({ ...custom, days: e.target.value })}
+          className={`${inputClass} w-20`}
+        />
+        <label className="flex items-center gap-1.5 text-xs text-slate-300">
+          <input
+            type="checkbox"
+            checked={custom.isPaid}
+            onChange={e => setCustom({ ...custom, isPaid: e.target.checked })}
+          />
+          Paid
+        </label>
+        <button
+          type="button"
+          onClick={() => void createCustom()}
+          disabled={creating}
+          className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-500 disabled:opacity-50"
+        >
+          Add
+        </button>
+      </div>
+      {customError && <p className="text-xs text-rose-300">{customError}</p>}
+    </div>
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────
   if (!employmentTypeMasterId) {
     return (
       <p className="text-sm text-slate-500">
-        Select an Employment Type to load the default leave structure.
+        Select an Employment Type above to load its leave defaults.
       </p>
     );
   }
@@ -160,37 +319,132 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
     return <p className="text-sm text-slate-500">Loading leave configuration…</p>;
   }
 
-  const activeInherited = inherited.filter(t => !excluded.has(t.id));
-  const totalApplying = configured ? activeInherited.length + included.length : null;
+  if (error) {
+    return (
+      <div className="flex items-start gap-2 rounded-lg border border-rose-700/40 bg-rose-900/20 px-3 py-2">
+        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-rose-400" />
+        <div className="text-xs text-rose-300">
+          {error}{' '}
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="font-medium underline hover:text-rose-200"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const typeLabel = employmentTypeName || 'This employment type';
+
+  if (rows.length === 0) {
+    if (!canCreate) {
+      return (
+        <div className="flex items-start gap-2 rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2.5">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-slate-400" />
+          <p className="text-xs text-slate-400">
+            No leave types are set up yet. Ask an HR admin to add them. You can still save this
+            person.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-slate-400">
+          Your organization has no leave types yet. Add the ones this employee should get:
+        </p>
+
+        <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            Quick add — common types
+          </p>
+          <ul className="space-y-1.5">
+            {QUICK_ADD_PRESETS.map(p => (
+              <li key={p.name} className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={!!presetPicks[p.name]}
+                      onChange={e => setPresetPicks({ ...presetPicks, [p.name]: e.target.checked })}
+                    />
+                    {p.name}
+                  </label>
+                  {p.isPaid ? (
+                    <input
+                      aria-label={`${p.name} days per year`}
+                      inputMode="decimal"
+                      value={presetDays[p.name]}
+                      onChange={e => setPresetDays({ ...presetDays, [p.name]: e.target.value })}
+                      className={`${inputClass} w-16`}
+                    />
+                  ) : (
+                    <span className="w-16 text-center text-xs text-slate-500">—</span>
+                  )}
+                  <span className="w-12 text-xs text-slate-500">{p.isPaid ? 'Paid' : 'Unpaid'}</span>
+                </div>
+                {createErrors[p.name] && (
+                  <p className="pl-6 text-xs text-rose-300">{createErrors[p.name]}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() => void createPresets()}
+            disabled={creating || pickedPresets.length === 0}
+            className="mt-3 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-500 disabled:opacity-50"
+          >
+            {creating ? 'Creating…' : `Create selected (${pickedPresets.length})`}
+          </button>
+        </div>
+
+        <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            Or add a custom type
+          </p>
+          {customForm}
+        </div>
+
+        <p className="text-xs text-slate-500">
+          You can skip this. The person can still be saved and leave types assigned later.
+        </p>
+      </div>
+    );
+  }
+
+  const checkedCount = rows.filter(r => isChecked(r.id)).length;
+  const failedNames = Object.keys(createErrors);
 
   return (
     <div className="space-y-3">
-      {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-rose-700/40 bg-rose-900/20 px-3 py-2">
-          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-rose-400" />
-          <div className="text-xs text-rose-300">
-            {error}{' '}
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="font-medium underline hover:text-rose-200"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      )}
-
-      <p className="text-xs text-slate-500">
-        Configure the leave types applicable to this employee. Defaults come from the selected
-        employment type.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs text-slate-400">
+          {configured ? (
+            <>
+              Choose the leave types this employee can request. Pre-selected from{' '}
+              <span className="text-slate-300">{typeLabel}</span>.
+            </>
+          ) : (
+            <>
+              {typeLabel} has no leave defaults, so all leave types apply. Untick any this employee
+              shouldn&apos;t get.
+            </>
+          )}
+        </p>
+        <span className="shrink-0 text-xs text-slate-500" data-testid="leave-selected-count">
+          {checkedCount} of {rows.length} selected
+        </span>
+      </div>
 
       {resetNotice && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
           <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-400" />
           <p className="text-xs text-amber-200">
-            The employment type changed, so the default leave structure was reloaded and your
+            The employment type changed, so the default leave types were reloaded and your
             employee-specific changes were cleared. Re-apply them below if they still apply.
             <button
               type="button"
@@ -203,147 +457,84 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
         </div>
       )}
 
-      {!configured && !error ? (
-        <div className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-3">
-          <p className="text-sm text-slate-300">
-            No leave types are configured for
-            {employmentTypeName ? ` ${employmentTypeName}` : ' this employment type'}.
-          </p>
-          <p className="mt-1 text-xs text-slate-500">
-            Every active leave type will apply to this employee. To narrow that, configure the
-            employment type's defaults.
-          </p>
-          {onConfigureEmploymentTypes && canManageLeave && (
-            <button
-              type="button"
-              onClick={onConfigureEmploymentTypes}
-              className="mt-2 text-xs font-medium text-teal-400 underline hover:text-teal-300"
-            >
-              Configure Leave Types
-            </button>
-          )}
+      {failedNames.length > 0 && (
+        <div className="rounded-lg border border-rose-700/40 bg-rose-900/20 px-3 py-2 text-xs text-rose-300">
+          {failedNames.map(n => (
+            <p key={n}>Couldn&apos;t create {n}: {createErrors[n]}</p>
+          ))}
         </div>
-      ) : (
-        !error && (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-xs text-slate-400">
-                Based on: <span className="text-slate-300">{employmentTypeName || 'Employment type'}</span>
-              </p>
-              <span className="text-xs text-slate-500">
-                {totalApplying} leave type{totalApplying === 1 ? '' : 's'}
-              </span>
-            </div>
-
-            <ul className="space-y-1.5">
-              {inherited.map(t => {
-                const isExcluded = excluded.has(t.id);
-                return (
-                  <li
-                    key={t.id}
-                    className={`flex items-center justify-between gap-2 rounded border border-slate-700/60 px-2.5 py-1.5 ${isExcluded ? 'opacity-50' : ''}`}
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      {t.color && (
-                        <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: t.color }}
-                        />
-                      )}
-                      <span className={`truncate text-sm ${isExcluded ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
-                        {t.name}
-                      </span>
-                      <span className="shrink-0 text-[10px] uppercase tracking-wide text-slate-500">
-                        Employment type
-                      </span>
-                      {t.max_days_per_year != null && (
-                        <span className="shrink-0 text-xs text-slate-500">
-                          {t.max_days_per_year} days
-                        </span>
-                      )}
-                    </span>
-                    {customizing && canManageLeave && (
-                      <button
-                        type="button"
-                        onClick={() => (isExcluded ? restoreInherited(t.id) : removeInherited(t.id))}
-                        className="shrink-0 text-xs font-medium text-slate-400 hover:text-slate-200"
-                      >
-                        {isExcluded ? 'Restore' : 'Remove'}
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-
-              {included.map(o => (
-                <li
-                  key={o.leave_type_id}
-                  className="flex items-center justify-between gap-2 rounded border border-teal-500/25 bg-teal-500/5 px-2.5 py-1.5"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm text-slate-200">{nameFor(o.leave_type_id)}</span>
-                    <span className="shrink-0 text-[10px] uppercase tracking-wide text-teal-400">
-                      This employee only
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeAdded(o.leave_type_id)}
-                    aria-label={`Remove ${nameFor(o.leave_type_id)}`}
-                    className="shrink-0 rounded p-0.5 text-slate-400 hover:text-slate-200"
-                  >
-                    <X size={13} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-
-            {!customizing ? (
-              canManageLeave && (
-                <button
-                  type="button"
-                  onClick={() => void openCustomize()}
-                  className="mt-2.5 text-xs font-medium text-teal-400 hover:text-teal-300"
-                >
-                  Customize for this employee
-                </button>
-              )
-            ) : (
-              <div className="mt-2.5">
-                {adding ? (
-                  <select
-                    autoFocus
-                    defaultValue=""
-                    onChange={e => addType(e.target.value)}
-                    onBlur={() => setAdding(false)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-50 focus:border-teal-500 focus:outline-none"
-                  >
-                    <option value="" disabled>
-                      {addableTypes.length > 0 ? 'Select a leave type…' : 'No other leave types available'}
-                    </option>
-                    {addableTypes.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setAdding(true)}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-teal-400 hover:text-teal-300"
-                  >
-                    <Plus size={13} />
-                    Add Leave Type
-                  </button>
-                )}
-                <p className="mt-2 text-xs text-slate-500">
-                  Changes here apply to this employee only — the {employmentTypeName || 'employment type'}{' '}
-                  default is unchanged.
-                </p>
-              </div>
-            )}
-          </div>
-        )
       )}
+
+      <ul className="divide-y divide-slate-700/60 rounded-lg border border-slate-700 bg-slate-800/50">
+        {rows.map(t => {
+          const checked = isChecked(t.id);
+          const dflt = configured && defaultIds.has(t.id);
+          const removed = isDefault(t.id) && !checked;
+          const added = !isDefault(t.id) && checked;
+          return (
+            <li key={t.id}>
+              <label
+                className={`flex items-center gap-2 px-3 py-2 ${canManageLeave ? 'cursor-pointer hover:bg-slate-800' : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={!canManageLeave}
+                  onChange={() => toggle(t.id)}
+                />
+                {t.color && (
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.color }} />
+                )}
+                <span className={`min-w-0 flex-1 truncate text-sm ${checked ? 'text-slate-200' : 'text-slate-500'}`}>
+                  {t.name}
+                </span>
+                {t.max_days_per_year != null && (
+                  <span className="shrink-0 text-xs text-slate-500">{t.max_days_per_year} days</span>
+                )}
+                {dflt && (
+                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-slate-500">Default</span>
+                )}
+                {removed && (
+                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-amber-400">Removed</span>
+                )}
+                {added && (
+                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-teal-400">Added</span>
+                )}
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {canManageLeave && overrides.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onOverridesChange([])}
+            className="text-xs font-medium text-teal-400 hover:text-teal-300"
+          >
+            Reset to {employmentTypeName || 'employment type'} defaults
+          </button>
+        )}
+        {canCreate && !showCustom && (
+          <button
+            type="button"
+            onClick={() => setShowCustom(true)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-teal-400 hover:text-teal-300"
+          >
+            <Plus size={13} />
+            New leave type
+          </button>
+        )}
+      </div>
+
+      {canCreate && showCustom && customForm}
+
+      <p className="text-xs text-slate-500">
+        {canManageLeave
+          ? 'Changes apply to this employee only.'
+          : 'You can view but not change the leave types for this employee.'}
+      </p>
     </div>
   );
 };
