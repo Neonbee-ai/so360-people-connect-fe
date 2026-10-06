@@ -444,6 +444,31 @@ describe('Given the org has no leave types at all', () => {
 });
 
 // ============================================================================
+describe('Given a tick is made while a leave type is still being created', () => {
+  it('When the create resolves afterwards / Then the tick is kept alongside the new include (no stale write-back)', async () => {
+    let resolveCreate: (v: any) => void = () => {};
+    mockTypes.create.mockReturnValue(new Promise(r => { resolveCreate = r; }));
+    render(<Host />);
+    fireEvent.click(await screen.findByRole('button', { name: /new leave type/i }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'New leave type name' }), { target: { value: 'Comp Off' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    // While the request is in flight, HR ticks Bereavement (not a default).
+    fireEvent.click(await screen.findByRole('checkbox', { name: /Bereavement Leave/ }));
+    expect(overridesJson()).toEqual([{ leave_type_id: 'lt-bereave', mode: 'include' }]);
+
+    resolveCreate({ id: 'new-COMP_OFF', code: 'COMP_OFF', name: 'Comp Off', is_paid: true, is_active: true });
+
+    expect(await screen.findByRole('checkbox', { name: /Comp Off/ })).toBeChecked();
+    expect(overridesJson()).toEqual([
+      { leave_type_id: 'lt-bereave', mode: 'include' },
+      { leave_type_id: 'new-COMP_OFF', mode: 'include' },
+    ]);
+    expect(box('Bereavement Leave')).toBeChecked();
+  });
+});
+
+// ============================================================================
 describe('Given leave types exist and the viewer can create more', () => {
   it('When "New leave type" is used / Then the form opens in place and closes after a successful add', async () => {
     render(<Host />);

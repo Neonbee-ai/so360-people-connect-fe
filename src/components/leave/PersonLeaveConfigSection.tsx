@@ -18,7 +18,10 @@ interface PersonLeaveConfigSectionProps {
   employmentTypeMasterId: string;
   employmentTypeName?: string;
   overrides: PendingLeaveOverride[];
-  onOverridesChange: (next: PendingLeaveOverride[]) => void;
+  /** Accepts an updater like a React setState, so async callers never write back a stale snapshot. */
+  onOverridesChange: (
+    next: PendingLeaveOverride[] | ((prev: PendingLeaveOverride[]) => PendingLeaveOverride[]),
+  ) => void;
   /** Gates ticking/unticking — creating a person ≠ managing their leave. */
   canManageLeave?: boolean;
   /** Gates creating org-wide leave types from inside the form. */
@@ -215,7 +218,14 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
     const includes = created
       .filter(t => configured && !defaultIds.has(t.id))
       .map(t => ({ leave_type_id: t.id, mode: 'include' as const }));
-    if (includes.length > 0) onOverridesChange([...overrides, ...includes]);
+    // Functional update: `overrides` was captured before the awaits above, so a
+    // tick the user made while creating would be overwritten by writing it back.
+    if (includes.length > 0) {
+      onOverridesChange(prev => [
+        ...prev,
+        ...includes.filter(i => !prev.some(o => o.leave_type_id === i.leave_type_id && o.mode === i.mode)),
+      ]);
+    }
     setPresetPicks(prev => {
       const next = { ...prev };
       for (const t of created) delete next[t.name];
