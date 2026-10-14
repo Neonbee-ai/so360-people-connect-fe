@@ -9,7 +9,7 @@ import StatusChip from '../../components/payroll/StatusChip';
 import FieldTooltip from '../../components/payroll/FieldTooltip';
 import { payrollApi, TaxDeclaration, TaxDeclarationItem } from '../../services/payrollApi';
 
-const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
+const inputCls = 'w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const CATEGORIES: { key: string; label: string; tooltip: string }[] = [
     { key: '80C', label: 'Section 80C', tooltip: 'Investments like PPF, ELSS, life insurance premium and home-loan principal, up to the 80C limit.' },
@@ -99,7 +99,7 @@ const MyTaxDeclarationPage: React.FC = () => {
     };
 
     if (loading) {
-        return <div className="p-6"><div className="h-96 bg-slate-800/50 rounded-xl animate-pulse" /></div>;
+        return <div className="p-6"><div className="h-96 bg-surface-raised/50 rounded-nb animate-pulse" /></div>;
     }
 
     const statusIndex = declaration ? STATUS_TIMELINE.indexOf(declaration.status as typeof STATUS_TIMELINE[number]) : 0;
@@ -113,7 +113,7 @@ const MyTaxDeclarationPage: React.FC = () => {
             />
 
             {/* Status timeline */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <div className="bg-surface border border-line rounded-nb p-4">
                 <div className="flex items-center gap-0">
                     {STATUS_TIMELINE.map((step, index) => {
                         const done = statusIndex > index || declaration?.status === 'approved';
@@ -123,28 +123,28 @@ const MyTaxDeclarationPage: React.FC = () => {
                             <React.Fragment key={step}>
                                 <div className="flex flex-col items-center">
                                     <div className={`flex items-center justify-center w-7 h-7 rounded-full ${
-                                        done ? 'bg-teal-500 text-white' : current ? 'bg-teal-500/20 border-2 border-teal-500 text-teal-400' : 'bg-slate-800 border border-slate-600 text-slate-600'
+                                        done ? 'bg-primary text-primary-fg' : current ? 'bg-primary/20 border-2 border-primary text-primary' : 'bg-surface-raised border border-line-strong text-fg-subtle'
                                     }`}>
                                         {done ? <CheckCircle className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
                                     </div>
-                                    <span className={`text-xs mt-1.5 w-20 text-center capitalize ${done || current ? 'text-teal-400' : 'text-slate-600'}`}>
+                                    <span className={`text-xs mt-1.5 w-20 text-center capitalize ${done || current ? 'text-primary' : 'text-fg-subtle'}`}>
                                         {step.replace(/_/g, ' ')}
                                     </span>
                                 </div>
-                                {!isLast && <div className={`flex-1 h-0.5 min-w-4 ${done ? 'bg-teal-500' : 'bg-slate-700'}`} />}
+                                {!isLast && <div className={`flex-1 h-0.5 min-w-4 ${done ? 'bg-primary' : 'bg-line'}`} />}
                             </React.Fragment>
                         );
                     })}
                 </div>
                 {declaration?.review_notes && (
-                    <p className="text-xs text-amber-400 mt-3">Reviewer notes: {declaration.review_notes}</p>
+                    <p className="text-xs text-warning mt-3">Reviewer notes: {declaration.review_notes}</p>
                 )}
             </div>
 
             {/* Regime */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-surface border border-line rounded-nb p-4 flex items-center justify-between">
                 <div className="flex items-center">
-                    <span className="text-sm text-slate-300">Tax Regime</span>
+                    <span className="text-sm text-fg">Tax Regime</span>
                     <FieldTooltip text="The new regime has lower rates but fewer deductions; the old regime allows deductions like 80C and HRA. Your declarations only reduce tax under the old regime." />
                 </div>
                 <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ const MyTaxDeclarationPage: React.FC = () => {
                             disabled={!editable}
                             onClick={() => setRegime(r)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
-                                regime === r ? 'bg-teal-500/10 border-teal-500/40 text-teal-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                                regime === r ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-surface-raised border-line-strong text-fg-muted hover:text-fg'
                             }`}
                         >
                             {r === 'new' ? 'New Regime' : 'Old Regime'}
@@ -170,20 +170,20 @@ const MyTaxDeclarationPage: React.FC = () => {
                         .map((item, index) => ({ item, index }))
                         .filter(({ item }) => item.category === category.key);
                     return (
-                        <div key={category.key} className="bg-slate-900 border border-slate-800 rounded-xl">
-                            <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                        <div key={category.key} className="bg-surface border border-line rounded-nb">
+                            <div className="px-4 py-3 border-b border-line flex items-center justify-between">
                                 <div className="flex items-center">
-                                    <h4 className="text-sm font-semibold text-slate-50">{category.label}</h4>
+                                    <h4 className="text-sm font-semibold text-fg">{category.label}</h4>
                                     <FieldTooltip text={category.tooltip} />
                                 </div>
                                 {editable && (
-                                    <button onClick={() => addItem(category.key)} className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors">
+                                    <button onClick={() => addItem(category.key)} className="flex items-center gap-1 text-xs text-primary hover:text-primary transition-colors">
                                         <Plus size={12} /> Add
                                     </button>
                                 )}
                             </div>
                             {categoryItems.length === 0 ? (
-                                <p className="px-4 py-3 text-xs text-slate-500">Nothing declared under {category.label}.</p>
+                                <p className="px-4 py-3 text-xs text-fg-subtle">Nothing declared under {category.label}.</p>
                             ) : (
                                 <div className="p-4 space-y-2">
                                     {categoryItems.map(({ item, index }) => (
@@ -206,7 +206,7 @@ const MyTaxDeclarationPage: React.FC = () => {
                                             />
                                             {item.status && <StatusChip status={item.status} />}
                                             {editable && (
-                                                <button onClick={() => removeItem(index)} aria-label="Remove item" className="p-1.5 rounded text-rose-400 hover:text-rose-300 hover:bg-slate-800 transition-colors">
+                                                <button onClick={() => removeItem(index)} aria-label="Remove item" className="p-1.5 rounded text-danger hover:text-danger hover:bg-surface-raised transition-colors">
                                                     <Trash2 size={13} />
                                                 </button>
                                             )}
@@ -220,19 +220,19 @@ const MyTaxDeclarationPage: React.FC = () => {
             </div>
 
             {/* Totals + actions */}
-            <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <div className="text-sm text-slate-300">
-                    Total declared: <span className="font-semibold text-slate-50">{formatters.formatCurrency(totalDeclared)}</span>
+            <div className="flex items-center justify-between bg-surface border border-line rounded-nb p-4">
+                <div className="text-sm text-fg">
+                    Total declared: <span className="font-semibold text-fg">{formatters.formatCurrency(totalDeclared)}</span>
                 </div>
                 {editable && (
                     <div className="flex items-center gap-2">
-                        <button onClick={save} disabled={saving} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-50 text-slate-200 text-sm font-medium rounded-lg transition-colors">
+                        <button onClick={save} disabled={saving} className="px-4 py-2 bg-surface-raised hover:bg-line border border-line-strong disabled:opacity-50 text-fg text-sm font-medium rounded-nb transition-colors">
                             Save Draft
                         </button>
                         <button
                             onClick={() => setShowSubmitConfirm(true)}
                             disabled={saving || items.length === 0}
-                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
                         >
                             <Send size={14} /> Submit Declaration
                         </button>
@@ -241,21 +241,21 @@ const MyTaxDeclarationPage: React.FC = () => {
             </div>
 
             {!editable && declaration && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-slate-400">
-                    <ClipboardCheck size={15} className="text-teal-400" />
+                <div className="flex items-center gap-2 px-4 py-3 bg-surface-raised/50 border border-line-strong rounded-nb text-sm text-fg-muted">
+                    <ClipboardCheck size={15} className="text-primary" />
                     Your declaration is {declaration.status.replace(/_/g, ' ')} and can no longer be edited. Contact HR if something needs to change.
                 </div>
             )}
 
             <Modal isOpen={showSubmitConfirm} onClose={() => setShowSubmitConfirm(false)} title="Submit Tax Declaration" size="sm">
                 <div className="space-y-4">
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-fg">
                         Submit your FY {fiscalYear} declaration ({formatters.formatCurrency(totalDeclared)} declared)?
                         After submission you cannot edit it unless HR reopens it.
                     </p>
-                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                        <button onClick={() => setShowSubmitConfirm(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                        <button onClick={submit} disabled={saving} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                        <button onClick={() => setShowSubmitConfirm(false)} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
+                        <button onClick={submit} disabled={saving} className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors">
                             Submit
                         </button>
                     </div>

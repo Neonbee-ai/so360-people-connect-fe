@@ -12,7 +12,7 @@ vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({ ...mockShellFlags }),
 }));
 
-vi.mock('@so360/design-system', () => ({
+vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../test/__mocks__/design-system')), 
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 

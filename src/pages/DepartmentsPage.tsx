@@ -6,7 +6,7 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { QuotaBar, QuotaGate, toast } from '@so360/design-system';
+import { QuotaBar, QuotaGate, toast, Select } from '@so360/design-system';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
 import type { Person } from '../types/people';
@@ -101,14 +101,14 @@ const DepartmentsPage: React.FC = () => {
         return (
             <React.Fragment key={dept.id}>
                 <div
-                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 hover:bg-slate-800/50 transition-all"
+                    className="bg-surface border border-line rounded-nb p-4 hover:border-line-strong hover:bg-surface-raised/50 transition-all"
                     style={{ marginLeft: `${depth * 20}px` }}
                 >
                     <div className="flex items-center gap-4">
                         {/* Expand/Collapse */}
                         <button
                             onClick={() => hasChildren && toggleExpand(dept.id)}
-                            className={`flex-shrink-0 ${hasChildren ? 'text-slate-400 hover:text-teal-400' : 'text-slate-800'}`}
+                            className={`flex-shrink-0 ${hasChildren ? 'text-fg-muted hover:text-primary' : 'text-fg-subtle'}`}
                             disabled={!hasChildren}
                         >
                             {hasChildren ? (
@@ -124,18 +124,18 @@ const DepartmentsPage: React.FC = () => {
                             onClick={() => navigate(`/people/departments/${dept.id}`)}
                         >
                             <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-sm font-medium text-slate-50 truncate hover:text-teal-300 transition-colors">{dept.name}</span>
-                                <span className="text-xs text-slate-500">{dept.code}</span>
+                                <span className="text-sm font-medium text-fg truncate hover:text-primary transition-colors">{dept.name}</span>
+                                <span className="text-xs text-fg-subtle">{dept.code}</span>
                                 <StatusBadge status={dept.is_active ? 'active' : 'inactive'} />
                             </div>
-                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <div className="flex items-center gap-4 text-xs text-fg-subtle">
                                 {/* A department without a head has no reporting edge, so leave
                                     approvals and reviewer eligibility for everyone in it resolve
                                     to nobody. Silent until now, which is how the platform reached
                                     32 departments with 0 heads. */}
                                 {!dept.head_person_id && dept.is_active && (
                                     <span
-                                        className="text-amber-400"
+                                        className="text-warning"
                                         title="Leave approvals and reviews for this department have nobody to route to"
                                     >
                                         No head assigned
@@ -156,7 +156,7 @@ const DepartmentsPage: React.FC = () => {
                         {/* Actions */}
                         {canEdit && <button
                             onClick={() => setEditingDepartment(dept)}
-                            className="px-3 py-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                            className="px-3 py-1.5 text-xs text-primary hover:text-primary transition-colors"
                         >
                             Edit
                         </button>}
@@ -187,7 +187,7 @@ const DepartmentsPage: React.FC = () => {
                         onClick={() => setShowCreateModal(true)}
                         disabled={isSandboxMode}
                         title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         <Building2 size={16} />
                         Create Department
@@ -206,7 +206,7 @@ const DepartmentsPage: React.FC = () => {
             )}
 
             {isSandboxMode && isLimited(departments.length) && (
-                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/25 rounded-lg text-amber-400 text-sm">
+                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-warning/10 border border-warning/25 rounded-nb text-warning text-sm">
                     <span className="font-semibold">Sandbox:</span>
                     <span>Showing {sandboxEntryLimit} of {departments.length} records. Switch to Production to view all.</span>
                 </div>
@@ -216,7 +216,7 @@ const DepartmentsPage: React.FC = () => {
             {loading ? (
                 <div className="space-y-3">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-20 bg-slate-800/50 rounded-xl animate-pulse" />
+                        <div key={i} className="h-20 bg-surface-raised/50 rounded-nb animate-pulse" />
                     ))}
                 </div>
             ) : departments.length === 0 ? (
@@ -405,7 +405,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
             <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label htmlFor="dept-code" className="block text-xs text-slate-400 mb-1">Code *</label>
+                        <label htmlFor="dept-code" className="block text-xs text-fg-muted mb-1">Code *</label>
                         <input
                             id="dept-code"
                             data-field="code"
@@ -414,15 +414,15 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                             onChange={(e) => updateField('code', e.target.value)}
                             aria-invalid={!!errors.code}
                             aria-describedby={errors.code ? 'dept-code-error' : undefined}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.code ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                            className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.code ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                             placeholder="ENG"
                         />
                         {errors.code
-                            ? <p id="dept-code-error" role="alert" className="mt-1 text-xs text-rose-400">{errors.code}</p>
-                            : <p className="mt-1 text-xs text-slate-500">2–20 letters/numbers, e.g. ENG or HR-01.</p>}
+                            ? <p id="dept-code-error" role="alert" className="mt-1 text-xs text-danger">{errors.code}</p>
+                            : <p className="mt-1 text-xs text-fg-subtle">2–20 letters/numbers, e.g. ENG or HR-01.</p>}
                     </div>
                     <div>
-                        <label htmlFor="dept-name" className="block text-xs text-slate-400 mb-1">Name *</label>
+                        <label htmlFor="dept-name" className="block text-xs text-fg-muted mb-1">Name *</label>
                         <input
                             id="dept-name"
                             data-field="name"
@@ -431,30 +431,30 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                             onChange={(e) => updateField('name', e.target.value)}
                             aria-invalid={!!errors.name}
                             aria-describedby={errors.name ? 'dept-name-error' : undefined}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.name ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                            className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.name ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                             placeholder="Engineering"
                         />
-                        {errors.name && <p id="dept-name-error" role="alert" className="mt-1 text-xs text-rose-400">{errors.name}</p>}
+                        {errors.name && <p id="dept-name-error" role="alert" className="mt-1 text-xs text-danger">{errors.name}</p>}
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Description</label>
+                    <label className="block text-xs text-fg-muted mb-1">Description</label>
                     <textarea
                         value={formData.description || ''}
                         onChange={(e) => updateField('description', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         rows={3}
                         placeholder="Department description..."
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Parent Department</label>
+                    <label className="block text-xs text-fg-muted mb-1">Parent Department</label>
                     <select
                         value={formData.parent_id || ''}
                         onChange={(e) => updateField('parent_id', e.target.value || undefined)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                     >
                         <option value="">None (Top Level)</option>
                         {eligibleParents.map(dept => (
@@ -464,27 +464,16 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                         ))}
                     </select>
                     {reportingPath && (
-                        <p className="mt-1.5 text-xs text-slate-500">
+                        <p className="mt-1.5 text-xs text-fg-subtle">
                             Reporting Path: {reportingPath.join(' → ')}
                         </p>
                     )}
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Department Head</label>
-                    <select
-                        value={formData.head_person_id || ''}
-                        onChange={(e) => updateField('head_person_id', e.target.value || undefined)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                    >
-                        <option value="">Not assigned</option>
-                        {people.map(person => (
-                            <option key={person.id} value={person.id}>
-                                {person.full_name}{person.job_title ? ` — ${person.job_title}` : ''}
-                            </option>
-                        ))}
-                    </select>
-                    <p className="mt-1.5 text-xs text-slate-500">
+                    <label className="block text-xs text-fg-muted mb-1">Department Head</label>
+                    <Select name="departments-select-35" value={formData.head_person_id || ''} onChange={(e) => updateField('head_person_id', e.target.value || undefined)} options={[{ value: "", label: "Not assigned" }, ...people.map((person) => ({ value: person.id, label: `${person.full_name}${person.job_title ? ` — $${person.job_title}` : ''}` }))]} />
+                    <p className="mt-1.5 text-xs text-fg-subtle">
                         Approvals and reviews for this department route to its head.
                     </p>
                 </div>
@@ -495,17 +484,17 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                         id="is_active"
                         checked={formData.is_active}
                         onChange={(e) => updateField('is_active', e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                        className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
                     />
-                    <label htmlFor="is_active" className="text-sm text-slate-300">Active</label>
+                    <label htmlFor="is_active" className="text-sm text-fg">Active</label>
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                     >
                         Cancel
                     </button>
@@ -513,7 +502,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                         type="submit"
                         disabled={!isFormValid}
                         title={isFormValid ? undefined : 'Enter a valid department code and name.'}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {department ? 'Update' : 'Create'}
                     </button>

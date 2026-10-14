@@ -64,7 +64,7 @@ const MyPayslipsPage: React.FC = () => {
 
             {loading ? (
                 <div className="space-y-3">
-                    {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />)}
+                    {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />)}
                 </div>
             ) : payslips.length === 0 ? (
                 <EmptyState
@@ -75,23 +75,23 @@ const MyPayslipsPage: React.FC = () => {
             ) : (
                 <div className="space-y-3">
                     {payslips.map(payslip => (
-                        <div key={payslip.id} className="flex items-center justify-between px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
+                        <div key={payslip.id} className="flex items-center justify-between px-5 py-4 bg-surface border border-line rounded-nb hover:border-line-strong transition-colors">
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center">
-                                    <Receipt size={16} className="text-teal-400" />
+                                <div className="w-9 h-9 rounded-nb bg-primary/10 flex items-center justify-center">
+                                    <Receipt size={16} className="text-primary" />
                                 </div>
                                 <div>
-                                    <div className="text-sm font-medium text-slate-50">
+                                    <div className="text-sm font-medium text-fg">
                                         {payslipRowLabel(payslip.period_start, settings?.document_language || 'en-US')}
                                     </div>
-                                    <div className="text-xs text-slate-400">
+                                    <div className="text-xs text-fg-muted">
                                         {payslip.payslip_number} · Net {formatters.formatCurrency(payslip.net_pay)}
                                     </div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <button onClick={() => openPayslip(payslip)} className="text-xs text-teal-400 hover:text-teal-300 transition-colors">View</button>
-                                <button onClick={() => download(payslip)} aria-label={`Download ${payslip.payslip_number}`} className="text-slate-400 hover:text-slate-50 transition-colors">
+                                <button onClick={() => openPayslip(payslip)} className="text-xs text-primary hover:text-primary transition-colors">View</button>
+                                <button onClick={() => download(payslip)} aria-label={`Download ${payslip.payslip_number}`} className="text-fg-muted hover:text-fg transition-colors">
                                     <FileDown size={15} />
                                 </button>
                             </div>

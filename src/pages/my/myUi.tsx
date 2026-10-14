@@ -26,21 +26,21 @@ export const MyCard: React.FC<{
     flush?: boolean;
     children: React.ReactNode;
 }> = ({ title, icon, to, actions, flush, children }) => (
-    <section className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+    <section className="rounded-nb border border-line bg-surface overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-line">
             <div className="flex items-center gap-2.5">
                 {icon && (
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-nb bg-primary/10 text-primary">
                         {icon}
                     </span>
                 )}
-                <h2 className="text-sm font-semibold text-slate-50">{title}</h2>
+                <h2 className="text-sm font-semibold text-fg">{title}</h2>
             </div>
             {actions}
             {to && !actions && (
                 <Link
                     to={to}
-                    className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                    className="flex items-center gap-1 text-xs text-primary hover:text-primary transition-colors"
                 >
                     View all <ArrowRight size={12} />
                 </Link>
@@ -59,10 +59,10 @@ export const StatTile: React.FC<{
     value: React.ReactNode;
     hint?: string;
 }> = ({ label, value, hint }) => (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <p className="text-xs text-slate-400">{label}</p>
-        <p className="mt-1 text-2xl font-semibold text-slate-50">{value}</p>
-        {hint && <p className="mt-0.5 text-xs text-slate-500">{hint}</p>}
+    <div className="rounded-nb border border-line bg-surface p-4">
+        <p className="text-xs text-fg-muted">{label}</p>
+        <p className="mt-1 text-2xl font-semibold text-fg">{value}</p>
+        {hint && <p className="mt-0.5 text-xs text-fg-subtle">{hint}</p>}
     </div>
 );
 
@@ -71,15 +71,15 @@ export const StatTile: React.FC<{
 // ---------------------------------------------------------------------------
 
 const PILL_STYLES: Record<string, string> = {
-    draft: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-    pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    approved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    completed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    active: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
-    rejected: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-    cancelled: 'bg-slate-500/10 text-slate-500 border-slate-500/20',
-    present: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    absent: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    draft: 'bg-fg-subtle/10 text-fg-muted border-fg-subtle/20',
+    pending: 'bg-warning/10 text-warning border-warning/20',
+    approved: 'bg-success/10 text-success border-success/20',
+    completed: 'bg-success/10 text-success border-success/20',
+    active: 'bg-primary/10 text-primary border-primary/20',
+    rejected: 'bg-danger/10 text-danger border-danger/20',
+    cancelled: 'bg-fg-subtle/10 text-fg-subtle border-fg-subtle/20',
+    present: 'bg-success/10 text-success border-success/20',
+    absent: 'bg-danger/10 text-danger border-danger/20',
 };
 
 export const StatusPill: React.FC<{ status: string }> = ({ status }) => (
@@ -97,9 +97,9 @@ export const StatusPill: React.FC<{ status: string }> = ({ status }) => (
 // ---------------------------------------------------------------------------
 
 export const ProgressBar: React.FC<{ percent: number }> = ({ percent }) => (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-raised">
         <div
-            className="h-full rounded-full bg-teal-500 transition-all"
+            className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
         />
     </div>
@@ -110,7 +110,7 @@ export const ProgressBar: React.FC<{ percent: number }> = ({ percent }) => (
 // ---------------------------------------------------------------------------
 
 export const Avatar: React.FC<{ name?: string | null }> = ({ name }) => (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500/10 text-xs font-semibold text-teal-400">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
         {name?.trim()?.slice(0, 1).toUpperCase() ?? '?'}
     </span>
 );
@@ -122,7 +122,7 @@ export const Avatar: React.FC<{ name?: string | null }> = ({ name }) => (
 export const Skeleton: React.FC<{ rows?: number; className?: string }> = ({ rows = 3, className }) => (
     <div className={`space-y-3 ${className ?? ''}`} data-testid="my-skeleton">
         {[...Array(rows)].map((_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-800/50" />
+            <div key={i} className="h-16 animate-pulse rounded-nb bg-surface-raised/50" />
         ))}
     </div>
 );
@@ -132,15 +132,15 @@ export const Skeleton: React.FC<{ rows?: number; className?: string }> = ({ rows
 // ---------------------------------------------------------------------------
 
 export const primaryBtn =
-    'flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50';
+    'flex items-center gap-2 rounded-nb bg-primary px-4 py-2 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50';
 
 export const secondaryBtn =
-    'flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-50 disabled:opacity-50';
+    'flex items-center gap-2 rounded-nb border border-line-strong px-4 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-raised hover:text-fg disabled:opacity-50';
 
 export const dangerBtn =
-    'flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-700 disabled:opacity-60';
+    'flex items-center gap-2 rounded-nb bg-danger px-4 py-2 text-sm font-medium text-danger-fg transition-colors hover:bg-danger-hover disabled:opacity-60';
 
 export const inputCls =
-    'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-50 placeholder-slate-500 focus:border-teal-500 focus:outline-none';
+    'w-full rounded-nb border border-line-strong bg-surface-raised px-3 py-2 text-sm text-fg placeholder-slate-500 focus:border-primary focus:outline-none';
 
-export const labelCls = 'mb-1 block text-xs text-slate-400';
+export const labelCls = 'mb-1 block text-xs text-fg-muted';

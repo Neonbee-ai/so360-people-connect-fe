@@ -4,7 +4,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { leaveTypesApi, LeaveType, CreateLeaveTypePayload } from '../services/leaveTypesService';
 
@@ -66,7 +66,7 @@ const LeaveTypesPage: React.FC = () => {
                 actions={
                     canCreate && <button
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         <CalendarClock size={16} />
                         Create Leave Type
@@ -78,7 +78,7 @@ const LeaveTypesPage: React.FC = () => {
             {loading ? (
                 <div className="space-y-3">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+                        <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
                     ))}
                 </div>
             ) : leaveTypes.length === 0 ? (
@@ -89,22 +89,22 @@ const LeaveTypesPage: React.FC = () => {
                     action={canCreate ? { label: 'Create Leave Type', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <div className="bg-surface border border-line rounded-nb overflow-hidden">
                     <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
+                        <thead className="bg-surface-raised/50 border-b border-line">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Code</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Paid</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Approval</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Accrual</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Max Days/Year</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Carry Forward</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Code</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Paid</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Approval</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Accrual</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Max Days/Year</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Carry Forward</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-line">
                             {/*
                               * Rows are not navigation targets — the Actions
                               * column owns editing. A row-wide click plus a
@@ -115,7 +115,7 @@ const LeaveTypesPage: React.FC = () => {
                             {leaveTypes.map(leaveType => (
                                 <tr
                                     key={leaveType.id}
-                                    className="hover:bg-slate-800/50 transition-colors"
+                                    className="hover:bg-surface-raised/50 transition-colors"
                                 >
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
@@ -125,18 +125,18 @@ const LeaveTypesPage: React.FC = () => {
                                                     style={{ backgroundColor: leaveType.color }}
                                                 />
                                             )}
-                                            <span className="text-sm font-medium text-slate-50">{leaveType.name}</span>
+                                            <span className="text-sm font-medium text-fg">{leaveType.name}</span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">{leaveType.code}</td>
+                                    <td className="px-4 py-3 text-sm text-fg-muted">{leaveType.code}</td>
                                     <td className="px-4 py-3 text-center">
                                         <StatusBadge status={leaveType.is_paid ? 'paid' : 'unpaid'} />
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <StatusBadge status={leaveType.requires_approval ? 'required' : 'not_required'} />
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400 capitalize">{leaveType.accrual_type}</td>
-                                    <td className="px-4 py-3 text-center text-sm text-slate-400">
+                                    <td className="px-4 py-3 text-sm text-fg-muted capitalize">{leaveType.accrual_type}</td>
+                                    <td className="px-4 py-3 text-center text-sm text-fg-muted">
                                         {leaveType.max_days_per_year || '-'}
                                     </td>
                                     <td className="px-4 py-3 text-center">
@@ -148,7 +148,7 @@ const LeaveTypesPage: React.FC = () => {
                                     <td className="px-4 py-3 text-right">
                                         {canCreate && <button
                                             onClick={() => setEditingLeaveType(leaveType)}
-                                            className="text-sm font-semibold text-teal-400 hover:text-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500/40 rounded transition-colors"
+                                            className="text-sm font-semibold text-primary hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 rounded transition-colors"
                                         >
                                             Edit
                                         </button>}
@@ -247,46 +247,46 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
             <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Basic Info */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Basic Information</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Basic Information</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Code *</label>
+                            <label className="block text-xs text-fg-muted mb-1">Code *</label>
                             <input
                                 type="text"
                                 required
                                 value={formData.code}
                                 onChange={(e) => updateField('code', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                                 placeholder="AL"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Name *</label>
+                            <label className="block text-xs text-fg-muted mb-1">Name *</label>
                             <input
                                 type="text"
                                 required
                                 value={formData.name}
                                 onChange={(e) => updateField('name', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                                 placeholder="Annual Leave"
                             />
                         </div>
                         <div className="col-span-2">
-                            <label className="block text-xs text-slate-400 mb-1">Description</label>
+                            <label className="block text-xs text-fg-muted mb-1">Description</label>
                             <textarea
                                 value={formData.description || ''}
                                 onChange={(e) => updateField('description', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                                 rows={2}
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Color</label>
+                            <label className="block text-xs text-fg-muted mb-1">Color</label>
                             <input
                                 type="color"
                                 value={formData.color || '#10b981'}
                                 onChange={(e) => updateField('color', e.target.value)}
-                                className="w-full h-10 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-teal-500"
+                                className="w-full h-10 px-3 py-2 bg-surface-raised border border-line-strong rounded-nb focus:outline-none focus:border-primary"
                             />
                         </div>
                     </div>
@@ -294,130 +294,122 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
 
                 {/* Policies */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Policies</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Policies</h4>
                     <div className="space-y-2">
                         <label className="flex items-center gap-2">
                             <input
                                 type="checkbox"
                                 checked={formData.is_paid}
                                 onChange={(e) => updateField('is_paid', e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
                             />
-                            <span className="text-sm text-slate-300">Paid Leave</span>
+                            <span className="text-sm text-fg">Paid Leave</span>
                         </label>
                         <label className="flex items-center gap-2">
                             <input
                                 type="checkbox"
                                 checked={formData.requires_approval}
                                 onChange={(e) => updateField('requires_approval', e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
                             />
-                            <span className="text-sm text-slate-300">Requires Approval</span>
+                            <span className="text-sm text-fg">Requires Approval</span>
                         </label>
                         <label className="flex items-center gap-2">
                             <input
                                 type="checkbox"
                                 checked={formData.requires_documentation}
                                 onChange={(e) => updateField('requires_documentation', e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
                             />
-                            <span className="text-sm text-slate-300">Requires Documentation</span>
+                            <span className="text-sm text-fg">Requires Documentation</span>
                         </label>
                         <label className="flex items-center gap-2">
                             <input
                                 type="checkbox"
                                 checked={formData.carry_forward_allowed}
                                 onChange={(e) => updateField('carry_forward_allowed', e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
                             />
-                            <span className="text-sm text-slate-300">Allow Carry Forward</span>
+                            <span className="text-sm text-fg">Allow Carry Forward</span>
                         </label>
                         <label className="flex items-center gap-2">
                             <input
                                 type="checkbox"
                                 checked={formData.is_active}
                                 onChange={(e) => updateField('is_active', e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
                             />
-                            <span className="text-sm text-slate-300">Active</span>
+                            <span className="text-sm text-fg">Active</span>
                         </label>
                     </div>
                 </div>
 
                 {/* Accrual & Limits */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Accrual & Limits</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Accrual & Limits</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Accrual Type</label>
-                            <select
-                                value={formData.accrual_type}
-                                onChange={(e) => updateField('accrual_type', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="annual">Annual</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="none">None</option>
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Accrual Type</label>
+                            <Select name="leavetypes-select-57" value={formData.accrual_type} onChange={(e) => updateField('accrual_type', e.target.value)} options={[{ value: "annual", label: "Annual" }, { value: "monthly", label: "Monthly" }, { value: "none", label: "None" }]} />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Max Days Per Year</label>
+                            <label className="block text-xs text-fg-muted mb-1">Max Days Per Year</label>
                             <input
                                 type="number"
                                 min="0"
                                 step="0.5"
                                 value={formData.max_days_per_year || ''}
                                 onChange={(e) => updateField('max_days_per_year', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Accrual Rate (days/month)</label>
+                            <label className="block text-xs text-fg-muted mb-1">Accrual Rate (days/month)</label>
                             <input
                                 type="number"
                                 min="0"
                                 step="0.01"
                                 value={formData.accrual_rate || ''}
                                 onChange={(e) => updateField('accrual_rate', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Max Carry Forward Days</label>
+                            <label className="block text-xs text-fg-muted mb-1">Max Carry Forward Days</label>
                             <input
                                 type="number"
                                 min="0"
                                 step="0.5"
                                 value={formData.max_carry_forward_days || ''}
                                 onChange={(e) => updateField('max_carry_forward_days', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Notice Period (days)</label>
+                            <label className="block text-xs text-fg-muted mb-1">Notice Period (days)</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={formData.notice_period_days || ''}
                                 onChange={(e) => updateField('notice_period_days', parseInt(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                     </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         {leaveType ? 'Update' : 'Create'}
                     </button>

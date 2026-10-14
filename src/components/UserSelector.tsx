@@ -97,7 +97,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
   return (
     <div ref={containerRef} className="relative">
       <div
-        className="flex items-center w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-50 cursor-pointer focus-within:border-teal-500"
+        className="flex items-center w-full px-3 py-2 bg-surface border border-line-strong rounded-nb text-sm text-fg cursor-pointer focus-within:border-primary"
         onClick={() => {
           setOpen(!open);
           if (!open) setTimeout(() => inputRef.current?.focus(), 0);
@@ -109,11 +109,11 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={selectedUser ? (selectedUser.full_name || selectedUser.email) : placeholder}
-            className="flex-1 bg-transparent outline-none text-sm text-slate-50 placeholder-slate-400"
+            className="flex-1 bg-transparent outline-none text-sm text-fg placeholder-slate-400"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className={`flex-1 truncate ${selectedUser ? 'text-slate-50' : 'text-slate-400'}`}>
+          <span className={`flex-1 truncate ${selectedUser ? 'text-fg' : 'text-fg-muted'}`}>
             {selectedUser ? (selectedUser.full_name || selectedUser.email) : placeholder}
           </span>
         )}
@@ -124,34 +124,34 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
               e.stopPropagation();
               onChange(null);
             }}
-            className="ml-2 text-slate-400 hover:text-slate-50"
+            className="ml-2 text-fg-muted hover:text-fg"
           >
             &times;
           </button>
         ) : (
-          <svg className="ml-2 w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="ml-2 w-4 h-4 text-fg-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
           </svg>
         )}
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-slate-900 border border-slate-700 rounded-lg shadow-lg">
+        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-surface border border-line-strong rounded-nb shadow-lg">
           {loading ? (
-            <div className="px-3 py-2 text-sm text-slate-400">Loading users...</div>
+            <div className="px-3 py-2 text-sm text-fg-muted">Loading users...</div>
           ) : filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-slate-400">No users found</div>
+            <div className="px-3 py-2 text-sm text-fg-muted">No users found</div>
           ) : (
             filtered.map((user) => (
               <button
                 key={user.id}
                 type="button"
                 onClick={() => handleSelect(user.id)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700 flex items-center gap-2 ${
-                  user.id === value ? 'bg-slate-700/50 text-teal-400' : 'text-slate-50'
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-line flex items-center gap-2 ${
+                  user.id === value ? 'bg-line/50 text-primary' : 'text-fg'
                 }`}
               >
-                <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs shrink-0 overflow-hidden">
+                <div className="w-6 h-6 rounded-full bg-line-strong flex items-center justify-center text-xs shrink-0 overflow-hidden">
                   {user.avatar_url ? (
                     <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -161,7 +161,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
                 <div className="flex-1 min-w-0">
                   <div className="truncate">{user.full_name || user.email}</div>
                   {user.full_name && (
-                    <div className="text-xs text-slate-400 truncate">{user.email}</div>
+                    <div className="text-xs text-fg-muted truncate">{user.email}</div>
                   )}
                 </div>
               </button>

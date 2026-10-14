@@ -22,11 +22,11 @@ export const DEFAULT_UTILIZATION_SETTINGS: UtilizationSettingsValue = {
 };
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
+  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="space-y-1.5">
-    <label className="text-xs text-slate-400">{label}</label>
+    <label className="text-xs text-fg-muted">{label}</label>
     {children}
   </div>
 );
@@ -69,7 +69,7 @@ const UtilizationSettingsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading utilization settings...</div>;
+    return <div className="p-6 text-fg-muted animate-pulse">Loading utilization settings...</div>;
   }
 
   return (
@@ -88,8 +88,8 @@ const UtilizationSettingsPage: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
             <Gauge className="w-4 h-4" /> Capacity
           </h3>
 
@@ -112,8 +112,8 @@ const UtilizationSettingsPage: React.FC = () => {
           </Field>
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Thresholds</h3>
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Thresholds</h3>
 
           <Field label="Allocation Threshold %">
             <input

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -98,7 +98,7 @@ describe('GIVEN the admin payslips page', () => {
     // "Net Pay" appears both as the table header and in the modal summary
     expect(screen.getAllByText('Net Pay').length).toBeGreaterThan(1);
     // Closing the modal via its backdrop clears the viewed payslip
-    fireEvent.click(document.querySelector('div.fixed.inset-0.bg-black\\/60') as Element);
+    fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]);
     await waitFor(() => expect(screen.queryByText('Payslip PS-202608-0042')).not.toBeInTheDocument());
   });
 

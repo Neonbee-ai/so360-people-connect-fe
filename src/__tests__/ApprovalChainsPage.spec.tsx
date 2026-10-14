@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../services/orgPolicyService', () => ({
@@ -27,7 +27,7 @@ vi.mock('@so360/shell-context', () => ({
   }),
 }));
 
-vi.mock('@so360/design-system', () => ({
+vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../test/__mocks__/design-system')), 
   Button: ({ children, onClick, disabled, type }: any) => (
     <button onClick={onClick} disabled={disabled} type={type}>{children}</button>
   ),
@@ -83,5 +83,35 @@ describe('Given ApprovalChainsPage — Org approval chain management', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Approval Chains')).toBeInTheDocument());
     });
+  });
+});
+
+describe('Given ApprovalChainsPage — remove mapping confirmation', () => {
+  const chain = { id: 'c1', person_id: 'p1', person_name: 'Alice Smith', approver_person_id: 'p2', approver_name: 'Bob Manager', module_scope: 'all' };
+  const openRemoveDialog = async () => {
+    mockOrgPolicyApi.getApprovalChains.mockResolvedValue([chain]);
+    mockOrgPolicyApi.deleteApprovalChain.mockResolvedValue({});
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    const trash = screen.getAllByRole('button').find((b) => (b.textContent ?? '').trim() === '') as HTMLElement;
+    fireEvent.click(trash);
+    return screen.findByRole('dialog');
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('When the remove icon is clicked and the dialog is confirmed / Then the mapping is deleted', async () => {
+    const dialog = await openRemoveDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
+    await waitFor(() => expect(mockOrgPolicyApi.deleteApprovalChain).toHaveBeenCalledWith('p1'));
+  });
+
+  it('When the remove icon is clicked and the dialog is cancelled / Then nothing is deleted', async () => {
+    const dialog = await openRemoveDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(mockOrgPolicyApi.deleteApprovalChain).not.toHaveBeenCalled();
   });
 });

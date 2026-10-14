@@ -94,14 +94,14 @@ const LeaveRequestDetailPage: React.FC = () => {
     };
 
     if (loading) {
-        return <div className="p-6"><div className="h-40 bg-slate-800/50 rounded-xl animate-pulse" data-testid="leave-detail-loading" /></div>;
+        return <div className="p-6"><div className="h-40 bg-surface-raised/50 rounded-nb animate-pulse" data-testid="leave-detail-loading" /></div>;
     }
 
     if (notFound || !request) {
         return (
             <div className="p-6 space-y-4">
                 <EmptyState icon={CalendarDays} title="Leave request not found" description="It may have been deleted, or you may not have access to it." />
-                <Link to="/people/leaves/requests" className="text-sm text-teal-400 hover:underline">Back to leave requests</Link>
+                <Link to="/people/leaves/requests" className="text-sm text-primary hover:underline">Back to leave requests</Link>
             </div>
         );
     }
@@ -113,25 +113,25 @@ const LeaveRequestDetailPage: React.FC = () => {
         <div className="p-6 space-y-5 max-w-3xl">
             <PageHeader title="Leave Request" subtitle={request.person?.full_name ?? ''} />
 
-            <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-5 space-y-3">
+            <div className="rounded-nb border border-line-strong bg-surface-raised/40 p-5 space-y-3">
                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-50 font-medium">{request.leave_type?.name ?? 'Leave'}</span>
-                    <span data-testid="leave-status" className="text-xs uppercase tracking-wide text-slate-300">{request.status}</span>
+                    <span className="text-sm text-fg font-medium">{request.leave_type?.name ?? 'Leave'}</span>
+                    <span data-testid="leave-status" className="text-xs uppercase tracking-wide text-fg">{request.status}</span>
                 </div>
                 <dl className="grid grid-cols-2 gap-3 text-sm">
-                    <div><dt className="text-xs text-slate-400">From</dt><dd className="text-slate-50">{formatters.formatDate(request.start_date)}</dd></div>
-                    <div><dt className="text-xs text-slate-400">To</dt><dd className="text-slate-50">{formatters.formatDate(request.end_date)}</dd></div>
-                    <div><dt className="text-xs text-slate-400">Days</dt><dd className="text-slate-50">{request.total_days}</dd></div>
+                    <div><dt className="text-xs text-fg-muted">From</dt><dd className="text-fg">{formatters.formatDate(request.start_date)}</dd></div>
+                    <div><dt className="text-xs text-fg-muted">To</dt><dd className="text-fg">{formatters.formatDate(request.end_date)}</dd></div>
+                    <div><dt className="text-xs text-fg-muted">Days</dt><dd className="text-fg">{request.total_days}</dd></div>
                     {balance && (
                         <div>
-                            <dt className="text-xs text-slate-400">Balance available</dt>
-                            <dd className="text-slate-50" data-testid="leave-balance">{balance.available}</dd>
+                            <dt className="text-xs text-fg-muted">Balance available</dt>
+                            <dd className="text-fg" data-testid="leave-balance">{balance.available}</dd>
                         </div>
                     )}
                 </dl>
-                {request.reason && <p className="text-sm text-slate-300">{request.reason}</p>}
+                {request.reason && <p className="text-sm text-fg">{request.reason}</p>}
                 {request.status === 'rejected' && request.rejection_reason && (
-                    <p className="text-sm text-rose-400">Rejected: {request.rejection_reason}</p>
+                    <p className="text-sm text-danger">Rejected: {request.rejection_reason}</p>
                 )}
             </div>
 
@@ -146,10 +146,10 @@ const LeaveRequestDetailPage: React.FC = () => {
 
             {showActions && !rejecting && (
                 <div className="flex gap-2">
-                    <button onClick={approve} disabled={acting} className="flex items-center gap-1 px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg disabled:opacity-50">
+                    <button onClick={approve} disabled={acting} className="flex items-center gap-1 px-4 py-2 bg-success hover:bg-success text-success-fg text-sm font-medium rounded-nb disabled:opacity-50">
                         <CheckCircle size={16} /> Approve
                     </button>
-                    <button onClick={() => setRejecting(true)} disabled={acting} className="flex items-center gap-1 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg disabled:opacity-50">
+                    <button onClick={() => setRejecting(true)} disabled={acting} className="flex items-center gap-1 px-4 py-2 bg-danger hover:bg-danger-hover text-danger-fg text-sm font-medium rounded-nb disabled:opacity-50">
                         <XCircle size={16} /> Reject
                     </button>
                 </div>
@@ -157,17 +157,17 @@ const LeaveRequestDetailPage: React.FC = () => {
 
             {showActions && rejecting && (
                 <div className="space-y-3">
-                    <label className="block text-xs text-slate-400" htmlFor="leave-reject-reason">Rejection Reason *</label>
+                    <label className="block text-xs text-fg-muted" htmlFor="leave-reject-reason">Rejection Reason *</label>
                     <textarea
                         id="leave-reject-reason"
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                         rows={3}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                     />
                     <div className="flex gap-2">
-                        <button onClick={() => { setRejecting(false); setReason(''); }} className="px-4 py-2 text-sm text-slate-300 border border-slate-700 rounded-lg">Cancel</button>
-                        <button onClick={reject} disabled={!reason.trim() || acting} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg disabled:opacity-50">Confirm Reject</button>
+                        <button onClick={() => { setRejecting(false); setReason(''); }} className="px-4 py-2 text-sm text-fg border border-line-strong rounded-nb">Cancel</button>
+                        <button onClick={reject} disabled={!reason.trim() || acting} className="px-4 py-2 bg-danger hover:bg-danger-hover text-danger-fg text-sm font-medium rounded-nb disabled:opacity-50">Confirm Reject</button>
                     </div>
                 </div>
             )}

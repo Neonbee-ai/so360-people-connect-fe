@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, toast } from '@so360/design-system';
+import { Button, toast, Select } from '@so360/design-system';
 import { Building2, Save, Globe2 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { settingsApi } from '../../services/orgSettingsService';
@@ -40,7 +40,7 @@ export const DEFAULT_ORGANIZATION_SETTINGS: OrganizationSettingsValue = {
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
+  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const OrganizationSettingsPage: React.FC = () => {
   const shell = useShellBridge();
@@ -80,7 +80,7 @@ const OrganizationSettingsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading organization settings...</div>;
+    return <div className="p-6 text-fg-muted animate-pulse">Loading organization settings...</div>;
   }
 
   return (
@@ -99,8 +99,8 @@ const OrganizationSettingsPage: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
             <Building2 className="w-4 h-4" /> Working Hours
           </h3>
 
@@ -151,27 +151,15 @@ const OrganizationSettingsPage: React.FC = () => {
           </Field>
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Work Week</h3>
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Work Week</h3>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Work Week Start Day">
-              <select
-                className={INPUT_CLASS}
-                value={value.work_week_start_day}
-                onChange={(e) => set('work_week_start_day', e.target.value)}
-              >
-                {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <Select name="organizationsettings-select-98" value={value.work_week_start_day} onChange={(e) => set('work_week_start_day', e.target.value)} options={[...DAYS.map((d) => ({ value: d, label: d }))]} />
             </Field>
             <Field label="Work Week End Day">
-              <select
-                className={INPUT_CLASS}
-                value={value.work_week_end_day}
-                onChange={(e) => set('work_week_end_day', e.target.value)}
-              >
-                {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <Select name="organizationsettings-select-99" value={value.work_week_end_day} onChange={(e) => set('work_week_end_day', e.target.value)} options={[...DAYS.map((d) => ({ value: d, label: d }))]} />
             </Field>
           </div>
 
@@ -191,8 +179,8 @@ const OrganizationSettingsPage: React.FC = () => {
                     }
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       selected
-                        ? 'bg-blue-600/10 text-blue-400 border-blue-600/40'
-                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                        ? 'bg-primary/10 text-primary border-primary/40'
+                        : 'bg-bg text-fg-muted border-line hover:text-fg'
                     }`}
                   >
                     {d}
@@ -203,16 +191,16 @@ const OrganizationSettingsPage: React.FC = () => {
           </Field>
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Locale &amp; Formats</h3>
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Locale &amp; Formats</h3>
 
-          <div className="flex items-start gap-2.5 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-400">
-            <Globe2 className="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-500" />
+          <div className="flex items-start gap-2.5 rounded-nb border border-line bg-bg px-3 py-2.5 text-xs text-fg-muted">
+            <Globe2 className="w-3.5 h-3.5 mt-0.5 shrink-0 text-fg-subtle" />
             <span>
-              Timezone (<span className="text-slate-300">{shell?.businessSettings?.timezone || 'not set'}</span>) and date
-              format (<span className="text-slate-300">{shell?.businessSettings?.date_format || 'not set'}</span>) are
+              Timezone (<span className="text-fg">{shell?.businessSettings?.timezone || 'not set'}</span>) and date
+              format (<span className="text-fg">{shell?.businessSettings?.date_format || 'not set'}</span>) are
               organization-wide and managed once for every module in{' '}
-              <Link to="/settings/organization" className="text-blue-400 hover:text-blue-300 underline">
+              <Link to="/settings/organization" className="text-primary hover:text-primary underline">
                 Business Settings
               </Link>
               , not here.
@@ -220,14 +208,7 @@ const OrganizationSettingsPage: React.FC = () => {
           </div>
 
           <Field label="Time Format">
-            <select
-              className={INPUT_CLASS}
-              value={value.time_format}
-              onChange={(e) => set('time_format', e.target.value as '12h' | '24h')}
-            >
-              <option value="12h">12-hour</option>
-              <option value="24h">24-hour</option>
-            </select>
+            <Select name="organizationsettings-select-100" value={value.time_format} onChange={(e) => set('time_format', e.target.value as '12h' | '24h')} options={[{ value: "12h", label: "12-hour" }, { value: "24h", label: "24-hour" }]} />
           </Field>
 
           <Field label="Employee ID Format">
@@ -241,8 +222,8 @@ const OrganizationSettingsPage: React.FC = () => {
           </Field>
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Joining &amp; Exit</h3>
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Joining &amp; Exit</h3>
 
           <Field label="Default Joining Status">
             <input
@@ -279,7 +260,7 @@ const OrganizationSettingsPage: React.FC = () => {
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="space-y-1.5">
-    <label className="text-xs text-slate-400">{label}</label>
+    <label className="text-xs text-fg-muted">{label}</label>
     {children}
   </div>
 );

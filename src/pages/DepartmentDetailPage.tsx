@@ -8,7 +8,7 @@ import {
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { departmentsApi, Department, DepartmentEmployee } from '../services/departmentsService';
@@ -29,16 +29,16 @@ interface SummaryCardProps {
 }
 
 const SummaryCard: React.FC<SummaryCardProps> = ({ label, value, icon: Icon, sub }) => (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <div className="bg-surface border border-line rounded-nb p-4">
         <div className="flex items-start justify-between">
             <div>
-                <p className="text-xs text-slate-500 mb-1">{label}</p>
-                <p className="text-2xl font-semibold text-slate-50">{value}</p>
-                {sub && <p className="text-xs text-slate-500 mt-1">{sub}</p>}
+                <p className="text-xs text-fg-subtle mb-1">{label}</p>
+                <p className="text-2xl font-semibold text-fg">{value}</p>
+                {sub && <p className="text-xs text-fg-subtle mt-1">{sub}</p>}
             </div>
             {Icon && (
-                <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center">
-                    <Icon size={16} className="text-teal-400" />
+                <div className="w-8 h-8 rounded-nb bg-primary/10 flex items-center justify-center">
+                    <Icon size={16} className="text-primary" />
                 </div>
             )}
         </div>
@@ -84,33 +84,33 @@ const EditDepartmentModal: React.FC<EditModalProps> = ({ isOpen, onClose, depart
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Code *</label>
+                        <label className="block text-xs text-fg-muted mb-1">Code *</label>
                         <input
                             type="text"
                             required
                             value={form.code}
                             onChange={e => setForm(p => ({ ...p, code: e.target.value }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Name *</label>
+                        <label className="block text-xs text-fg-muted mb-1">Name *</label>
                         <input
                             type="text"
                             required
                             value={form.name}
                             onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Description</label>
+                    <label className="block text-xs text-fg-muted mb-1">Description</label>
                     <textarea
                         value={form.description}
                         onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                         rows={3}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                     />
                 </div>
                 <div className="flex items-center gap-2">
@@ -119,15 +119,15 @@ const EditDepartmentModal: React.FC<EditModalProps> = ({ isOpen, onClose, depart
                         id="edit_is_active"
                         checked={form.is_active}
                         onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))}
-                        className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600"
+                        className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary"
                     />
-                    <label htmlFor="edit_is_active" className="text-sm text-slate-300">Active</label>
+                    <label htmlFor="edit_is_active" className="text-sm text-fg">Active</label>
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">
                         Cancel
                     </button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">
+                    <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors">
                         Save Changes
                     </button>
                 </div>
@@ -177,45 +177,33 @@ const AssignManagerModal: React.FC<AssignManagerModalProps> = ({ isOpen, onClose
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Assign Department Manager">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <p className="text-sm text-slate-400">Select a person from the People Registry to assign as Department Head.</p>
+                <p className="text-sm text-fg-muted">Select a person from the People Registry to assign as Department Head.</p>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Search</label>
+                    <label className="block text-xs text-fg-muted mb-1">Search</label>
                     <input
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Search by name..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                     />
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Select Manager *</label>
+                    <label className="block text-xs text-fg-muted mb-1">Select Manager *</label>
                     {loading ? (
-                        <div className="h-10 bg-slate-800 rounded-lg animate-pulse" />
+                        <div className="h-10 bg-surface-raised rounded-nb animate-pulse" />
                     ) : (
-                        <select
-                            required
-                            value={selectedId}
-                            onChange={e => setSelectedId(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="">Select a person</option>
-                            {filtered.map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}
-                                </option>
-                            ))}
-                        </select>
+                        <Select name="departmentdetail-select-32" required value={selectedId} onChange={e => setSelectedId(e.target.value)} options={[{ value: "", label: "Select a person" }, ...filtered.map((p) => ({ value: p.id, label: `${p.full_name}${p.job_title ? ` — $${p.job_title}` : ''}` }))]} />
                     )}
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={!selectedId}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         Assign Manager
                     </button>
@@ -273,40 +261,28 @@ const GrantAccessModal: React.FC<GrantAccessModalProps> = ({ isOpen, onClose, on
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Grant Department Access">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-fg-muted">
                     Grant a person visibility into this department in People Registry and Departments —
                     only people with a linked login can be granted access.
                 </p>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Search</label>
+                    <label className="block text-xs text-fg-muted mb-1">Search</label>
                     <input
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Search by name..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                     />
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Select Person *</label>
+                    <label className="block text-xs text-fg-muted mb-1">Select Person *</label>
                     {loading ? (
-                        <div className="h-10 bg-slate-800 rounded-lg animate-pulse" />
+                        <div className="h-10 bg-surface-raised rounded-nb animate-pulse" />
                     ) : filtered.length === 0 ? (
-                        <p className="text-xs text-slate-500">No people with a linked login found.</p>
+                        <p className="text-xs text-fg-subtle">No people with a linked login found.</p>
                     ) : (
-                        <select
-                            required
-                            value={selectedUserId}
-                            onChange={e => setSelectedUserId(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="">Select a person</option>
-                            {filtered.map(p => (
-                                <option key={p.id} value={p.linked_user_id as string}>
-                                    {p.full_name}{p.job_title ? ` — ${p.job_title}` : ''}
-                                </option>
-                            ))}
-                        </select>
+                        <Select name="departmentdetail-select-33" required value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} options={[{ value: "", label: "Select a person" }, ...filtered.map((p) => ({ value: p.linked_user_id as string, label: `${p.full_name}${p.job_title ? ` — $${p.job_title}` : ''}` }))]} />
                     )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -315,20 +291,20 @@ const GrantAccessModal: React.FC<GrantAccessModalProps> = ({ isOpen, onClose, on
                         id="include_descendants"
                         checked={includeDescendants}
                         onChange={e => setIncludeDescendants(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600"
+                        className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary"
                     />
-                    <label htmlFor="include_descendants" className="text-sm text-slate-300">
+                    <label htmlFor="include_descendants" className="text-sm text-fg">
                         Also include all sub-departments
                     </label>
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50">
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={!selectedUserId || submitting}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         {submitting ? 'Granting…' : 'Grant Access'}
                     </button>
@@ -501,13 +477,13 @@ const DepartmentDetailPage: React.FC = () => {
         return (
             <div className="p-6 space-y-6">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-slate-800 rounded-lg animate-pulse" />
-                    <div className="h-7 w-48 bg-slate-800 rounded animate-pulse" />
+                    <div className="w-8 h-8 bg-surface-raised rounded-nb animate-pulse" />
+                    <div className="h-7 w-48 bg-surface-raised rounded animate-pulse" />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
-                    {[...Array(6)].map((_, i) => <div key={i} className="h-24 bg-slate-800/50 rounded-xl animate-pulse" />)}
+                    {[...Array(6)].map((_, i) => <div key={i} className="h-24 bg-surface-raised/50 rounded-nb animate-pulse" />)}
                 </div>
-                <div className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />
+                <div className="h-64 bg-surface-raised/50 rounded-nb animate-pulse" />
             </div>
         );
     }
@@ -516,7 +492,7 @@ const DepartmentDetailPage: React.FC = () => {
     if (loadError === 'load_failed') {
         return (
             <div className="p-6">
-                <button onClick={() => navigate('/people/departments')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-6 transition-colors">
+                <button onClick={() => navigate('/people/departments')} className="flex items-center gap-2 text-sm text-fg-muted hover:text-fg mb-6 transition-colors">
                     <ArrowLeft size={16} /> Back to Departments
                 </button>
                 <EmptyState icon={Building2} title="Failed to load department" description="Could not load department details. Please try again." action={{ label: 'Retry', onClick: () => loadData() }} />
@@ -528,7 +504,7 @@ const DepartmentDetailPage: React.FC = () => {
     if (loadError === 'not_found' || !department) {
         return (
             <div className="p-6">
-                <button onClick={() => navigate('/people/departments')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-6 transition-colors">
+                <button onClick={() => navigate('/people/departments')} className="flex items-center gap-2 text-sm text-fg-muted hover:text-fg mb-6 transition-colors">
                     <ArrowLeft size={16} /> Back to Departments
                 </button>
                 <EmptyState icon={Building2} title="Department not found" description="This department does not exist or has been removed." action={{ label: 'Back to Departments', onClick: () => navigate('/people/departments') }} />
@@ -551,26 +527,26 @@ const DepartmentDetailPage: React.FC = () => {
             <div>
                 <button
                     onClick={() => navigate('/people/departments')}
-                    className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 mb-4 transition-colors"
+                    className="flex items-center gap-2 text-sm text-fg-muted hover:text-fg mb-4 transition-colors"
                 >
                     <ArrowLeft size={16} /> Back to Departments
                 </button>
 
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                            <Building2 size={22} className="text-teal-400" />
+                        <div className="w-12 h-12 rounded-nb bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Building2 size={22} className="text-primary" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <h1 className="text-xl font-semibold text-slate-50">{department.name}</h1>
-                                <span className="text-sm text-slate-500 font-mono">{department.code}</span>
+                                <h1 className="text-xl font-semibold text-fg">{department.name}</h1>
+                                <span className="text-sm text-fg-subtle font-mono">{department.code}</span>
                                 <StatusBadge status={department.is_active ? 'active' : 'inactive'} />
                             </div>
                             {department.description && (
-                                <p className="text-sm text-slate-400 mb-1">{department.description}</p>
+                                <p className="text-sm text-fg-muted mb-1">{department.description}</p>
                             )}
-                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <div className="flex items-center gap-4 text-xs text-fg-subtle">
                                 {department.head_person && (
                                     <span className="flex items-center gap-1">
                                         <User size={11} /> Head: {department.head_person.full_name}
@@ -590,20 +566,20 @@ const DepartmentDetailPage: React.FC = () => {
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <button
                                 onClick={() => setShowEditModal(true)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-300 hover:text-slate-50 border border-slate-700 hover:border-slate-600 rounded-lg transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-fg hover:text-fg border border-line-strong hover:border-line-strong rounded-nb transition-colors"
                             >
                                 <Edit2 size={13} /> Edit
                             </button>
                             <button
                                 onClick={() => setShowAssignManagerModal(true)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-300 hover:text-slate-50 border border-slate-700 hover:border-slate-600 rounded-lg transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-fg hover:text-fg border border-line-strong hover:border-line-strong rounded-nb transition-colors"
                             >
                                 <UserPlus size={13} /> Assign Manager
                             </button>
                             {department.is_active && canArchive && (
                                 <button
                                     onClick={handleArchive}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-400 hover:text-amber-300 border border-amber-500/30 hover:border-amber-500/50 rounded-lg transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-warning hover:text-warning border border-warning/30 hover:border-warning/50 rounded-nb transition-colors"
                                 >
                                     <Archive size={13} /> Archive
                                 </button>
@@ -629,7 +605,7 @@ const DepartmentDetailPage: React.FC = () => {
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-slate-800">
+            <div className="border-b border-line">
                 <div className="flex gap-6">
                     {TABS.map(tab => (
                         <button
@@ -637,8 +613,8 @@ const DepartmentDetailPage: React.FC = () => {
                             onClick={() => setActiveTab(tab.key)}
                             className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
                                 activeTab === tab.key
-                                    ? 'text-teal-400 border-teal-400'
-                                    : 'text-slate-500 border-transparent hover:text-slate-300'
+                                    ? 'text-primary border-primary'
+                                    : 'text-fg-subtle border-transparent hover:text-fg'
                             }`}
                         >
                             {tab.label}
@@ -659,57 +635,57 @@ const DepartmentDetailPage: React.FC = () => {
                             description="Employees appear here automatically when their department is set in People Registry."
                         />
                     ) : (
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <div className="bg-surface border border-line rounded-nb overflow-hidden">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-slate-800">
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Employee</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Designation</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                    <tr className="border-b border-line">
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-fg-subtle uppercase tracking-wider">Employee</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-fg-subtle uppercase tracking-wider">Designation</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-fg-subtle uppercase tracking-wider">Email</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-fg-subtle uppercase tracking-wider">Status</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-fg-subtle uppercase tracking-wider">Type</th>
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-fg-subtle uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-800">
+                                <tbody className="divide-y divide-line">
                                     {employees.map(emp => (
-                                        <tr key={emp.id} className="hover:bg-slate-800/40 transition-colors">
+                                        <tr key={emp.id} className="hover:bg-surface-raised/40 transition-colors">
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-xs font-medium text-teal-400">
+                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-xs font-medium text-primary">
                                                             {emp.full_name.charAt(0).toUpperCase()}
                                                         </span>
                                                     </div>
-                                                    <span className="font-medium text-slate-50">{emp.full_name}</span>
+                                                    <span className="font-medium text-fg">{emp.full_name}</span>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center gap-1.5 text-slate-400">
+                                                <div className="flex items-center gap-1.5 text-fg-muted">
                                                     <Briefcase size={12} />
                                                     {emp.job_title || '—'}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3">
                                                 {emp.email ? (
-                                                    <div className="flex items-center gap-1.5 text-slate-400">
+                                                    <div className="flex items-center gap-1.5 text-fg-muted">
                                                         <Mail size={12} />
                                                         {emp.email}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-slate-600">—</span>
+                                                    <span className="text-fg-subtle">—</span>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <StatusBadge status={emp.status || 'inactive'} />
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className="text-xs capitalize text-slate-400">{emp.type || '—'}</span>
+                                                <span className="text-xs capitalize text-fg-muted">{emp.type || '—'}</span>
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 <button
                                                     onClick={() => navigate(`/people/people/${emp.id}`)}
-                                                    className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                                                    className="text-xs text-primary hover:text-primary transition-colors"
                                                 >
                                                     View Profile
                                                 </button>
@@ -735,11 +711,11 @@ const DepartmentDetailPage: React.FC = () => {
                             { label: 'Attendance %', icon: UserCheck },
                             { label: 'Leave Statistics', icon: Calendar },
                         ].map(card => (
-                            <div key={card.label} className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center min-h-[140px] gap-3">
-                                <card.icon size={24} className="text-slate-600" />
+                            <div key={card.label} className="bg-surface border border-line rounded-nb p-6 flex flex-col items-center justify-center min-h-[140px] gap-3">
+                                <card.icon size={24} className="text-fg-subtle" />
                                 <div className="text-center">
-                                    <p className="text-sm font-medium text-slate-400">{card.label}</p>
-                                    <p className="text-xs text-slate-600 mt-1">No Data Yet</p>
+                                    <p className="text-sm font-medium text-fg-muted">{card.label}</p>
+                                    <p className="text-xs text-fg-subtle mt-1">No Data Yet</p>
                                 </div>
                             </div>
                         ))}
@@ -756,7 +732,7 @@ const DepartmentDetailPage: React.FC = () => {
                         actions={
                             <button
                                 onClick={() => setShowGrantAccessModal(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                             >
                                 <Shield size={16} />
                                 Grant Access
@@ -767,7 +743,7 @@ const DepartmentDetailPage: React.FC = () => {
                     {loadingScopes ? (
                         <div className="space-y-2">
                             {[...Array(2)].map((_, i) => (
-                                <div key={i} className="h-14 bg-slate-800/50 rounded-xl animate-pulse" />
+                                <div key={i} className="h-14 bg-surface-raised/50 rounded-nb animate-pulse" />
                             ))}
                         </div>
                     ) : scopeGrantees.length === 0 ? (
@@ -782,13 +758,13 @@ const DepartmentDetailPage: React.FC = () => {
                             {scopeGrantees.map(grantee => (
                                 <div
                                     key={grantee.id}
-                                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between"
+                                    className="bg-surface border border-line rounded-nb p-4 flex items-center justify-between"
                                 >
                                     <div>
-                                        <p className="text-sm font-medium text-slate-50">
+                                        <p className="text-sm font-medium text-fg">
                                             {grantee.user_full_name || grantee.user_email || grantee.user_id}
                                         </p>
-                                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                                        <div className="flex items-center gap-3 text-xs text-fg-subtle mt-0.5">
                                             {grantee.user_email && (
                                                 <span className="flex items-center gap-1">
                                                     <Mail size={11} /> {grantee.user_email}
@@ -801,7 +777,7 @@ const DepartmentDetailPage: React.FC = () => {
                                     </div>
                                     <button
                                         onClick={() => handleRevokeAccess(grantee.id)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-500/50 rounded-lg transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-danger hover:text-danger border border-danger/30 hover:border-danger/50 rounded-nb transition-colors"
                                     >
                                         <X size={13} /> Revoke
                                     </button>

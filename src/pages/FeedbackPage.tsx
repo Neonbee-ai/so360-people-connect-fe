@@ -4,7 +4,7 @@ import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import PersonPicker from '../components/PersonPicker';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { feedbackApi, Feedback, CreateFeedbackPayload } from '../services/feedbackService';
@@ -64,9 +64,9 @@ const FeedbackPage: React.FC = () => {
     };
 
     const feedbackTypeColors: Record<string, string> = {
-        positive: 'bg-green-900/40 text-green-400',
-        constructive: 'bg-amber-900/40 text-amber-400',
-        general: 'bg-blue-900/40 text-blue-400',
+        positive: 'bg-success-container/40 text-success',
+        constructive: 'bg-warning-container/40 text-warning',
+        general: 'bg-primary-container/40 text-primary',
         '360_degree': 'bg-purple-900/40 text-purple-400',
     };
 
@@ -78,7 +78,7 @@ const FeedbackPage: React.FC = () => {
                 actions={
                     canCreate && <button
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         <Plus size={16} /> Give Feedback
                     </button>
@@ -87,23 +87,13 @@ const FeedbackPage: React.FC = () => {
 
             {/* Filters */}
             <div className="flex items-center gap-3">
-                <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Types</option>
-                    <option value="positive">Positive</option>
-                    <option value="constructive">Constructive</option>
-                    <option value="general">General</option>
-                    <option value="360_degree">360 Degree</option>
-                </select>
+                <Select name="feedback-select-38" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} options={[{ value: "", label: "All Types" }, { value: "positive", label: "Positive" }, { value: "constructive", label: "Constructive" }, { value: "general", label: "General" }, { value: "360_degree", label: "360 Degree" }]} />
             </div>
 
             {/* Feedback List */}
             {loading ? (
                 <div className="space-y-3">
-                    {[1, 2, 3].map(i => <div key={i} className="h-28 bg-slate-800/50 rounded-xl animate-pulse" />)}
+                    {[1, 2, 3].map(i => <div key={i} className="h-28 bg-surface-raised/50 rounded-nb animate-pulse" />)}
                 </div>
             ) : feedbacks.length === 0 ? (
                 <EmptyState
@@ -114,26 +104,26 @@ const FeedbackPage: React.FC = () => {
             ) : (
                 <div className="space-y-3">
                     {feedbacks.map(fb => (
-                        <div key={fb.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <div key={fb.id} className="bg-surface border border-line rounded-nb p-5">
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-medium text-slate-50">
+                                    <div className="w-8 h-8 bg-line rounded-full flex items-center justify-center text-xs font-medium text-fg">
                                         {fb.is_anonymous ? '?' : fb.provider?.full_name?.charAt(0) || '?'}
                                     </div>
                                     <div>
-                                        <p className="text-sm text-slate-50 font-medium">
+                                        <p className="text-sm text-fg font-medium">
                                             {fb.is_anonymous ? 'Anonymous' : fb.provider?.full_name || 'Unknown'}
-                                            <span className="text-slate-400 font-normal"> to </span>
+                                            <span className="text-fg-muted font-normal"> to </span>
                                             {fb.person?.full_name || 'Unknown'}
                                         </p>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium ${feedbackTypeColors[fb.feedback_type] || 'bg-slate-700 text-slate-300'}`}>
+                                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium ${feedbackTypeColors[fb.feedback_type] || 'bg-line text-fg'}`}>
                                                 {fb.feedback_type.replace('_', ' ')}
                                             </span>
                                             {fb.provider_relationship && (
-                                                <span className="text-[10px] text-slate-500 capitalize">{fb.provider_relationship.replace('_', ' ')}</span>
+                                                <span className="text-[10px] text-fg-subtle capitalize">{fb.provider_relationship.replace('_', ' ')}</span>
                                             )}
-                                            <span className="text-[10px] text-slate-500">
+                                            <span className="text-[10px] text-fg-subtle">
                                                 {formatters.formatDate(fb.created_at)}
                                             </span>
                                         </div>
@@ -143,39 +133,39 @@ const FeedbackPage: React.FC = () => {
                                     {fb.overall_rating && (
                                         <div className="flex items-center gap-0.5">
                                             {Array.from({ length: 5 }).map((_, i) => (
-                                                <Star key={i} size={12} className={i < fb.overall_rating! ? 'fill-yellow-500 text-yellow-500' : 'text-slate-700'} />
+                                                <Star key={i} size={12} className={i < fb.overall_rating! ? 'fill-warning text-warning' : 'text-fg-subtle'} />
                                             ))}
                                         </div>
                                     )}
                                     {fb.is_visible_to_subject ? (
-                                        <span title="Visible to subject"><Eye size={14} className="text-slate-500" /></span>
+                                        <span title="Visible to subject"><Eye size={14} className="text-fg-subtle" /></span>
                                     ) : (
-                                        <span title="Hidden from subject"><EyeOff size={14} className="text-slate-500" /></span>
+                                        <span title="Hidden from subject"><EyeOff size={14} className="text-fg-subtle" /></span>
                                     )}
                                 </div>
                             </div>
 
-                            <p className="text-sm text-slate-300 mb-2">{fb.feedback_text}</p>
+                            <p className="text-sm text-fg mb-2">{fb.feedback_text}</p>
 
                             {fb.strengths && (
-                                <p className="text-xs text-green-400 mb-1">Strengths: {fb.strengths}</p>
+                                <p className="text-xs text-success mb-1">Strengths: {fb.strengths}</p>
                             )}
                             {fb.areas_for_improvement && (
-                                <p className="text-xs text-amber-400 mb-1">Areas to improve: {fb.areas_for_improvement}</p>
+                                <p className="text-xs text-warning mb-1">Areas to improve: {fb.areas_for_improvement}</p>
                             )}
 
                             {!fb.acknowledged_at && (
-                                <div className="mt-3 pt-3 border-t border-slate-800">
+                                <div className="mt-3 pt-3 border-t border-line">
                                     <button
                                         onClick={() => handleAcknowledge(fb.id)}
-                                        className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300"
+                                        className="flex items-center gap-1 text-xs text-primary hover:text-primary"
                                     >
                                         <CheckCircle size={14} /> Acknowledge
                                     </button>
                                 </div>
                             )}
                             {fb.acknowledged_at && (
-                                <p className="mt-2 text-[10px] text-slate-500">
+                                <p className="mt-2 text-[10px] text-fg-subtle">
                                     Acknowledged on {formatters.formatDate(fb.acknowledged_at)}
                                 </p>
                             )}
@@ -239,7 +229,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
             <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Person Selector */}
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Feedback For *</label>
+                    <label className="block text-xs text-fg-muted mb-1">Feedback For *</label>
                     <PersonPicker
                         options={people}
                         value={formData.person_id}
@@ -252,70 +242,51 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Feedback Type *</label>
-                        <select
-                            value={formData.feedback_type}
-                            onChange={(e) => updateField('feedback_type', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="positive">Positive</option>
-                            <option value="constructive">Constructive</option>
-                            <option value="general">General</option>
-                            <option value="360_degree">360 Degree</option>
-                        </select>
+                        <label className="block text-xs text-fg-muted mb-1">Feedback Type *</label>
+                        <Select name="feedback-select-39" value={formData.feedback_type} onChange={(e) => updateField('feedback_type', e.target.value)} options={[{ value: "positive", label: "Positive" }, { value: "constructive", label: "Constructive" }, { value: "general", label: "General" }, { value: "360_degree", label: "360 Degree" }]} />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Relationship</label>
-                        <select
-                            value={formData.provider_relationship || ''}
-                            onChange={(e) => updateField('provider_relationship', e.target.value || undefined)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="">Select...</option>
-                            <option value="manager">Manager</option>
-                            <option value="peer">Peer</option>
-                            <option value="direct_report">Direct Report</option>
-                            <option value="cross_functional">Cross-Functional</option>
-                        </select>
+                        <label className="block text-xs text-fg-muted mb-1">Relationship</label>
+                        <Select name="feedback-select-40" value={formData.provider_relationship || ''} onChange={(e) => updateField('provider_relationship', e.target.value || undefined)} options={[{ value: "", label: "Select..." }, { value: "manager", label: "Manager" }, { value: "peer", label: "Peer" }, { value: "direct_report", label: "Direct Report" }, { value: "cross_functional", label: "Cross-Functional" }]} />
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Feedback *</label>
+                    <label className="block text-xs text-fg-muted mb-1">Feedback *</label>
                     <textarea
                         required
                         rows={4}
                         value={formData.feedback_text}
                         onChange={(e) => updateField('feedback_text', e.target.value)}
                         placeholder="Share your feedback..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Strengths</label>
+                    <label className="block text-xs text-fg-muted mb-1">Strengths</label>
                     <input
                         type="text"
                         value={formData.strengths || ''}
                         onChange={(e) => updateField('strengths', e.target.value)}
                         placeholder="Highlight strengths..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Areas for Improvement</label>
+                    <label className="block text-xs text-fg-muted mb-1">Areas for Improvement</label>
                     <input
                         type="text"
                         value={formData.areas_for_improvement || ''}
                         onChange={(e) => updateField('areas_for_improvement', e.target.value)}
                         placeholder="Suggest improvements..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Overall Rating</label>
+                    <label className="block text-xs text-fg-muted mb-1">Overall Rating</label>
                     <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map(r => (
                             <button
@@ -326,7 +297,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                             >
                                 <Star
                                     size={20}
-                                    className={(formData.overall_rating || 0) >= r ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600 hover:text-slate-400'}
+                                    className={(formData.overall_rating || 0) >= r ? 'fill-warning text-warning' : 'text-fg-subtle hover:text-fg-muted'}
                                 />
                             </button>
                         ))}
@@ -339,33 +310,33 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                             type="checkbox"
                             checked={formData.is_anonymous}
                             onChange={(e) => updateField('is_anonymous', e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600"
+                            className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary"
                         />
-                        <span className="text-sm text-slate-300">Submit anonymously</span>
+                        <span className="text-sm text-fg">Submit anonymously</span>
                     </label>
                     <label className="flex items-center gap-2">
                         <input
                             type="checkbox"
                             checked={formData.is_visible_to_subject !== false}
                             onChange={(e) => updateField('is_visible_to_subject', e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600"
+                            className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary"
                         />
-                        <span className="text-sm text-slate-300">Visible to subject</span>
+                        <span className="text-sm text-fg">Visible to subject</span>
                     </label>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={!formData.person_id || !formData.feedback_text}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Submit Feedback
                     </button>

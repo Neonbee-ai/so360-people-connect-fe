@@ -5,7 +5,7 @@ import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import {
     attendanceApi,
     attendanceCorrectionsApi,
@@ -109,7 +109,7 @@ const AttendanceRegisterPage: React.FC = () => {
             <PageHeader title="Attendance Register" subtitle="Daily attendance for your organization" />
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 border-b border-slate-800" role="tablist">
+            <div className="flex items-center gap-1 border-b border-line" role="tablist">
                 {([
                     { id: 'register', label: 'Register' },
                     { id: 'corrections', label: 'Corrections' },
@@ -122,8 +122,8 @@ const AttendanceRegisterPage: React.FC = () => {
                         onClick={() => setTab(t.id)}
                         className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                             tab === t.id
-                                ? 'border-teal-500 text-teal-400'
-                                : 'border-transparent text-slate-400 hover:text-slate-50'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-fg-muted hover:text-fg'
                         }`}
                     >
                         {t.label}
@@ -142,7 +142,7 @@ const AttendanceRegisterPage: React.FC = () => {
             <>
             {/* Date Picker */}
             <div className="flex items-center gap-3">
-                <label htmlFor="attendance-date" className="text-xs text-slate-400">
+                <label htmlFor="attendance-date" className="text-xs text-fg-muted">
                     Date
                 </label>
                 <input
@@ -150,7 +150,7 @@ const AttendanceRegisterPage: React.FC = () => {
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                 />
             </div>
 
@@ -168,7 +168,7 @@ const AttendanceRegisterPage: React.FC = () => {
             {loading ? (
                 <div className="space-y-3">
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+                        <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
                     ))}
                 </div>
             ) : rows.length === 0 ? (
@@ -178,24 +178,24 @@ const AttendanceRegisterPage: React.FC = () => {
                     description="Attendance records will appear here once people are registered."
                 />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+                <div className="bg-surface border border-line rounded-nb overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
+                        <thead className="bg-surface-raised/50 border-b border-line">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Employee</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Check In</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Check Out</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Notes</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Employee</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Check In</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Check Out</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Notes</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-line">
                             {rows.map((row) => (
-                                <tr key={row.person_id} className="hover:bg-slate-800/50 transition-colors">
+                                <tr key={row.person_id} className="hover:bg-surface-raised/50 transition-colors">
                                     <td className="px-4 py-3">
-                                        <div className="text-sm text-slate-50">{row.person_name}</div>
-                                        <div className="text-xs text-slate-500">
+                                        <div className="text-sm text-fg">{row.person_name}</div>
+                                        <div className="text-xs text-fg-subtle">
                                             {[row.department_name, row.designation].filter(Boolean).join(' · ') || '—'}
                                         </div>
                                     </td>
@@ -203,14 +203,14 @@ const AttendanceRegisterPage: React.FC = () => {
                                         {row.status ? (
                                             <StatusBadge status={row.status} />
                                         ) : (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border border-dashed border-slate-600 text-slate-500">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-nb-sm text-xs font-medium border border-dashed border-line-strong text-fg-subtle">
                                                 Not Marked
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">{row.check_in || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">{row.check_out || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-400 max-w-[200px] truncate" title={row.notes || ''}>
+                                    <td className="px-4 py-3 text-sm text-fg-muted">{row.check_in || '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-fg-muted">{row.check_out || '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-fg-muted max-w-[200px] truncate" title={row.notes || ''}>
                                         {row.notes || '—'}
                                     </td>
                                     <td className="px-4 py-3">
@@ -224,8 +224,8 @@ const AttendanceRegisterPage: React.FC = () => {
                                                     onClick={() => handleQuickMark(row, status)}
                                                     className={`p-1.5 rounded-lg transition-colors ${
                                                         row.status === status
-                                                            ? 'bg-teal-500/20 text-teal-400'
-                                                            : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                                            ? 'bg-primary/20 text-primary'
+                                                            : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                                                     }`}
                                                 >
                                                     <Icon size={14} />
@@ -236,7 +236,7 @@ const AttendanceRegisterPage: React.FC = () => {
                                                 title="Edit Attendance"
                                                 aria-label={`Edit attendance for ${row.person_name}`}
                                                 onClick={() => setEditingRow(row)}
-                                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
+                                                className="p-1.5 rounded-nb text-fg-muted hover:text-fg hover:bg-surface-raised transition-colors"
                                             >
                                                 <Pencil size={14} />
                                             </button>
@@ -320,8 +320,8 @@ const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                         onClick={() => setFilter(f.id)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                             filter === f.id
-                                ? 'bg-teal-500/20 text-teal-400'
-                                : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                ? 'bg-primary/20 text-primary'
+                                : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                         }`}
                     >
                         {f.label}
@@ -332,7 +332,7 @@ const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
             {loading ? (
                 <div className="space-y-3">
                     {[...Array(3)].map((_, i) => (
-                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+                        <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
                     ))}
                 </div>
             ) : requests.length === 0 ? (
@@ -342,39 +342,39 @@ const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                     description="Employee attendance correction requests will appear here for review."
                 />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+                <div className="bg-surface border border-line rounded-nb overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
+                        <thead className="bg-surface-raised/50 border-b border-line">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Employee</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Date</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Requested</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Reason</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Employee</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Requested</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Reason</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-line">
                             {requests.map((r) => (
-                                <tr key={r.id} className="hover:bg-slate-800/50 transition-colors">
+                                <tr key={r.id} className="hover:bg-surface-raised/50 transition-colors">
                                     <td className="px-4 py-3">
-                                        <div className="text-sm text-slate-50">{r.person_name || '—'}</div>
-                                        <div className="text-xs text-slate-500">{r.designation || ''}</div>
+                                        <div className="text-sm text-fg">{r.person_name || '—'}</div>
+                                        <div className="text-xs text-fg-subtle">{r.designation || ''}</div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">{r.attendance_date}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">
+                                    <td className="px-4 py-3 text-sm text-fg-muted">{r.attendance_date}</td>
+                                    <td className="px-4 py-3 text-sm text-fg-muted">
                                         {r.requested_status ? statusLabel(r.requested_status) : '—'}
-                                        <div className="text-xs text-slate-500">
+                                        <div className="text-xs text-fg-subtle">
                                             {[r.requested_check_in, r.requested_check_out].filter(Boolean).join(' – ') || ''}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400 max-w-[240px] truncate" title={r.reason}>
+                                    <td className="px-4 py-3 text-sm text-fg-muted max-w-[240px] truncate" title={r.reason}>
                                         {r.reason}
                                     </td>
                                     <td className="px-4 py-3">
                                         <StatusBadge status={r.status} />
                                         {r.review_note && (
-                                            <div className="text-xs text-slate-500 mt-0.5 max-w-[160px] truncate" title={r.review_note}>
+                                            <div className="text-xs text-fg-subtle mt-0.5 max-w-[160px] truncate" title={r.review_note}>
                                                 {r.review_note}
                                             </div>
                                         )}
@@ -387,7 +387,7 @@ const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                                                     disabled={busyId === r.id}
                                                     onClick={() => handleApprove(r)}
                                                     aria-label={`Approve correction for ${r.person_name || 'employee'}`}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white transition-colors disabled:opacity-50"
+                                                    className="px-3 py-1.5 rounded-nb text-xs font-medium bg-primary hover:bg-primary-hover text-primary-fg transition-colors disabled:opacity-50"
                                                 >
                                                     Approve
                                                 </button>
@@ -396,7 +396,7 @@ const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                                                     disabled={busyId === r.id}
                                                     onClick={() => setRejecting(r)}
                                                     aria-label={`Reject correction for ${r.person_name || 'employee'}`}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-rose-400 transition-colors disabled:opacity-50"
+                                                    className="px-3 py-1.5 rounded-nb text-xs font-medium border border-line-strong text-fg hover:bg-surface-raised hover:text-danger transition-colors disabled:opacity-50"
                                                 >
                                                     Reject
                                                 </button>
@@ -455,23 +455,23 @@ const RejectCorrectionModal: React.FC<{
         <Modal isOpen={!!request} onClose={onClose} title={`Reject Correction — ${request.person_name || 'Employee'}`}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Reason for rejection *</label>
+                    <label className="block text-xs text-fg-muted mb-1">Reason for rejection *</label>
                     <textarea
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                         rows={3}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         placeholder="Shown to the employee — why is this request being rejected?"
                     />
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={saving || !note.trim()}
-                        className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-danger hover:bg-danger-hover text-danger-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Reject Request
                     </button>
@@ -560,54 +560,44 @@ const AttendanceEditModal: React.FC<AttendanceEditModalProps> = ({ row, date, on
         <Modal isOpen={!!row} onClose={onClose} title={`Edit Attendance — ${row.person_name}`}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Status *</label>
-                    <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                    >
-                        {STATUS_OPTIONS.map((s) => (
-                            <option key={s} value={s}>
-                                {statusLabel(s)}
-                            </option>
-                        ))}
-                    </select>
+                    <label className="block text-xs text-fg-muted mb-1">Status *</label>
+                    <Select name="attendanceregister-select-31" value={status} onChange={(e) => setStatus(e.target.value as AttendanceStatus)} options={[...STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabel(s) }))]} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Check In</label>
+                        <label className="block text-xs text-fg-muted mb-1">Check In</label>
                         <input
                             type="time"
                             value={checkIn}
                             onChange={(e) => setCheckIn(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Check Out</label>
+                        <label className="block text-xs text-fg-muted mb-1">Check Out</label>
                         <input
                             type="time"
                             value={checkOut}
                             onChange={(e) => setCheckOut(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Notes</label>
+                    <label className="block text-xs text-fg-muted mb-1">Notes</label>
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         placeholder="Optional notes..."
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Reason *</label>
+                    <label className="block text-xs text-fg-muted mb-1">Reason *</label>
                     <textarea
                         value={reason}
                         onChange={(e) => {
@@ -615,20 +605,20 @@ const AttendanceEditModal: React.FC<AttendanceEditModalProps> = ({ row, date, on
                             if (e.target.value.trim()) setReasonError(null);
                         }}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         placeholder="Why is this change being made?"
                     />
-                    {reasonError && <p className="mt-1 text-xs text-rose-400">{reasonError}</p>}
+                    {reasonError && <p className="mt-1 text-xs text-danger">{reasonError}</p>}
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={saving || !reason.trim()}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Save Changes
                     </button>

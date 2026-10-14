@@ -31,8 +31,8 @@ const PayrollConfigurationPage: React.FC = () => {
                 subtitle="Pay policies, salary components, structures and the statutory pack"
             />
 
-            <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="border-b border-slate-800">
+            <div className="bg-surface border border-line rounded-nb">
+                <div className="border-b border-line">
                     <div className="flex items-center gap-1 px-5 py-3 overflow-x-auto">
                         {TABS.map(({ key, label, icon: Icon }) => (
                             <button
@@ -40,8 +40,8 @@ const PayrollConfigurationPage: React.FC = () => {
                                 onClick={() => setActiveTab(key)}
                                 className={`shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                     activeTab === key
-                                        ? 'bg-teal-500/10 text-teal-400'
-                                        : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                                 }`}
                             >
                                 <Icon size={14} className="inline mr-1.5" />

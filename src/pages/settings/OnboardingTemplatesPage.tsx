@@ -18,8 +18,7 @@ import {
   Drawer,
   DataTable,
   DeleteConfirmDialog,
-  type DataTableColumn,
-} from '@so360/design-system';
+  type DataTableColumn, Select } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import {
   onboardingApi,
@@ -125,8 +124,8 @@ const OnboardingTemplatesPage: React.FC = () => {
       header: 'Name',
       render: tpl => (
         <div>
-          <span className="font-medium text-slate-50">{tpl.name}</span>
-          {tpl.description && <p className="text-xs text-slate-500">{tpl.description}</p>}
+          <span className="font-medium text-fg">{tpl.name}</span>
+          {tpl.description && <p className="text-xs text-fg-subtle">{tpl.description}</p>}
         </div>
       ),
     },
@@ -135,18 +134,18 @@ const OnboardingTemplatesPage: React.FC = () => {
       header: 'Default',
       render: tpl =>
         tpl.is_default ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-teal-500/10 text-teal-400 border border-teal-500/20">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-nb-sm text-xs font-medium bg-primary/10 text-primary border border-primary/20">
             Default
           </span>
         ) : (
-          <span className="text-xs text-slate-600">—</span>
+          <span className="text-xs text-fg-subtle">—</span>
         ),
     },
     {
       key: 'is_active',
       header: 'Status',
       render: tpl => (
-        <span className={`text-xs ${tpl.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
+        <span className={`text-xs ${tpl.is_active ? 'text-primary' : 'text-fg-subtle'}`}>
           {tpl.is_active ? 'Active' : 'Inactive'}
         </span>
       ),
@@ -159,14 +158,14 @@ const OnboardingTemplatesPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setEditing(tpl)}
-                className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised transition-colors"
                 title="Edit"
               >
                 <Edit2 size={14} />
               </button>
               <button
                 onClick={() => setConfirmDelete(tpl)}
-                className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded text-fg-muted hover:text-danger hover:bg-surface-raised transition-colors"
                 title="Delete"
               >
                 <Trash2 size={14} />
@@ -187,14 +186,14 @@ const OnboardingTemplatesPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowCatalog(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-surface-raised hover:bg-line border border-line-strong text-fg text-sm font-medium rounded-nb transition-colors"
               >
                 <Sparkles size={16} />
                 Standard Templates
               </button>
               <button
                 onClick={() => setShowDrawer(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
               >
                 <Plus size={16} />
                 New Template
@@ -205,11 +204,11 @@ const OnboardingTemplatesPage: React.FC = () => {
       />
 
       {missingDefault && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-4 py-3">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-400" />
-          <div className="text-sm text-amber-200">
+        <div className="flex items-start gap-3 rounded-nb border border-warning/25 bg-warning/10 px-4 py-3">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" />
+          <div className="text-sm text-warning">
             <p className="font-medium">No default onboarding template</p>
-            <p className="mt-0.5 text-amber-200/75">
+            <p className="mt-0.5 text-warning/75">
               New hires won't get a checklist automatically, and{' '}
               <span className="font-medium">Start onboarding</span> will ask for a template every
               time. Edit a template below and tick{' '}
@@ -342,14 +341,14 @@ const StandardCatalogDrawer: React.FC<StandardCatalogDrawerProps> = ({ isOpen, o
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-slate-100 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-fg hover:text-fg transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSeed}
             disabled={saving || loading || selected.length === 0}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb transition-colors"
           >
             {saving
               ? 'Adding…'
@@ -359,7 +358,7 @@ const StandardCatalogDrawer: React.FC<StandardCatalogDrawerProps> = ({ isOpen, o
       }
     >
       <div className="space-y-4">
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-fg-muted">
           Ready-made checklists you can use as-is or edit. They are copied into your organization,
           so any changes you make stay yours.
         </p>
@@ -367,23 +366,23 @@ const StandardCatalogDrawer: React.FC<StandardCatalogDrawerProps> = ({ isOpen, o
         {loading ? (
           <div className="space-y-2">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-20 rounded-lg bg-slate-800/50 animate-pulse" />
+              <div key={i} className="h-20 rounded-nb bg-surface-raised/50 animate-pulse" />
             ))}
           </div>
         ) : failed ? (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-6 text-center">
-            <p className="text-sm text-slate-400">Unable to load the standard templates.</p>
+          <div className="rounded-nb border border-line-strong bg-surface-raised/50 px-4 py-6 text-center">
+            <p className="text-sm text-fg-muted">Unable to load the standard templates.</p>
             <button
               onClick={() => void loadCatalog()}
-              className="mt-3 px-3 py-1.5 text-sm font-medium text-teal-400 hover:text-teal-300 transition-colors"
+              className="mt-3 px-3 py-1.5 text-sm font-medium text-primary hover:text-primary transition-colors"
             >
               Try again
             </button>
           </div>
         ) : available === 0 ? (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-6 text-center text-sm text-slate-400">
+          <div className="rounded-nb border border-line-strong bg-surface-raised/50 px-4 py-6 text-center text-sm text-fg-muted">
             You've already added every standard template. Use{' '}
-            <span className="font-medium text-slate-300">New Template</span> to build your own.
+            <span className="font-medium text-fg">New Template</span> to build your own.
           </div>
         ) : (
           <div className="space-y-2">
@@ -397,17 +396,17 @@ const StandardCatalogDrawer: React.FC<StandardCatalogDrawerProps> = ({ isOpen, o
                   onClick={() => toggle(tpl.key)}
                   className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
                     tpl.already_seeded
-                      ? 'cursor-not-allowed border-slate-800 bg-slate-900/50 opacity-60'
+                      ? 'cursor-not-allowed border-line bg-surface/50 opacity-60'
                       : isSelected
-                        ? 'border-teal-500/40 bg-teal-500/10'
-                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                        ? 'border-primary/40 bg-primary/10'
+                        : 'border-line-strong bg-surface-raised/50 hover:border-line-strong'
                   }`}
                 >
                   <span
                     className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                       tpl.already_seeded || isSelected
-                        ? 'border-teal-500 bg-teal-500'
-                        : 'border-slate-600'
+                        ? 'border-primary bg-primary'
+                        : 'border-line-strong'
                     }`}
                   >
                     {(tpl.already_seeded || isSelected) && (
@@ -416,15 +415,15 @@ const StandardCatalogDrawer: React.FC<StandardCatalogDrawerProps> = ({ isOpen, o
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-50">{tpl.name}</span>
-                      <span className="text-xs text-slate-500">{tpl.step_count} steps</span>
+                      <span className="font-medium text-fg">{tpl.name}</span>
+                      <span className="text-xs text-fg-subtle">{tpl.step_count} steps</span>
                       {tpl.already_seeded && (
-                        <span className="rounded-md border border-slate-700 px-1.5 py-0.5 text-xs text-slate-400">
+                        <span className="rounded-nb-sm border border-line-strong px-1.5 py-0.5 text-xs text-fg-muted">
                           Already added
                         </span>
                       )}
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-500">{tpl.description}</span>
+                    <span className="mt-0.5 block text-xs text-fg-subtle">{tpl.description}</span>
                   </span>
                 </button>
               );
@@ -568,9 +567,9 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
   };
 
   const inputCls =
-    'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500';
+    'w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary';
   const smallInputCls =
-    'w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded text-xs text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500';
+    'w-full px-2 py-1.5 bg-surface border border-line-strong rounded text-xs text-fg placeholder-slate-500 focus:outline-none focus:border-primary';
 
   return (
     <Drawer
@@ -583,7 +582,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
           >
             Cancel
           </button>
@@ -591,7 +590,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
             type="submit"
             form="onboarding-template-form"
             disabled={saving || loadingItems}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
           >
             {saving ? 'Saving…' : template ? 'Save Changes' : 'Create Template'}
           </button>
@@ -600,7 +599,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
     >
       <form id="onboarding-template-form" onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Name <span className="text-red-400">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1">Name <span className="text-danger">*</span></label>
           <input
             required
             value={name}
@@ -610,7 +609,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
           />
         </div>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Description</label>
+          <label className="block text-xs text-fg-muted mb-1">Description</label>
           <input
             value={description}
             onChange={e => setDescription(e.target.value)}
@@ -619,29 +618,29 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
           />
         </div>
         <div className="flex items-center gap-6">
-          <label className="flex items-center gap-2 text-sm text-slate-300">
+          <label className="flex items-center gap-2 text-sm text-fg">
             <input
               type="checkbox"
               checked={isDefault}
               onChange={e => setIsDefault(e.target.checked)}
-              className="rounded border-slate-600"
+              className="rounded border-line-strong"
             />
             Default template
           </label>
           {template && (
-            <label className="flex items-center gap-2 text-sm text-slate-300">
+            <label className="flex items-center gap-2 text-sm text-fg">
               <input
                 type="checkbox"
                 checked={isActive}
                 onChange={e => setIsActive(e.target.checked)}
-                className="rounded border-slate-600"
+                className="rounded border-line-strong"
               />
               Active
             </label>
           )}
         </div>
         {isDefault && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-fg-subtle">
             The default template starts automatically for every new hire. Only one template can be default — saving replaces any existing default.
           </p>
         )}
@@ -649,11 +648,11 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
         {/* Checklist items */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Checklist Items</label>
+            <label className="block text-xs font-semibold text-fg uppercase tracking-wider">Checklist Items</label>
             <button
               type="button"
               onClick={() => setItems(prev => [...prev, newRow()])}
-              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 bg-surface-raised border border-line-strong rounded-nb text-xs text-fg hover:text-fg hover:border-line-strong transition-colors"
             >
               <Plus size={12} /> Add Item
             </button>
@@ -661,19 +660,19 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
 
           {loadingItems ? (
             <div className="space-y-2">
-              <div className="h-20 animate-pulse rounded-lg bg-slate-800/50" />
-              <div className="h-20 animate-pulse rounded-lg bg-slate-800/50" />
+              <div className="h-20 animate-pulse rounded-nb bg-surface-raised/50" />
+              <div className="h-20 animate-pulse rounded-nb bg-surface-raised/50" />
             </div>
           ) : items.length === 0 ? (
-            <p className="py-4 text-sm text-slate-500 text-center border border-dashed border-slate-800 rounded-lg">
+            <p className="py-4 text-sm text-fg-subtle text-center border border-dashed border-line rounded-nb">
               No items yet — add the first step of this checklist.
             </p>
           ) : (
             <div className="space-y-2">
               {items.map((row, index) => (
-                <div key={row.key} className="bg-slate-800/60 border border-slate-700 rounded-lg p-3 space-y-2">
+                <div key={row.key} className="bg-surface-raised/60 border border-line-strong rounded-nb p-3 space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-5 shrink-0 text-xs text-slate-500 text-center">{index + 1}</span>
+                    <span className="w-5 shrink-0 text-xs text-fg-subtle text-center">{index + 1}</span>
                     <input
                       value={row.title}
                       onChange={e => setItem(row.key, { title: e.target.value })}
@@ -685,7 +684,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
                       type="button"
                       onClick={() => moveItem(row.key, -1)}
                       disabled={index === 0}
-                      className="p-1 rounded text-slate-500 hover:text-teal-400 hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                      className="p-1 rounded text-fg-subtle hover:text-primary hover:bg-line disabled:opacity-30 transition-colors"
                       title="Move up"
                     >
                       <ArrowUp size={13} />
@@ -694,7 +693,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
                       type="button"
                       onClick={() => moveItem(row.key, 1)}
                       disabled={index === items.length - 1}
-                      className="p-1 rounded text-slate-500 hover:text-teal-400 hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                      className="p-1 rounded text-fg-subtle hover:text-primary hover:bg-line disabled:opacity-30 transition-colors"
                       title="Move down"
                     >
                       <ArrowDown size={13} />
@@ -702,7 +701,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
                     <button
                       type="button"
                       onClick={() => removeItem(row.key)}
-                      className="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors"
+                      className="p-1 rounded text-fg-subtle hover:text-danger hover:bg-line transition-colors"
                       title="Remove item"
                     >
                       <Trash2 size={13} />
@@ -710,33 +709,15 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pl-7">
                     <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Type</label>
-                      <select
-                        value={row.item_type}
-                        onChange={e => setItem(row.key, { item_type: e.target.value as OnboardingItemType })}
-                        aria-label={`Item ${index + 1} type`}
-                        className={smallInputCls}
-                      >
-                        {ONBOARDING_ITEM_TYPES.map(t => (
-                          <option key={t} value={t}>{ITEM_TYPE_LABELS[t]}</option>
-                        ))}
-                      </select>
+                      <label className="block text-[10px] text-fg-subtle mb-0.5">Type</label>
+                      <Select name="onboardingtemplates-select-96" value={row.item_type} onChange={e => setItem(row.key, { item_type: e.target.value as OnboardingItemType })} aria-label={`Item ${index + 1} type`} options={[...ONBOARDING_ITEM_TYPES.map((t) => ({ value: t, label: ITEM_TYPE_LABELS[t] }))]} />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Assignee</label>
-                      <select
-                        value={row.assignee_role}
-                        onChange={e => setItem(row.key, { assignee_role: e.target.value as OnboardingAssigneeRole })}
-                        aria-label={`Item ${index + 1} assignee`}
-                        className={smallInputCls}
-                      >
-                        {ONBOARDING_ASSIGNEE_ROLES.map(r => (
-                          <option key={r} value={r}>{ASSIGNEE_LABELS[r]}</option>
-                        ))}
-                      </select>
+                      <label className="block text-[10px] text-fg-subtle mb-0.5">Assignee</label>
+                      <Select name="onboardingtemplates-select-97" value={row.assignee_role} onChange={e => setItem(row.key, { assignee_role: e.target.value as OnboardingAssigneeRole })} aria-label={`Item ${index + 1} assignee`} options={[...ONBOARDING_ASSIGNEE_ROLES.map((r) => ({ value: r, label: ASSIGNEE_LABELS[r] }))]} />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Due (days from start)</label>
+                      <label className="block text-[10px] text-fg-subtle mb-0.5">Due (days from start)</label>
                       <input
                         type="number"
                         min={0}
@@ -752,12 +733,12 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
                       />
                     </div>
                     <div className="flex items-end pb-1.5">
-                      <label className="flex items-center gap-1.5 text-xs text-slate-300">
+                      <label className="flex items-center gap-1.5 text-xs text-fg">
                         <input
                           type="checkbox"
                           checked={row.is_required ?? true}
                           onChange={e => setItem(row.key, { is_required: e.target.checked })}
-                          className="rounded border-slate-600"
+                          className="rounded border-line-strong"
                         />
                         Required
                       </label>
@@ -765,7 +746,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
                   </div>
                   {row.item_type === 'document_upload' && (
                     <div className="pl-7">
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Document type collected</label>
+                      <label className="block text-[10px] text-fg-subtle mb-0.5">Document type collected</label>
                       <input
                         value={row.document_type ?? ''}
                         onChange={e => setItem(row.key, { document_type: e.target.value })}
@@ -776,7 +757,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
                   )}
                   {row.item_type === 'e_sign' && (
                     <div className="pl-7">
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Sign document reference</label>
+                      <label className="block text-[10px] text-fg-subtle mb-0.5">Sign document reference</label>
                       <input
                         value={row.sign_document_ref ?? ''}
                         onChange={e => setItem(row.key, { sign_document_ref: e.target.value })}

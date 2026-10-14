@@ -14,10 +14,10 @@ const STATUS_META: Record<
   LeaveRequestApproval['status'],
   { label: string; icon: typeof Check; className: string }
 > = {
-  approved: { label: 'Approved', icon: Check, className: 'text-teal-400' },
-  rejected: { label: 'Rejected', icon: X, className: 'text-rose-400' },
-  pending: { label: 'Pending', icon: Clock, className: 'text-amber-400' },
-  skipped: { label: 'Not required', icon: MinusCircle, className: 'text-slate-500' },
+  approved: { label: 'Approved', icon: Check, className: 'text-primary' },
+  rejected: { label: 'Rejected', icon: X, className: 'text-danger' },
+  pending: { label: 'Pending', icon: Clock, className: 'text-warning' },
+  skipped: { label: 'Not required', icon: MinusCircle, className: 'text-fg-subtle' },
 };
 
 /**
@@ -53,12 +53,12 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
   const rejected = approvals.find(a => a.status === 'rejected');
 
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+    <div className="rounded-nb border border-line-strong bg-surface-raised/50 p-3">
       <div className="mb-2.5 flex items-center justify-between gap-3">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-fg-muted">
           Approval Progress
         </h4>
-        <span className={`text-xs font-medium ${rejected ? 'text-rose-400' : 'text-slate-400'}`}>
+        <span className={`text-xs font-medium ${rejected ? 'text-danger' : 'text-fg-muted'}`}>
           {rejected ? 'Rejected' : `${approved} of ${total} approved`}
         </span>
       </div>
@@ -66,15 +66,15 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
       <ol className="space-y-2">
         {submittedAt && (
           <li className="flex items-start gap-2.5 text-sm">
-            <span className="mt-0.5 shrink-0 text-slate-500">
+            <span className="mt-0.5 shrink-0 text-fg-subtle">
               <Check size={14} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="text-slate-300">
+              <span className="text-fg">
                 Submitted{submittedByName ? ` by ${submittedByName}` : ''}
               </span>
               {fmt(submittedAt) && (
-                <span className="block text-xs text-slate-500">{fmt(submittedAt)}</span>
+                <span className="block text-xs text-fg-subtle">{fmt(submittedAt)}</span>
               )}
             </span>
           </li>
@@ -91,17 +91,17 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-x-2">
-                  <span className="text-slate-200">{name}</span>
+                  <span className="text-fg">{name}</span>
                   <span className={`text-xs ${meta.className}`}>{meta.label}</span>
                 </span>
                 {a.approver?.job_title && (
-                  <span className="block text-xs text-slate-500">{a.approver.job_title}</span>
+                  <span className="block text-xs text-fg-subtle">{a.approver.job_title}</span>
                 )}
                 {a.responded_at && fmt(a.responded_at) && (
-                  <span className="block text-xs text-slate-500">{fmt(a.responded_at)}</span>
+                  <span className="block text-xs text-fg-subtle">{fmt(a.responded_at)}</span>
                 )}
                 {a.decision_notes && (
-                  <span className="mt-1 block rounded border border-slate-700 bg-slate-900/60 px-2 py-1 text-xs text-slate-400">
+                  <span className="mt-1 block rounded border border-line-strong bg-surface/60 px-2 py-1 text-xs text-fg-muted">
                     {a.decision_notes}
                   </span>
                 )}

@@ -13,7 +13,7 @@ describe('GIVEN the payroll status chip', () => {
   it('WHEN an unknown status renders THEN it falls back to the neutral style without crashing', () => {
     render(<StatusChip status="some_future_status" />);
     const chip = screen.getByText('Some Future Status');
-    expect(chip.className).toContain('bg-slate-500/10');
+    expect(chip.className).toContain('bg-fg-subtle/10');
   });
 
   it('WHEN an explicit label is given THEN it overrides the derived text', () => {

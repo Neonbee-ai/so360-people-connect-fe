@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart3, Download, FileSpreadsheet } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { payrollApi, ReportResult, PayrollGroup } from '../../services/payrollApi';
 import { departmentsApi } from '../../services/departmentsService';
 
-const inputCls = 'px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
+const inputCls = 'px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const REPORTS: { key: string; label: string; description: string }[] = [
     { key: 'summary', label: 'Payroll Summary', description: 'Totals per run: gross, deductions, net and employer cost.' },
@@ -81,13 +81,13 @@ const PayrollReportsPage: React.FC = () => {
                         onClick={() => runReport(report.key)}
                         className={`text-left p-4 rounded-xl border transition-colors ${
                             selectedReport === report.key
-                                ? 'bg-teal-500/10 border-teal-500/40'
-                                : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                                ? 'bg-primary/10 border-primary/40'
+                                : 'bg-surface border-line hover:border-line-strong'
                         }`}
                     >
-                        <FileSpreadsheet size={16} className={selectedReport === report.key ? 'text-teal-400' : 'text-slate-500'} />
-                        <div className="text-sm font-medium text-slate-50 mt-2">{report.label}</div>
-                        <div className="text-xs text-slate-400 mt-1">{report.description}</div>
+                        <FileSpreadsheet size={16} className={selectedReport === report.key ? 'text-primary' : 'text-fg-subtle'} />
+                        <div className="text-sm font-medium text-fg mt-2">{report.label}</div>
+                        <div className="text-xs text-fg-muted mt-1">{report.description}</div>
                     </button>
                 ))}
             </div>
@@ -95,36 +95,30 @@ const PayrollReportsPage: React.FC = () => {
             {/* Filter bar */}
             <div className="flex items-end gap-3">
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">From</label>
+                    <label className="block text-xs text-fg-muted mb-1">From</label>
                     <input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">To</label>
+                    <label className="block text-xs text-fg-muted mb-1">To</label>
                     <input type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} className={inputCls} />
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Group</label>
-                    <select value={filters.group_id} onChange={e => setFilters(f => ({ ...f, group_id: e.target.value }))} className={inputCls}>
-                        <option value="">All groups</option>
-                        {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                    </select>
+                    <label className="block text-xs text-fg-muted mb-1">Group</label>
+                    <Select name="payrollreports-select-88" value={filters.group_id} onChange={e => setFilters(f => ({ ...f, group_id: e.target.value }))} options={[{ value: "", label: "All groups" }, ...groups.map((g) => ({ value: g.id, label: g.name }))]} />
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Department</label>
-                    <select value={filters.department_id} onChange={e => setFilters(f => ({ ...f, department_id: e.target.value }))} className={inputCls}>
-                        <option value="">All departments</option>
-                        {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
+                    <label className="block text-xs text-fg-muted mb-1">Department</label>
+                    <Select name="payrollreports-select-89" value={filters.department_id} onChange={e => setFilters(f => ({ ...f, department_id: e.target.value }))} options={[{ value: "", label: "All departments" }, ...departments.map((d) => ({ value: d.id, label: d.name }))]} />
                 </div>
                 {selectedReport && (
                     <>
-                        <button onClick={() => runReport(selectedReport)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors">
+                        <button onClick={() => runReport(selectedReport)} className="px-4 py-2 bg-surface-raised hover:bg-line border border-line-strong text-fg text-sm font-medium rounded-nb transition-colors">
                             Apply Filters
                         </button>
                         <button
                             onClick={exportCsv}
                             disabled={exporting}
-                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
                         >
                             <Download size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
                         </button>
@@ -134,28 +128,28 @@ const PayrollReportsPage: React.FC = () => {
 
             {/* Results */}
             {loading ? (
-                <div className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />
+                <div className="h-64 bg-surface-raised/50 rounded-nb animate-pulse" />
             ) : !selectedReport ? (
                 <EmptyState icon={BarChart3} title="Pick a report" description="Choose a report above to see results here." />
             ) : !result || result.rows.length === 0 ? (
                 <EmptyState icon={BarChart3} title="No data" description="No rows match the selected filters." />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+                <div className="bg-surface border border-line rounded-nb overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
+                        <thead className="bg-surface-raised/50 border-b border-line">
                             <tr>
                                 {result.columns.map(column => (
-                                    <th key={column.key} className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                                    <th key={column.key} className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider whitespace-nowrap">
                                         {column.label}
                                     </th>
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-line">
                             {result.rows.map((row, i) => (
-                                <tr key={i} className="hover:bg-slate-800/50 transition-colors">
+                                <tr key={i} className="hover:bg-surface-raised/50 transition-colors">
                                     {result.columns.map(column => (
-                                        <td key={column.key} className="px-4 py-2.5 text-sm text-slate-300 whitespace-nowrap">
+                                        <td key={column.key} className="px-4 py-2.5 text-sm text-fg whitespace-nowrap">
                                             {String(row[column.key] ?? '—')}
                                         </td>
                                     ))}
@@ -163,10 +157,10 @@ const PayrollReportsPage: React.FC = () => {
                             ))}
                         </tbody>
                         {result.totals && (
-                            <tfoot className="bg-slate-800/50 border-t border-slate-800">
+                            <tfoot className="bg-surface-raised/50 border-t border-line">
                                 <tr>
                                     {result.columns.map(column => (
-                                        <td key={column.key} className="px-4 py-2.5 text-sm font-semibold text-slate-50 whitespace-nowrap">
+                                        <td key={column.key} className="px-4 py-2.5 text-sm font-semibold text-fg whitespace-nowrap">
                                             {result.totals && result.totals[column.key] !== undefined ? String(result.totals[column.key]) : ''}
                                         </td>
                                     ))}

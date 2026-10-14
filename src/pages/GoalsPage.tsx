@@ -4,7 +4,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, useConfirm, Select } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
@@ -84,8 +84,10 @@ const GoalsPage: React.FC = () => {
         }
     };
 
+    const [confirm, confirmDialog] = useConfirm();
+
     const handleCompleteGoal = async (goal: Goal) => {
-        if (!confirm(`Mark goal "${goal.title}" as completed?`)) return;
+        if (!(await confirm({ title: 'Complete goal', message: `Mark goal "${goal.title}" as completed?`, confirmLabel: 'Complete' }))) return;
 
         try {
             await goalsApi.complete(goal.id);
@@ -103,33 +105,34 @@ const GoalsPage: React.FC = () => {
 
     const getGoalTypeColor = (type: string) => {
         switch (type) {
-            case 'individual': return 'bg-blue-600';
+            case 'individual': return 'bg-primary';
             case 'team': return 'bg-purple-600';
-            case 'company': return 'bg-teal-600';
-            case 'development': return 'bg-orange-600';
-            default: return 'bg-slate-600';
+            case 'company': return 'bg-primary';
+            case 'development': return 'bg-warning';
+            default: return 'bg-line-strong';
         }
     };
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
-            case 'critical': return 'text-red-400';
-            case 'high': return 'text-orange-400';
-            case 'medium': return 'text-yellow-400';
-            case 'low': return 'text-slate-400';
-            default: return 'text-slate-400';
+            case 'critical': return 'text-danger';
+            case 'high': return 'text-warning';
+            case 'medium': return 'text-warning';
+            case 'low': return 'text-fg-muted';
+            default: return 'text-fg-muted';
         }
     };
 
     return (
         <div className="p-6 space-y-5">
+          {confirmDialog}
             <PageHeader
                 title="Goals"
                 subtitle="Track objectives and key results"
                 actions={canCreateGoal ? (
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         <Target size={16} />
                         Create Goal
@@ -139,24 +142,14 @@ const GoalsPage: React.FC = () => {
 
             {/* Filters */}
             <div className="flex items-center gap-3">
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="draft">Draft</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
+                <Select name="goals-select-41" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Statuses" }, { value: "draft", label: "Draft" }, { value: "in_progress", label: "In Progress" }, { value: "completed", label: "Completed" }, { value: "cancelled", label: "Cancelled" }]} />
             </div>
 
             {/* Goals Cards */}
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-48 bg-slate-800/50 rounded-xl animate-pulse" />
+                        <div key={i} className="h-48 bg-surface-raised/50 rounded-nb animate-pulse" />
                     ))}
                 </div>
             ) : goals.length === 0 ? (
@@ -171,12 +164,12 @@ const GoalsPage: React.FC = () => {
                     {goals.map(goal => (
                         <div
                             key={goal.id}
-                            className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 hover:bg-slate-800/50 cursor-pointer transition-all"
+                            className="bg-surface border border-line rounded-nb p-5 hover:border-line-strong hover:bg-surface-raised/50 cursor-pointer transition-all"
                             onClick={() => setEditingGoal(goal)}
                         >
                             {/* Header */}
                             <div className="flex items-start justify-between mb-3">
-                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getGoalTypeColor(goal.goal_type)}`}>
+                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-fg ${getGoalTypeColor(goal.goal_type)}`}>
                                     {goal.goal_type}
                                 </span>
                                 <span className={`text-xs font-medium ${getPriorityColor(goal.priority)}`}>
@@ -185,31 +178,31 @@ const GoalsPage: React.FC = () => {
                             </div>
 
                             {/* Title */}
-                            <h3 className="text-sm font-medium text-slate-50 mb-2 line-clamp-2">{goal.title}</h3>
+                            <h3 className="text-sm font-medium text-fg mb-2 line-clamp-2">{goal.title}</h3>
 
                             {/* Person */}
                             <div className="flex items-center gap-2 mb-3">
-                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
+                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 border border-line-strong flex items-center justify-center flex-shrink-0">
                                     {goal.person?.avatar_url ? (
                                         <img src={goal.person.avatar_url} alt="" className="w-6 h-6 rounded-full" />
                                     ) : (
-                                        <span className="text-xs font-medium text-teal-400">
+                                        <span className="text-xs font-medium text-primary">
                                             {goal.person?.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                         </span>
                                     )}
                                 </div>
-                                <span className="text-xs text-slate-400">{goal.person?.full_name}</span>
+                                <span className="text-xs text-fg-muted">{goal.person?.full_name}</span>
                             </div>
 
                             {/* Progress Bar */}
                             <div className="mb-3">
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs text-slate-400">Progress</span>
-                                    <span className="text-xs font-medium text-slate-50">{goal.progress_percentage}%</span>
+                                    <span className="text-xs text-fg-muted">Progress</span>
+                                    <span className="text-xs font-medium text-fg">{goal.progress_percentage}%</span>
                                 </div>
-                                <div className="w-full bg-slate-800 rounded-full h-2">
+                                <div className="w-full bg-surface-raised rounded-full h-2">
                                     <div
-                                        className="bg-teal-600 h-2 rounded-full transition-all"
+                                        className="bg-primary h-2 rounded-full transition-all"
                                         style={{ width: `${goal.progress_percentage}%` }}
                                     />
                                 </div>
@@ -219,9 +212,9 @@ const GoalsPage: React.FC = () => {
                             <div className="flex items-center justify-between text-xs">
                                 <div className="flex items-center gap-1">
                                     {isOverdue(goal) && (
-                                        <AlertTriangle size={12} className="text-red-400" />
+                                        <AlertTriangle size={12} className="text-danger" />
                                     )}
-                                    <span className={isOverdue(goal) ? 'text-red-400' : 'text-slate-400'}>
+                                    <span className={isOverdue(goal) ? 'text-danger' : 'text-fg-muted'}>
                                         Target: {formatters.formatDate(goal.target_date)}
                                     </span>
                                 </div>
@@ -230,14 +223,14 @@ const GoalsPage: React.FC = () => {
 
                             {/* Actions */}
                             {goal.status === 'in_progress' && (
-                                <div className="mt-3 pt-3 border-t border-slate-800 flex gap-2">
+                                <div className="mt-3 pt-3 border-t border-line flex gap-2">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setUpdatingProgress(goal);
                                             setProgressValue(goal.current_value || 0);
                                         }}
-                                        className="flex-1 px-3 py-1.5 text-xs text-teal-400 hover:bg-slate-800 rounded-lg transition-colors"
+                                        className="flex-1 px-3 py-1.5 text-xs text-primary hover:bg-surface-raised rounded-nb transition-colors"
                                     >
                                         Update Progress
                                     </button>
@@ -246,7 +239,7 @@ const GoalsPage: React.FC = () => {
                                             e.stopPropagation();
                                             handleCompleteGoal(goal);
                                         }}
-                                        className="flex-1 px-3 py-1.5 text-xs text-green-400 hover:bg-slate-800 rounded-lg transition-colors"
+                                        className="flex-1 px-3 py-1.5 text-xs text-success hover:bg-surface-raised rounded-nb transition-colors"
                                     >
                                         Mark Complete
                                     </button>
@@ -277,35 +270,35 @@ const GoalsPage: React.FC = () => {
             >
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Current Value</label>
+                        <label className="block text-xs text-fg-muted mb-1">Current Value</label>
                         <input
                             type="number"
                             min="0"
                             step="0.1"
                             value={progressValue}
                             onChange={(e) => setProgressValue(parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                         {updatingProgress?.unit && (
-                            <p className="mt-1 text-xs text-slate-400">Unit: {updatingProgress.unit}</p>
+                            <p className="mt-1 text-xs text-fg-muted">Unit: {updatingProgress.unit}</p>
                         )}
                         {updatingProgress?.target_value && (
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="mt-1 text-xs text-fg-muted">
                                 Target: {updatingProgress.target_value} {updatingProgress.unit}
                             </p>
                         )}
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-line">
                         <button
                             onClick={() => setUpdatingProgress(null)}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleUpdateProgress}
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                         >
                             Update
                         </button>
@@ -406,121 +399,103 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
         <Modal isOpen={isOpen} onClose={onClose} title={goal ? 'Edit Goal' : 'Create Goal'} size="lg">
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Title *</label>
+                    <label className="block text-xs text-fg-muted mb-1">Title *</label>
                     <input
                         type="text"
                         required
                         value={formData.title}
                         onChange={(e) => updateField('title', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         placeholder="Increase sales by 20%"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Description</label>
+                    <label className="block text-xs text-fg-muted mb-1">Description</label>
                     <textarea
                         value={formData.description || ''}
                         onChange={(e) => updateField('description', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         rows={3}
                     />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Goal Type</label>
-                        <select
-                            value={formData.goal_type}
-                            onChange={(e) => updateField('goal_type', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="individual">Individual</option>
-                            <option value="team">Team</option>
-                            <option value="company">Company</option>
-                            <option value="development">Development</option>
-                        </select>
+                        <label className="block text-xs text-fg-muted mb-1">Goal Type</label>
+                        <Select name="goals-select-42" value={formData.goal_type} onChange={(e) => updateField('goal_type', e.target.value)} options={[{ value: "individual", label: "Individual" }, { value: "team", label: "Team" }, { value: "company", label: "Company" }, { value: "development", label: "Development" }]} />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Priority</label>
-                        <select
-                            value={formData.priority}
-                            onChange={(e) => updateField('priority', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="critical">Critical</option>
-                        </select>
+                        <label className="block text-xs text-fg-muted mb-1">Priority</label>
+                        <Select name="goals-select-43" value={formData.priority} onChange={(e) => updateField('priority', e.target.value)} options={[{ value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }, { value: "critical", label: "Critical" }]} />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Start Date</label>
+                        <label className="block text-xs text-fg-muted mb-1">Start Date</label>
                         <input
                             type="date"
                             value={formData.start_date || ''}
                             onChange={(e) => updateField('start_date', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Target Date *</label>
+                        <label className="block text-xs text-fg-muted mb-1">Target Date *</label>
                         <input
                             type="date"
                             required
                             value={formData.target_date}
                             onChange={(e) => updateField('target_date', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Target Value</label>
+                        <label className="block text-xs text-fg-muted mb-1">Target Value</label>
                         <input
                             type="number"
                             min="0"
                             step="0.1"
                             value={formData.target_value || ''}
                             onChange={(e) => updateField('target_value', parseFloat(e.target.value) || undefined)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Current Value</label>
+                        <label className="block text-xs text-fg-muted mb-1">Current Value</label>
                         <input
                             type="number"
                             min="0"
                             step="0.1"
                             value={formData.current_value || ''}
                             onChange={(e) => updateField('current_value', parseFloat(e.target.value) || undefined)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Unit</label>
+                        <label className="block text-xs text-fg-muted mb-1">Unit</label>
                         <input
                             type="text"
                             value={formData.unit || ''}
                             onChange={(e) => updateField('unit', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             placeholder="sales, projects, %"
                         />
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         {goal ? 'Update' : 'Create'}
                     </button>

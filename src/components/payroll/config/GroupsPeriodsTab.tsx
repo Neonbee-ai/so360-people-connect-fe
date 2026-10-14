@@ -15,8 +15,8 @@ const PAY_FREQUENCIES: { value: PayFrequency; label: string }[] = [
     { value: 'weekly', label: 'Weekly — every 7 days' },
 ];
 
-const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
-const labelCls = 'block text-xs text-slate-400 mb-1';
+const inputCls = 'w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
+const labelCls = 'block text-xs text-fg-muted mb-1';
 
 const GroupsPeriodsTab: React.FC = () => {
     const { settings } = useBusinessSettings();
@@ -105,16 +105,16 @@ const GroupsPeriodsTab: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />;
+    if (loading) return <div className="h-64 bg-surface-raised/50 rounded-nb animate-pulse" />;
 
     return (
         <div className="space-y-5">
             {/* Groups */}
             <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-50">Payroll Groups</h3>
+                <h3 className="text-sm font-semibold text-fg">Payroll Groups</h3>
                 <button
                     onClick={() => { setEditingGroup(null); setShowGroupModal(true); }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-medium rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-fg text-xs font-medium rounded-nb transition-colors"
                 >
                     <Plus size={13} /> New Group
                 </button>
@@ -134,21 +134,21 @@ const GroupsPeriodsTab: React.FC = () => {
                             onClick={() => setSelectedGroupId(group.id)}
                             className={`text-left p-4 rounded-xl border transition-colors ${
                                 selectedGroupId === group.id
-                                    ? 'bg-teal-500/10 border-teal-500/40'
-                                    : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                                    ? 'bg-primary/10 border-primary/40'
+                                    : 'bg-surface border-line hover:border-line-strong'
                             }`}
                         >
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-slate-50">{group.name}</span>
+                                <span className="text-sm font-medium text-fg">{group.name}</span>
                                 {group.is_default && <StatusChip status="active" label="Default" />}
                             </div>
-                            <div className="text-xs text-slate-400 mt-1">{group.code}</div>
+                            <div className="text-xs text-fg-muted mt-1">{group.code}</div>
                             <span
                                 role="button"
                                 tabIndex={0}
                                 onClick={e => { e.stopPropagation(); setEditingGroup(group); setShowGroupModal(true); }}
                                 onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setEditingGroup(group); setShowGroupModal(true); } }}
-                                className="inline-block mt-2 text-xs text-teal-400 hover:text-teal-300"
+                                className="inline-block mt-2 text-xs text-primary hover:text-primary"
                             >
                                 Edit
                             </span>
@@ -161,35 +161,35 @@ const GroupsPeriodsTab: React.FC = () => {
             {selectedGroupId && (
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-slate-50">Pay Periods</h3>
+                        <h3 className="text-sm font-semibold text-fg">Pay Periods</h3>
                         <button
                             onClick={() => setShowGenerateDialog(true)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-surface-raised hover:bg-line border border-line-strong text-fg text-xs font-medium rounded-nb transition-colors"
                         >
                             <CalendarRange size={13} /> Generate periods
                         </button>
                     </div>
                     {periods.length === 0 ? (
-                        <p className="text-sm text-slate-400 py-6 text-center bg-slate-900 border border-slate-800 rounded-xl">
+                        <p className="text-sm text-fg-muted py-6 text-center bg-surface border border-line rounded-nb">
                             No periods yet for this group. Generate periods to start running payroll.
                         </p>
                     ) : (
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <div className="bg-surface border border-line rounded-nb overflow-hidden">
                             <table className="w-full">
-                                <thead className="bg-slate-800/50 border-b border-slate-800">
+                                <thead className="bg-surface-raised/50 border-b border-line">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Period</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Pay Date</th>
-                                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Period</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Pay Date</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-800">
+                                <tbody className="divide-y divide-line">
                                     {periods.map(period => (
-                                        <tr key={period.id} className="hover:bg-slate-800/50 transition-colors">
-                                            <td className="px-4 py-3 text-sm text-slate-50">
+                                        <tr key={period.id} className="hover:bg-surface-raised/50 transition-colors">
+                                            <td className="px-4 py-3 text-sm text-fg">
                                                 {formatters.formatDate(period.period_start)} – {formatters.formatDate(period.period_end)}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-slate-400">{formatters.formatDate(period.pay_date)}</td>
+                                            <td className="px-4 py-3 text-sm text-fg-muted">{formatters.formatDate(period.pay_date)}</td>
                                             <td className="px-4 py-3 text-center"><StatusChip status={period.status} /></td>
                                         </tr>
                                     ))}
@@ -251,19 +251,19 @@ const GroupModal: React.FC<{
                             <option key={value} value={value}>{label}</option>
                         ))}
                     </select>
-                    <p className="mt-1 text-xs text-slate-500">Decides how generated periods are split.</p>
+                    <p className="mt-1 text-xs text-fg-subtle">Decides how generated periods are split.</p>
                 </div>
                 <div>
                     <label className={labelCls}>Description</label>
                     <textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className={inputCls} rows={2} />
                 </div>
                 <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={!!form.is_default} onChange={e => setForm(f => ({ ...f, is_default: e.target.checked }))} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                    <span className="text-sm text-slate-300">Default group for new employees</span>
+                    <input type="checkbox" checked={!!form.is_default} onChange={e => setForm(f => ({ ...f, is_default: e.target.checked }))} className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary" />
+                    <span className="text-sm text-fg">Default group for new employees</span>
                 </label>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors">
                         {group ? 'Update' : 'Create'}
                     </button>
                 </div>
@@ -287,7 +287,7 @@ const GeneratePeriodsDialog: React.FC<{
             {/* The picker is a calendar day for familiarity, but only its month
                 reaches the API — sending the day failed DTO validation. */}
             <form onSubmit={e => { e.preventDefault(); if (fromMonth) onGenerate(fromMonth, count); }} className="space-y-4">
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-fg-muted">
                     Periods are generated ahead using this group's pay day rule. Existing periods are never overwritten.
                 </p>
                 <div>
@@ -296,7 +296,7 @@ const GeneratePeriodsDialog: React.FC<{
                     {/* Only the month is used — say so, rather than letting the
                         day silently disappear into the request. */}
                     {fromMonth && (
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-fg-subtle">
                             Periods start from {fromMonth} — the day you pick is ignored.
                         </p>
                     )}
@@ -305,9 +305,9 @@ const GeneratePeriodsDialog: React.FC<{
                     <label className={labelCls}>Number of Periods</label>
                     <input type="number" min={1} max={24} value={count} onChange={e => setCount(parseInt(e.target.value) || 1)} className={inputCls} />
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">Generate</button>
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors">Generate</button>
                 </div>
             </form>
         </Modal>

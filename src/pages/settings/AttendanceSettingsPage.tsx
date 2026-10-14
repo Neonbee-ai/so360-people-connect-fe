@@ -26,13 +26,13 @@ export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettingsValue = {
 };
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
+  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = ({ checked, onChange }) => (
   <button
     type="button"
     onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-blue-600' : 'bg-slate-700'}`}
+    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-primary' : 'bg-line'}`}
   >
     <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-1'}`} />
   </button>
@@ -40,7 +40,7 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = (
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="space-y-1.5">
-    <label className="text-xs text-slate-400">{label}</label>
+    <label className="text-xs text-fg-muted">{label}</label>
     {children}
   </div>
 );
@@ -83,7 +83,7 @@ const AttendanceSettingsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading attendance settings...</div>;
+    return <div className="p-6 text-fg-muted animate-pulse">Loading attendance settings...</div>;
   }
 
   return (
@@ -102,8 +102,8 @@ const AttendanceSettingsPage: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
             <ClipboardCheck className="w-4 h-4" /> Punch Rules
           </h3>
 
@@ -136,21 +136,21 @@ const AttendanceSettingsPage: React.FC = () => {
           </Field>
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Marking Methods &amp; Validation</h3>
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Marking Methods &amp; Validation</h3>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Auto Attendance (from timesheet/shift)</span>
+            <span className="text-xs text-fg-muted">Auto Attendance (from timesheet/shift)</span>
             <Toggle checked={value.auto_attendance_enabled} onChange={(v) => set('auto_attendance_enabled', v)} />
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Manual Attendance Allowed</span>
+            <span className="text-xs text-fg-muted">Manual Attendance Allowed</span>
             <Toggle checked={value.manual_attendance_allowed} onChange={(v) => set('manual_attendance_allowed', v)} />
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Geo Validation</span>
+            <span className="text-xs text-fg-muted">Geo Validation</span>
             <Toggle checked={value.geo_validation_enabled} onChange={(v) => set('geo_validation_enabled', v)} />
           </div>
 

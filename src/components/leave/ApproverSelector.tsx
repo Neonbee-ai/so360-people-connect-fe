@@ -110,14 +110,14 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
 
   return (
     <div>
-      <label className="mb-1 block text-xs text-slate-400">{label}</label>
+      <label className="mb-1 block text-xs text-fg-muted">{label}</label>
 
       {selectedPeople.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">
           {selectedPeople.map(p => (
             <span
               key={p.id}
-              className="inline-flex items-center gap-1.5 rounded-md border border-teal-500/25 bg-teal-500/10 py-1 pl-2 pr-1 text-xs text-teal-200"
+              className="inline-flex items-center gap-1.5 rounded-nb-sm border border-primary/25 bg-primary/10 py-1 pl-2 pr-1 text-xs text-primary"
             >
               {p.full_name}
               {!disabled && (
@@ -125,7 +125,7 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
                   type="button"
                   onClick={() => toggle(p.id)}
                   aria-label={`Remove ${p.full_name}`}
-                  className="rounded p-0.5 text-teal-300/70 transition-colors hover:bg-teal-500/20 hover:text-teal-100"
+                  className="rounded p-0.5 text-primary/70 transition-colors hover:bg-primary-hover/20 hover:text-primary"
                 >
                   <X size={12} />
                 </button>
@@ -136,7 +136,7 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
       )}
 
       <div className="relative">
-        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
         <input
           type="search"
           value={search}
@@ -144,26 +144,26 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
           onChange={e => setSearch(e.target.value)}
           placeholder="Search manager or employee…"
           aria-label="Search approvers"
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-9 pr-3 text-sm text-slate-50 focus:border-teal-500 focus:outline-none disabled:opacity-50"
+          className="w-full rounded-nb border border-line-strong bg-surface-raised py-2 pl-9 pr-3 text-sm text-fg focus:border-primary focus:outline-none disabled:opacity-50"
         />
       </div>
 
-      <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800">
+      <div className="mt-2 max-h-48 overflow-y-auto rounded-nb border border-line-strong bg-surface-raised">
         {loading ? (
-          <p className="px-3 py-3 text-xs text-slate-500">Loading people…</p>
+          <p className="px-3 py-3 text-xs text-fg-subtle">Loading people…</p>
         ) : error ? (
           <div className="px-3 py-3">
-            <p className="text-xs text-rose-400">{error}</p>
+            <p className="text-xs text-danger">{error}</p>
             <button
               type="button"
               onClick={() => void load()}
-              className="mt-1 text-xs font-medium text-teal-400 hover:text-teal-300"
+              className="mt-1 text-xs font-medium text-primary hover:text-primary"
             >
               Retry
             </button>
           </div>
         ) : results.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-slate-500">
+          <p className="px-3 py-3 text-xs text-fg-subtle">
             {debounced ? 'No matching people' : 'No eligible approvers found.'}
           </p>
         ) : (
@@ -175,32 +175,32 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
                 key={p.id}
                 disabled={disabled}
                 onClick={() => toggle(p.id)}
-                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-700/50 disabled:cursor-not-allowed ${selected ? 'bg-teal-500/10' : ''}`}
+                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-line/50 disabled:cursor-not-allowed ${selected ? 'bg-primary/10' : ''}`}
               >
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
-                    <span className="truncate text-slate-50">{p.full_name}</span>
+                    <span className="truncate text-fg">{p.full_name}</span>
                     {p.is_suggested && (
-                      <span className="inline-flex shrink-0 items-center gap-0.5 rounded border border-teal-500/25 px-1 py-px text-[10px] text-teal-300">
+                      <span className="inline-flex shrink-0 items-center gap-0.5 rounded border border-primary/25 px-1 py-px text-[10px] text-primary">
                         <Star size={9} />
                         Your manager
                       </span>
                     )}
                   </span>
                   {(p.job_title || p.department_name) && (
-                    <span className="block truncate text-xs text-slate-500">
+                    <span className="block truncate text-xs text-fg-subtle">
                       {[p.job_title, p.department_name].filter(Boolean).join(' · ')}
                     </span>
                   )}
                 </span>
-                {selected && <Check size={16} className="shrink-0 text-teal-400" />}
+                {selected && <Check size={16} className="shrink-0 text-primary" />}
               </button>
             );
           })
         )}
       </div>
 
-      <p className="mt-1.5 text-xs text-slate-500">
+      <p className="mt-1.5 text-xs text-fg-subtle">
         {value.length > 0
           ? `All ${value.length} selected approver${value.length === 1 ? '' : 's'} must approve before the leave is granted.`
           : helpText}

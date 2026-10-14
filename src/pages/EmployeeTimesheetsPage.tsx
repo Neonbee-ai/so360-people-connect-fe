@@ -7,7 +7,7 @@ import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';
 import type { TimesheetEntry, TimesheetUtilizationPerson } from '../services/timesheetApi';
@@ -132,7 +132,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
                 actions={
                     <button
                         onClick={() => navigate('/timesheet/my-timesheet')}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         <ExternalLink size={14} />
                         Log time in Timesheets
@@ -141,8 +141,8 @@ const EmployeeTimesheetsPage: React.FC = () => {
             />
 
             {/* Read-only notice */}
-            <div className="flex items-start gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-400">
-                <Info size={14} className="text-teal-400 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2 bg-surface border border-line rounded-nb px-4 py-3 text-xs text-fg-muted">
+                <Info size={14} className="text-primary mt-0.5 flex-shrink-0" />
                 <span>
                     Time entries are created, submitted, and approved in the Timesheets module.
                     This page is a consolidated read-only view for people managers.
@@ -159,52 +159,31 @@ const EmployeeTimesheetsPage: React.FC = () => {
 
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-3">
-                <select
-                    aria-label="Person filter"
-                    value={personFilter}
-                    onChange={(e) => setPersonFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All People</option>
-                    {people.map(p => (
-                        <option key={p.id} value={p.id}>{p.full_name}</option>
-                    ))}
-                </select>
-                <select
-                    aria-label="Status filter"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="draft">Draft</option>
-                    <option value="submitted">Submitted</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                </select>
+                <Select name="employeetimesheets-select-36" aria-label="Person filter" value={personFilter} onChange={(e) => setPersonFilter(e.target.value)} options={[{ value: "", label: "All People" }, ...people.map((p) => ({ value: p.id, label: p.full_name }))]} />
+                <Select name="employeetimesheets-select-37" aria-label="Status filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Statuses" }, { value: "draft", label: "Draft" }, { value: "submitted", label: "Submitted" }, { value: "approved", label: "Approved" }, { value: "rejected", label: "Rejected" }]} />
                 <input
                     type="date"
                     aria-label="From date"
                     value={fromDate}
                     max={toDate || undefined}
                     onChange={(e) => setFromDate(e.target.value)}
-                    className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${
-                        dateRangeError ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'
+                    className={`px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${
+                        dateRangeError ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'
                     }`}
                 />
-                <span className="text-xs text-slate-500">to</span>
+                <span className="text-xs text-fg-subtle">to</span>
                 <input
                     type="date"
                     aria-label="To date"
                     value={toDate}
                     min={fromDate || undefined}
                     onChange={(e) => setToDate(e.target.value)}
-                    className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${
-                        dateRangeError ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'
+                    className={`px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${
+                        dateRangeError ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'
                     }`}
                 />
                 {totals.cost > 0 && (
-                    <div className="ml-auto flex items-center gap-1 text-xs text-slate-400">
+                    <div className="ml-auto flex items-center gap-1 text-xs text-fg-muted">
                         <DollarSign size={12} />
                         Approved cost: {formatCurrency(totals.cost)}
                     </div>
@@ -212,7 +191,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
             </div>
 
             {dateRangeError && (
-                <p role="alert" className="text-xs text-rose-400">{dateRangeError}</p>
+                <p role="alert" className="text-xs text-danger">{dateRangeError}</p>
             )}
 
             {/* Entries Table */}
@@ -225,7 +204,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
             ) : loading ? (
                 <div className="space-y-2">
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+                        <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
                     ))}
                 </div>
             ) : entries.length === 0 ? (
@@ -235,9 +214,9 @@ const EmployeeTimesheetsPage: React.FC = () => {
                     description="No time has been logged in the Timesheets module for the selected filters."
                 />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <div className="bg-surface border border-line rounded-nb overflow-hidden">
                     {/* Table Header */}
-                    <div className="grid grid-cols-[100px_1fr_1fr_80px_80px_110px_100px] gap-4 px-5 py-3 bg-slate-800/50 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    <div className="grid grid-cols-[100px_1fr_1fr_80px_80px_110px_100px] gap-4 px-5 py-3 bg-surface-raised/50 text-xs font-medium text-fg-muted uppercase tracking-wider">
                         <div>Date</div>
                         <div>Description</div>
                         <div>Entity / Project</div>
@@ -248,32 +227,32 @@ const EmployeeTimesheetsPage: React.FC = () => {
                     </div>
 
                     {/* Table Body */}
-                    <div className="divide-y divide-slate-800">
+                    <div className="divide-y divide-line">
                         {entries.map((entry) => (
                             <div
                                 key={entry.id}
-                                className="grid grid-cols-[100px_1fr_1fr_80px_80px_110px_100px] gap-4 px-5 py-3 items-center hover:bg-slate-800/30 transition-colors"
+                                className="grid grid-cols-[100px_1fr_1fr_80px_80px_110px_100px] gap-4 px-5 py-3 items-center hover:bg-surface-raised/30 transition-colors"
                             >
-                                <div className="text-sm text-slate-300">{entry.entry_date}</div>
-                                <div className="text-sm text-slate-400 truncate">{entry.description || '-'}</div>
+                                <div className="text-sm text-fg">{entry.entry_date}</div>
+                                <div className="text-sm text-fg-muted truncate">{entry.description || '-'}</div>
                                 <div className="min-w-0">
-                                    <div className="text-sm text-slate-50 truncate">{entry.entity_name || '-'}</div>
+                                    <div className="text-sm text-fg truncate">{entry.entity_name || '-'}</div>
                                     {entry.entity_type && (
-                                        <div className="text-xs text-slate-600 truncate">{entry.entity_type}</div>
+                                        <div className="text-xs text-fg-subtle truncate">{entry.entity_type}</div>
                                     )}
                                 </div>
-                                <div className="text-right text-sm font-medium text-slate-50">{entry.hours}h</div>
+                                <div className="text-right text-sm font-medium text-fg">{entry.hours}h</div>
                                 <div className="text-center text-xs">
                                     {entry.is_billable ? (
-                                        <span className="text-emerald-400">Billable</span>
+                                        <span className="text-success">Billable</span>
                                     ) : (
-                                        <span className="text-slate-500">-</span>
+                                        <span className="text-fg-subtle">-</span>
                                     )}
                                 </div>
                                 <div className="text-center">
                                     <StatusBadge status={entry.status} />
                                 </div>
-                                <div className="text-right text-sm text-slate-300">
+                                <div className="text-right text-sm text-fg">
                                     {formatCurrency(entry.calculated_cost || 0)}
                                 </div>
                             </div>

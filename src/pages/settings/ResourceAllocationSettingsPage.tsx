@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, toast } from '@so360/design-system';
+import { Button, toast, Select } from '@so360/design-system';
 import { PieChart, Save } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { settingsApi } from '../../services/orgSettingsService';
@@ -22,11 +22,11 @@ export const DEFAULT_RESOURCE_ALLOCATION_SETTINGS: ResourceAllocationSettingsVal
 };
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
+  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="space-y-1.5">
-    <label className="text-xs text-slate-400">{label}</label>
+    <label className="text-xs text-fg-muted">{label}</label>
     {children}
   </div>
 );
@@ -69,7 +69,7 @@ const ResourceAllocationSettingsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading resource allocation settings...</div>;
+    return <div className="p-6 text-fg-muted animate-pulse">Loading resource allocation settings...</div>;
   }
 
   return (
@@ -88,8 +88,8 @@ const ResourceAllocationSettingsPage: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
             <PieChart className="w-4 h-4" /> Allocation Defaults
           </h3>
 
@@ -103,19 +103,12 @@ const ResourceAllocationSettingsPage: React.FC = () => {
           </Field>
 
           <Field label="Allocation Unit">
-            <select
-              className={INPUT_CLASS}
-              value={value.allocation_unit}
-              onChange={(e) => set('allocation_unit', e.target.value as ResourceAllocationSettingsValue['allocation_unit'])}
-            >
-              <option value="percentage">Percentage</option>
-              <option value="hours">Hours</option>
-            </select>
+            <Select name="resourceallocationsettings-select-102" value={value.allocation_unit} onChange={(e) => set('allocation_unit', e.target.value as ResourceAllocationSettingsValue['allocation_unit'])} options={[{ value: "percentage", label: "Percentage" }, { value: "hours", label: "Hours" }]} />
           </Field>
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Thresholds &amp; Warnings</h3>
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Thresholds &amp; Warnings</h3>
 
           <Field label="Over Allocation Threshold %">
             <input

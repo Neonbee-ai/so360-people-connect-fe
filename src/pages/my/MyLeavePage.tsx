@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Plus } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import { toast, Drawer } from '@so360/design-system';
+import { toast, Drawer, Select } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance } from '../../services/meService';
 import { leaveRequestsApi } from '../../services/leaveRequestsService';
@@ -151,14 +151,14 @@ const MyLeavePage: React.FC = () => {
                         description="When you request time off it will appear here."
                     />
                 ) : (
-                    <ul className="divide-y divide-slate-800">
+                    <ul className="divide-y divide-line">
                         {requests.map(r => (
                             <li key={r.id} className="flex items-center justify-between px-4 py-3">
                                 <div>
-                                    <p className="text-sm text-slate-50">
+                                    <p className="text-sm text-fg">
                                         {r.leave_type?.name ?? 'Leave'}
                                     </p>
-                                    <p className="text-xs text-slate-500">
+                                    <p className="text-xs text-fg-subtle">
                                         {r.start_date} → {r.end_date}
                                         {r.total_days ? ` · ${r.total_days} day(s)` : ''}
                                     </p>
@@ -189,16 +189,7 @@ const MyLeavePage: React.FC = () => {
                 <div className="space-y-4">
                     <div>
                         <label className={labelCls}>Leave type</label>
-                        <select
-                            value={form.leave_type_id}
-                            onChange={e => setForm({ ...form, leave_type_id: e.target.value })}
-                            className={inputCls}
-                        >
-                            <option value="">Select…</option>
-                            {leaveTypes.map(t => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
-                            ))}
-                        </select>
+                        <Select name="myleave-select-85" value={form.leave_type_id} onChange={e => setForm({ ...form, leave_type_id: e.target.value })} options={[{ value: "", label: "Select…" }, ...leaveTypes.map((t) => ({ value: t.id, label: t.name }))]} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">

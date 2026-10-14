@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Select } from '@so360/design-system';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
@@ -9,9 +10,9 @@ import { usePeopleFormatters } from '../utils/formatters';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const statusColors: Record<string, string> = {
-    approved: 'bg-green-600/80',
-    pending: 'bg-amber-600/80',
-    rejected: 'bg-red-600/60',
+    approved: 'bg-success/80',
+    pending: 'bg-warning/80',
+    rejected: 'bg-danger/60',
 };
 
 const LeaveCalendarPage: React.FC = () => {
@@ -167,56 +168,47 @@ const LeaveCalendarPage: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigateMonth(-1)}
-                        className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-800 rounded-lg transition-colors"
+                        className="p-2 text-fg-muted hover:text-fg hover:bg-surface-raised rounded-nb transition-colors"
                     >
                         <ChevronLeft size={20} />
                     </button>
-                    <h2 className="text-lg font-medium text-slate-50 min-w-[200px] text-center">{monthName}</h2>
+                    <h2 className="text-lg font-medium text-fg min-w-[200px] text-center">{monthName}</h2>
                     <button
                         onClick={() => navigateMonth(1)}
-                        className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-800 rounded-lg transition-colors"
+                        className="p-2 text-fg-muted hover:text-fg hover:bg-surface-raised rounded-nb transition-colors"
                     >
                         <ChevronRight size={20} />
                     </button>
                     <button
                         onClick={() => setCurrentDate(new Date())}
-                        className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-50 border border-slate-700 rounded-lg transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium text-fg-muted hover:text-fg border border-line-strong rounded-nb transition-colors"
                     >
                         Today
                     </button>
                 </div>
 
-                <select
-                    value={departmentFilter}
-                    onChange={(e) => setDepartmentFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Departments</option>
-                    {departments.map(dept => (
-                        <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
-                </select>
+                <Select name="leavecalendar-select-54" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} options={[{ value: "", label: "All Departments" }, ...departments.map((dept) => ({ value: dept.id, label: dept.name }))]} />
             </div>
 
             {/* Legend */}
             <div className="flex items-center gap-4 text-xs">
                 <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded bg-green-600/80" />
-                    <span className="text-slate-400">Approved</span>
+                    <div className="w-3 h-3 rounded bg-success/80" />
+                    <span className="text-fg-muted">Approved</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded bg-amber-600/80" />
-                    <span className="text-slate-400">Pending</span>
+                    <div className="w-3 h-3 rounded bg-warning/80" />
+                    <span className="text-fg-muted">Pending</span>
                 </div>
             </div>
 
             {/* Error Banner */}
             {loadError && (
-                <div className="flex items-center justify-between px-4 py-3 bg-rose-900/20 border border-rose-700/40 rounded-lg text-sm text-rose-400">
+                <div className="flex items-center justify-between px-4 py-3 bg-danger-container/20 border border-danger/40 rounded-nb text-sm text-danger">
                     <span>Unable to load leave data. Please try again.</span>
                     <button
                         onClick={loadLeaveRequests}
-                        className="ml-4 px-3 py-1 text-xs bg-rose-800/40 hover:bg-rose-700/40 border border-rose-700/40 rounded transition-colors"
+                        className="ml-4 px-3 py-1 text-xs bg-danger-container/40 hover:bg-danger-hover/40 border border-danger/40 rounded transition-colors"
                     >
                         Retry
                     </button>
@@ -225,7 +217,7 @@ const LeaveCalendarPage: React.FC = () => {
 
             {/* Empty state — say why the grid is blank instead of silently showing nothing */}
             {!loading && !loadError && visibleLeaveRequests.length === 0 && (
-                <div className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-400">
+                <div className="px-4 py-3 bg-surface border border-line rounded-nb text-sm text-fg-muted">
                     {departmentFilter
                         ? `No leave records for ${selectedDepartmentName || 'this department'} in ${monthName}.`
                         : `No leave records in ${monthName}.`}
@@ -233,11 +225,11 @@ const LeaveCalendarPage: React.FC = () => {
             )}
 
             {/* Calendar Grid */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-surface border border-line rounded-nb overflow-hidden">
                 {/* Day headers */}
-                <div className="grid grid-cols-7 border-b border-slate-800">
+                <div className="grid grid-cols-7 border-b border-line">
                     {DAYS.map(day => (
-                        <div key={day} className="text-center text-xs font-medium text-slate-400 uppercase py-3 border-r border-slate-800 last:border-r-0">
+                        <div key={day} className="text-center text-xs font-medium text-fg-muted uppercase py-3 border-r border-line last:border-r-0">
                             {day}
                         </div>
                     ))}
@@ -252,16 +244,16 @@ const LeaveCalendarPage: React.FC = () => {
                         return (
                             <div
                                 key={i}
-                                className={`min-h-[100px] border-r border-b border-slate-800 last:border-r-0 p-2 ${
-                                    day.date ? 'bg-slate-900 hover:bg-slate-800/50' : 'bg-slate-900/30'
+                                className={`min-h-[100px] border-r border-b border-line last:border-r-0 p-2 ${
+                                    day.date ? 'bg-surface hover:bg-surface-raised/50' : 'bg-surface/30'
                                 } transition-colors`}
                             >
                                 {day.date && (
                                     <>
                                         <div className={`text-sm font-semibold mb-1 ${
                                             isToday
-                                                ? 'text-teal-400 bg-teal-400/10 w-7 h-7 rounded-full flex items-center justify-center'
-                                                : 'text-slate-300'
+                                                ? 'text-primary bg-primary/10 w-7 h-7 rounded-full flex items-center justify-center'
+                                                : 'text-fg'
                                         }`}>
                                             {day.date}
                                         </div>
@@ -270,8 +262,8 @@ const LeaveCalendarPage: React.FC = () => {
                                                 <button
                                                     key={leave.id}
                                                     onClick={() => setSelectedLeave(leave)}
-                                                    className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] text-slate-50 truncate ${
-                                                        statusColors[leave.status] || 'bg-slate-700'
+                                                    className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] text-fg truncate ${
+                                                        statusColors[leave.status] || 'bg-line'
                                                     } hover:opacity-80 transition-opacity`}
                                                     title={`${leave.person?.full_name} - ${leave.leave_type?.name}`}
                                                 >
@@ -279,7 +271,7 @@ const LeaveCalendarPage: React.FC = () => {
                                                 </button>
                                             ))}
                                             {filteredLeaves.length > 3 && (
-                                                <p className="text-[10px] text-slate-500 px-1">+{filteredLeaves.length - 3} more</p>
+                                                <p className="text-[10px] text-fg-subtle px-1">+{filteredLeaves.length - 3} more</p>
                                             )}
                                         </div>
                                     </>
@@ -292,7 +284,7 @@ const LeaveCalendarPage: React.FC = () => {
 
             {loading && (
                 <div className="flex items-center justify-center py-4">
-                    <div className="w-5 h-5 border-2 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-primary/20 border-t-teal-500 rounded-full animate-spin" />
                 </div>
             )}
 
@@ -305,47 +297,47 @@ const LeaveCalendarPage: React.FC = () => {
                 >
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Person</label>
-                            <p className="text-sm text-slate-50">{selectedLeave.person?.full_name || 'Unknown'}</p>
+                            <label className="block text-xs text-fg-muted mb-1">Person</label>
+                            <p className="text-sm text-fg">{selectedLeave.person?.full_name || 'Unknown'}</p>
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Leave Type</label>
-                            <p className="text-sm text-slate-50">{selectedLeave.leave_type?.name || 'Unknown'}</p>
+                            <label className="block text-xs text-fg-muted mb-1">Leave Type</label>
+                            <p className="text-sm text-fg">{selectedLeave.leave_type?.name || 'Unknown'}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Start Date</label>
-                                <p className="text-sm text-slate-50">
+                                <label className="block text-xs text-fg-muted mb-1">Start Date</label>
+                                <p className="text-sm text-fg">
                                     {formatters.formatDate(selectedLeave.start_date)}
-                                    {selectedLeave.is_half_day_start && <span className="text-xs text-slate-400 ml-1">(half day)</span>}
+                                    {selectedLeave.is_half_day_start && <span className="text-xs text-fg-muted ml-1">(half day)</span>}
                                 </p>
                             </div>
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">End Date</label>
-                                <p className="text-sm text-slate-50">
+                                <label className="block text-xs text-fg-muted mb-1">End Date</label>
+                                <p className="text-sm text-fg">
                                     {formatters.formatDate(selectedLeave.end_date)}
-                                    {selectedLeave.is_half_day_end && <span className="text-xs text-slate-400 ml-1">(half day)</span>}
+                                    {selectedLeave.is_half_day_end && <span className="text-xs text-fg-muted ml-1">(half day)</span>}
                                 </p>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Total Days</label>
-                            <p className="text-sm text-slate-50">{selectedLeave.total_days}</p>
+                            <label className="block text-xs text-fg-muted mb-1">Total Days</label>
+                            <p className="text-sm text-fg">{selectedLeave.total_days}</p>
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Status</label>
+                            <label className="block text-xs text-fg-muted mb-1">Status</label>
                             <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                                selectedLeave.status === 'approved' ? 'bg-green-900/40 text-green-400' :
-                                selectedLeave.status === 'pending' ? 'bg-amber-900/40 text-amber-400' :
-                                'bg-red-900/40 text-red-400'
+                                selectedLeave.status === 'approved' ? 'bg-success-container/40 text-success' :
+                                selectedLeave.status === 'pending' ? 'bg-warning-container/40 text-warning' :
+                                'bg-danger-container/40 text-danger'
                             }`}>
                                 {selectedLeave.status}
                             </span>
                         </div>
                         {selectedLeave.reason && (
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Reason</label>
-                                <p className="text-sm text-slate-50">{selectedLeave.reason}</p>
+                                <label className="block text-xs text-fg-muted mb-1">Reason</label>
+                                <p className="text-sm text-fg">{selectedLeave.reason}</p>
                             </div>
                         )}
                     </div>

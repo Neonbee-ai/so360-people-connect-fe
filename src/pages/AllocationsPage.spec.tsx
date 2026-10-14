@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -294,26 +294,26 @@ describe('AllocationsPage — cancel allocation', () => {
   });
 
   it('When cancel button is clicked and user confirms / Then cancel API is called with the allocation ID', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderPage();
     await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
     fireEvent.click(screen.getByTitle('Cancel'));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel allocation' }));
     await waitFor(() => expect(mockAllocApi.cancel).toHaveBeenCalledWith('a1'));
   });
 
   it('When cancel button is clicked but user dismisses the dialog / Then cancel API is NOT called', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
     renderPage();
     await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
     fireEvent.click(screen.getByTitle('Cancel'));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
     expect(mockAllocApi.cancel).not.toHaveBeenCalled();
   });
 
   it('When cancel succeeds / Then the list is refreshed', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderPage();
     await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
     fireEvent.click(screen.getByTitle('Cancel'));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel allocation' }));
     await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalledTimes(2));
   });
 });

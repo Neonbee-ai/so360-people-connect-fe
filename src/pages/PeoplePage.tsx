@@ -12,7 +12,7 @@ import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
 import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { QuotaBar, QuotaGate, toast, Drawer } from '@so360/design-system';
+import { QuotaBar, QuotaGate, toast, Drawer, Select } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import { mastersApi, MasterRow } from '../services/mastersService';
 import {
@@ -36,10 +36,10 @@ const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 // this module (emerald=ok, amber=pending, slate=neutral, rose=blocked). A
 // 'blocked' login_status always wins over access_status.
 const ACCESS_BADGE: Record<string, { label: string; className: string }> = {
-    active: { label: 'Has Access', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
-    pending: { label: 'Invitation Pending', className: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
-    no_access: { label: 'No Access', className: 'bg-slate-500/10 text-slate-400 border-slate-500/30' },
-    blocked: { label: 'Blocked', className: 'bg-rose-500/10 text-rose-400 border-rose-500/30' },
+    active: { label: 'Has Access', className: 'bg-success/10 text-success border-success/30' },
+    pending: { label: 'Invitation Pending', className: 'bg-warning/10 text-warning border-warning/30' },
+    no_access: { label: 'No Access', className: 'bg-fg-subtle/10 text-fg-muted border-fg-subtle/30' },
+    blocked: { label: 'Blocked', className: 'bg-danger/10 text-danger border-danger/30' },
 };
 
 const resolveAccessBadge = (person: Pick<Person, 'access_status' | 'login_status'>) => {
@@ -75,8 +75,8 @@ const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({ fields, value
     if (loadError) {
         return (
             <div>
-                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Custom Fields</h4>
-                <p className="text-xs text-rose-400">Couldn't load custom fields. Try reopening this form.</p>
+                <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Custom Fields</h4>
+                <p className="text-xs text-danger">Couldn't load custom fields. Try reopening this form.</p>
             </div>
         );
     }
@@ -85,15 +85,15 @@ const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({ fields, value
 
     return (
         <div data-testid="custom-fields-section">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Custom Fields</h4>
+            <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Custom Fields</h4>
             <div className="grid grid-cols-2 gap-4">
                 {fields.map(field => {
                     const value = values[field.field_def_id];
-                    const inputClass = "w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500";
+                    const inputClass = "w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary";
                     return (
                         <div key={field.field_def_id} data-testid={`custom-field-${field.field_def_id}`}>
-                            <label className="block text-xs text-slate-400 mb-1">
-                                {field.label}{field.is_required && <span className="text-red-400"> *</span>}
+                            <label className="block text-xs text-fg-muted mb-1">
+                                {field.label}{field.is_required && <span className="text-danger"> *</span>}
                             </label>
                             {field.field_type === 'text' && (
                                 <input
@@ -128,9 +128,9 @@ const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({ fields, value
                                         type="checkbox"
                                         checked={!!value}
                                         onChange={e => onChange(field.field_def_id, e.target.checked)}
-                                        className="text-teal-500 focus:ring-teal-500"
+                                        className="text-primary focus:ring-primary"
                                     />
-                                    <span className="text-xs text-slate-400">Yes</span>
+                                    <span className="text-xs text-fg-muted">Yes</span>
                                 </label>
                             )}
                             {field.field_type === 'dropdown' && (
@@ -161,14 +161,14 @@ const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({ fields, value
                                                         : [...current, opt];
                                                     onChange(field.field_def_id, next);
                                                 }}
-                                                className={`px-2 py-1 rounded-full text-xs border transition-colors ${selected ? 'bg-teal-600 border-teal-600 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-teal-500'}`}
+                                                className={`px-2 py-1 rounded-full text-xs border transition-colors ${selected ? 'bg-primary border-primary text-primary-fg' : 'bg-surface-raised border-line-strong text-fg hover:border-primary'}`}
                                             >
                                                 {opt}
                                             </button>
                                         );
                                     })}
                                     {(field.options || []).length === 0 && (
-                                        <span className="text-xs text-slate-500">No options configured for this field.</span>
+                                        <span className="text-xs text-fg-subtle">No options configured for this field.</span>
                                     )}
                                 </div>
                             )}
@@ -600,7 +600,7 @@ const PeoplePage: React.FC = () => {
                             // Land directly on the Import tab — clicking Import must
                             // never drop the user on the Export section.
                             onClick={() => navigate('/people/import-export?tab=import')}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-surface-raised hover:bg-line border border-line-strong text-fg text-sm font-medium rounded-nb transition-colors"
                         >
                             <Upload size={16} />
                             Import
@@ -613,7 +613,7 @@ const PeoplePage: React.FC = () => {
                             // Land directly on the Export tab, mirroring the Import
                             // button — clicking Export must never require a second click.
                             onClick={() => navigate('/people/import-export?tab=export')}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-surface-raised hover:bg-line border border-line-strong text-fg text-sm font-medium rounded-nb transition-colors"
                         >
                             <Download size={16} />
                             Export
@@ -634,7 +634,7 @@ const PeoplePage: React.FC = () => {
                             onClick={() => setShowCreateModal(true)}
                             disabled={isSandboxMode}
                             title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
-                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb transition-colors"
                         >
                             <UserPlus size={16} />
                             Add Person
@@ -648,46 +648,27 @@ const PeoplePage: React.FC = () => {
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 min-w-[200px] max-w-sm">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
                     <input
                         type="text"
                         placeholder="Search by name, email, or title..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-9 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                        className="w-full pl-9 pr-9 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
                     />
                     {search && (
                         <button
                             type="button"
                             onClick={() => setSearch('')}
                             aria-label="Clear search"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-colors"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-fg-muted hover:text-fg hover:bg-line transition-colors"
                         >
                             <X size={14} />
                         </button>
                     )}
                 </div>
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="on_leave">On Leave</option>
-                    <option value="terminated">Terminated</option>
-                    <option value="archived">Archived</option>
-                </select>
-                <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Types</option>
-                    <option value="employee">Employee</option>
-                    <option value="contractor">Contractor</option>
-                </select>
+                <Select name="people-select-59" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Statuses" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }, { value: "on_leave", label: "On Leave" }, { value: "terminated", label: "Terminated" }, { value: "archived", label: "Archived" }]} />
+                <Select name="people-select-60" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} options={[{ value: "", label: "All Types" }, { value: "employee", label: "Employee" }, { value: "contractor", label: "Contractor" }]} />
 
                 {/* Department Filter */}
                 <DepartmentSelector
@@ -701,21 +682,12 @@ const PeoplePage: React.FC = () => {
                 />
 
                 {/* Employment Type Filter */}
-                <select
-                    value={employmentTypeFilter}
-                    onChange={(e) => setEmploymentTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Employment Types</option>
-                    {employmentTypeOptions.map(t => (
-                        <option key={t.id} value={t.code}>{t.name}</option>
-                    ))}
-                </select>
+                <Select name="people-select-61" value={employmentTypeFilter} onChange={(e) => setEmploymentTypeFilter(e.target.value)} options={[{ value: "", label: "All Employment Types" }, ...employmentTypeOptions.map((t) => ({ value: t.code, label: t.name }))]} />
 
                 {/* Date of Joining Filter */}
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                        <label htmlFor="joined-from" className="text-xs text-slate-400">Joined:</label>
+                        <label htmlFor="joined-from" className="text-xs text-fg-muted">Joined:</label>
                         <input
                             id="joined-from"
                             type="date"
@@ -724,9 +696,9 @@ const PeoplePage: React.FC = () => {
                             max={joiningToFilter || undefined}
                             value={joiningFromFilter}
                             onChange={(e) => setJoiningFromFilter(e.target.value)}
-                            className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 ${joinedRangeInvalid ? 'border-red-500' : 'border-slate-700'}`}
+                            className={`px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none focus:border-primary ${joinedRangeInvalid ? 'border-danger' : 'border-line-strong'}`}
                         />
-                        <span className="text-slate-600">-</span>
+                        <span className="text-fg-subtle">-</span>
                         <input
                             type="date"
                             aria-label="Joined to"
@@ -734,21 +706,21 @@ const PeoplePage: React.FC = () => {
                             min={joiningFromFilter || undefined}
                             value={joiningToFilter}
                             onChange={(e) => setJoiningToFilter(e.target.value)}
-                            className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 ${joinedRangeInvalid ? 'border-red-500' : 'border-slate-700'}`}
+                            className={`px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none focus:border-primary ${joinedRangeInvalid ? 'border-danger' : 'border-line-strong'}`}
                         />
                         {(joiningFromFilter || joiningToFilter) && (
                             <button
                                 type="button"
                                 onClick={() => { setJoiningFromFilter(''); setJoiningToFilter(''); }}
                                 aria-label="Clear joined date range"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
+                                className="p-1.5 rounded-nb text-fg-muted hover:text-fg hover:bg-surface-raised transition-colors"
                             >
                                 <X size={14} />
                             </button>
                         )}
                     </div>
                     {joinedRangeInvalid && (
-                        <span role="alert" className="text-xs text-red-400">From Date cannot be later than To Date.</span>
+                        <span role="alert" className="text-xs text-danger">From Date cannot be later than To Date.</span>
                     )}
                 </div>
 
@@ -758,7 +730,7 @@ const PeoplePage: React.FC = () => {
                     <button
                         type="button"
                         onClick={handleClearFilters}
-                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-300 hover:text-slate-50 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-fg hover:text-fg bg-surface-raised hover:bg-line border border-line-strong rounded-nb transition-colors"
                     >
                         <X size={14} />
                         Clear Filters
@@ -776,7 +748,7 @@ const PeoplePage: React.FC = () => {
             )}
 
             {isSandboxMode && isLimited(people.length) && (
-                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/25 rounded-lg text-amber-400 text-sm">
+                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-warning/10 border border-warning/25 rounded-nb text-warning text-sm">
                     <span className="font-semibold">Sandbox:</span>
                     <span>Showing {sandboxEntryLimit} of {people.length} records. Switch to Production to view all.</span>
                 </div>
@@ -786,7 +758,7 @@ const PeoplePage: React.FC = () => {
             {loading ? (
                 <div className="space-y-3">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-20 bg-slate-800/50 rounded-xl animate-pulse" />
+                        <div key={i} className="h-20 bg-surface-raised/50 rounded-nb animate-pulse" />
                     ))}
                 </div>
             ) : people.length === 0 ? (
@@ -802,18 +774,18 @@ const PeoplePage: React.FC = () => {
                         <div
                             key={person.id}
                             onClick={() => navigate(`/people/people/${person.id}`)}
-                            className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 hover:bg-slate-800/50 cursor-pointer transition-all"
+                            className="bg-surface border border-line rounded-nb p-4 hover:border-line-strong hover:bg-surface-raised/50 cursor-pointer transition-all"
                         >
                             {/* Every trailing section lives in a fixed-width cell, so
                                 the columns line up across rows no matter how long a
                                 name/role is or which optional controls a row has. */}
                             <div className="flex items-center gap-4">
                                 {/* Avatar */}
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 border border-line-strong flex items-center justify-center flex-shrink-0">
                                     {person.avatar_url ? (
                                         <img src={person.avatar_url} alt="" className="w-10 h-10 rounded-full" />
                                     ) : (
-                                        <span className="text-sm font-medium text-teal-400">
+                                        <span className="text-sm font-medium text-primary">
                                             {person.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                         </span>
                                     )}
@@ -822,13 +794,13 @@ const PeoplePage: React.FC = () => {
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5 min-w-0">
-                                        <span className="text-sm font-medium text-slate-50 truncate">{person.full_name}</span>
+                                        <span className="text-sm font-medium text-fg truncate">{person.full_name}</span>
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                             <StatusBadge status={person.type} />
                                             <StatusBadge status={person.status} />
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4 text-xs text-slate-500 min-w-0 truncate">
+                                    <div className="flex items-center gap-4 text-xs text-fg-subtle min-w-0 truncate">
                                         {person.job_title && (
                                             <span className="flex items-center gap-1">
                                                 <Briefcase size={12} />
@@ -842,7 +814,7 @@ const PeoplePage: React.FC = () => {
                                             </span>
                                         )}
                                         {(person.department_info?.name || person.department) && (
-                                            <span className="text-slate-600">{person.department_info?.name || person.department}</span>
+                                            <span className="text-fg-subtle">{person.department_info?.name || person.department}</span>
                                         )}
                                         {person.work_location && (
                                             <span className="flex items-center gap-1">
@@ -856,11 +828,11 @@ const PeoplePage: React.FC = () => {
                                 {/* Cost Info — compensation-gated */}
                                 {canViewCompensation && (
                                     <div className="w-28 text-right flex-shrink-0">
-                                        <div className="text-sm font-medium text-slate-50 truncate">
+                                        <div className="text-sm font-medium text-fg truncate">
                                             {formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}
                                         </div>
                                         {person.billing_rate && person.billing_rate > 0 && (
-                                            <div className="text-xs text-slate-500">
+                                            <div className="text-xs text-fg-subtle">
                                                 Bill: {formatters.formatCurrency(person.billing_rate)}/{person.cost_rate_unit}
                                             </div>
                                         )}
@@ -878,16 +850,16 @@ const PeoplePage: React.FC = () => {
                                             {/* Access Status */}
                                             <span
                                                 aria-label="Access status"
-                                                className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${accessBadge.className}`}
+                                                className={`inline-flex items-center px-2 py-0.5 rounded-nb-sm text-xs font-medium border ${accessBadge.className}`}
                                             >
                                                 {accessBadge.label}
                                             </span>
                                             {/* System Role (Core login role — distinct from skill/people_roles) */}
-                                            <span className="text-xs text-slate-500 truncate max-w-full" aria-label="System role" title={person.system_role || undefined}>
+                                            <span className="text-xs text-fg-subtle truncate max-w-full" aria-label="System role" title={person.system_role || undefined}>
                                                 Role: {person.system_role || '—'}
                                             </span>
                                             {/* Invitation Status */}
-                                            <span className="text-xs text-slate-600" aria-label="Invitation status">
+                                            <span className="text-xs text-fg-subtle" aria-label="Invitation status">
                                                 Invite: {invitation}
                                             </span>
                                         </div>
@@ -911,7 +883,7 @@ const PeoplePage: React.FC = () => {
                                             onClick={(e) => { e.stopPropagation(); if (!isPending) handleInvite(person); }}
                                             disabled={isPending || invitingId === person.id}
                                             title={isPending ? 'Invitation already sent' : 'Invite to a user account'}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 flex-shrink-0 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 text-slate-50 text-xs font-medium rounded-lg transition-colors"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 flex-shrink-0 bg-surface-raised hover:bg-line disabled:opacity-50 disabled:cursor-not-allowed border border-line-strong text-fg text-xs font-medium rounded-nb transition-colors"
                                         >
                                             <UserPlus size={14} />
                                             {isPending ? 'Invited' : (invitingId === person.id ? 'Inviting…' : 'Invite')}
@@ -923,12 +895,12 @@ const PeoplePage: React.FC = () => {
                                 {/* Skills — capability tags (distinct from the System Role shown above) */}
                                 <div className="hidden lg:flex items-center justify-end gap-1 w-32 flex-shrink-0 overflow-hidden">
                                     {person.people_roles?.slice(0, 2).map((skill) => (
-                                        <span key={skill.id} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-400 truncate">
+                                        <span key={skill.id} className="px-2 py-0.5 bg-surface-raised border border-line-strong rounded text-xs text-fg-muted truncate">
                                             {skill.role_name}
                                         </span>
                                     ))}
                                     {person.people_roles && person.people_roles.length > 2 && (
-                                        <span className="text-xs text-slate-600 flex-shrink-0">+{person.people_roles.length - 2}</span>
+                                        <span className="text-xs text-fg-subtle flex-shrink-0">+{person.people_roles.length - 2}</span>
                                     )}
                                 </div>
 
@@ -939,7 +911,7 @@ const PeoplePage: React.FC = () => {
                                             type="button"
                                             onClick={(e) => { e.stopPropagation(); setOpenActionsId(openActionsId === person.id ? null : person.id); }}
                                             aria-label="Employee actions"
-                                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
+                                            className="p-1.5 rounded-nb text-fg-muted hover:text-fg hover:bg-surface-raised transition-colors"
                                         >
                                             <MoreHorizontal size={16} />
                                         </button>
@@ -949,12 +921,12 @@ const PeoplePage: React.FC = () => {
                                                 <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setOpenActionsId(null); }} />
                                                 <div
                                                     onClick={(e) => e.stopPropagation()}
-                                                    className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-20 py-1"
+                                                    className="absolute right-0 mt-2 w-56 bg-surface-raised border border-line-strong rounded-nb shadow-lg z-20 py-1"
                                                 >
                                                     {canEditEmployee && (
                                                         <button
                                                             onClick={() => { setEditPerson(person); setOpenActionsId(null); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700"
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-fg hover:bg-line"
                                                         >
                                                             <Pencil size={14} /> Edit Employee
                                                         </button>
@@ -963,13 +935,13 @@ const PeoplePage: React.FC = () => {
                                                         <>
                                                             <button
                                                                 onClick={() => { setOpenActionsId(null); handleResendInvite(person); }}
-                                                                className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700"
+                                                                className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-fg hover:bg-line"
                                                             >
                                                                 <Send size={14} /> Resend Invitation
                                                             </button>
                                                             <button
                                                                 onClick={() => { setConfirmAction({ type: 'cancel-invite', person }); setOpenActionsId(null); }}
-                                                                className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-amber-400 hover:bg-slate-700"
+                                                                className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-warning hover:bg-line"
                                                             >
                                                                 <XCircle size={14} /> Cancel Invitation
                                                             </button>
@@ -978,7 +950,7 @@ const PeoplePage: React.FC = () => {
                                                     {canEditEmployee && person.status !== 'active' && (
                                                         <button
                                                             onClick={() => { setOpenActionsId(null); handleSetStatus(person, 'active'); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-emerald-400 hover:bg-slate-700"
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-success hover:bg-line"
                                                         >
                                                             <UserCheck size={14} /> Activate
                                                         </button>
@@ -986,7 +958,7 @@ const PeoplePage: React.FC = () => {
                                                     {canEditEmployee && person.status === 'active' && (
                                                         <button
                                                             onClick={() => { setConfirmAction({ type: 'deactivate', person }); setOpenActionsId(null); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-amber-400 hover:bg-slate-700"
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-warning hover:bg-line"
                                                         >
                                                             <UserMinus size={14} /> Deactivate
                                                         </button>
@@ -994,7 +966,7 @@ const PeoplePage: React.FC = () => {
                                                     {canEditEmployee && person.status !== 'archived' && (
                                                         <button
                                                             onClick={() => { setConfirmAction({ type: 'archive', person }); setOpenActionsId(null); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-fg hover:bg-line"
                                                         >
                                                             <Archive size={14} /> Archive
                                                         </button>
@@ -1002,7 +974,7 @@ const PeoplePage: React.FC = () => {
                                                     {canDeleteEmployee && (
                                                         <button
                                                             onClick={() => { setConfirmAction({ type: 'delete', person }); setOpenActionsId(null); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-rose-400 hover:bg-slate-700 border-t border-slate-700 mt-1 pt-2"
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-danger hover:bg-line border-t border-line-strong mt-1 pt-2"
                                                         >
                                                             <Trash2 size={14} /> Delete Employee
                                                         </button>
@@ -1031,34 +1003,34 @@ const PeoplePage: React.FC = () => {
             {inviteResult && (
                 <Modal isOpen={true} onClose={() => setInviteResult(null)} title="Invitation ready" size="md">
                     <div className="space-y-4">
-                        <p className="text-sm text-slate-300">
+                        <p className="text-sm text-fg">
                             {inviteResult.emailSent
-                                ? <>We've emailed the invitation to <span className="text-slate-100 font-medium">{inviteResult.email}</span>. If it doesn't arrive, copy and share this link directly:</>
+                                ? <>We've emailed the invitation to <span className="text-fg font-medium">{inviteResult.email}</span>. If it doesn't arrive, copy and share this link directly:</>
                                 : inviteResult.emailRequested
-                                    ? <>The invitation for <span className="text-slate-100 font-medium">{inviteResult.email}</span> was created, but the email could not be sent. Share this link with them directly:</>
-                                    : <>Share this invite link with <span className="text-slate-100 font-medium">{inviteResult.email}</span> so they can set a password and sign in:</>}
+                                    ? <>The invitation for <span className="text-fg font-medium">{inviteResult.email}</span> was created, but the email could not be sent. Share this link with them directly:</>
+                                    : <>Share this invite link with <span className="text-fg font-medium">{inviteResult.email}</span> so they can set a password and sign in:</>}
                         </p>
                         <div className="flex gap-2">
                             <input
                                 readOnly
                                 value={inviteResult.link}
                                 onFocus={(e) => e.currentTarget.select()}
-                                className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-teal-500"
+                                className="flex-1 px-3 py-2 bg-surface border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                             <button
                                 type="button"
                                 onClick={handleCopyInvite}
-                                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                                className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors whitespace-nowrap"
                             >
                                 Copy link
                             </button>
                         </div>
-                        <p className="text-xs text-slate-500">This link lets the invitee set a password. It expires according to your security settings.</p>
-                        <div className="flex justify-end pt-2 border-t border-slate-800">
+                        <p className="text-xs text-fg-subtle">This link lets the invitee set a password. It expires according to your security settings.</p>
+                        <div className="flex justify-end pt-2 border-t border-line">
                             <button
                                 type="button"
                                 onClick={() => setInviteResult(null)}
-                                className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                                className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                             >
                                 Done
                             </button>
@@ -1153,12 +1125,12 @@ const WorkLocationFieldHelp: React.FC<{
 
     if (confirmingLeave) {
         return (
-            <p className="text-xs text-amber-400 mt-1">
+            <p className="text-xs text-warning mt-1">
                 Leaving discards what you&apos;ve entered.{' '}
                 <button
                     type="button"
                     onClick={go}
-                    className="text-amber-300 hover:text-amber-200 underline"
+                    className="text-warning hover:text-warning underline"
                 >
                     Leave anyway
                 </button>
@@ -1166,7 +1138,7 @@ const WorkLocationFieldHelp: React.FC<{
                 <button
                     type="button"
                     onClick={() => setConfirmingLeave(false)}
-                    className="text-slate-400 hover:text-slate-200 underline"
+                    className="text-fg-muted hover:text-fg underline"
                 >
                     Stay
                 </button>
@@ -1175,9 +1147,9 @@ const WorkLocationFieldHelp: React.FC<{
     }
 
     return (
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-fg-subtle mt-1">
             {hasError
-                ? <span className="text-rose-400">Couldn&apos;t load work locations. </span>
+                ? <span className="text-danger">Couldn&apos;t load work locations. </span>
                 : isEmpty
                     ? 'No work locations configured. '
                     : null}
@@ -1186,7 +1158,7 @@ const WorkLocationFieldHelp: React.FC<{
                     <button
                         type="button"
                         onClick={onQuickAdd}
-                        className="text-teal-400 hover:text-teal-300 underline"
+                        className="text-primary hover:text-primary underline"
                     >
                         + New Location
                     </button>
@@ -1196,7 +1168,7 @@ const WorkLocationFieldHelp: React.FC<{
             <button
                 type="button"
                 onClick={() => (isDirty ? setConfirmingLeave(true) : go())}
-                className="text-teal-400 hover:text-teal-300 underline"
+                className="text-primary hover:text-primary underline"
             >
                 Manage Work Locations
             </button>
@@ -1216,15 +1188,15 @@ const Section: React.FC<{
 }> = ({ title, defaultOpen = false, children }) => {
     const [open, setOpen] = useState(defaultOpen);
     return (
-        <div className="border border-slate-800 rounded-lg">
+        <div className="border border-line rounded-nb">
             <button
                 type="button"
                 onClick={() => setOpen(o => !o)}
                 aria-expanded={open}
                 className="w-full flex items-center justify-between px-4 py-3 text-left"
             >
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</span>
-                <ChevronDown size={14} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+                <span className="text-xs font-semibold text-fg-muted uppercase tracking-wider">{title}</span>
+                <ChevronDown size={14} className={`text-fg-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && <div className="px-4 pb-4 space-y-5">{children}</div>}
         </div>
@@ -1262,7 +1234,7 @@ const QuickAddLocationPanel: React.FC<{
     return (
         <form id="quick-add-location-form" onSubmit={handleSubmit} className="space-y-4">
             <div>
-                <label htmlFor="quick-location-name" className="block text-xs text-slate-400 mb-1">Name <span className="text-red-400">*</span></label>
+                <label htmlFor="quick-location-name" className="block text-xs text-fg-muted mb-1">Name <span className="text-danger">*</span></label>
                 <input
                     id="quick-location-name"
                     autoFocus
@@ -1270,24 +1242,14 @@ const QuickAddLocationPanel: React.FC<{
                     value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="e.g. Main Factory, Head Office"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                    className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
                 />
             </div>
             <div>
-                <label htmlFor="quick-location-type" className="block text-xs text-slate-400 mb-1">Type</label>
-                <select
-                    id="quick-location-type"
-                    value={locationType}
-                    onChange={e => setLocationType(e.target.value as typeof locationType)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="office">Office</option>
-                    <option value="factory">Factory</option>
-                    <option value="store">Store</option>
-                    <option value="remote">Remote</option>
-                </select>
+                <label htmlFor="quick-location-type" className="block text-xs text-fg-muted mb-1">Type</label>
+                <Select name="quick-location-type" id="quick-location-type" value={locationType} onChange={e => setLocationType(e.target.value as typeof locationType)} options={[{ value: "office", label: "Office" }, { value: "factory", label: "Factory" }, { value: "store", label: "Store" }, { value: "remote", label: "Remote" }]} />
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-fg-subtle">
                 Address and status can be set later from Work Locations.
             </p>
         </form>
@@ -1556,7 +1518,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                     <div className="flex justify-end gap-3">
                         <button
                             type="button" onClick={onClose}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                         >
                             Cancel
                         </button>
@@ -1565,7 +1527,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             form="create-person-form"
                             disabled={!isFormValid}
                             title={isFormValid ? undefined : 'Complete all required fields with valid values.'}
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Add Person
                         </button>
@@ -1574,14 +1536,14 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                     <div className="flex justify-end gap-3">
                         <button
                             type="button" onClick={() => setView('form')}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                         >
                             Back
                         </button>
                         <button
                             type="submit"
                             form="quick-add-location-form"
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                         >
                             Add Location
                         </button>
@@ -1597,36 +1559,36 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
             <form ref={formRef} id="create-person-form" onSubmit={handleSubmit} noValidate className={`space-y-5 ${view === 'newLocation' ? 'hidden' : ''}`}>
                 {/* Basic Info */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Identity</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Identity</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
-                            <label htmlFor="person-full-name" className="block text-xs text-slate-400 mb-1">Full Name *</label>
+                            <label htmlFor="person-full-name" className="block text-xs text-fg-muted mb-1">Full Name *</label>
                             <input
                                 id="person-full-name"
                                 data-field="full_name"
                                 type="text" value={formData.full_name}
                                 onChange={(e) => updateField('full_name', e.target.value)}
                                 aria-invalid={!!errors.full_name}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.full_name ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.full_name ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                                 placeholder="John Doe"
                             />
-                            {errors.full_name && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.full_name}</p>}
+                            {errors.full_name && <p role="alert" className="mt-1 text-xs text-danger">{errors.full_name}</p>}
                         </div>
                         <div>
-                            <label htmlFor="person-email" className="block text-xs text-slate-400 mb-1">Email</label>
+                            <label htmlFor="person-email" className="block text-xs text-fg-muted mb-1">Email</label>
                             <input
                                 id="person-email"
                                 data-field="email"
                                 type="text" value={formData.email || ''}
                                 onChange={(e) => updateField('email', e.target.value)}
                                 aria-invalid={!!errors.email}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.email ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.email ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                                 placeholder="john@company.com"
                             />
-                            {errors.email && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.email}</p>}
+                            {errors.email && <p role="alert" className="mt-1 text-xs text-danger">{errors.email}</p>}
                         </div>
                         <div>
-                            <label htmlFor="person-phone" className="block text-xs text-slate-400 mb-1">Phone</label>
+                            <label htmlFor="person-phone" className="block text-xs text-fg-muted mb-1">Phone</label>
                             <input
                                 id="person-phone"
                                 data-field="phone"
@@ -1634,10 +1596,10 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))}
                                 maxLength={20}
                                 aria-invalid={!!errors.phone}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.phone ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                                 placeholder="+1-555-0100"
                             />
-                            {errors.phone && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
+                            {errors.phone && <p role="alert" className="mt-1 text-xs text-danger">{errors.phone}</p>}
                         </div>
                     </div>
                 </div>
@@ -1647,45 +1609,35 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                     cost/availability numbers live behind the sections below
                     (progressive disclosure), all pre-filled with sensible defaults. */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Classification</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Classification</h4>
                     <div className="grid grid-cols-3 gap-4">
                         {/* The single classification input. Employee vs Contractor is
                             derived from it (see utils/personType) — there is no separate
                             Type field that could contradict it. */}
                         <div>
-                            <label htmlFor="create-employment-type" className="block text-xs text-slate-400 mb-1">Employment Type</label>
-                            <select
-                                id="create-employment-type"
-                                value={(formData as any).employment_type || ''}
-                                onChange={(e) => updateField('employment_type', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Employment Type</option>
-                                {employmentTypes.map(et => (
-                                    <option key={et.id} value={et.code}>{et.name}</option>
-                                ))}
-                            </select>
+                            <label htmlFor="create-employment-type" className="block text-xs text-fg-muted mb-1">Employment Type</label>
+                            <Select name="create-employment-type" id="create-employment-type" value={(formData as any).employment_type || ''} onChange={(e) => updateField('employment_type', e.target.value || undefined)} options={[{ value: "", label: "Select Employment Type" }, ...employmentTypes.map((et) => ({ value: et.code, label: et.name }))]} />
                             {employmentTypesError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load employment types. Try reopening this form.</p>
+                                <p className="text-xs text-danger mt-1">Couldn't load employment types. Try reopening this form.</p>
                             ) : employmentTypes.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
+                                <p className="text-xs text-fg-subtle mt-1">
                                     No employment types configured.{' '}
                                     <button
                                         type="button"
                                         onClick={() => { markEmploymentTypesPending(); window.open(employmentTypesHref, '_blank', 'noopener'); }}
-                                        className="text-teal-400 hover:text-teal-300 underline"
+                                        className="text-primary hover:text-primary underline"
                                     >
                                         Create Employment Type
                                     </button>
                                 </p>
                             ) : (
-                                <p className="text-xs text-slate-500 mt-1" data-testid="derived-person-type">
+                                <p className="text-xs text-fg-subtle mt-1" data-testid="derived-person-type">
                                     Recorded as {personTypeLabel(personTypeForEmploymentType((formData as any).employment_type))}
                                 </p>
                             )}
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Department</label>
+                            <label className="block text-xs text-fg-muted mb-1">Department</label>
                             <DepartmentSelector
                                 value={formData.department_id || ''}
                                 onChange={(id) => updateField('department_id', id || undefined)}
@@ -1694,17 +1646,8 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Work Location</label>
-                            <select
-                                value={(formData as any).work_location_id || ''}
-                                onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Work Location</option>
-                                {workLocations.map(loc => (
-                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                ))}
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Work Location</label>
+                            <Select name="people-select-64" value={(formData as any).work_location_id || ''} onChange={(e) => updateField('work_location_id', e.target.value || undefined)} options={[{ value: "", label: "Select Work Location" }, ...workLocations.map((loc) => ({ value: loc.id, label: loc.name }))]} />
                             {/* The manage link is unconditional. It used to render only
                                 when zero locations existed, so it vanished the moment the
                                 first one was created — leaving no route to the management
@@ -1723,26 +1666,17 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                 <Section title="Employment Details">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Job Title (Designation)</label>
-                            <select
-                                value={formData.job_title || ''}
-                                onChange={(e) => updateField('job_title', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Designation</option>
-                                {designations.map(d => (
-                                    <option key={d.id} value={d.name}>{d.name}</option>
-                                ))}
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Job Title (Designation)</label>
+                            <Select name="people-select-65" value={formData.job_title || ''} onChange={(e) => updateField('job_title', e.target.value || undefined)} options={[{ value: "", label: "Select Designation" }, ...designations.map((d) => ({ value: d.name, label: d.name }))]} />
                             {designationsError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load designations. Try reopening this form.</p>
+                                <p className="text-xs text-danger mt-1">Couldn't load designations. Try reopening this form.</p>
                             ) : designations.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
+                                <p className="text-xs text-fg-subtle mt-1">
                                     No designations configured.{' '}
                                     <button
                                         type="button"
                                         onClick={() => navigate('/people/settings/designations')}
-                                        className="text-teal-400 hover:text-teal-300 underline"
+                                        className="text-primary hover:text-primary underline"
                                     >
                                         Create Designation
                                     </button>
@@ -1769,43 +1703,28 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                 <Section title="Cost & Billing">
                     <div className="grid grid-cols-4 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Cost Rate *</label>
+                            <label className="block text-xs text-fg-muted mb-1">Cost Rate *</label>
                             <input
                                 type="number" min="0" step="0.01" value={formData.cost_rate}
                                 onChange={(e) => updateField('cost_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Rate Unit</label>
-                            <select
-                                value={formData.cost_rate_unit}
-                                onChange={(e) => updateField('cost_rate_unit', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="hour">Per Hour</option>
-                                <option value="day">Per Day</option>
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Rate Unit</label>
+                            <Select name="people-select-66" value={formData.cost_rate_unit} onChange={(e) => updateField('cost_rate_unit', e.target.value)} options={[{ value: "hour", label: "Per Hour" }, { value: "day", label: "Per Day" }]} />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Billing Rate</label>
+                            <label className="block text-xs text-fg-muted mb-1">Billing Rate</label>
                             <input
                                 type="number" min="0" step="0.01" value={formData.billing_rate || 0}
                                 onChange={(e) => updateField('billing_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Currency</label>
-                            <select
-                                value={formData.currency}
-                                onChange={(e) => updateField('currency', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                {currencies.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Currency</label>
+                            <Select name="people-select-67" value={formData.currency} onChange={(e) => updateField('currency', e.target.value)} options={[...currencies.map((c) => ({ value: c, label: c }))]} />
                         </div>
                     </div>
                 </Section>
@@ -1814,27 +1733,27 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                 <Section title="Availability">
                     <div className="grid grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Hours/Day</label>
+                            <label className="block text-xs text-fg-muted mb-1">Hours/Day</label>
                             <input
                                 type="number" min="1" max="24" value={formData.available_hours_per_day}
                                 onChange={(e) => updateField('available_hours_per_day', parseFloat(e.target.value) || 8)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Days/Week</label>
+                            <label className="block text-xs text-fg-muted mb-1">Days/Week</label>
                             <input
                                 type="number" min="1" max="7" value={formData.available_days_per_week}
                                 onChange={(e) => updateField('available_days_per_week', parseInt(e.target.value) || 5)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Start Date</label>
+                            <label className="block text-xs text-fg-muted mb-1">Start Date</label>
                             <input
                                 type="date" value={formData.start_date || ''}
                                 onChange={(e) => updateField('start_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                     </div>
@@ -1850,37 +1769,37 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
 
                 {/* User Linkage */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">
                         User Account Linkage
                     </h4>
                     <div className="space-y-3">
-                        <label className="flex items-center gap-2 p-3 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:border-teal-500">
+                        <label className="flex items-center gap-2 p-3 bg-surface-raised border border-line-strong rounded-nb cursor-pointer hover:border-primary">
                             <input
                                 type="radio"
                                 name="userLinkage"
                                 value="none"
                                 checked={formData.userLinkageMode === 'none'}
                                 onChange={() => updateField('userLinkageMode', 'none')}
-                                className="text-teal-500 focus:ring-teal-500"
+                                className="text-primary focus:ring-primary"
                             />
                             <div>
-                                <div className="text-sm font-medium text-slate-50">Employee Only (No System Access)</div>
-                                <div className="text-xs text-slate-500">Person will not have access to Neonbee</div>
+                                <div className="text-sm font-medium text-fg">Employee Only (No System Access)</div>
+                                <div className="text-xs text-fg-subtle">Person will not have access to Neonbee</div>
                             </div>
                         </label>
 
-                        <label className="flex items-center gap-2 p-3 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:border-teal-500">
+                        <label className="flex items-center gap-2 p-3 bg-surface-raised border border-line-strong rounded-nb cursor-pointer hover:border-primary">
                             <input
                                 type="radio"
                                 name="userLinkage"
                                 value="link"
                                 checked={formData.userLinkageMode === 'link'}
                                 onChange={() => updateField('userLinkageMode', 'link')}
-                                className="text-teal-500 focus:ring-teal-500"
+                                className="text-primary focus:ring-primary"
                             />
                             <div className="flex-1">
-                                <div className="text-sm font-medium text-slate-50">Link to Existing User</div>
-                                <div className="text-xs text-slate-500 mb-2">Select an existing user account to link</div>
+                                <div className="text-sm font-medium text-fg">Link to Existing User</div>
+                                <div className="text-xs text-fg-subtle mb-2">Select an existing user account to link</div>
                                 {formData.userLinkageMode === 'link' && (
                                     <div data-field="existingUserId" tabIndex={-1}>
                                         <UserSelector
@@ -1890,24 +1809,24 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                             tenantId={tenantId}
                                             placeholder="Select user..."
                                         />
-                                        {errors.existingUserId && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.existingUserId}</p>}
+                                        {errors.existingUserId && <p role="alert" className="mt-1 text-xs text-danger">{errors.existingUserId}</p>}
                                     </div>
                                 )}
                             </div>
                         </label>
 
-                        <label className="flex items-center gap-2 p-3 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:border-teal-500">
+                        <label className="flex items-center gap-2 p-3 bg-surface-raised border border-line-strong rounded-nb cursor-pointer hover:border-primary">
                             <input
                                 type="radio"
                                 name="userLinkage"
                                 value="invite"
                                 checked={formData.userLinkageMode === 'invite'}
                                 onChange={() => updateField('userLinkageMode', 'invite')}
-                                className="text-teal-500 focus:ring-teal-500"
+                                className="text-primary focus:ring-primary"
                             />
                             <div className="flex-1">
-                                <div className="text-sm font-medium text-slate-50">Invite as New User (Recommended)</div>
-                                <div className="text-xs text-slate-500 mb-2">Send invitation email to create user account</div>
+                                <div className="text-sm font-medium text-fg">Invite as New User (Recommended)</div>
+                                <div className="text-xs text-fg-subtle mb-2">Send invitation email to create user account</div>
                                 {formData.userLinkageMode === 'invite' && (
                                     <div className="space-y-2">
                                         {/* Read-only mirror of the Identity email — the single source of
@@ -1925,13 +1844,13 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                             aria-readonly="true"
                                             value={formData.email || ''}
                                             aria-invalid={!!errors.inviteEmail}
-                                            className={`w-full px-3 py-2 bg-slate-900 border rounded-lg text-sm text-slate-400 cursor-not-allowed focus:outline-none ${errors.inviteEmail ? 'border-rose-500' : 'border-slate-700'}`}
+                                            className={`w-full px-3 py-2 bg-surface border rounded-lg text-sm text-fg-muted cursor-not-allowed focus:outline-none ${errors.inviteEmail ? 'border-danger' : 'border-line-strong'}`}
                                             placeholder="Email for invitation"
                                         />
                                         {errors.inviteEmail
-                                            ? <p role="alert" className="text-xs text-rose-400">{errors.inviteEmail}</p>
-                                            : <p className="text-xs text-slate-500">
-                                                The invitation will be emailed to <span className="text-slate-300">{formData.email}</span>. To change it, edit the Email field in the Identity section.
+                                            ? <p role="alert" className="text-xs text-danger">{errors.inviteEmail}</p>
+                                            : <p className="text-xs text-fg-subtle">
+                                                The invitation will be emailed to <span className="text-fg">{formData.email}</span>. To change it, edit the Email field in the Identity section.
                                             </p>}
                                         <select
                                             data-field="inviteRole"
@@ -1939,20 +1858,20 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                             value={formData.inviteRole || ''}
                                             onChange={(e) => updateField('inviteRole', e.target.value)}
                                             aria-invalid={!!errors.inviteRole}
-                                            className={`w-full px-3 py-2 bg-slate-900 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.inviteRole ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                            className={`w-full px-3 py-2 bg-surface border rounded-lg text-sm text-fg focus:outline-none ${errors.inviteRole ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                                         >
                                             <option value="">Select role...</option>
                                             {orgRoles.map(role => (
                                                 <option key={role.id} value={role.id}>{role.name}</option>
                                             ))}
                                         </select>
-                                        {errors.inviteRole && <p role="alert" className="text-xs text-rose-400">{errors.inviteRole}</p>}
-                                        <label className="flex items-center gap-2 text-xs text-slate-400">
+                                        {errors.inviteRole && <p role="alert" className="text-xs text-danger">{errors.inviteRole}</p>}
+                                        <label className="flex items-center gap-2 text-xs text-fg-muted">
                                             <input
                                                 type="checkbox"
                                                 checked={formData.sendInviteEmail !== false}
                                                 onChange={(e) => updateField('sendInviteEmail', e.target.checked)}
-                                                className="text-teal-500 focus:ring-teal-500"
+                                                className="text-primary focus:ring-primary"
                                             />
                                             Send invitation email immediately
                                         </label>
@@ -1965,7 +1884,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
 
                 {/* Validation summary — visible wherever the user has scrolled to. */}
                 {errorCount > 1 && (
-                    <div role="alert" className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-400">
+                    <div role="alert" className="px-3 py-2 bg-danger/10 border border-danger/30 rounded-nb text-sm text-danger">
                         {errorCount} fields need attention before this person can be added.
                     </div>
                 )}
@@ -1992,30 +1911,30 @@ interface ConfirmDialogProps {
 }
 
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ title, message, detail, confirmLabel, danger, busy, onCancel, onConfirm }) => (
-    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div className="bg-slate-900 border border-slate-700/50 rounded-lg shadow-2xl w-full max-w-md p-6">
-            <h2 className="text-xl font-semibold text-slate-100 mb-2">{title}</h2>
-            <p className="text-slate-400 mb-6">{message}</p>
+    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
+        <div className="bg-surface border border-line-strong/50 rounded-nb shadow-2xl w-full max-w-md p-6">
+            <h2 className="text-xl font-semibold text-fg mb-2">{title}</h2>
+            <p className="text-fg-muted mb-6">{message}</p>
             {detail && (
                 <details className="-mt-4 mb-6">
-                    <summary className="text-sm text-slate-500 hover:text-slate-300 cursor-pointer select-none">
+                    <summary className="text-sm text-fg-subtle hover:text-fg cursor-pointer select-none">
                         What happens?
                     </summary>
-                    <p className="text-sm text-slate-500 mt-2">{detail}</p>
+                    <p className="text-sm text-fg-subtle mt-2">{detail}</p>
                 </details>
             )}
             <div className="flex justify-end gap-3">
                 <button
                     onClick={onCancel}
                     disabled={busy}
-                    className="px-4 py-2 text-slate-300 hover:text-slate-50 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-fg hover:text-fg transition-colors disabled:opacity-50"
                 >
                     Cancel
                 </button>
                 <button
                     onClick={onConfirm}
                     disabled={busy}
-                    className={`px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-70 ${danger ? 'bg-red-600 hover:bg-red-700 disabled:bg-red-800' : 'bg-teal-600 hover:bg-teal-500 disabled:bg-teal-800'}`}
+                    className={`px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-70 ${danger ? 'bg-danger hover:bg-danger-hover disabled:bg-danger-container' : 'bg-primary hover:bg-primary-hover disabled:bg-primary-container'}`}
                 >
                     {busy && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
                     {confirmLabel}
@@ -2224,14 +2143,14 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                     <div className="flex justify-end gap-3">
                         <button
                             type="button" onClick={onClose} disabled={busy}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50"
+                            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit" form="edit-person-form" disabled={busy || !isFormValid}
                             title={isFormValid ? undefined : 'Fix the highlighted fields before saving.'}
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                            className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-70 text-primary-fg text-sm font-medium rounded-nb transition-colors flex items-center gap-2"
                         >
                             {busy && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
                             Save Changes
@@ -2241,14 +2160,14 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                     <div className="flex justify-end gap-3">
                         <button
                             type="button" onClick={() => setEditView('form')}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                         >
                             Back
                         </button>
                         <button
                             type="submit"
                             form="quick-add-location-form"
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                         >
                             Add Location
                         </button>
@@ -2259,34 +2178,34 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
             {editView === 'newLocation' && <QuickAddLocationPanel onCreated={handleEditLocationCreated} />}
             <form ref={formRef} id="edit-person-form" onSubmit={handleSubmit} noValidate className={`space-y-5 ${editView === 'newLocation' ? 'hidden' : ''}`}>
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Identity</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Identity</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
-                            <label htmlFor="edit-person-full-name" className="block text-xs text-slate-400 mb-1">Full Name *</label>
+                            <label htmlFor="edit-person-full-name" className="block text-xs text-fg-muted mb-1">Full Name *</label>
                             <input
                                 id="edit-person-full-name"
                                 data-field="full_name"
                                 type="text" value={formData.full_name || ''}
                                 onChange={(e) => updateField('full_name', e.target.value)}
                                 aria-invalid={!!errors.full_name}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.full_name ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.full_name ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                             />
-                            {errors.full_name && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.full_name}</p>}
+                            {errors.full_name && <p role="alert" className="mt-1 text-xs text-danger">{errors.full_name}</p>}
                         </div>
                         <div>
-                            <label htmlFor="edit-person-email" className="block text-xs text-slate-400 mb-1">Email</label>
+                            <label htmlFor="edit-person-email" className="block text-xs text-fg-muted mb-1">Email</label>
                             <input
                                 id="edit-person-email"
                                 data-field="email"
                                 type="text" value={formData.email || ''}
                                 onChange={(e) => updateField('email', e.target.value)}
                                 aria-invalid={!!errors.email}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.email ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.email ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                             />
-                            {errors.email && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.email}</p>}
+                            {errors.email && <p role="alert" className="mt-1 text-xs text-danger">{errors.email}</p>}
                         </div>
                         <div>
-                            <label htmlFor="edit-person-phone" className="block text-xs text-slate-400 mb-1">Phone</label>
+                            <label htmlFor="edit-person-phone" className="block text-xs text-fg-muted mb-1">Phone</label>
                             <input
                                 id="edit-person-phone"
                                 data-field="phone"
@@ -2294,63 +2213,53 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                 onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))}
                                 maxLength={20}
                                 aria-invalid={!!errors.phone}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.phone ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                             />
-                            {errors.phone && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
+                            {errors.phone && <p role="alert" className="mt-1 text-xs text-danger">{errors.phone}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Employee ID</label>
+                            <label className="block text-xs text-fg-muted mb-1">Employee ID</label>
                             <input
                                 type="text" value={formData.employee_id || ''}
                                 onChange={(e) => updateField('employee_id', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                     </div>
                 </div>
 
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Classification</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Classification</h4>
                     <div className="grid grid-cols-3 gap-4">
                         <div>
-                            <label htmlFor="edit-employment-type" className="block text-xs text-slate-400 mb-1">Employment Type</label>
-                            <select
-                                id="edit-employment-type"
-                                value={formData.employment_type || ''}
-                                onChange={(e) => updateField('employment_type', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Not set</option>
-                                {employmentTypes.map(et => (
-                                    <option key={et.id} value={et.code}>{et.name}</option>
-                                ))}
-                            </select>
+                            <label htmlFor="edit-employment-type" className="block text-xs text-fg-muted mb-1">Employment Type</label>
+                            <Select name="edit-employment-type" id="edit-employment-type" value={formData.employment_type || ''} onChange={(e) => updateField('employment_type', e.target.value || undefined)} options={[{ value: "", label: "Not set" }, ...employmentTypes.map((et) => ({ value: et.code, label: et.name }))]} />
                             {employmentTypesError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load employment types. Try reopening this form.</p>
+                                <p className="text-xs text-danger mt-1">Couldn't load employment types. Try reopening this form.</p>
                             ) : employmentTypes.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
+                                <p className="text-xs text-fg-subtle mt-1">
                                     No employment types configured.{' '}
                                     <button
                                         type="button"
                                         onClick={() => { markEmploymentTypesPending(); window.open(employmentTypesHref, '_blank', 'noopener'); }}
-                                        className="text-teal-400 hover:text-teal-300 underline"
+                                        className="text-primary hover:text-primary underline"
                                     >
                                         Create Employment Type
                                     </button>
                                 </p>
                             ) : (
-                                <p className="text-xs text-slate-500 mt-1" data-testid="derived-person-type">
+                                <p className="text-xs text-fg-subtle mt-1" data-testid="derived-person-type">
                                     Recorded as {personTypeLabel(person ? (typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) ?? person.type) : personTypeForEmploymentType(formData.employment_type))}
                                 </p>
                             )}
                             {person && typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) && (
-                                <p role="status" className="text-xs text-amber-400 mt-1" data-testid="person-type-change-notice">
+                                <p role="status" className="text-xs text-warning mt-1" data-testid="person-type-change-notice">
                                     Saving will change this person's type from {personTypeLabel(person.type)} to {personTypeLabel(typeToSendOnEdit(person.employment_type, formData.employment_type, person.type)!)}.
                                 </p>
                             )}
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Department</label>
+                            <label className="block text-xs text-fg-muted mb-1">Department</label>
                             <DepartmentSelector
                                 value={formData.department_id || ''}
                                 onChange={(id) => updateField('department_id', id || undefined)}
@@ -2359,26 +2268,17 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Job Title (Designation)</label>
-                            <select
-                                value={formData.job_title || ''}
-                                onChange={(e) => updateField('job_title', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Designation</option>
-                                {designations.map(d => (
-                                    <option key={d.id} value={d.name}>{d.name}</option>
-                                ))}
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Job Title (Designation)</label>
+                            <Select name="people-select-70" value={formData.job_title || ''} onChange={(e) => updateField('job_title', e.target.value || undefined)} options={[{ value: "", label: "Select Designation" }, ...designations.map((d) => ({ value: d.name, label: d.name }))]} />
                             {designationsError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load designations. Try reopening this form.</p>
+                                <p className="text-xs text-danger mt-1">Couldn't load designations. Try reopening this form.</p>
                             ) : designations.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
+                                <p className="text-xs text-fg-subtle mt-1">
                                     No designations configured.{' '}
                                     <button
                                         type="button"
                                         onClick={() => navigate('/people/settings/designations')}
-                                        className="text-teal-400 hover:text-teal-300 underline"
+                                        className="text-primary hover:text-primary underline"
                                     >
                                         Create Designation
                                     </button>
@@ -2386,11 +2286,11 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                             ) : null}
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Work Location</label>
+                            <label className="block text-xs text-fg-muted mb-1">Work Location</label>
                             <select
                                 value={formData.work_location_id || ''}
                                 onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             >
                                 <option value="">Select Work Location</option>
                                 {/* The dropdown only lists active locations, so an existing
@@ -2419,64 +2319,49 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Joining Date</label>
+                            <label className="block text-xs text-fg-muted mb-1">Joining Date</label>
                             <input
                                 type="date" value={formData.start_date ? formData.start_date.slice(0, 10) : ''}
                                 onChange={(e) => updateField('start_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                     </div>
                 </div>
 
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Cost & Billing</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Cost & Billing</h4>
                     <div className="grid grid-cols-4 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Cost Rate</label>
+                            <label className="block text-xs text-fg-muted mb-1">Cost Rate</label>
                             <input
                                 type="number" min="0" step="0.01" value={formData.cost_rate ?? 0}
                                 onChange={(e) => updateField('cost_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Rate Unit</label>
-                            <select
-                                value={formData.cost_rate_unit || 'hour'}
-                                onChange={(e) => updateField('cost_rate_unit', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="hour">Per Hour</option>
-                                <option value="day">Per Day</option>
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Rate Unit</label>
+                            <Select name="people-select-72" value={formData.cost_rate_unit || 'hour'} onChange={(e) => updateField('cost_rate_unit', e.target.value)} options={[{ value: "hour", label: "Per Hour" }, { value: "day", label: "Per Day" }]} />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Billing Rate</label>
+                            <label className="block text-xs text-fg-muted mb-1">Billing Rate</label>
                             <input
                                 type="number" min="0" step="0.01" value={formData.billing_rate ?? 0}
                                 onChange={(e) => updateField('billing_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Currency</label>
-                            <select
-                                value={formData.currency || currencies[0]}
-                                onChange={(e) => updateField('currency', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                {currencies.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Currency</label>
+                            <Select name="people-select-73" value={formData.currency || currencies[0]} onChange={(e) => updateField('currency', e.target.value)} options={[...currencies.map((c) => ({ value: c, label: c }))]} />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Hours/Day</label>
+                            <label className="block text-xs text-fg-muted mb-1">Hours/Day</label>
                             <input
                                 type="number" min="1" max="24" value={formData.available_hours_per_day ?? 8}
                                 onChange={(e) => updateField('available_hours_per_day', parseFloat(e.target.value) || 8)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                     </div>
@@ -2487,13 +2372,13 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                     <button
                         type="button"
                         onClick={() => setShowCosting((v) => !v)}
-                        className="mt-4 flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300"
+                        className="mt-4 flex items-center gap-1.5 text-xs text-primary hover:text-primary"
                         aria-expanded={showCosting}
                     >
                         {showCosting ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         Timesheet &amp; costing defaults
                         {missingCostingCount > 0 && (
-                            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px] font-semibold">
+                            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-warning/15 text-warning text-[10px] font-semibold">
                                 {missingCostingCount} missing
                             </span>
                         )}
@@ -2502,51 +2387,29 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                     {showCosting && (
                         <div className="mt-3 grid grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Default Labor Category</label>
-                                <select
-                                    value={formData.default_labor_category_id || ''}
-                                    onChange={(e) => updateField('default_labor_category_id', e.target.value || null)}
-                                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                                    aria-label="Default Labor Category"
-                                >
-                                    <option value="">Not set</option>
-                                    {laborCategories.map((c) => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name}{c.rate_configured ? '' : ' (no rate)'}
-                                        </option>
-                                    ))}
-                                </select>
+                                <label className="block text-xs text-fg-muted mb-1">Default Labor Category</label>
+                                <Select name="people-select-74" value={formData.default_labor_category_id || ''} onChange={(e) => updateField('default_labor_category_id', e.target.value || null)} aria-label="Default Labor Category" options={[{ value: "", label: "Not set" }, ...laborCategories.map((c) => ({ value: c.id, label: `${c.name}${c.rate_configured ? '' : ' (no rate)'}` }))]} />
                                 {laborCategories.length === 0 && (
-                                    <p className="mt-1 text-xs text-slate-500">
+                                    <p className="mt-1 text-xs text-fg-subtle">
                                         No labor categories configured. The employee&apos;s own cost rate will be used.
                                     </p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Billing Type</label>
-                                <select
-                                    value={formData.billing_type || ''}
-                                    onChange={(e) => updateField('billing_type', e.target.value || null)}
-                                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                                    aria-label="Billing Type"
-                                >
-                                    <option value="">Not set</option>
-                                    <option value="billable">Billable</option>
-                                    <option value="non_billable">Non-billable</option>
-                                    <option value="internal">Internal</option>
-                                </select>
+                                <label className="block text-xs text-fg-muted mb-1">Billing Type</label>
+                                <Select name="people-select-75" value={formData.billing_type || ''} onChange={(e) => updateField('billing_type', e.target.value || null)} aria-label="Billing Type" options={[{ value: "", label: "Not set" }, { value: "billable", label: "Billable" }, { value: "non_billable", label: "Non-billable" }, { value: "internal", label: "Internal" }]} />
                             </div>
 
                             {/* Read-only: cost centres are owned by Accounting and inherited
                                 via the employee's department. Editing them here would fork
                                 the org's chart of cost centres. */}
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Cost Center</label>
-                                <div className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-400">
+                                <label className="block text-xs text-fg-muted mb-1">Cost Center</label>
+                                <div className="w-full px-3 py-2 bg-surface border border-line rounded-nb text-sm text-fg-muted">
                                     {resolvedCostCenter || 'Inherited from department — not set'}
                                 </div>
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-fg-subtle">
                                     Set on the department, not the employee.
                                 </p>
                             </div>
@@ -2562,7 +2425,7 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                     loadError={customFieldsError}
                 />
 
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-fg-subtle">
                     Role &amp; System Permissions are managed from the employee's detail page.
                 </p>
             </form>

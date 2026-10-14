@@ -90,7 +90,7 @@ export default function DepartmentSelector({
   return (
     <div ref={containerRef} className={`relative ${className || ''}`}>
       <div
-        className="flex items-center w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 cursor-pointer focus-within:border-teal-500"
+        className="flex items-center w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg cursor-pointer focus-within:border-primary"
         onClick={() => {
           setOpen(!open);
           if (!open) setTimeout(() => inputRef.current?.focus(), 0);
@@ -102,11 +102,11 @@ export default function DepartmentSelector({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={selectedDept ? selectedDept.name : placeholder}
-            className="flex-1 bg-transparent outline-none text-sm text-slate-50 placeholder-slate-400"
+            className="flex-1 bg-transparent outline-none text-sm text-fg placeholder-slate-400"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className={`flex-1 truncate ${selectedDept ? 'text-slate-50' : 'text-slate-400'}`}>
+          <span className={`flex-1 truncate ${selectedDept ? 'text-fg' : 'text-fg-muted'}`}>
             {selectedDept ? selectedDept.name : placeholder}
           </span>
         )}
@@ -117,41 +117,41 @@ export default function DepartmentSelector({
               e.stopPropagation();
               onChange(null);
             }}
-            className="ml-2 text-slate-400 hover:text-slate-50"
+            className="ml-2 text-fg-muted hover:text-fg"
           >
             &times;
           </button>
         ) : (
-          <svg className="ml-2 w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="ml-2 w-4 h-4 text-fg-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
           </svg>
         )}
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-surface-raised border border-line-strong rounded-nb shadow-lg">
           {loading ? (
-            <div className="px-3 py-2 text-sm text-slate-400">Loading...</div>
+            <div className="px-3 py-2 text-sm text-fg-muted">Loading...</div>
           ) : filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-slate-400">No departments found</div>
+            <div className="px-3 py-2 text-sm text-fg-muted">No departments found</div>
           ) : (
             filtered.map((dept) => (
               <button
                 key={dept.id}
                 type="button"
                 onClick={() => handleSelect(dept.id)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700 flex items-center ${
-                  dept.id === value ? 'bg-slate-700/50 text-teal-400' : 'text-slate-50'
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-line flex items-center ${
+                  dept.id === value ? 'bg-line/50 text-primary' : 'text-fg'
                 }`}
               >
                 {dept.depth > 0 && (
-                  <span className="text-slate-500 mr-1" style={{ paddingLeft: `${dept.depth * 12}px` }}>
+                  <span className="text-fg-subtle mr-1" style={{ paddingLeft: `${dept.depth * 12}px` }}>
                     {'└'}
                   </span>
                 )}
                 <span className="truncate">{dept.name}</span>
                 {dept.code && (
-                  <span className="ml-auto text-xs text-slate-500 shrink-0">{dept.code}</span>
+                  <span className="ml-auto text-xs text-fg-subtle shrink-0">{dept.code}</span>
                 )}
               </button>
             ))

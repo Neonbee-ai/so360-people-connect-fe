@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Save } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import FieldTooltip from '../FieldTooltip';
 import { payrollApi, PayrollSettings } from '../../../services/payrollApi';
 
-const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
-const labelCls = 'block text-xs text-slate-400 mb-1';
+const inputCls = 'w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
+const labelCls = 'block text-xs text-fg-muted mb-1';
 
 const SettingsTab: React.FC = () => {
     const { settings: businessSettings } = useBusinessSettings();
@@ -38,14 +38,14 @@ const SettingsTab: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />;
-    if (!settings) return <p className="text-sm text-slate-400">Payroll settings are not available yet.</p>;
+    if (loading) return <div className="h-64 bg-surface-raised/50 rounded-nb animate-pulse" />;
+    if (!settings) return <p className="text-sm text-fg-muted">Payroll settings are not available yet.</p>;
 
     return (
         <div className="space-y-5 max-w-2xl">
-            <div className="px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-400">
+            <div className="px-4 py-3 bg-surface-raised/50 border border-line-strong rounded-nb text-xs text-fg-muted">
                 Organization currency, timezone and working days come from your organization's
-                Business Settings (currency: <span className="text-slate-200 font-medium">{businessSettings?.base_currency || '—'}</span>)
+                Business Settings (currency: <span className="text-fg font-medium">{businessSettings?.base_currency || '—'}</span>)
                 and cannot be changed here.
             </div>
 
@@ -55,28 +55,16 @@ const SettingsTab: React.FC = () => {
                         Pay Frequency
                         <FieldTooltip text="How often employees are paid. v1 supports monthly payroll." />
                     </label>
-                    <select value={settings.pay_frequency} onChange={e => update('pay_frequency', e.target.value)} className={inputCls}>
-                        <option value="monthly">Monthly</option>
-                        <option value="semi_monthly" disabled>Semi-monthly (coming soon)</option>
-                        <option value="bi_weekly" disabled>Bi-weekly (coming soon)</option>
-                        <option value="weekly" disabled>Weekly (coming soon)</option>
-                    </select>
+                    <Select name="settingstab-select-19" value={settings.pay_frequency} onChange={e => update('pay_frequency', e.target.value)} options={[{ value: "monthly", label: "Monthly" }, { value: "semi_monthly", label: "Semi-monthly (coming soon)", disabled: true }, { value: "bi_weekly", label: "Bi-weekly (coming soon)", disabled: true }, { value: "weekly", label: "Weekly (coming soon)", disabled: true }]} />
                 </div>
                 <div>
                     <label className={labelCls}>
                         Pay Day Rule
                         <FieldTooltip text="The day of the month salaries are paid. 'Last working day' skips weekends and holidays." />
                     </label>
-                    <select
-                        value={settings.pay_day_rule?.type || 'last_working_day'}
-                        onChange={e => update('pay_day_rule', e.target.value === 'fixed_day'
+                    <Select name="settingstab-select-20" value={settings.pay_day_rule?.type || 'last_working_day'} onChange={e => update('pay_day_rule', e.target.value === 'fixed_day'
                             ? { type: 'fixed_day', day: settings.pay_day_rule?.day || 28 }
-                            : { type: 'last_working_day' })}
-                        className={inputCls}
-                    >
-                        <option value="last_working_day">Last working day of the period</option>
-                        <option value="fixed_day">Fixed day of the month</option>
-                    </select>
+                            : { type: 'last_working_day' })} options={[{ value: "last_working_day", label: "Last working day of the period" }, { value: "fixed_day", label: "Fixed day of the month" }]} />
                 </div>
                 {settings.pay_day_rule?.type === 'fixed_day' && (
                     <div>
@@ -94,22 +82,14 @@ const SettingsTab: React.FC = () => {
                         Working Days Basis
                         <FieldTooltip text="How per-day salary is derived: calendar days in the month, actual working days, or a fixed 30-day month." />
                     </label>
-                    <select value={settings.working_days_basis} onChange={e => update('working_days_basis', e.target.value)} className={inputCls}>
-                        <option value="calendar_days">Calendar days</option>
-                        <option value="working_days">Working days</option>
-                        <option value="fixed_30">Fixed 30 days</option>
-                    </select>
+                    <Select name="settingstab-select-21" value={settings.working_days_basis} onChange={e => update('working_days_basis', e.target.value)} options={[{ value: "calendar_days", label: "Calendar days" }, { value: "working_days", label: "Working days" }, { value: "fixed_30", label: "Fixed 30 days" }]} />
                 </div>
                 <div>
                     <label className={labelCls}>
                         Loss of Pay (LOP) Basis
                         <FieldTooltip text="What one day of unpaid leave deducts: a day of gross salary, a day of basic salary, or a custom component." />
                     </label>
-                    <select value={settings.lop_calculation} onChange={e => update('lop_calculation', e.target.value)} className={inputCls}>
-                        <option value="per_day_gross">Per-day gross</option>
-                        <option value="per_day_basic">Per-day basic</option>
-                        <option value="custom_component">Custom component</option>
-                    </select>
+                    <Select name="settingstab-select-22" value={settings.lop_calculation} onChange={e => update('lop_calculation', e.target.value)} options={[{ value: "per_day_gross", label: "Per-day gross" }, { value: "per_day_basic", label: "Per-day basic" }, { value: "custom_component", label: "Custom component" }]} />
                 </div>
                 <div>
                     <label className={labelCls}>
@@ -138,11 +118,11 @@ const SettingsTab: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-slate-800">
+            <div className="flex justify-end pt-4 border-t border-line">
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
                 >
                     <Save size={14} /> {saving ? 'Saving…' : 'Save Settings'}
                 </button>

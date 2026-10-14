@@ -11,12 +11,12 @@ const UpgradeLocked = () => {
     const navigate = useNavigate();
     return (
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center px-4">
-            <h2 className="text-lg font-bold text-slate-300">This feature is part of a higher plan</h2>
-            <p className="text-slate-500 text-sm max-w-md">Upgrade your plan to unlock it.</p>
+            <h2 className="text-lg font-bold text-fg">This feature is part of a higher plan</h2>
+            <p className="text-fg-subtle text-sm max-w-md">Upgrade your plan to unlock it.</p>
             <button
                 type="button"
                 onClick={() => navigate('/org/billing')}
-                className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+                className="px-4 py-2 rounded bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium transition-colors"
             >
                 Upgrade plan
             </button>
@@ -27,8 +27,8 @@ const UpgradeLocked = () => {
 /** Shown when a submodule is `disabled`/`hidden` — turned off, no upgrade path. */
 const FeatureUnavailable = () => (
     <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-center px-4">
-        <h2 className="text-lg font-bold text-slate-300">Feature Not Available</h2>
-        <p className="text-slate-500 text-sm max-w-md">This feature is not available for your organization. Contact your administrator.</p>
+        <h2 className="text-lg font-bold text-fg">Feature Not Available</h2>
+        <p className="text-fg-subtle text-sm max-w-md">This feature is not available for your organization. Contact your administrator.</p>
     </div>
 );
 
@@ -72,8 +72,8 @@ const PermissionGuard = ({ permission, children }: { permission: string | string
     if (allowed) return <>{children}</>;
     return (
         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">You don&apos;t have access to this page</h2>
-            <p className="mt-2 max-w-md text-sm text-slate-600 dark:text-slate-400">
+            <h2 className="text-lg font-semibold text-fg-subtle dark:text-fg">You don&apos;t have access to this page</h2>
+            <p className="mt-2 max-w-md text-sm text-fg-subtle dark:text-fg-muted">
                 Your role doesn&apos;t include permission for this page. Ask an administrator if you need it.
             </p>
         </div>
@@ -126,8 +126,8 @@ const PeopleShellInitializer =({ children }: { children: React.ReactNode }) => {
 
     if (!isSynced) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400 gap-4">
-                <div className="w-8 h-8 border-2 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-fg-muted gap-4">
+                <div className="w-8 h-8 border-2 border-primary/20 border-t-teal-500 rounded-full animate-spin" />
                 <p className="text-sm font-medium animate-pulse">Connecting to shell context...</p>
             </div>
         );
@@ -204,12 +204,12 @@ const PayrollReportsPage = lazy(() => import('./pages/payroll/PayrollReportsPage
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
-        <div className="flex h-full bg-slate-950 text-slate-100">
+        <div className="flex h-full bg-bg text-fg">
             <main className="flex-1 overflow-auto">
                 <Suspense
                     fallback={
                         <div className="flex items-center justify-center min-h-[300px]">
-                            <div className="w-6 h-6 border-2 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
+                            <div className="w-6 h-6 border-2 border-primary/20 border-t-teal-500 rounded-full animate-spin" />
                         </div>
                     }
                 >

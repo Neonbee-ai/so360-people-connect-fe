@@ -22,24 +22,24 @@ export const LeaveWorkflowStepper: React.FC<LeaveWorkflowStepperProps> = ({ stat
         return (
             <div className="flex items-center gap-0">
                 <div className="flex flex-col items-center">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-500 text-white">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-fg">
                         <CheckCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-xs mt-2 text-center w-16 text-teal-400">Draft</span>
+                    <span className="text-xs mt-2 text-center w-16 text-primary">Draft</span>
                 </div>
-                <div className="flex-1 h-0.5 min-w-4 bg-teal-500" />
+                <div className="flex-1 h-0.5 min-w-4 bg-primary" />
                 <div className="flex flex-col items-center">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-500 text-white">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-fg">
                         <CheckCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-xs mt-2 text-center w-16 text-teal-400">Submitted</span>
+                    <span className="text-xs mt-2 text-center w-16 text-primary">Submitted</span>
                 </div>
-                <div className="flex-1 h-0.5 min-w-4 bg-red-500" />
+                <div className="flex-1 h-0.5 min-w-4 bg-danger" />
                 <div className="flex flex-col items-center">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-danger text-danger-fg">
                         <XCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-xs mt-2 text-center w-16 text-red-400">Rejected</span>
+                    <span className="text-xs mt-2 text-center w-16 text-danger">Rejected</span>
                 </div>
             </div>
         );
@@ -47,9 +47,9 @@ export const LeaveWorkflowStepper: React.FC<LeaveWorkflowStepperProps> = ({ stat
 
     if (mappedStatus === 'cancelled') {
         return (
-            <div className="flex items-center gap-3 px-4 py-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
-                <Ban className="w-5 h-5 text-slate-500" />
-                <span className="text-slate-500 font-medium text-sm">Cancelled</span>
+            <div className="flex items-center gap-3 px-4 py-3 bg-line/30 rounded-nb border border-line-strong/30">
+                <Ban className="w-5 h-5 text-fg-subtle" />
+                <span className="text-fg-subtle font-medium text-sm">Cancelled</span>
             </div>
         );
     }
@@ -68,24 +68,24 @@ export const LeaveWorkflowStepper: React.FC<LeaveWorkflowStepperProps> = ({ stat
                     <React.Fragment key={state}>
                         <div className="flex flex-col items-center">
                             <div className={`relative flex items-center justify-center w-8 h-8 rounded-full transition-all ${
-                                isCompleted ? 'bg-teal-500 text-white' :
-                                isCurrent ? 'bg-teal-500/20 border-2 border-teal-500 text-teal-400' :
-                                'bg-slate-800 border border-slate-600 text-slate-600'
+                                isCompleted ? 'bg-primary text-primary-fg' :
+                                isCurrent ? 'bg-primary/20 border-2 border-primary text-primary' :
+                                'bg-surface-raised border border-line-strong text-fg-subtle'
                             }`}>
                                 {isPulse && (
-                                    <span className="absolute inset-0 rounded-full bg-teal-500/30 animate-ping" />
+                                    <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
                                 )}
                                 {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                             </div>
                             <span className={`text-xs mt-2 text-center w-16 ${
-                                isCompleted || isCurrent ? 'text-teal-400' : 'text-slate-600'
+                                isCompleted || isCurrent ? 'text-primary' : 'text-fg-subtle'
                             }`}>
                                 {STATE_LABELS[state]}
                             </span>
                         </div>
                         {!isLast && (
                             <div className={`flex-1 h-0.5 min-w-4 ${
-                                isCompleted ? 'bg-teal-500' : 'bg-slate-700'
+                                isCompleted ? 'bg-primary' : 'bg-line'
                             }`} />
                         )}
                     </React.Fragment>

@@ -2,21 +2,21 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { MapPin, Plus, Edit2, Trash2 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
-import { toast, Drawer, DataTable, DeleteConfirmDialog, type DataTableColumn } from '@so360/design-system';
+import { toast, Drawer, DataTable, DeleteConfirmDialog, type DataTableColumn, Select } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import { workLocationsApi, WorkLocation, CreateWorkLocationPayload, LocationType } from '../services/workLocationsService';
 
 const LOCATION_TYPE_STYLES: Record<LocationType, { label: string; className: string }> = {
-  factory: { label: 'Factory', className: 'bg-orange-500/10 text-orange-400 border border-orange-500/20' },
-  store: { label: 'Store', className: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' },
-  office: { label: 'Office', className: 'bg-slate-500/10 text-slate-400 border border-slate-500/20' },
-  remote: { label: 'Remote', className: 'bg-green-500/10 text-green-400 border border-green-500/20' },
+  factory: { label: 'Factory', className: 'bg-warning/10 text-warning border border-warning/20' },
+  store: { label: 'Store', className: 'bg-primary/10 text-primary border border-primary/20' },
+  office: { label: 'Office', className: 'bg-fg-subtle/10 text-fg-muted border border-fg-subtle/20' },
+  remote: { label: 'Remote', className: 'bg-success/10 text-success border border-success/20' },
 };
 
 const LocationTypeBadge: React.FC<{ type: LocationType }> = ({ type }) => {
   const style = LOCATION_TYPE_STYLES[type] || LOCATION_TYPE_STYLES.office;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${style.className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-nb-sm text-xs font-medium ${style.className}`}>
       {style.label}
     </span>
   );
@@ -97,7 +97,7 @@ const WorkLocationsPage: React.FC = () => {
     {
       key: 'name',
       header: 'Name',
-      render: loc => <span className="font-medium text-slate-50">{loc.name}</span>,
+      render: loc => <span className="font-medium text-fg">{loc.name}</span>,
     },
     {
       key: 'location_type',
@@ -107,7 +107,7 @@ const WorkLocationsPage: React.FC = () => {
     {
       key: 'address',
       header: 'Address',
-      render: loc => <span className="text-slate-400">{loc.address || '—'}</span>,
+      render: loc => <span className="text-fg-muted">{loc.address || '—'}</span>,
     },
     {
       key: 'is_active',
@@ -115,13 +115,13 @@ const WorkLocationsPage: React.FC = () => {
       render: loc => canManage ? (
         <button
           onClick={() => handleToggleActive(loc)}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${loc.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${loc.is_active ? 'bg-primary' : 'bg-line'}`}
           title={loc.is_active ? 'Deactivate' : 'Activate'}
         >
           <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${loc.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
         </button>
       ) : (
-        <span className={`text-xs ${loc.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
+        <span className={`text-xs ${loc.is_active ? 'text-primary' : 'text-fg-subtle'}`}>
           {loc.is_active ? 'Active' : 'Inactive'}
         </span>
       ),
@@ -133,14 +133,14 @@ const WorkLocationsPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setEditing(loc)}
-            className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised transition-colors"
             title="Edit"
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={() => setConfirmDelete(loc)}
-            className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded text-fg-muted hover:text-danger hover:bg-surface-raised transition-colors"
             title="Delete"
           >
             <Trash2 size={14} />
@@ -159,7 +159,7 @@ const WorkLocationsPage: React.FC = () => {
           canManage && (
             <button
               onClick={() => setShowDrawer(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
             >
               <Plus size={16} />
               Add Location
@@ -254,14 +254,14 @@ const WorkLocationDrawer: React.FC<WorkLocationDrawerProps> = ({ isOpen, onClose
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             form="work-location-form"
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
           >
             {location ? 'Save Changes' : 'Add Location'}
           </button>
@@ -270,44 +270,35 @@ const WorkLocationDrawer: React.FC<WorkLocationDrawerProps> = ({ isOpen, onClose
     >
       <form id="work-location-form" onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Name <span className="text-red-400">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1">Name <span className="text-danger">*</span></label>
           <input
             required
             value={form.name}
             onChange={e => set('name', e.target.value)}
             placeholder="e.g. Main Factory, Head Office"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
         </div>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Type <span className="text-red-400">*</span></label>
-          <select
-            value={form.location_type}
-            onChange={e => set('location_type', e.target.value as LocationType)}
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-          >
-            <option value="factory">Factory</option>
-            <option value="store">Store</option>
-            <option value="office">Office</option>
-            <option value="remote">Remote</option>
-          </select>
+          <label className="block text-xs text-fg-muted mb-1">Type <span className="text-danger">*</span></label>
+          <Select name="worklocations-select-84" value={form.location_type} onChange={e => set('location_type', e.target.value as LocationType)} options={[{ value: "factory", label: "Factory" }, { value: "store", label: "Store" }, { value: "office", label: "Office" }, { value: "remote", label: "Remote" }]} />
         </div>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Address</label>
+          <label className="block text-xs text-fg-muted mb-1">Address</label>
           <input
             value={form.address}
             onChange={e => set('address', e.target.value)}
             placeholder="Optional address"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
         </div>
         {location && (
           <div className="flex items-center gap-3">
-            <label className="text-xs text-slate-400">Active</label>
+            <label className="text-xs text-fg-muted">Active</label>
             <button
               type="button"
               onClick={() => set('is_active', !form.is_active)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_active ? 'bg-primary' : 'bg-line'}`}
             >
               <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${form.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
             </button>

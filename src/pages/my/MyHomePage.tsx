@@ -77,17 +77,17 @@ const MyHomePage: React.FC = () => {
                         to="/people/my/leave"
                     >
                         {balances.length === 0 ? (
-                            <p className="text-sm text-slate-500">
+                            <p className="text-sm text-fg-subtle">
                                 No leave balances have been set up for you yet.
                             </p>
                         ) : (
                             <ul className="space-y-2.5">
                                 {balances.map(b => (
                                     <li key={b.id} className="flex items-center justify-between">
-                                        <span className="text-sm text-slate-300">
+                                        <span className="text-sm text-fg">
                                             {b.leave_type?.name ?? 'Leave'}
                                         </span>
-                                        <span className="text-sm font-semibold text-slate-50">
+                                        <span className="text-sm font-semibold text-fg">
                                             {b.available} days
                                         </span>
                                     </li>
@@ -102,20 +102,20 @@ const MyHomePage: React.FC = () => {
                         to="/people/my/leave"
                     >
                         {requests.length === 0 ? (
-                            <p className="text-sm text-slate-500">
+                            <p className="text-sm text-fg-subtle">
                                 You haven&apos;t requested any leave yet.
                             </p>
                         ) : (
                             <>
                                 {pending.length > 0 && (
-                                    <p className="mb-2.5 text-xs text-amber-400">
+                                    <p className="mb-2.5 text-xs text-warning">
                                         {pending.length} awaiting approval
                                     </p>
                                 )}
                                 <ul className="space-y-2.5">
                                     {requests.slice(0, 4).map(r => (
                                         <li key={r.id} className="flex items-center justify-between gap-3">
-                                            <span className="text-sm text-slate-300">
+                                            <span className="text-sm text-fg">
                                                 {r.start_date} → {r.end_date}
                                             </span>
                                             <StatusPill status={r.status} />
@@ -128,14 +128,14 @@ const MyHomePage: React.FC = () => {
 
                     <MyCard title="My goals" icon={<Target size={14} />} to="/people/my/goals">
                         {goals.length === 0 ? (
-                            <p className="text-sm text-slate-500">No active goals.</p>
+                            <p className="text-sm text-fg-subtle">No active goals.</p>
                         ) : (
                             <ul className="space-y-3">
                                 {goals.slice(0, 4).map(g => (
                                     <li key={g.id}>
                                         <div className="mb-1 flex items-center justify-between gap-3">
-                                            <span className="truncate text-sm text-slate-300">{g.title}</span>
-                                            <span className="text-xs text-slate-500">
+                                            <span className="truncate text-sm text-fg">{g.title}</span>
+                                            <span className="text-xs text-fg-subtle">
                                                 {g.progress_percentage ?? 0}%
                                             </span>
                                         </div>
@@ -148,7 +148,7 @@ const MyHomePage: React.FC = () => {
 
                     <MyCard title="Who's out this week" icon={<Users size={14} />}>
                         {whosOut.length === 0 ? (
-                            <p className="text-sm text-slate-500">
+                            <p className="text-sm text-fg-subtle">
                                 Nobody is scheduled to be away.
                             </p>
                         ) : (
@@ -160,11 +160,11 @@ const MyHomePage: React.FC = () => {
                                     >
                                         <span className="flex min-w-0 items-center gap-2.5">
                                             <Avatar name={w.full_name} />
-                                            <span className="truncate text-sm text-slate-300">
+                                            <span className="truncate text-sm text-fg">
                                                 {w.full_name ?? 'A colleague'}
                                             </span>
                                         </span>
-                                        <span className="shrink-0 text-xs text-slate-500">
+                                        <span className="shrink-0 text-xs text-fg-subtle">
                                             {w.start_date === w.end_date
                                                 ? w.start_date
                                                 : `${w.start_date} → ${w.end_date}`}

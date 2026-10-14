@@ -127,7 +127,7 @@ const CustomFieldsPage: React.FC = () => {
           canManage && (
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
             >
               <Plus size={16} />
               Add Custom Field
@@ -139,7 +139,7 @@ const CustomFieldsPage: React.FC = () => {
       {loading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
           ))}
         </div>
       ) : loadError ? (
@@ -156,37 +156,37 @@ const CustomFieldsPage: React.FC = () => {
           action={canManage ? { label: 'Add Custom Field', onClick: () => setShowModal(true) } : undefined}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-800">
+        <div className="overflow-hidden rounded-nb border border-line">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-800/50 text-left">
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Label</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Required</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Active</th>
-                {canManage && <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>}
+              <tr className="bg-surface-raised/50 text-left">
+                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Label</th>
+                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Type</th>
+                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Required</th>
+                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Active</th>
+                {canManage && <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-line">
               {rows.map((row, index) => (
-                <tr key={row.id} data-testid={`custom-field-row-${row.field_key}`} className="bg-slate-900 hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-50">
+                <tr key={row.id} data-testid={`custom-field-row-${row.field_key}`} className="bg-surface hover:bg-surface-raised/50 transition-colors">
+                  <td className="px-4 py-3 font-medium text-fg">
                     {row.label}
-                    <div className="text-xs text-slate-500">{row.field_key}</div>
+                    <div className="text-xs text-fg-subtle">{row.field_key}</div>
                   </td>
-                  <td className="px-4 py-3 text-slate-400">{FIELD_TYPE_LABELS[row.field_type]}</td>
-                  <td className="px-4 py-3 text-slate-400">{row.is_required ? 'Yes' : 'No'}</td>
+                  <td className="px-4 py-3 text-fg-muted">{FIELD_TYPE_LABELS[row.field_type]}</td>
+                  <td className="px-4 py-3 text-fg-muted">{row.is_required ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-3">
                     {canManage ? (
                       <button
                         onClick={() => handleToggleActive(row)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${row.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${row.is_active ? 'bg-primary' : 'bg-line'}`}
                         title={row.is_active ? 'Deactivate' : 'Activate'}
                       >
                         <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${row.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
                     ) : (
-                      <span className={`text-xs ${row.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
+                      <span className={`text-xs ${row.is_active ? 'text-primary' : 'text-fg-subtle'}`}>
                         {row.is_active ? 'Active' : 'Inactive'}
                       </span>
                     )}
@@ -197,7 +197,7 @@ const CustomFieldsPage: React.FC = () => {
                         <button
                           onClick={() => handleMove(index, -1)}
                           disabled={index === 0}
-                          className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           title="Move up"
                         >
                           <ArrowUp size={14} />
@@ -205,21 +205,21 @@ const CustomFieldsPage: React.FC = () => {
                         <button
                           onClick={() => handleMove(index, 1)}
                           disabled={index === rows.length - 1}
-                          className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           title="Move down"
                         >
                           <ArrowDown size={14} />
                         </button>
                         <button
                           onClick={() => setEditing(row)}
-                          className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
+                          className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised transition-colors"
                           title="Edit"
                         >
                           <Edit2 size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(row.id)}
-                          className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+                          className="p-1.5 rounded text-fg-muted hover:text-danger hover:bg-surface-raised transition-colors"
                           title="Delete"
                         >
                           <Trash2 size={14} />
@@ -320,72 +320,72 @@ const CustomFieldFormModal: React.FC<CustomFieldFormModalProps> = ({ isOpen, onC
     <Modal isOpen={isOpen} onClose={onClose} title={row ? `Edit ${row.label}` : 'Add Custom Field'} size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Label <span className="text-red-400">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1">Label <span className="text-danger">*</span></label>
           <input
             required
             value={form.label}
             onChange={e => set('label', e.target.value)}
             placeholder="e.g. Blood Group"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Field Type <span className="text-red-400">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1">Field Type <span className="text-danger">*</span></label>
           <select
             value={form.field_type}
             disabled={!!row}
             onChange={e => set('field_type', e.target.value as CustomFieldType)}
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
+            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary disabled:opacity-60"
           >
             {Object.entries(FIELD_TYPE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
-          {row && <p className="text-xs text-slate-500 mt-1">Field type can't be changed after creation to avoid stranding recorded values.</p>}
+          {row && <p className="text-xs text-fg-subtle mt-1">Field type can't be changed after creation to avoid stranding recorded values.</p>}
         </div>
 
         {isChoiceType && (
           <div data-testid="options-editor">
-            <label className="block text-xs text-slate-400 mb-1">Options</label>
+            <label className="block text-xs text-fg-muted mb-1">Options</label>
             <div className="flex gap-2 mb-2">
               <input
                 value={optionInput}
                 onChange={e => setOptionInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOption(); } }}
                 placeholder="Type an option and press Enter"
-                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                className="flex-1 px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
               />
               <button
                 type="button"
                 onClick={addOption}
-                className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 hover:text-slate-50 hover:border-teal-500 transition-colors"
+                className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg hover:text-fg hover:border-primary transition-colors"
               >
                 Add
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
               {(form.options || []).map(option => (
-                <span key={option} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded-full text-xs text-slate-300">
+                <span key={option} className="inline-flex items-center gap-1 px-2 py-1 bg-surface-raised border border-line-strong rounded-full text-xs text-fg">
                   {option}
-                  <button type="button" onClick={() => removeOption(option)} className="text-slate-500 hover:text-red-400">
+                  <button type="button" onClick={() => removeOption(option)} className="text-fg-subtle hover:text-danger">
                     <X size={12} />
                   </button>
                 </span>
               ))}
               {(form.options || []).length === 0 && (
-                <span className="text-xs text-slate-500">No options added yet.</span>
+                <span className="text-xs text-fg-subtle">No options added yet.</span>
               )}
             </div>
           </div>
         )}
 
         <div className="flex items-center gap-3">
-          <label className="text-xs text-slate-400">Required</label>
+          <label className="text-xs text-fg-muted">Required</label>
           <button
             type="button"
             onClick={() => set('is_required', !form.is_required)}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_required ? 'bg-teal-600' : 'bg-slate-700'}`}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_required ? 'bg-primary' : 'bg-line'}`}
           >
             <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${form.is_required ? 'translate-x-5' : 'translate-x-1'}`} />
           </button>
@@ -393,11 +393,11 @@ const CustomFieldFormModal: React.FC<CustomFieldFormModalProps> = ({ isOpen, onC
 
         {row && (
           <div className="flex items-center gap-3">
-            <label className="text-xs text-slate-400">Active</label>
+            <label className="text-xs text-fg-muted">Active</label>
             <button
               type="button"
               onClick={() => set('is_active', !form.is_active)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_active ? 'bg-primary' : 'bg-line'}`}
             >
               <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${form.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
             </button>
@@ -408,13 +408,13 @@ const CustomFieldFormModal: React.FC<CustomFieldFormModalProps> = ({ isOpen, onC
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
           >
             {row ? 'Save Changes' : 'Add Custom Field'}
           </button>

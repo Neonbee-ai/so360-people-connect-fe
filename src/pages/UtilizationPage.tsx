@@ -111,19 +111,19 @@ const UtilizationPage: React.FC = () => {
     const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
 
     const getUtilizationColor = (pct: number) => {
-        if (pct >= 90) return 'text-amber-400';
-        if (pct >= 70) return 'text-emerald-400';
-        if (pct >= 50) return 'text-teal-400';
-        if (pct >= 30) return 'text-blue-400';
-        return 'text-rose-400';
+        if (pct >= 90) return 'text-warning';
+        if (pct >= 70) return 'text-success';
+        if (pct >= 50) return 'text-primary';
+        if (pct >= 30) return 'text-primary';
+        return 'text-danger';
     };
 
     const getUtilizationBarColor = (pct: number) => {
-        if (pct >= 90) return 'bg-amber-500';
-        if (pct >= 70) return 'bg-emerald-500';
-        if (pct >= 50) return 'bg-teal-500';
-        if (pct >= 30) return 'bg-blue-500';
-        return 'bg-rose-500';
+        if (pct >= 90) return 'bg-warning';
+        if (pct >= 70) return 'bg-success';
+        if (pct >= 50) return 'bg-primary';
+        if (pct >= 30) return 'bg-primary';
+        return 'bg-danger';
     };
 
     const getUtilizationLabel = (data: UtilizationData) => {
@@ -139,12 +139,12 @@ const UtilizationPage: React.FC = () => {
         return (
             <div className="p-6">
                 <div className="animate-pulse space-y-6">
-                    <div className="h-8 w-48 bg-slate-800 rounded" />
+                    <div className="h-8 w-48 bg-surface-raised rounded" />
                     <div className="grid grid-cols-4 gap-4">
-                        {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-slate-800 rounded-xl" />)}
+                        {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-surface-raised rounded-nb" />)}
                     </div>
                     <div className="space-y-3">
-                        {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-slate-800 rounded-xl" />)}
+                        {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-surface-raised rounded-nb" />)}
                     </div>
                 </div>
             </div>
@@ -160,13 +160,13 @@ const UtilizationPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-                            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 transition-colors"
+                            className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-xs text-fg hover:text-fg transition-colors"
                         >
                             {viewMode === 'cards' ? 'Table View' : 'Card View'}
                         </button>
                         <button
                             onClick={loadData}
-                            className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-slate-50 transition-colors"
+                            className="p-2 bg-surface-raised border border-line-strong rounded-nb text-fg hover:text-fg transition-colors"
                             title="Refresh"
                         >
                             <RefreshCw size={14} />
@@ -176,26 +176,26 @@ const UtilizationPage: React.FC = () => {
             />
 
             {/* Period Navigator */}
-            <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-5 py-3">
+            <div className="flex items-center justify-between bg-surface border border-line rounded-nb px-5 py-3">
                 <button
                     onClick={() => setWeekOffset(prev => prev - 1)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
+                    className="p-1.5 rounded-nb text-fg-muted hover:text-fg hover:bg-surface-raised transition-colors"
                 >
                     <ChevronLeft size={18} />
                 </button>
                 <div className="text-center">
-                    <div className="text-sm font-medium text-slate-50 flex items-center gap-2">
-                        <Calendar size={14} className="text-teal-400" />
+                    <div className="text-sm font-medium text-fg flex items-center gap-2">
+                        <Calendar size={14} className="text-primary" />
                         Week of {period.start || 'Loading...'}
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-fg-subtle">
                         {period.start} to {period.end}
                     </div>
                 </div>
                 <button
                     onClick={() => setWeekOffset(prev => Math.min(prev + 1, 0))}
                     disabled={weekOffset >= 0}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors disabled:opacity-30"
+                    className="p-1.5 rounded-nb text-fg-muted hover:text-fg hover:bg-surface-raised transition-colors disabled:opacity-30"
                 >
                     <ChevronRight size={18} />
                 </button>
@@ -231,47 +231,47 @@ const UtilizationPage: React.FC = () => {
 
             {/* Signals Row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className={`bg-slate-900 border rounded-xl p-4 ${idlePeople.length > 0 ? 'border-rose-500/30' : 'border-slate-800'}`}>
+                <div className={`bg-surface border rounded-xl p-4 ${idlePeople.length > 0 ? 'border-danger/30' : 'border-line'}`}>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-slate-400">Idle Resources</span>
-                        <TrendingDown size={14} className="text-rose-400" />
+                        <span className="text-xs font-medium text-fg-muted">Idle Resources</span>
+                        <TrendingDown size={14} className="text-danger" />
                     </div>
-                    <div className={`text-2xl font-bold ${idlePeople.length > 0 ? 'text-rose-400' : 'text-slate-50'}`}>
+                    <div className={`text-2xl font-bold ${idlePeople.length > 0 ? 'text-danger' : 'text-fg'}`}>
                         {idlePeople.length}
                     </div>
                     {idlePeople.length > 0 && (
-                        <div className="text-xs text-slate-500 mt-1 line-clamp-2">
+                        <div className="text-xs text-fg-subtle mt-1 line-clamp-2">
                             {idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ')}
                         </div>
                     )}
                 </div>
-                <div className={`bg-slate-900 border rounded-xl p-4 ${overallocated.length > 0 ? 'border-amber-500/30' : 'border-slate-800'}`}>
+                <div className={`bg-surface border rounded-xl p-4 ${overallocated.length > 0 ? 'border-warning/30' : 'border-line'}`}>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-slate-400">Overallocated</span>
-                        <TrendingUp size={14} className="text-amber-400" />
+                        <span className="text-xs font-medium text-fg-muted">Overallocated</span>
+                        <TrendingUp size={14} className="text-warning" />
                     </div>
-                    <div className={`text-2xl font-bold ${overallocated.length > 0 ? 'text-amber-400' : 'text-slate-50'}`}>
+                    <div className={`text-2xl font-bold ${overallocated.length > 0 ? 'text-warning' : 'text-fg'}`}>
                         {overallocated.length}
                     </div>
                     {overallocated.length > 0 && (
-                        <div className="text-xs text-slate-500 mt-1 line-clamp-2">
+                        <div className="text-xs text-fg-subtle mt-1 line-clamp-2">
                             {overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ')}
                         </div>
                     )}
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div className="bg-surface border border-line rounded-nb p-4">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-slate-400">Healthy</span>
-                        <BarChart3 size={14} className="text-emerald-400" />
+                        <span className="text-xs font-medium text-fg-muted">Healthy</span>
+                        <BarChart3 size={14} className="text-success" />
                     </div>
-                    <div className="text-2xl font-bold text-emerald-400">{healthyCount}</div>
-                    <div className="text-xs text-slate-500 mt-1">Within normal range</div>
+                    <div className="text-2xl font-bold text-success">{healthyCount}</div>
+                    <div className="text-xs text-fg-subtle mt-1">Within normal range</div>
                 </div>
             </div>
 
             {/* Sort Controls */}
             <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 mr-1">Sort by:</span>
+                <span className="text-xs text-fg-subtle mr-1">Sort by:</span>
                 {(['utilization', 'name', 'cost'] as const).map(key => (
                     <button
                         key={key}
@@ -283,8 +283,8 @@ const UtilizationPage: React.FC = () => {
                         // so selecting one does not nudge the others sideways.
                         className={`min-w-[92px] px-2.5 py-1 rounded text-xs text-center transition-colors border ${
                             sortBy === key
-                                ? 'bg-teal-500/10 text-teal-400 border-teal-500/30'
-                                : 'text-slate-400 border-transparent hover:text-slate-50 hover:border-slate-700'
+                                ? 'bg-primary/10 text-primary border-primary/30'
+                                : 'text-fg-muted border-transparent hover:text-fg hover:border-line-strong'
                         }`}
                     >
                         {key.charAt(0).toUpperCase() + key.slice(1)}
@@ -314,12 +314,12 @@ const UtilizationPage: React.FC = () => {
             {idlePeople.length > 0 && (
                 // p-5 matches the resource cards above so this panel shares
                 // their content width and left edge.
-                <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-5">
+                <div className="bg-danger/5 border border-danger/20 rounded-nb p-5">
                     <div className="flex items-start gap-3">
-                        <AlertTriangle size={18} className="text-rose-400 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle size={18} className="text-danger mt-0.5 flex-shrink-0" />
                         <div className="min-w-0">
-                            <div className="text-sm font-medium text-rose-300">Idle Cost Signal</div>
-                            <div className="text-xs text-slate-400 mt-1">
+                            <div className="text-sm font-medium text-danger">Idle Cost Signal</div>
+                            <div className="text-xs text-fg-muted mt-1">
                                 {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
                                 Estimated idle cost: {formatCurrency(
                                     idlePeople.reduce((sum, d) => {
@@ -330,7 +330,7 @@ const UtilizationPage: React.FC = () => {
                             </div>
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {idlePeople.map((d, idx) => (
-                                    <span key={d?.person?.id || idx} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-300">
+                                    <span key={d?.person?.id || idx} className="px-2 py-0.5 bg-surface-raised border border-line-strong rounded text-xs text-fg">
                                         {d?.person?.full_name || 'Unknown'} ({safePct(d)}%)
                                     </span>
                                 ))}
@@ -342,17 +342,17 @@ const UtilizationPage: React.FC = () => {
 
             {/* Burn Rate Signal */}
             {summary && summary.burn_rate_daily > 0 && (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div className="bg-surface border border-line rounded-nb p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <div className="text-sm font-medium text-slate-50">Burn Rate Signal</div>
-                            <div className="text-xs text-slate-500 mt-0.5">
+                            <div className="text-sm font-medium text-fg">Burn Rate Signal</div>
+                            <div className="text-xs text-fg-subtle mt-0.5">
                                 Based on approved time entries for the current period
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-lg font-bold text-slate-50">{formatCurrency(summary.burn_rate_daily)}/day</div>
-                            <div className="text-xs text-slate-500">{formatCurrency(summary.burn_rate_daily * 5)}/week</div>
+                            <div className="text-lg font-bold text-fg">{formatCurrency(summary.burn_rate_daily)}/day</div>
+                            <div className="text-xs text-fg-subtle">{formatCurrency(summary.burn_rate_daily * 5)}/week</div>
                         </div>
                     </div>
                 </div>
@@ -384,31 +384,31 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
     const allocationPct = utilization.allocation_pct ?? 0;
 
     const getBarColor = (pct: number) => {
-        if (pct >= 90) return 'bg-amber-500';
-        if (pct >= 70) return 'bg-emerald-500';
-        if (pct >= 50) return 'bg-teal-500';
-        if (pct >= 30) return 'bg-blue-500';
-        return 'bg-rose-500';
+        if (pct >= 90) return 'bg-warning';
+        if (pct >= 70) return 'bg-success';
+        if (pct >= 50) return 'bg-primary';
+        if (pct >= 30) return 'bg-primary';
+        return 'bg-danger';
     };
 
     const getTextColor = (pct: number) => {
-        if (pct >= 90) return 'text-amber-400';
-        if (pct >= 70) return 'text-emerald-400';
-        if (pct >= 50) return 'text-teal-400';
-        if (pct >= 30) return 'text-blue-400';
-        return 'text-rose-400';
+        if (pct >= 90) return 'text-warning';
+        if (pct >= 70) return 'text-success';
+        if (pct >= 50) return 'text-primary';
+        if (pct >= 30) return 'text-primary';
+        return 'text-danger';
     };
 
     return (
-        <div className={`bg-slate-900 border rounded-xl p-5 transition-all ${
-            utilization.is_idle ? 'border-rose-500/30' :
-            utilization.is_overallocated ? 'border-amber-500/30' :
-            'border-slate-800 hover:border-slate-700'
+        <div className={`bg-surface border rounded-xl p-5 transition-all ${
+            utilization.is_idle ? 'border-danger/30' :
+            utilization.is_overallocated ? 'border-warning/30' :
+            'border-line hover:border-line-strong'
         }`}>
             <div className="flex items-start gap-4">
                 {/* Avatar */}
-                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-medium text-teal-400">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 border border-line-strong flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-medium text-primary">
                         {person.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                     </span>
                 </div>
@@ -419,14 +419,14 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                         badges keep a fixed slot on the right so a long name never
                         shifts them between cards. */}
                     <div className="flex items-center gap-2 mb-1 h-6">
-                        <span className="text-sm font-medium text-slate-50 truncate max-w-[45%]">{person.full_name}</span>
-                        {person.job_title && <span className="text-xs text-slate-500 truncate min-w-0">{person.job_title}</span>}
+                        <span className="text-sm font-medium text-fg truncate max-w-[45%]">{person.full_name}</span>
+                        {person.job_title && <span className="text-xs text-fg-subtle truncate min-w-0">{person.job_title}</span>}
                         <span className="ml-auto flex items-center gap-2 flex-shrink-0">
                             {utilization.is_idle && (
-                                <span className="px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded text-xs">Idle</span>
+                                <span className="px-1.5 py-0.5 bg-danger/10 text-danger border border-danger/30 rounded text-xs">Idle</span>
                             )}
                             {utilization.is_overallocated && (
-                                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded text-xs">Over</span>
+                                <span className="px-1.5 py-0.5 bg-warning/10 text-warning border border-warning/30 rounded text-xs">Over</span>
                             )}
                         </span>
                     </div>
@@ -434,8 +434,8 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                     {/* Utilization Bar */}
                     <div className="mt-2 space-y-1.5">
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 w-16">Actual</span>
-                            <div className="flex-1 bg-slate-800 rounded-full h-2">
+                            <span className="text-xs text-fg-subtle w-16">Actual</span>
+                            <div className="flex-1 bg-surface-raised rounded-full h-2">
                                 <div
                                     className={`h-2 rounded-full transition-all ${getBarColor(utilizationPct)}`}
                                     style={{ width: `${Math.min(utilizationPct, 100)}%` }}
@@ -446,14 +446,14 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 w-16">Planned</span>
-                            <div className="flex-1 bg-slate-800 rounded-full h-2">
+                            <span className="text-xs text-fg-subtle w-16">Planned</span>
+                            <div className="flex-1 bg-surface-raised rounded-full h-2">
                                 <div
-                                    className={`h-2 rounded-full transition-all ${allocationPct > 100 ? 'bg-amber-500' : 'bg-slate-600'}`}
+                                    className={`h-2 rounded-full transition-all ${allocationPct > 100 ? 'bg-warning' : 'bg-line-strong'}`}
                                     style={{ width: `${Math.min(allocationPct, 100)}%` }}
                                 />
                             </div>
-                            <span className={`text-xs font-medium w-10 text-right tabular-nums ${allocationPct > 100 ? 'text-amber-400' : 'text-slate-400'}`}>
+                            <span className={`text-xs font-medium w-10 text-right tabular-nums ${allocationPct > 100 ? 'text-warning' : 'text-fg-muted'}`}>
                                 {allocationPct}%
                             </span>
                         </div>
@@ -464,16 +464,16 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
                     on the same vertical lines in every card regardless of value length. */}
                 <div className="flex-shrink-0 grid grid-cols-3 gap-4 w-[264px]">
                     <div className="text-right">
-                        <div className="text-xs text-slate-500">Available</div>
-                        <div className="text-sm font-medium text-slate-50 tabular-nums">{utilization.available_hours}h</div>
+                        <div className="text-xs text-fg-subtle">Available</div>
+                        <div className="text-sm font-medium text-fg tabular-nums">{utilization.available_hours}h</div>
                     </div>
                     <div className="text-right">
-                        <div className="text-xs text-slate-500">Actual</div>
-                        <div className="text-sm font-medium text-slate-50 tabular-nums">{utilization.actual_hours}h</div>
+                        <div className="text-xs text-fg-subtle">Actual</div>
+                        <div className="text-sm font-medium text-fg tabular-nums">{utilization.actual_hours}h</div>
                     </div>
                     <div className="text-right">
-                        <div className="text-xs text-slate-500">Cost</div>
-                        <div className="text-sm font-medium text-slate-50 tabular-nums truncate">
+                        <div className="text-xs text-fg-subtle">Cost</div>
+                        <div className="text-sm font-medium text-fg tabular-nums truncate">
                             {cardFormatters.formatCurrency(Math.round(utilization.actual_cost || 0))}
                         </div>
                     </div>
@@ -482,18 +482,18 @@ const UtilizationCard: React.FC<{ data: UtilizationData }> = ({ data }) => {
 
             {/* Variance indicator — always rendered so every card keeps the same
                 footer baseline; a zero variance simply reads as 0h. */}
-            <div className="mt-3 pt-3 border-t border-slate-800/50 flex items-center gap-2 text-xs">
-                <span className="text-slate-500">Variance:</span>
+            <div className="mt-3 pt-3 border-t border-line/50 flex items-center gap-2 text-xs">
+                <span className="text-fg-subtle">Variance:</span>
                 <span className={
-                    utilization.variance_hours > 0 ? 'text-emerald-400' :
-                    utilization.variance_hours < 0 ? 'text-amber-400' : 'text-slate-400'
+                    utilization.variance_hours > 0 ? 'text-success' :
+                    utilization.variance_hours < 0 ? 'text-warning' : 'text-fg-muted'
                 }>
                     {utilization.variance_hours > 0 ? '+' : ''}{utilization.variance_hours ?? 0}h vs planned
                 </span>
                 {canViewCompensation && (
                     <>
-                        <span className="text-slate-600">|</span>
-                        <span className="text-slate-500">
+                        <span className="text-fg-subtle">|</span>
+                        <span className="text-fg-subtle">
                             Rate: {cardFormatters.formatCurrency(person.cost_rate || 0)}/{person.available_hours_per_day ? 'hour' : 'day'}
                         </span>
                     </>
@@ -534,8 +534,8 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
     }));
 
     return (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 bg-slate-800/50 text-xs font-medium text-slate-400 uppercase tracking-wider">
+        <div className="bg-surface border border-line rounded-nb overflow-hidden">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 bg-surface-raised/50 text-xs font-medium text-fg-muted uppercase tracking-wider">
                 <div>Person</div>
                 <div className="text-right">Available</div>
                 <div className="text-right">Planned</div>
@@ -545,72 +545,72 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
                 <div className="text-right">Variance</div>
                 <div className="text-right">Cost</div>
             </div>
-            <div className="divide-y divide-slate-800">
+            <div className="divide-y divide-line">
                 {rows.map((row) => (
                     <div
                         key={row.key}
-                        className={`grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 items-center hover:bg-slate-800/30 ${
-                            row.isIdle ? 'bg-rose-500/3' :
-                            row.isOverallocated ? 'bg-amber-500/3' : ''
+                        className={`grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 items-center hover:bg-surface-raised/30 ${
+                            row.isIdle ? 'bg-danger/3' :
+                            row.isOverallocated ? 'bg-warning/3' : ''
                         }`}
                     >
                         <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
-                                <span className="text-[10px] font-medium text-teal-400">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 border border-line-strong flex items-center justify-center flex-shrink-0">
+                                <span className="text-[10px] font-medium text-primary">
                                     {row.fullName.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                 </span>
                             </div>
                             <div className="min-w-0">
-                                <div className="text-sm text-slate-50 truncate">{row.fullName}</div>
-                                <div className="text-xs text-slate-500 truncate">{row.jobTitle}</div>
+                                <div className="text-sm text-fg truncate">{row.fullName}</div>
+                                <div className="text-xs text-fg-subtle truncate">{row.jobTitle}</div>
                             </div>
                         </div>
-                        <div className="text-right text-sm text-slate-300">{row.availableHours}h</div>
-                        <div className="text-right text-sm text-slate-300">{row.plannedHours}h</div>
-                        <div className="text-right text-sm text-slate-50 font-medium">{row.actualHours}h</div>
+                        <div className="text-right text-sm text-fg">{row.availableHours}h</div>
+                        <div className="text-right text-sm text-fg">{row.plannedHours}h</div>
+                        <div className="text-right text-sm text-fg font-medium">{row.actualHours}h</div>
                         <div className={`text-right text-sm font-bold ${
-                            row.utilizationPct >= 70 ? 'text-emerald-400' :
-                            row.utilizationPct >= 50 ? 'text-teal-400' :
-                            row.utilizationPct >= 30 ? 'text-blue-400' : 'text-rose-400'
+                            row.utilizationPct >= 70 ? 'text-success' :
+                            row.utilizationPct >= 50 ? 'text-primary' :
+                            row.utilizationPct >= 30 ? 'text-primary' : 'text-danger'
                         }`}>
                             {row.utilizationPct}%
                         </div>
-                        <div className={`text-right text-sm ${row.allocationPct > 100 ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
+                        <div className={`text-right text-sm ${row.allocationPct > 100 ? 'text-warning font-bold' : 'text-fg-muted'}`}>
                             {row.allocationPct}%
                         </div>
                         <div className={`text-right text-sm ${
-                            row.varianceHours > 0 ? 'text-emerald-400' :
-                            row.varianceHours < -5 ? 'text-amber-400' : 'text-slate-400'
+                            row.varianceHours > 0 ? 'text-success' :
+                            row.varianceHours < -5 ? 'text-warning' : 'text-fg-muted'
                         }`}>
                             {row.varianceHours > 0 ? '+' : ''}{row.varianceHours}h
                         </div>
-                        <div className="text-right text-sm text-slate-300">{formatCurrency(row.actualCost)}</div>
+                        <div className="text-right text-sm text-fg">{formatCurrency(row.actualCost)}</div>
                     </div>
                 ))}
             </div>
 
             {/* Totals row */}
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 bg-slate-800/50 border-t border-slate-700">
-                <div className="text-xs font-medium text-slate-400">TOTALS ({rows.length} people)</div>
-                <div className="text-right text-xs font-medium text-slate-300">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 bg-surface-raised/50 border-t border-line-strong">
+                <div className="text-xs font-medium text-fg-muted">TOTALS ({rows.length} people)</div>
+                <div className="text-right text-xs font-medium text-fg">
                     {rows.reduce((sum, r) => sum + r.availableHours, 0)}h
                 </div>
-                <div className="text-right text-xs font-medium text-slate-300">
+                <div className="text-right text-xs font-medium text-fg">
                     {rows.reduce((sum, r) => sum + r.plannedHours, 0)}h
                 </div>
-                <div className="text-right text-xs font-medium text-slate-50">
+                <div className="text-right text-xs font-medium text-fg">
                     {rows.reduce((sum, r) => sum + r.actualHours, 0)}h
                 </div>
-                <div className="text-right text-xs font-medium text-teal-400">
+                <div className="text-right text-xs font-medium text-primary">
                     {rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.utilizationPct, 0) / rows.length) : 0}%
                 </div>
-                <div className="text-right text-xs font-medium text-slate-400">
+                <div className="text-right text-xs font-medium text-fg-muted">
                     {rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.allocationPct, 0) / rows.length) : 0}%
                 </div>
-                <div className="text-right text-xs font-medium text-slate-400">
+                <div className="text-right text-xs font-medium text-fg-muted">
                     {rows.reduce((sum, r) => sum + r.varianceHours, 0)}h
                 </div>
-                <div className="text-right text-xs font-medium text-slate-50">
+                <div className="text-right text-xs font-medium text-fg">
                     {formatCurrency(rows.reduce((sum, r) => sum + r.actualCost, 0))}
                 </div>
             </div>

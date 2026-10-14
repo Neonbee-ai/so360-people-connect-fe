@@ -111,8 +111,8 @@ const NotificationSenderPage: React.FC = () => {
 
       {loading ? (
         <div className="space-y-2">
-          <div className="h-16 animate-pulse rounded-lg bg-slate-800/50" />
-          <div className="h-16 animate-pulse rounded-lg bg-slate-800/50" />
+          <div className="h-16 animate-pulse rounded-nb bg-surface-raised/50" />
+          <div className="h-16 animate-pulse rounded-nb bg-surface-raised/50" />
         </div>
       ) : !loadError && connections.length === 0 ? (
         <EmptyState
@@ -123,10 +123,10 @@ const NotificationSenderPage: React.FC = () => {
         />
       ) : !loadError ? (
         <div className="space-y-4">
-          <div className="rounded-lg border border-slate-700 divide-y divide-slate-800 overflow-hidden">
+          <div className="rounded-nb border border-line-strong divide-y divide-line overflow-hidden">
             <label
               className={`flex items-center gap-3 p-4 cursor-pointer transition-colors ${
-                selectedId === null ? 'bg-teal-500/10' : 'hover:bg-slate-800/60'
+                selectedId === null ? 'bg-primary/10' : 'hover:bg-surface-raised/60'
               } ${!canManage ? 'cursor-not-allowed opacity-70' : ''}`}
             >
               <input
@@ -135,16 +135,16 @@ const NotificationSenderPage: React.FC = () => {
                 checked={selectedId === null}
                 onChange={() => setSelectedId(null)}
                 disabled={!canManage}
-                className="text-teal-500"
+                className="text-primary"
               />
               <div className="flex-1">
-                <p className="text-sm font-medium text-slate-50">Platform default sender</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-medium text-fg">Platform default sender</p>
+                <p className="text-xs text-fg-subtle">
                   Used when no connected account is designated
                 </p>
               </div>
               {state?.designatedConnectionId === null && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-nb-sm text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                   <CheckCircle size={12} /> Using platform default sender
                 </span>
               )}
@@ -154,7 +154,7 @@ const NotificationSenderPage: React.FC = () => {
               <label
                 key={conn.id}
                 className={`flex items-center gap-3 p-4 cursor-pointer transition-colors ${
-                  selectedId === conn.id ? 'bg-teal-500/10' : 'hover:bg-slate-800/60'
+                  selectedId === conn.id ? 'bg-primary/10' : 'hover:bg-surface-raised/60'
                 } ${!canManage ? 'cursor-not-allowed opacity-70' : ''}`}
               >
                 <input
@@ -163,14 +163,14 @@ const NotificationSenderPage: React.FC = () => {
                   checked={selectedId === conn.id}
                   onChange={() => setSelectedId(conn.id)}
                   disabled={!canManage}
-                  className="text-teal-500"
+                  className="text-primary"
                 />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-50">{connectionLabel(conn)}</p>
-                  <p className="text-xs text-slate-500 capitalize">{conn.piece_name}</p>
+                  <p className="text-sm font-medium text-fg">{connectionLabel(conn)}</p>
+                  <p className="text-xs text-fg-subtle capitalize">{conn.piece_name}</p>
                 </div>
                 {conn.designated_purpose === 'people' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-nb-sm text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                     <CheckCircle size={12} /> Currently designated
                   </span>
                 )}
@@ -183,14 +183,14 @@ const NotificationSenderPage: React.FC = () => {
               <button
                 onClick={handleSave}
                 disabled={saving || !hasChanges}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
               >
                 {saving ? 'Saving…' : 'Save'}
               </button>
               <button
                 onClick={handleClear}
                 disabled={saving || !state?.designatedConnectionId}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 text-sm text-fg-muted hover:text-fg disabled:opacity-50 transition-colors"
               >
                 Clear (use platform default)
               </button>

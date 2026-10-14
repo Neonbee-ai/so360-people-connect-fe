@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Layers } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import Modal from '../../Modal';
 import EmptyState from '../../EmptyState';
 import StatusChip from '../StatusChip';
@@ -9,8 +9,8 @@ import {
     payrollApi, SalaryComponent, SalaryComponentPayload, CalcType, ComponentKind,
 } from '../../../services/payrollApi';
 
-const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
-const labelCls = 'block text-xs text-slate-400 mb-1';
+const inputCls = 'w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
+const labelCls = 'block text-xs text-fg-muted mb-1';
 
 const STATUTORY_CODES = ['PF_EMP', 'PF_ER', 'ESI_EMP', 'ESI_ER', 'PT', 'TDS', 'LWF_EMP', 'LWF_ER', 'GRATUITY'];
 
@@ -51,15 +51,15 @@ const ComponentsTab: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />;
+    if (loading) return <div className="h-64 bg-surface-raised/50 rounded-nb animate-pulse" />;
 
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-50">Salary Components</h3>
+                <h3 className="text-sm font-semibold text-fg">Salary Components</h3>
                 <button
                     onClick={() => { setEditing(null); setShowModal(true); }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-medium rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-fg text-xs font-medium rounded-nb transition-colors"
                 >
                     <Plus size={13} /> New Component
                 </button>
@@ -73,32 +73,32 @@ const ComponentsTab: React.FC = () => {
                     action={{ label: 'New Component', onClick: () => setShowModal(true) }}
                 />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <div className="bg-surface border border-line rounded-nb overflow-hidden">
                     <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
+                        <thead className="bg-surface-raised/50 border-b border-line">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Code</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Kind</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Calculation</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Statutory</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Code</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Name</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Kind</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Calculation</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Statutory</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-line">
                             {components.map(component => (
-                                <tr key={component.id} className="hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-4 py-3 text-sm font-medium text-slate-50">{component.code}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-300">{component.name}</td>
+                                <tr key={component.id} className="hover:bg-surface-raised/50 transition-colors">
+                                    <td className="px-4 py-3 text-sm font-medium text-fg">{component.code}</td>
+                                    <td className="px-4 py-3 text-sm text-fg">{component.name}</td>
                                     <td className="px-4 py-3 text-center"><StatusChip status={component.kind} /></td>
-                                    <td className="px-4 py-3 text-sm text-slate-400 capitalize">{component.calc_type.replace(/_/g, ' ')}</td>
+                                    <td className="px-4 py-3 text-sm text-fg-muted capitalize">{component.calc_type.replace(/_/g, ' ')}</td>
                                     <td className="px-4 py-3 text-center">
-                                        {component.is_statutory ? <StatusChip status="statutory" label={component.statutory_code || 'Statutory'} /> : <span className="text-xs text-slate-600">—</span>}
+                                        {component.is_statutory ? <StatusChip status="statutory" label={component.statutory_code || 'Statutory'} /> : <span className="text-xs text-fg-subtle">—</span>}
                                     </td>
                                     <td className="px-4 py-3 text-center"><StatusChip status={component.is_active ? 'active' : 'inactive'} /></td>
                                     <td className="px-4 py-3 text-right">
-                                        <button onClick={() => { setEditing(component); setShowModal(true); }} className="text-xs text-teal-400 hover:text-teal-300 transition-colors">Edit</button>
+                                        <button onClick={() => { setEditing(component); setShowModal(true); }} className="text-xs text-primary hover:text-primary transition-colors">Edit</button>
                                     </td>
                                 </tr>
                             ))}
@@ -184,7 +184,7 @@ const ComponentModal: React.FC<{
         <Modal isOpen={isOpen} onClose={onClose} title={component ? 'Edit Component' : 'New Component'} size="lg">
             <form onSubmit={handleSubmit} className="space-y-5">
                 {validationError && (
-                    <div className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-xs text-rose-400">
+                    <div className="px-3 py-2 bg-danger/10 border border-danger/30 rounded-nb text-xs text-danger">
                         {validationError}
                     </div>
                 )}
@@ -205,24 +205,14 @@ const ComponentModal: React.FC<{
                             Kind
                             <FieldTooltip text="Earnings add to gross pay; deductions reduce net pay; employer contributions add to employer cost without touching net pay." />
                         </label>
-                        <select value={form.kind} onChange={e => update('kind', e.target.value)} className={inputCls}>
-                            <option value="earning">Earning</option>
-                            <option value="deduction">Deduction</option>
-                            <option value="employer_contribution">Employer Contribution</option>
-                            <option value="benefit">Benefit</option>
-                        </select>
+                        <Select name="componentstab-select-12" value={form.kind} onChange={e => update('kind', e.target.value)} options={[{ value: "earning", label: "Earning" }, { value: "deduction", label: "Deduction" }, { value: "employer_contribution", label: "Employer Contribution" }, { value: "benefit", label: "Benefit" }]} />
                     </div>
                     <div>
                         <label className={labelCls}>
                             Calculation Type
                             <FieldTooltip text="Fixed = flat amount. Percent of = percentage of another component. Formula = expression over components. Slab = rate table (e.g. professional tax)." />
                         </label>
-                        <select value={form.calc_type} onChange={e => update('calc_type', e.target.value)} className={inputCls}>
-                            <option value="fixed">Fixed amount</option>
-                            <option value="percent_of">Percent of another component</option>
-                            <option value="formula">Formula</option>
-                            <option value="slab">Slab table</option>
-                        </select>
+                        <Select name="componentstab-select-13" value={form.calc_type} onChange={e => update('calc_type', e.target.value)} options={[{ value: "fixed", label: "Fixed amount" }, { value: "percent_of", label: "Percent of another component" }, { value: "formula", label: "Formula" }, { value: "slab", label: "Slab table" }]} />
                     </div>
                 </div>
 
@@ -276,13 +266,7 @@ const ComponentModal: React.FC<{
                             Frequency
                             <FieldTooltip text="Per period = every pay run. Annual spread = yearly figure divided over periods. One time = only when explicitly added to a run." />
                         </label>
-                        <select value={form.frequency} onChange={e => update('frequency', e.target.value)} className={inputCls}>
-                            <option value="per_period">Per period</option>
-                            <option value="annual_spread">Annual spread</option>
-                            <option value="one_time">One time</option>
-                            <option value="per_day">Per day</option>
-                            <option value="per_hour">Per hour</option>
-                        </select>
+                        <Select name="componentstab-select-14" value={form.frequency} onChange={e => update('frequency', e.target.value)} options={[{ value: "per_period", label: "Per period" }, { value: "annual_spread", label: "Annual spread" }, { value: "one_time", label: "One time" }, { value: "per_day", label: "Per day" }, { value: "per_hour", label: "Per hour" }]} />
                     </div>
                     {form.is_statutory && (
                         <div>
@@ -290,39 +274,36 @@ const ComponentModal: React.FC<{
                                 Statutory Code *
                                 <FieldTooltip text="Maps this component to a statutory rule so the engine applies the right ceilings and rates (e.g. PF_EMP is the employee's Provident Fund share)." />
                             </label>
-                            <select value={form.statutory_code || ''} onChange={e => update('statutory_code', e.target.value || null)} className={inputCls}>
-                                <option value="">Select…</option>
-                                {STATUTORY_CODES.map(code => <option key={code} value={code}>{code}</option>)}
-                            </select>
+                            <Select name="componentstab-select-15" value={form.statutory_code || ''} onChange={e => update('statutory_code', e.target.value || null)} options={[{ value: "", label: "Select…" }, ...STATUTORY_CODES.map((code) => ({ value: code, label: code }))]} />
                         </div>
                     )}
                 </div>
 
                 <div className="space-y-2">
                     <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.taxable} onChange={e => update('taxable', e.target.checked)} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                        <span className="text-sm text-slate-300">Taxable</span>
+                        <input type="checkbox" checked={!!form.taxable} onChange={e => update('taxable', e.target.checked)} className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary" />
+                        <span className="text-sm text-fg">Taxable</span>
                         <FieldTooltip text="Counts toward taxable income when computing TDS." />
                     </label>
                     <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.is_statutory} onChange={e => update('is_statutory', e.target.checked)} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                        <span className="text-sm text-slate-300">Statutory component</span>
+                        <input type="checkbox" checked={!!form.is_statutory} onChange={e => update('is_statutory', e.target.checked)} className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary" />
+                        <span className="text-sm text-fg">Statutory component</span>
                         <FieldTooltip text="Computed by the statutory engine (PF, ESI, PT, TDS...) instead of the component's own calculation." />
                     </label>
                     <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.prorate_on_lop} onChange={e => update('prorate_on_lop', e.target.checked)} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                        <span className="text-sm text-slate-300">Prorate on LOP</span>
+                        <input type="checkbox" checked={!!form.prorate_on_lop} onChange={e => update('prorate_on_lop', e.target.checked)} className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary" />
+                        <span className="text-sm text-fg">Prorate on LOP</span>
                         <FieldTooltip text="Reduce this component proportionally for unpaid leave days: amount × payable days ÷ basis days." />
                     </label>
                     <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.is_active} onChange={e => update('is_active', e.target.checked)} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                        <span className="text-sm text-slate-300">Active</span>
+                        <input type="checkbox" checked={!!form.is_active} onChange={e => update('is_active', e.target.checked)} className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary" />
+                        <span className="text-sm text-fg">Active</span>
                     </label>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors">
                         {component ? 'Update' : 'Create'}
                     </button>
                 </div>

@@ -52,7 +52,7 @@ const PayrollDashboardPage: React.FC = () => {
                 actions={run && (
                     <button
                         onClick={() => navigate(`/people/payroll/runs/${run.id}`)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         Open Current Run <ArrowRight size={14} />
                     </button>
@@ -61,7 +61,7 @@ const PayrollDashboardPage: React.FC = () => {
 
             {loading ? (
                 <div className="grid grid-cols-4 gap-4">
-                    {[...Array(8)].map((_, i) => <div key={i} className="h-28 bg-slate-800/50 rounded-xl animate-pulse" />)}
+                    {[...Array(8)].map((_, i) => <div key={i} className="h-28 bg-surface-raised/50 rounded-nb animate-pulse" />)}
                 </div>
             ) : !run ? (
                 <EmptyState
@@ -73,22 +73,22 @@ const PayrollDashboardPage: React.FC = () => {
             ) : (
                 <>
                     {/* Current run header */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+                    <div className="bg-surface border border-line rounded-nb p-5 flex items-center justify-between">
                         <div>
                             <div className="flex items-center gap-3">
-                                <h2 className="text-lg font-semibold text-slate-50">
+                                <h2 className="text-lg font-semibold text-fg">
                                     Run #{run.run_number}
                                 </h2>
                                 <StatusChip status={run.status} />
                             </div>
-                            <p className="text-sm text-slate-400 mt-1">
+                            <p className="text-sm text-fg-muted mt-1">
                                 {run.period_start && run.period_end
                                     ? `${formatters.formatDate(run.period_start)} – ${formatters.formatDate(run.period_end)}`
                                     : 'Current period'}
                                 {run.pay_date ? ` · Pay date ${formatters.formatDate(run.pay_date)}` : ''}
                             </p>
                         </div>
-                        <Play size={20} className="text-teal-400" />
+                        <Play size={20} className="text-primary" />
                     </div>
 
                     {/* KPI cards */}
@@ -107,33 +107,33 @@ const PayrollDashboardPage: React.FC = () => {
 
             {/* Alerts panel */}
             {!loading && (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                    <div className="px-5 py-4 border-b border-slate-800 flex items-center gap-2">
-                        <AlertTriangle size={16} className="text-amber-400" />
-                        <h3 className="text-sm font-semibold text-slate-50">Payroll Alerts</h3>
+                <div className="bg-surface border border-line rounded-nb">
+                    <div className="px-5 py-4 border-b border-line flex items-center gap-2">
+                        <AlertTriangle size={16} className="text-warning" />
+                        <h3 className="text-sm font-semibold text-fg">Payroll Alerts</h3>
                     </div>
                     {alerts.length === 0 ? (
-                        <div className="px-5 py-8 text-center text-sm text-slate-400">
+                        <div className="px-5 py-8 text-center text-sm text-fg-muted">
                             No alerts — everyone is payroll-ready.
                         </div>
                     ) : (
-                        <div className="divide-y divide-slate-800">
+                        <div className="divide-y divide-line">
                             {alerts.map(alert => (
                                 <div key={alert.key} className="px-5 py-3 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <span className={`inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-lg text-sm font-semibold ${
-                                            alert.severity === 'blocking' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'
+                                            alert.severity === 'blocking' ? 'bg-danger/10 text-danger' : 'bg-warning/10 text-warning'
                                         }`}>
                                             {alert.count}
                                         </span>
                                         <div>
-                                            <div className="text-sm font-medium text-slate-50">{alert.label}</div>
-                                            {alert.description && <div className="text-xs text-slate-400">{alert.description}</div>}
+                                            <div className="text-sm font-medium text-fg">{alert.label}</div>
+                                            {alert.description && <div className="text-xs text-fg-muted">{alert.description}</div>}
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setActiveAlert(alert)}
-                                        className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                                        className="flex items-center gap-1 text-xs text-primary hover:text-primary transition-colors"
                                     >
                                         Review employees <ArrowRight size={12} />
                                     </button>

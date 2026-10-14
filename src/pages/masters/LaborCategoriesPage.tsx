@@ -116,7 +116,7 @@ const LaborCategoriesPage: React.FC = () => {
           canManage && (
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
             >
               <Plus size={16} />
               Add Labor Category
@@ -137,7 +137,7 @@ const LaborCategoriesPage: React.FC = () => {
       {loading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
           ))}
         </div>
       ) : loadError ? (
@@ -158,49 +158,49 @@ const LaborCategoriesPage: React.FC = () => {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-800">
+        <div className="overflow-hidden rounded-nb border border-line">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-800/50 text-left">
+              <tr className="bg-surface-raised/50 text-left">
                 {['Name', 'Code', 'Hourly Rate', 'Overtime', 'Active'].map((h) => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider"
+                    className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider"
                   >
                     {h}
                   </th>
                 ))}
                 {canManage && (
-                  <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">
                     Actions
                   </th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-line">
               {rows.map((row) => {
                 const priced = Number(row.base_hourly_rate) > 0;
                 return (
-                  <tr key={row.id} className="bg-slate-900 hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-50">{row.name}</td>
-                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">{row.code}</td>
+                  <tr key={row.id} className="bg-surface hover:bg-surface-raised/50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-fg">{row.name}</td>
+                    <td className="px-4 py-3 text-fg-muted font-mono text-xs">{row.code}</td>
                     <td className="px-4 py-3">
                       {priced ? (
-                        <span className="text-slate-300">
+                        <span className="text-fg">
                           {Number(row.base_hourly_rate).toFixed(2)}
                         </span>
                       ) : (
-                        <span className="text-amber-400">Not set</span>
+                        <span className="text-warning">Not set</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-400">
+                    <td className="px-4 py-3 text-fg-muted">
                       &times;{Number(row.overtime_multiplier || 1.5)}
                     </td>
                     <td className="px-4 py-3">
                       {canManage ? (
                         <button
                           onClick={() => handleUpdate(row.id, { is_active: !row.is_active })}
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${row.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${row.is_active ? 'bg-primary' : 'bg-line'}`}
                           title={row.is_active ? 'Deactivate' : 'Activate'}
                           aria-label={row.is_active ? 'Deactivate' : 'Activate'}
                         >
@@ -209,7 +209,7 @@ const LaborCategoriesPage: React.FC = () => {
                           />
                         </button>
                       ) : (
-                        <span className={`text-xs ${row.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
+                        <span className={`text-xs ${row.is_active ? 'text-primary' : 'text-fg-subtle'}`}>
                           {row.is_active ? 'Active' : 'Inactive'}
                         </span>
                       )}
@@ -219,7 +219,7 @@ const LaborCategoriesPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setEditing(row)}
-                            className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
+                            className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised transition-colors"
                             title="Edit"
                             aria-label={`Edit ${row.name}`}
                           >
@@ -227,7 +227,7 @@ const LaborCategoriesPage: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleDelete(row)}
-                            className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+                            className="p-1.5 rounded text-fg-muted hover:text-danger hover:bg-surface-raised transition-colors"
                             title="Delete"
                             aria-label={`Delete ${row.name}`}
                           >
@@ -308,7 +308,7 @@ const LaborCategoryFormModal: React.FC<FormModalProps> = ({
   };
 
   const input =
-    'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
+    'w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
   return (
     <Modal
@@ -319,7 +319,7 @@ const LaborCategoryFormModal: React.FC<FormModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-name">
+            <label className="block text-xs text-fg-muted mb-1" htmlFor="lc-name">
               Name *
             </label>
             <input
@@ -332,7 +332,7 @@ const LaborCategoryFormModal: React.FC<FormModalProps> = ({
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-code">
+            <label className="block text-xs text-fg-muted mb-1" htmlFor="lc-code">
               Code *
             </label>
             <input
@@ -345,7 +345,7 @@ const LaborCategoryFormModal: React.FC<FormModalProps> = ({
               className={`${input} disabled:opacity-60 disabled:cursor-not-allowed`}
             />
             {row && (
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-fg-subtle">
                 Code cannot be changed after creation.
               </p>
             )}
@@ -353,7 +353,7 @@ const LaborCategoryFormModal: React.FC<FormModalProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-description">
+          <label className="block text-xs text-fg-muted mb-1" htmlFor="lc-description">
             Description
           </label>
           <input
@@ -367,7 +367,7 @@ const LaborCategoryFormModal: React.FC<FormModalProps> = ({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-rate">
+            <label className="block text-xs text-fg-muted mb-1" htmlFor="lc-rate">
               Hourly Rate
             </label>
             <input
@@ -380,13 +380,13 @@ const LaborCategoryFormModal: React.FC<FormModalProps> = ({
               className={input}
             />
             {!(Number(form.base_hourly_rate) > 0) && (
-              <p className="mt-1 text-xs text-amber-400">
+              <p className="mt-1 text-xs text-warning">
                 Leave at 0 only if this category should not price time.
               </p>
             )}
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-ot">
+            <label className="block text-xs text-fg-muted mb-1" htmlFor="lc-ot">
               Overtime Multiplier
             </label>
             <input
@@ -405,13 +405,13 @@ const LaborCategoryFormModal: React.FC<FormModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-300 hover:text-slate-50 transition-colors"
+            className="px-4 py-2 text-sm text-fg hover:text-fg transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
           >
             {row ? 'Save Changes' : 'Create'}
           </button>

@@ -10,7 +10,7 @@ import PayrollProfileTab from '../components/payroll/PayrollProfileTab';
 import PersonLeaveConfigTab from '../components/leave/PersonLeaveConfigTab';
 import PersonOnboardingTab from '../components/PersonOnboardingTab';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -268,8 +268,8 @@ const PersonDetailPage: React.FC = () => {
         return (
             <div className="p-6">
                 <div className="animate-pulse space-y-4">
-                    <div className="h-6 w-32 bg-slate-800 rounded" />
-                    <div className="h-48 bg-slate-800 rounded-xl" />
+                    <div className="h-6 w-32 bg-surface-raised rounded" />
+                    <div className="h-48 bg-surface-raised rounded-nb" />
                 </div>
             </div>
         );
@@ -277,9 +277,9 @@ const PersonDetailPage: React.FC = () => {
 
     if (!person) {
         return (
-            <div className="p-6 text-center text-slate-400">
+            <div className="p-6 text-center text-fg-muted">
                 {loadError === 'load_failed' ? 'Unable to load employee details.' : 'Person not found.'}
-                <button onClick={() => navigate('/people/people')} className="ml-2 text-teal-400 hover:text-teal-300">
+                <button onClick={() => navigate('/people/people')} className="ml-2 text-primary hover:text-primary">
                     Back to list
                 </button>
             </div>
@@ -295,26 +295,26 @@ const PersonDetailPage: React.FC = () => {
     return (
         <div className="p-6 space-y-6">
             {/* Back Navigation */}
-            <button onClick={() => navigate('/people/people')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
+            <button onClick={() => navigate('/people/people')} className="flex items-center gap-2 text-sm text-fg-muted hover:text-fg transition-colors">
                 <ArrowLeft size={16} />
                 Back to People
             </button>
 
             {/* Header */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-surface border border-line rounded-nb p-6">
                 <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
-                        <span className="text-lg font-bold text-teal-400">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 border border-line-strong flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg font-bold text-primary">
                             {(person.full_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </span>
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
-                            <h2 className="text-xl font-bold text-slate-50">{person.full_name || 'Unknown'}</h2>
+                            <h2 className="text-xl font-bold text-fg">{person.full_name || 'Unknown'}</h2>
                             <StatusBadge status={person.type} />
                             <StatusBadge status={person.status} />
                             {person.user_id && (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-teal-500/10 border border-teal-500/30 rounded-md text-xs text-teal-400">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/30 rounded-nb-sm text-xs text-primary">
                                     <UserCheck size={12} />
                                     Linked to user account
                                 </span>
@@ -322,20 +322,20 @@ const PersonDetailPage: React.FC = () => {
                             {!person.user_id && (
                                 <button
                                     onClick={() => setShowLinkUserModal(true)}
-                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md text-xs text-slate-400 hover:text-slate-50 transition-colors"
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-surface-raised hover:bg-line border border-line-strong rounded-nb-sm text-xs text-fg-muted hover:text-fg transition-colors"
                                 >
                                     <UserPlus size={12} />
                                     Link User
                                 </button>
                             )}
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-400">
+                        <div className="flex items-center gap-4 text-sm text-fg-muted">
                             {person.job_title && <span>{person.job_title}</span>}
-                            {(person.department_info?.name || person.department) && <span className="text-slate-600">|</span>}
+                            {(person.department_info?.name || person.department) && <span className="text-fg-subtle">|</span>}
                             {(person.department_info?.name || person.department) && <span>{person.department_info?.name || person.department}</span>}
                             {person.work_location && (
                                 <>
-                                    <span className="text-slate-600">|</span>
+                                    <span className="text-fg-subtle">|</span>
                                     <span className="flex items-center gap-1">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                                         {person.work_location.name}
@@ -343,7 +343,7 @@ const PersonDetailPage: React.FC = () => {
                                 </>
                             )}
                         </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-fg-subtle">
                             {person.email && <span className="flex items-center gap-1"><Mail size={12} />{person.email}</span>}
                             {person.phone && <span className="flex items-center gap-1"><Phone size={12} />{person.phone}</span>}
                             {person.start_date && <span className="flex items-center gap-1"><Calendar size={12} />Since {person.start_date}</span>}
@@ -353,16 +353,16 @@ const PersonDetailPage: React.FC = () => {
                         {!editing ? (
                             <button
                                 onClick={() => { setEditing(true); setEditData(person); }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-line-strong rounded-nb text-xs text-fg hover:text-fg hover:border-line-strong transition-colors"
                             >
                                 <Edit2 size={13} /> Edit
                             </button>
                         ) : (
                             <>
-                                <button onClick={handleSave} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 rounded-lg text-xs text-white hover:bg-teal-500 transition-colors">
+                                <button onClick={handleSave} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary rounded-nb text-xs text-primary-fg hover:bg-primary-hover transition-colors">
                                     <Save size={13} /> Save
                                 </button>
-                                <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 transition-colors">
+                                <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-line-strong rounded-nb text-xs text-fg hover:text-fg transition-colors">
                                     <X size={13} /> Cancel
                                 </button>
                             </>
@@ -372,9 +372,9 @@ const PersonDetailPage: React.FC = () => {
 
                 {/* Inline Edit Fields */}
                 {editing && (
-                    <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-4 gap-4">
+                    <div className="mt-4 pt-4 border-t border-line grid grid-cols-4 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-500 mb-1">Department</label>
+                            <label className="block text-xs text-fg-subtle mb-1">Department</label>
                             <DepartmentSelector
                                 value={editData.department_id || ''}
                                 onChange={(id) => setEditData(d => ({ ...d, department_id: id }))}
@@ -384,56 +384,39 @@ const PersonDetailPage: React.FC = () => {
                         </div>
                         {canViewCompensation && (
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Cost Rate</label>
+                                <label className="block text-xs text-fg-subtle mb-1">Cost Rate</label>
                                 <input
                                     type="number" value={editData.cost_rate || 0}
                                     onChange={e => setEditData(d => ({ ...d, cost_rate: parseFloat(e.target.value) }))}
-                                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                    className="w-full px-3 py-1.5 bg-surface-raised border border-line-strong rounded text-sm text-fg focus:outline-none focus:border-primary"
                                 />
                             </div>
                         )}
                         {canViewCompensation && (
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Billing Rate</label>
+                                <label className="block text-xs text-fg-subtle mb-1">Billing Rate</label>
                                 <input
                                     type="number" value={editData.billing_rate || 0}
                                     onChange={e => setEditData(d => ({ ...d, billing_rate: parseFloat(e.target.value) }))}
-                                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                    className="w-full px-3 py-1.5 bg-surface-raised border border-line-strong rounded text-sm text-fg focus:outline-none focus:border-primary"
                                 />
                             </div>
                         )}
                         <div>
-                            <label className="block text-xs text-slate-500 mb-1">Status</label>
-                            <select
-                                value={editData.status || 'active'}
-                                onChange={e => setEditData(d => ({ ...d, status: e.target.value as Person['status'] }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="on_leave">On Leave</option>
-                            </select>
+                            <label className="block text-xs text-fg-subtle mb-1">Status</label>
+                            <Select name="persondetail-select-78" value={editData.status || 'active'} onChange={e => setEditData(d => ({ ...d, status: e.target.value as Person['status'] }))} options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }, { value: "on_leave", label: "On Leave" }]} />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-500 mb-1">Hours/Day</label>
+                            <label className="block text-xs text-fg-subtle mb-1">Hours/Day</label>
                             <input
                                 type="number" value={editData.available_hours_per_day || 8}
                                 onChange={e => setEditData(d => ({ ...d, available_hours_per_day: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-1.5 bg-surface-raised border border-line-strong rounded text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-500 mb-1">Work Location</label>
-                            <select
-                                value={editData.work_location_id || ''}
-                                onChange={e => setEditData(d => ({ ...d, work_location_id: e.target.value || undefined }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">None</option>
-                                {workLocations.map(loc => (
-                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                ))}
-                            </select>
+                            <label className="block text-xs text-fg-subtle mb-1">Work Location</label>
+                            <Select name="persondetail-select-79" value={editData.work_location_id || ''} onChange={e => setEditData(d => ({ ...d, work_location_id: e.target.value || undefined }))} options={[{ value: "", label: "None" }, ...workLocations.map((loc) => ({ value: loc.id, label: loc.name }))]} />
                         </div>
                     </div>
                 )}
@@ -442,81 +425,81 @@ const PersonDetailPage: React.FC = () => {
             {/* Stats Row */}
             <div className="grid grid-cols-4 gap-4">
                 {canViewCompensation && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div className="bg-surface border border-line rounded-nb p-4">
                         <div className="flex items-center gap-2 mb-1">
-                            <DollarSign size={14} className="text-emerald-400" />
-                            <span className="text-xs text-slate-400">Cost Rate</span>
+                            <DollarSign size={14} className="text-success" />
+                            <span className="text-xs text-fg-muted">Cost Rate</span>
                         </div>
-                        <div className="text-lg font-bold text-slate-50">{formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}</div>
+                        <div className="text-lg font-bold text-fg">{formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}</div>
                     </div>
                 )}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div className="bg-surface border border-line rounded-nb p-4">
                     <div className="flex items-center gap-2 mb-1">
-                        <Target size={14} className="text-blue-400" />
-                        <span className="text-xs text-slate-400">Total Allocated</span>
+                        <Target size={14} className="text-primary" />
+                        <span className="text-xs text-fg-muted">Total Allocated</span>
                     </div>
-                    <div className="text-lg font-bold text-slate-50">{totalAllocated}%</div>
+                    <div className="text-lg font-bold text-fg">{totalAllocated}%</div>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div className="bg-surface border border-line rounded-nb p-4">
                     <div className="flex items-center gap-2 mb-1">
-                        <Clock size={14} className="text-amber-400" />
-                        <span className="text-xs text-slate-400">Hours Logged</span>
+                        <Clock size={14} className="text-warning" />
+                        <span className="text-xs text-fg-muted">Hours Logged</span>
                     </div>
                     {/* Never report a confident "0h" when the timesheet source failed. */}
-                    <div className="text-lg font-bold text-slate-50">
+                    <div className="text-lg font-bold text-fg">
                         {timeEntriesStatus === 'error' ? '—' : `${totalHoursLogged}h`}
                     </div>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div className="bg-surface border border-line rounded-nb p-4">
                     <div className="flex items-center gap-2 mb-1">
-                        <Clock size={14} className="text-teal-400" />
-                        <span className="text-xs text-slate-400">Availability</span>
+                        <Clock size={14} className="text-primary" />
+                        <span className="text-xs text-fg-muted">Availability</span>
                     </div>
-                    <div className="text-lg font-bold text-slate-50">{person.available_hours_per_day}h/day</div>
+                    <div className="text-lg font-bold text-fg">{person.available_hours_per_day}h/day</div>
                 </div>
             </div>
 
             {/* Employment Information — single source of truth, populated from the
                 employee record + Core IAM membership captured at registration. The
                 System Role here IS the access role (no separate role structure). */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-slate-50 flex items-center gap-2">
+            <div className="bg-surface border border-line rounded-nb">
+                <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-fg flex items-center gap-2">
                         <Briefcase size={14} /> Employment Information
                     </h3>
                     <button
                         onClick={() => setShowSystemRoleModal(true)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-surface-raised border border-line-strong rounded-nb text-xs text-fg hover:text-fg hover:border-line-strong transition-colors"
                     >
                         <Edit2 size={12} /> Edit Role
                     </button>
                 </div>
                 <div className="p-5 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
                     <div>
-                        <div className="text-xs text-slate-500 mb-1">Job Title</div>
-                        <div className="text-sm text-slate-50">{person.job_title || '—'}</div>
+                        <div className="text-xs text-fg-subtle mb-1">Job Title</div>
+                        <div className="text-sm text-fg">{person.job_title || '—'}</div>
                     </div>
                     <div>
-                        <div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Shield size={11} /> System Role</div>
-                        <div className="text-sm text-slate-50">
-                            {person.system_role || <span className="text-slate-500">No system access</span>}
+                        <div className="text-xs text-fg-subtle mb-1 flex items-center gap-1"><Shield size={11} /> System Role</div>
+                        <div className="text-sm text-fg">
+                            {person.system_role || <span className="text-fg-subtle">No system access</span>}
                         </div>
                     </div>
                     <div>
-                        <div className="text-xs text-slate-500 mb-1">Department</div>
-                        <div className="text-sm text-slate-50">{person.department_info?.name || person.department || '—'}</div>
+                        <div className="text-xs text-fg-subtle mb-1">Department</div>
+                        <div className="text-sm text-fg">{person.department_info?.name || person.department || '—'}</div>
                     </div>
                     <div>
-                        <div className="text-xs text-slate-500 mb-1">Employment Type</div>
-                        <div className="text-sm text-slate-50 capitalize">{person.type || '—'}</div>
+                        <div className="text-xs text-fg-subtle mb-1">Employment Type</div>
+                        <div className="text-sm text-fg capitalize">{person.type || '—'}</div>
                     </div>
                     <div>
-                        <div className="text-xs text-slate-500 mb-1">Access Status</div>
+                        <div className="text-xs text-fg-subtle mb-1">Access Status</div>
                         <div><StatusBadge status={person.access_status || 'no_access'} /></div>
                     </div>
                     {person.invitation_status && (
                         <div>
-                            <div className="text-xs text-slate-500 mb-1">Invitation</div>
+                            <div className="text-xs text-fg-subtle mb-1">Invitation</div>
                             <div><StatusBadge status={person.invitation_status} /></div>
                         </div>
                     )}
@@ -525,30 +508,30 @@ const PersonDetailPage: React.FC = () => {
 
             {/* Skills & Competencies — capability tracker only; NOT an access role.
                 Intentionally distinct from the System Role above. */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-slate-50 flex items-center gap-2">
+            <div className="bg-surface border border-line rounded-nb">
+                <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-fg flex items-center gap-2">
                         <Tag size={14} /> Skills &amp; Competencies
                     </h3>
                     <button
                         onClick={() => setShowRoleModal(true)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-surface-raised border border-line-strong rounded-nb text-xs text-fg hover:text-fg hover:border-line-strong transition-colors"
                     >
                         <Plus size={12} /> Add Skill
                     </button>
                 </div>
                 <div className="p-5">
                     {!person.people_roles || person.people_roles.length === 0 ? (
-                        <p className="text-sm text-slate-500">No skills added yet</p>
+                        <p className="text-sm text-fg-subtle">No skills added yet</p>
                     ) : (
                         <div className="flex flex-wrap gap-2">
                             {person.people_roles.map(skill => (
-                                <div key={skill.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
-                                    <span className="text-sm text-slate-50">{skill.role_name}</span>
-                                    {skill.skill_category && <span className="text-xs text-slate-500">{skill.skill_category}</span>}
+                                <div key={skill.id} className="flex items-center gap-2 px-3 py-1.5 bg-surface-raised border border-line-strong rounded-nb">
+                                    <span className="text-sm text-fg">{skill.role_name}</span>
+                                    {skill.skill_category && <span className="text-xs text-fg-subtle">{skill.skill_category}</span>}
                                     <StatusBadge status={skill.proficiency} />
-                                    {skill.is_primary && <span className="text-xs text-teal-400 font-medium">Primary</span>}
-                                    <button onClick={() => handleRemoveSkill(skill.id)} className="ml-1 text-slate-500 hover:text-rose-400">
+                                    {skill.is_primary && <span className="text-xs text-primary font-medium">Primary</span>}
+                                    <button onClick={() => handleRemoveSkill(skill.id)} className="ml-1 text-fg-subtle hover:text-danger">
                                         <Trash2 size={12} />
                                     </button>
                                 </div>
@@ -559,15 +542,15 @@ const PersonDetailPage: React.FC = () => {
             </div>
 
             {/* Tabs */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="border-b border-slate-800">
+            <div className="bg-surface border border-line rounded-nb">
+                <div className="border-b border-line">
                     <div className="flex items-center gap-1 px-5 py-3">
                         <button
                             onClick={() => setActiveTab('overview')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'overview'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                             }`}
                         >
                             <User size={14} className="inline mr-1.5" />
@@ -577,8 +560,8 @@ const PersonDetailPage: React.FC = () => {
                             onClick={() => setActiveTab('allocations')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'allocations'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                             }`}
                         >
                             <Target size={14} className="inline mr-1.5" />
@@ -588,8 +571,8 @@ const PersonDetailPage: React.FC = () => {
                             onClick={() => setActiveTab('time')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'time'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                             }`}
                         >
                             <Clock size={14} className="inline mr-1.5" />
@@ -599,8 +582,8 @@ const PersonDetailPage: React.FC = () => {
                             onClick={() => setActiveTab('employment-history')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'employment-history'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                             }`}
                         >
                             <History size={14} className="inline mr-1.5" />
@@ -611,8 +594,8 @@ const PersonDetailPage: React.FC = () => {
                                 onClick={() => setActiveTab('rate-history')}
                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                     activeTab === 'rate-history'
-                                        ? 'bg-teal-500/10 text-teal-400'
-                                        : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                                 }`}
                             >
                                 <DollarSign size={14} className="inline mr-1.5" />
@@ -623,8 +606,8 @@ const PersonDetailPage: React.FC = () => {
                             onClick={() => setActiveTab('goals')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'goals'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                             }`}
                         >
                             <Target size={14} className="inline mr-1.5" />
@@ -634,8 +617,8 @@ const PersonDetailPage: React.FC = () => {
                             onClick={() => setActiveTab('onboarding')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'onboarding'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                             }`}
                         >
                             <ClipboardCheck size={14} className="inline mr-1.5" />
@@ -645,8 +628,8 @@ const PersonDetailPage: React.FC = () => {
                             onClick={() => setActiveTab('leave')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'leave'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                             }`}
                         >
                             <CalendarDays size={14} className="inline mr-1.5" />
@@ -656,8 +639,8 @@ const PersonDetailPage: React.FC = () => {
                             onClick={() => setActiveTab('payroll')}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 activeTab === 'payroll'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                             }`}
                         >
                             <Wallet size={14} className="inline mr-1.5" />
@@ -670,7 +653,7 @@ const PersonDetailPage: React.FC = () => {
                     {/* Overview Tab */}
                     {activeTab === 'overview' && (
                         <div className="space-y-4">
-                            <div className="text-sm text-slate-400">
+                            <div className="text-sm text-fg-muted">
                                 <p className="mb-2">This is the overview of {person.full_name || 'this person'}'s profile.</p>
                                 <p>Use the tabs above to view allocations, time entries, employment history, rate changes, and goals.</p>
                             </div>
@@ -688,16 +671,16 @@ const PersonDetailPage: React.FC = () => {
                                 />
                             ) : (
                                 allocations.map(alloc => (
-                                    <div key={alloc.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                                    <div key={alloc.id} className="bg-surface-raised border border-line-strong rounded-nb p-4">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-sm text-slate-50">{alloc.entity_name || alloc.entity_id}</div>
-                                                <div className="text-xs text-slate-500">
+                                                <div className="text-sm text-fg">{alloc.entity_name || alloc.entity_id}</div>
+                                                <div className="text-xs text-fg-subtle">
                                                     {alloc.start_date} to {alloc.end_date} | {alloc.entity_type}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-sm font-medium text-slate-50">
+                                                <span className="text-sm font-medium text-fg">
                                                     {alloc.allocation_value}%
                                                 </span>
                                                 <StatusBadge status={alloc.status} />
@@ -715,9 +698,9 @@ const PersonDetailPage: React.FC = () => {
                             {timeEntriesStatus === 'loading' ? (
                                 <div data-testid="time-entries-loading" role="status" aria-busy="true" className="animate-pulse space-y-3">
                                     <span className="sr-only">Loading time entries…</span>
-                                    <div className="h-16 bg-slate-800 rounded-lg" />
-                                    <div className="h-16 bg-slate-800 rounded-lg" />
-                                    <div className="h-16 bg-slate-800 rounded-lg" />
+                                    <div className="h-16 bg-surface-raised rounded-nb" />
+                                    <div className="h-16 bg-surface-raised rounded-nb" />
+                                    <div className="h-16 bg-surface-raised rounded-nb" />
                                 </div>
                             ) : timeEntriesStatus === 'error' ? (
                                 <EmptyState
@@ -734,17 +717,17 @@ const PersonDetailPage: React.FC = () => {
                                 />
                             ) : (
                                 timeEntries.map(entry => (
-                                    <div key={entry.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                                    <div key={entry.id} className="bg-surface-raised border border-line-strong rounded-nb p-4">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-sm text-slate-50">{entry.entity_name || entry.entity_type || 'Time entry'}</div>
-                                                <div className="text-xs text-slate-500">
+                                                <div className="text-sm text-fg">{entry.entity_name || entry.entity_type || 'Time entry'}</div>
+                                                <div className="text-xs text-fg-subtle">
                                                     {entry.entry_date} | {entry.description || 'No description'}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-sm font-medium text-slate-50">{entry.hours}h</span>
-                                                <span className="text-xs text-slate-400">${entry.calculated_cost || 0}</span>
+                                                <span className="text-sm font-medium text-fg">{entry.hours}h</span>
+                                                <span className="text-xs text-fg-muted">${entry.calculated_cost || 0}</span>
                                                 <StatusBadge status={entry.status} />
                                             </div>
                                         </div>
@@ -758,31 +741,31 @@ const PersonDetailPage: React.FC = () => {
                     {activeTab === 'employment-history' && (
                         <div className="space-y-3">
                             {employmentHistory.map((event) => (
-                                <div key={event.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                                <div key={event.id} className="bg-surface-raised border border-line-strong rounded-nb p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-medium text-slate-50 capitalize">{event.event_type.replace('_', ' ')}</span>
+                                                <span className="text-sm font-medium text-fg capitalize">{event.event_type.replace('_', ' ')}</span>
                                                 <StatusBadge status={event.event_type} />
                                             </div>
-                                            <div className="text-xs text-slate-500">
+                                            <div className="text-xs text-fg-subtle">
                                                 {formatters.formatDate(event.effective_date)}
                                             </div>
                                             {event.notes && (
-                                                <div className="mt-2 text-sm text-slate-400">{event.notes}</div>
+                                                <div className="mt-2 text-sm text-fg-muted">{event.notes}</div>
                                             )}
                                             {event.new_department_id && (
-                                                <div className="mt-1 text-xs text-slate-500">
+                                                <div className="mt-1 text-xs text-fg-subtle">
                                                     Department: {event.new_department_name || event.new_department_id}
                                                 </div>
                                             )}
                                             {event.new_job_title && (
-                                                <div className="mt-1 text-xs text-slate-500">
+                                                <div className="mt-1 text-xs text-fg-subtle">
                                                     Title: {event.new_job_title}
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="text-xs text-slate-600">
+                                        <div className="text-xs text-fg-subtle">
                                             {formatters.formatDateTime(event.created_at)}
                                         </div>
                                     </div>
@@ -802,30 +785,30 @@ const PersonDetailPage: React.FC = () => {
                     {activeTab === 'rate-history' && canViewCompensation && (
                         <div className="space-y-3">
                             {rateHistory.map((event) => (
-                                <div key={event.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                                <div key={event.id} className="bg-surface-raised border border-line-strong rounded-nb p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div>
-                                                    <div className="text-xs text-slate-500">Cost Rate</div>
-                                                    <div className="text-lg font-medium text-slate-50">
+                                                    <div className="text-xs text-fg-subtle">Cost Rate</div>
+                                                    <div className="text-lg font-medium text-fg">
                                                         {formatters.formatCurrency(event.new_cost_rate)}/{person.cost_rate_unit}
                                                     </div>
                                                 </div>
                                                 {event.new_billing_rate && (
                                                     <div>
-                                                        <div className="text-xs text-slate-500">Billing Rate</div>
-                                                        <div className="text-lg font-medium text-teal-400">
+                                                        <div className="text-xs text-fg-subtle">Billing Rate</div>
+                                                        <div className="text-lg font-medium text-primary">
                                                             {formatters.formatCurrency(event.new_billing_rate)}/{person.cost_rate_unit}
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="text-xs text-slate-500">
+                                            <div className="text-xs text-fg-subtle">
                                                 Effective: {formatters.formatDate(event.effective_date)}
                                             </div>
                                             {event.reason && (
-                                                <div className="mt-2 text-sm text-slate-400">{event.reason}</div>
+                                                <div className="mt-2 text-sm text-fg-muted">{event.reason}</div>
                                             )}
                                         </div>
                                     </div>
@@ -838,15 +821,15 @@ const PersonDetailPage: React.FC = () => {
                                     description="Rate changes will appear here"
                                 />
                             )}
-                            <div className="border-t border-slate-800 pt-3">
+                            <div className="border-t border-line pt-3">
                                 <button
                                     onClick={() => setShowUpdateRateModal(true)}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm text-slate-50 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-surface-raised hover:bg-line border border-line-strong rounded-nb text-sm text-fg transition-colors"
                                 >
                                     <DollarSign size={16} />
                                     Add New Rate
                                 </button>
-                                <p className="mt-2 text-xs text-slate-500">
+                                <p className="mt-2 text-xs text-fg-subtle">
                                     This records a new effective-dated rate. Records above are read-only history and are never edited.
                                 </p>
                             </div>
@@ -874,29 +857,29 @@ const PersonDetailPage: React.FC = () => {
                     {activeTab === 'goals' && (
                         <div className="space-y-3">
                             {goals.map((goal) => (
-                                <div key={goal.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                                <div key={goal.id} className="bg-surface-raised border border-line-strong rounded-nb p-4">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-medium text-slate-50">{goal.title}</span>
+                                                <span className="text-sm font-medium text-fg">{goal.title}</span>
                                                 <StatusBadge status={goal.status} />
                                                 <StatusBadge status={goal.goal_type} />
                                             </div>
                                             {goal.description && (
-                                                <div className="text-xs text-slate-500 mt-1">{goal.description}</div>
+                                                <div className="text-xs text-fg-subtle mt-1">{goal.description}</div>
                                             )}
                                         </div>
-                                        <div className="text-xs text-slate-600">
+                                        <div className="text-xs text-fg-subtle">
                                             Due: {formatters.formatDate(goal.target_date)}
                                         </div>
                                     </div>
-                                    <div className="w-full bg-slate-900 rounded-full h-2">
+                                    <div className="w-full bg-surface rounded-full h-2">
                                         <div
-                                            className="bg-teal-500 h-2 rounded-full transition-all"
+                                            className="bg-primary h-2 rounded-full transition-all"
                                             style={{ width: `${goal.progress_percentage}%` }}
                                         />
                                     </div>
-                                    <div className="text-xs text-slate-500 mt-1">{goal.progress_percentage}% complete</div>
+                                    <div className="text-xs text-fg-subtle mt-1">{goal.progress_percentage}% complete</div>
                                 </div>
                             ))}
                             {goals.length === 0 && (
@@ -975,31 +958,31 @@ const LinkUserModal: React.FC<{
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Link User Account" size="md">
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                <p className="text-sm text-slate-400">
-                    Link <span className="text-slate-200 font-medium">{personName}</span> to an existing
+                <p className="text-sm text-fg-muted">
+                    Link <span className="text-fg font-medium">{personName}</span> to an existing
                     platform user so they can sign in and see their own records.
                 </p>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">User Account *</label>
+                    <label className="block text-xs text-fg-muted mb-1">User Account *</label>
                     <UserSelector
                         value={userId}
                         onChange={(next) => { setUserId(next); setError(''); }}
                         placeholder="Search users by name or email..."
                     />
-                    {error && <p role="alert" className="mt-1 text-xs text-rose-400">{error}</p>}
+                    {error && <p role="alert" className="mt-1 text-xs text-danger">{error}</p>}
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-fg-subtle">
                     Don't see the person here? They don't have an account yet — use
-                    <span className="text-slate-300"> Invite</span> from the People Registry instead.
+                    <span className="text-fg"> Invite</span> from the People Registry instead.
                 </p>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50">
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={saving || !userId}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {saving ? 'Linking…' : 'Link Account'}
                     </button>
@@ -1058,44 +1041,44 @@ const AddNewRateModal: React.FC<{
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Add New Rate" size="md">
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                <p className="text-sm text-slate-400">
-                    Records a new effective-dated rate for <span className="text-slate-200 font-medium">{personName}</span>.
+                <p className="text-sm text-fg-muted">
+                    Records a new effective-dated rate for <span className="text-fg font-medium">{personName}</span>.
                     Previous rate history is preserved and never edited.
                 </p>
                 <div>
-                    <label htmlFor="add-rate-cost" className="block text-xs text-slate-400 mb-1">Cost Rate *</label>
+                    <label htmlFor="add-rate-cost" className="block text-xs text-fg-muted mb-1">Cost Rate *</label>
                     <input id="add-rate-cost" type="number" min="0" step="0.01" required value={costRate}
                         onChange={e => { setCostRate(e.target.value); setError(''); }}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary" />
                 </div>
                 <div>
-                    <label htmlFor="add-rate-billing" className="block text-xs text-slate-400 mb-1">Billing Rate</label>
+                    <label htmlFor="add-rate-billing" className="block text-xs text-fg-muted mb-1">Billing Rate</label>
                     <input id="add-rate-billing" type="number" min="0" step="0.01" value={billingRate}
                         onChange={e => setBillingRate(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary" />
                 </div>
                 <div>
-                    <label htmlFor="add-rate-effective-date" className="block text-xs text-slate-400 mb-1">Effective Date</label>
+                    <label htmlFor="add-rate-effective-date" className="block text-xs text-fg-muted mb-1">Effective Date</label>
                     <input id="add-rate-effective-date" type="date" value={effectiveDate}
                         onChange={e => setEffectiveDate(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
-                    <p className="mt-1 text-xs text-slate-500">Defaults to today if left blank.</p>
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary" />
+                    <p className="mt-1 text-xs text-fg-subtle">Defaults to today if left blank.</p>
                 </div>
                 <div>
-                    <label htmlFor="add-rate-reason" className="block text-xs text-slate-400 mb-1">Reason</label>
+                    <label htmlFor="add-rate-reason" className="block text-xs text-fg-muted mb-1">Reason</label>
                     <input id="add-rate-reason" type="text" value={reason} onChange={e => setReason(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         placeholder="e.g., Annual review, Promotion" />
                 </div>
-                {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50">
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={saving}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {saving ? 'Saving…' : 'Add Rate'}
                     </button>
@@ -1127,35 +1110,29 @@ const AddSkillModal: React.FC<{
         <Modal isOpen={isOpen} onClose={onClose} title="Add Skill" size="sm">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Skill Name *</label>
+                    <label className="block text-xs text-fg-muted mb-1">Skill Name *</label>
                     <input type="text" required value={skillName} onChange={e => setSkillName(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         placeholder="e.g., React, Financial Modelling" />
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Skill Category</label>
+                    <label className="block text-xs text-fg-muted mb-1">Skill Category</label>
                     <input type="text" value={category} onChange={e => setCategory(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         placeholder="e.g., Engineering, Design" />
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Proficiency</label>
-                    <select value={proficiency} onChange={e => setProficiency(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500">
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                        <option value="expert">Expert</option>
-                    </select>
+                    <label className="block text-xs text-fg-muted mb-1">Proficiency</label>
+                    <Select name="persondetail-select-80" value={proficiency} onChange={e => setProficiency(e.target.value)} options={[{ value: "beginner", label: "Beginner" }, { value: "intermediate", label: "Intermediate" }, { value: "advanced", label: "Advanced" }, { value: "expert", label: "Expert" }]} />
                 </div>
-                <label className="flex items-center gap-2 text-sm text-slate-300">
+                <label className="flex items-center gap-2 text-sm text-fg">
                     <input type="checkbox" checked={isPrimary} onChange={e => setIsPrimary(e.target.checked)}
-                        className="rounded border-slate-600" />
+                        className="rounded border-line-strong" />
                     Primary skill
                 </label>
                 <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg">Add Skill</button>
+                    <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-fg-muted hover:text-fg">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb">Add Skill</button>
                 </div>
             </form>
         </Modal>
@@ -1197,34 +1174,28 @@ const EditSystemRoleModal: React.FC<{
         <Modal isOpen={isOpen} onClose={onClose} title="Edit System Role" size="sm">
             {!hasAccess ? (
                 <div className="space-y-4">
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-fg">
                         This person has no system access yet. Invite them to a user account from the
                         People list to assign a system role.
                     </p>
                     <div className="flex justify-end pt-2">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50">Close</button>
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg">Close</button>
                     </div>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Current Role</label>
-                        <div className="text-sm text-slate-50">{currentRole || '—'}</div>
+                        <label className="block text-xs text-fg-muted mb-1">Current Role</label>
+                        <div className="text-sm text-fg">{currentRole || '—'}</div>
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">New System Role *</label>
-                        <select required value={roleId} onChange={e => setRoleId(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500">
-                            <option value="">Select role...</option>
-                            {orgRoles.map(role => (
-                                <option key={role.id} value={role.id}>{role.name}</option>
-                            ))}
-                        </select>
-                        <p className="mt-1 text-xs text-slate-500">Updates access across the profile, Team Management, and permissions.</p>
+                        <label className="block text-xs text-fg-muted mb-1">New System Role *</label>
+                        <Select name="persondetail-select-81" required value={roleId} onChange={e => setRoleId(e.target.value)} options={[{ value: "", label: "Select role..." }, ...orgRoles.map((role) => ({ value: role.id, label: role.name }))]} />
+                        <p className="mt-1 text-xs text-fg-subtle">Updates access across the profile, Team Management, and permissions.</p>
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
-                        <button type="submit" disabled={saving || !roleId} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg">
+                        <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-fg-muted hover:text-fg">Cancel</button>
+                        <button type="submit" disabled={saving || !roleId} className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb">
                             {saving ? 'Saving…' : 'Save Role'}
                         </button>
                     </div>

@@ -279,7 +279,7 @@ const accessPerson = (over: Record<string, any> = {}) => ({
 // Scope assertions to a single person's card so duplicated labels (Role:/Invite:)
 // across rows never cross-match.
 const rowFor = (name: string) =>
-  screen.getByText(name).closest('div.bg-slate-900') as HTMLElement;
+  screen.getByText(name).closest('div.cursor-pointer') as HTMLElement;
 
 describe('PeoplePage — System access columns', () => {
   describe('Access Status badge', () => {

@@ -121,7 +121,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
           canManage && (
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
             >
               <Plus size={16} />
               Add {label}
@@ -133,7 +133,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
       {loading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
           ))}
         </div>
       ) : loadError ? (
@@ -150,42 +150,42 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
           action={canManage ? { label: `Add ${label}`, onClick: () => setShowModal(true) } : undefined}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-800">
+        <div className="overflow-hidden rounded-nb border border-line">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-800/50 text-left">
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
+              <tr className="bg-surface-raised/50 text-left">
+                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Name</th>
                 {showLevelGrade && (
                   <>
-                    <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Level</th>
-                    <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Grade</th>
+                    <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Level</th>
+                    <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Grade</th>
                   </>
                 )}
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Active</th>
-                {canManage && <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>}
+                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Active</th>
+                {canManage && <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-line">
               {rows.map(row => (
-                <tr key={row.id} className="bg-slate-900 hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-50">{row.name}</td>
+                <tr key={row.id} className="bg-surface hover:bg-surface-raised/50 transition-colors">
+                  <td className="px-4 py-3 font-medium text-fg">{row.name}</td>
                   {showLevelGrade && (
                     <>
-                      <td className="px-4 py-3 text-slate-400">{row.level || '—'}</td>
-                      <td className="px-4 py-3 text-slate-400">{row.grade || '—'}</td>
+                      <td className="px-4 py-3 text-fg-muted">{row.level || '—'}</td>
+                      <td className="px-4 py-3 text-fg-muted">{row.grade || '—'}</td>
                     </>
                   )}
                   <td className="px-4 py-3">
                     {canManage ? (
                       <button
                         onClick={() => handleToggleActive(row)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${row.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${row.is_active ? 'bg-primary' : 'bg-line'}`}
                         title={row.is_active ? 'Deactivate' : 'Activate'}
                       >
                         <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${row.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
                     ) : (
-                      <span className={`text-xs ${row.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
+                      <span className={`text-xs ${row.is_active ? 'text-primary' : 'text-fg-subtle'}`}>
                         {row.is_active ? 'Active' : 'Inactive'}
                       </span>
                     )}
@@ -196,14 +196,14 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
                         {rowExtraAction?.(row)}
                         <button
                           onClick={() => setEditing(row)}
-                          className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
+                          className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised transition-colors"
                           title="Edit"
                         >
                           <Edit2 size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(row.id)}
-                          className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+                          className="p-1.5 rounded text-fg-muted hover:text-danger hover:bg-surface-raised transition-colors"
                           title="Delete"
                         >
                           <Trash2 size={14} />
@@ -286,44 +286,44 @@ const MasterFormModal: React.FC<MasterFormModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Name <span className="text-red-400">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1">Name <span className="text-danger">*</span></label>
           <input
             required
             value={form.name}
             onChange={e => set('name', e.target.value)}
             placeholder={`e.g. ${label}`}
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
         </div>
         {showLevelGrade && (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Level</label>
+              <label className="block text-xs text-fg-muted mb-1">Level</label>
               <input
                 value={form.level || ''}
                 onChange={e => set('level', e.target.value)}
                 placeholder="e.g. Mid"
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Grade</label>
+              <label className="block text-xs text-fg-muted mb-1">Grade</label>
               <input
                 value={form.grade || ''}
                 onChange={e => set('grade', e.target.value)}
                 placeholder="e.g. L3"
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
               />
             </div>
           </div>
         )}
         {row && (
           <div className="flex items-center gap-3">
-            <label className="text-xs text-slate-400">Active</label>
+            <label className="text-xs text-fg-muted">Active</label>
             <button
               type="button"
               onClick={() => set('is_active', !form.is_active)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_active ? 'bg-primary' : 'bg-line'}`}
             >
               <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${form.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
             </button>
@@ -333,13 +333,13 @@ const MasterFormModal: React.FC<MasterFormModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
           >
             {row ? 'Save Changes' : `Add ${label}`}
           </button>

@@ -29,16 +29,16 @@ const ReviewForm: React.FC<{
     return (
         <div className="space-y-6">
             {sections.map((section) => (
-                <div key={section.id} className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
-                    <h4 className="text-sm font-medium text-slate-50 mb-1">{section.title}</h4>
-                    {section.description && <p className="text-xs text-slate-400 mb-4">{section.description}</p>}
-                    {section.weight && <p className="text-xs text-teal-400 mb-3">Weight: {section.weight}%</p>}
+                <div key={section.id} className="bg-surface-raised/50 border border-line-strong rounded-nb p-5">
+                    <h4 className="text-sm font-medium text-fg mb-1">{section.title}</h4>
+                    {section.description && <p className="text-xs text-fg-muted mb-4">{section.description}</p>}
+                    {section.weight && <p className="text-xs text-primary mb-3">Weight: {section.weight}%</p>}
 
                     <div className="space-y-4">
                         {section.fields.map((field, fi) => (
                             <div key={fi}>
-                                <label className="block text-xs text-slate-400 mb-1">
-                                    {field.label} {field.required && <span className="text-red-400">*</span>}
+                                <label className="block text-xs text-fg-muted mb-1">
+                                    {field.label} {field.required && <span className="text-danger">*</span>}
                                 </label>
 
                                 {field.type === 'rating' && (
@@ -55,14 +55,14 @@ const ReviewForm: React.FC<{
                                                     size={20}
                                                     className={
                                                         (getFieldValue(section.id, field.label) as number || 0) > i
-                                                            ? 'fill-yellow-500 text-yellow-500'
-                                                            : 'text-slate-600 hover:text-slate-400'
+                                                            ? 'fill-warning text-warning'
+                                                            : 'text-fg-subtle hover:text-fg-muted'
                                                     }
                                                 />
                                             </button>
                                         ))}
                                         {getFieldValue(section.id, field.label) != null ? (
-                                            <span className="text-sm text-slate-50 ml-2">
+                                            <span className="text-sm text-fg ml-2">
                                                 {String(getFieldValue(section.id, field.label))} / {field.max || ratingScale}
                                             </span>
                                         ) : null}
@@ -75,7 +75,7 @@ const ReviewForm: React.FC<{
                                         onChange={(e) => updateField(section.id, field.label, e.target.value)}
                                         disabled={readOnly}
                                         rows={3}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary disabled:opacity-60"
                                     />
                                 )}
 
@@ -85,7 +85,7 @@ const ReviewForm: React.FC<{
                                         value={(getFieldValue(section.id, field.label) as string) || ''}
                                         onChange={(e) => updateField(section.id, field.label, e.target.value)}
                                         disabled={readOnly}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary disabled:opacity-60"
                                     />
                                 )}
 
@@ -95,7 +95,7 @@ const ReviewForm: React.FC<{
                                         value={(getFieldValue(section.id, field.label) as number) || ''}
                                         onChange={(e) => updateField(section.id, field.label, parseFloat(e.target.value))}
                                         disabled={readOnly}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary disabled:opacity-60"
                                     />
                                 )}
 
@@ -106,9 +106,9 @@ const ReviewForm: React.FC<{
                                             checked={!!getFieldValue(section.id, field.label)}
                                             onChange={(e) => updateField(section.id, field.label, e.target.checked)}
                                             disabled={readOnly}
-                                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600"
+                                            className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary"
                                         />
-                                        <span className="text-sm text-slate-300">Yes</span>
+                                        <span className="text-sm text-fg">Yes</span>
                                     </label>
                                 )}
                             </div>
@@ -246,19 +246,19 @@ const ReviewDetailPage: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'draft': return 'bg-slate-600';
-            case 'self_review_pending': return 'bg-blue-600';
-            case 'manager_review_pending': return 'bg-yellow-600';
-            case 'completed': return 'bg-green-600';
-            default: return 'bg-slate-600';
+            case 'draft': return 'bg-line-strong';
+            case 'self_review_pending': return 'bg-primary';
+            case 'manager_review_pending': return 'bg-warning';
+            case 'completed': return 'bg-success';
+            default: return 'bg-line-strong';
         }
     };
 
     if (loading) {
         return (
             <div className="p-6">
-                <div className="h-20 bg-slate-800/50 rounded-xl animate-pulse mb-5" />
-                <div className="h-96 bg-slate-800/50 rounded-xl animate-pulse" />
+                <div className="h-20 bg-surface-raised/50 rounded-nb animate-pulse mb-5" />
+                <div className="h-96 bg-surface-raised/50 rounded-nb animate-pulse" />
             </div>
         );
     }
@@ -266,7 +266,7 @@ const ReviewDetailPage: React.FC = () => {
     if (!review) {
         return (
             <div className="p-6">
-                <p className="text-slate-400">Review not found</p>
+                <p className="text-fg-muted">Review not found</p>
             </div>
         );
     }
@@ -282,9 +282,9 @@ const ReviewDetailPage: React.FC = () => {
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => navigate('/people/reviews')}
-                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                    className="p-2 hover:bg-surface-raised rounded-nb transition-colors"
                 >
-                    <ArrowLeft size={20} className="text-slate-400" />
+                    <ArrowLeft size={20} className="text-fg-muted" />
                 </button>
                 <PageHeader
                     title={`${review.person?.full_name || 'Unknown'} - ${review.template?.name || 'Review'}`}
@@ -295,7 +295,7 @@ const ReviewDetailPage: React.FC = () => {
             {/* Measured evidence from CRM, scoped to this review's period.
                 Placed above the rating form on purpose: the reviewer should
                 see the numbers before writing the assessment, not after. */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-surface border border-line rounded-nb p-6">
                 <PerformanceEvidencePanel
                     personId={review.person_id}
                     periodStart={review.review_period_start}
@@ -304,29 +304,29 @@ const ReviewDetailPage: React.FC = () => {
             </div>
 
             {/* Review Info Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-surface border border-line rounded-nb p-6">
                 <div className="grid grid-cols-4 gap-6">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Reviewer</label>
-                        <p className="text-sm text-slate-50">{review.reviewer?.full_name || '-'}</p>
+                        <label className="block text-xs text-fg-muted mb-1">Reviewer</label>
+                        <p className="text-sm text-fg">{review.reviewer?.full_name || '-'}</p>
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Status</label>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(review.status)}`}>
+                        <label className="block text-xs text-fg-muted mb-1">Status</label>
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-fg ${getStatusColor(review.status)}`}>
                             {review.status.replace(/_/g, ' ')}
                         </span>
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Self Review Deadline</label>
-                        <p className="text-sm text-slate-50">
+                        <label className="block text-xs text-fg-muted mb-1">Self Review Deadline</label>
+                        <p className="text-sm text-fg">
                             {review.self_review_deadline
                                 ? formatters.formatDate(review.self_review_deadline)
                                 : '-'}
                         </p>
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Manager Review Deadline</label>
-                        <p className="text-sm text-slate-50">
+                        <label className="block text-xs text-fg-muted mb-1">Manager Review Deadline</label>
+                        <p className="text-sm text-fg">
                             {review.manager_review_deadline
                                 ? formatters.formatDate(review.manager_review_deadline)
                                 : '-'}
@@ -335,44 +335,44 @@ const ReviewDetailPage: React.FC = () => {
                 </div>
 
                 {review.overall_rating != null && review.overall_rating > 0 && (
-                    <div className="mt-6 pt-6 border-t border-slate-800">
-                        <label className="block text-xs text-slate-400 mb-2">Overall Rating</label>
+                    <div className="mt-6 pt-6 border-t border-line">
+                        <label className="block text-xs text-fg-muted mb-2">Overall Rating</label>
                         <div className="flex items-center gap-2">
                             {Array.from({ length: 5 }).map((_, i) => (
                                 <Star
                                     key={i}
                                     size={20}
-                                    className={i < Math.round(review.overall_rating!) ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600'}
+                                    className={i < Math.round(review.overall_rating!) ? 'fill-warning text-warning' : 'text-fg-subtle'}
                                 />
                             ))}
-                            <span className="text-lg font-medium text-slate-50 ml-2">{review.overall_rating.toFixed(1)}</span>
+                            <span className="text-lg font-medium text-fg ml-2">{review.overall_rating.toFixed(1)}</span>
                         </div>
                     </div>
                 )}
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-800">
+            <div className="flex items-center gap-2 border-b border-line">
                 <button
                     onClick={() => setActiveTab('self')}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'self' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
+                        activeTab === 'self' ? 'text-primary border-b-2 border-primary' : 'text-fg-muted hover:text-fg'
                     }`}
                 >
-                    Self Review {selfSubmitted && <span className="text-green-400 ml-1">&#10003;</span>}
+                    Self Review {selfSubmitted && <span className="text-success ml-1">&#10003;</span>}
                 </button>
                 <button
                     onClick={() => setActiveTab('manager')}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'manager' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
+                        activeTab === 'manager' ? 'text-primary border-b-2 border-primary' : 'text-fg-muted hover:text-fg'
                     }`}
                 >
-                    Manager Review {managerSubmitted && <span className="text-green-400 ml-1">&#10003;</span>}
+                    Manager Review {managerSubmitted && <span className="text-success ml-1">&#10003;</span>}
                 </button>
                 <button
                     onClick={() => setActiveTab('overall')}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'overall' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
+                        activeTab === 'overall' ? 'text-primary border-b-2 border-primary' : 'text-fg-muted hover:text-fg'
                     }`}
                 >
                     Overall
@@ -380,7 +380,7 @@ const ReviewDetailPage: React.FC = () => {
             </div>
 
             {/* Review Form */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-surface border border-line rounded-nb p-6">
                 {sections.length > 0 ? (
                     <>
                         {activeTab === 'self' && (
@@ -402,8 +402,8 @@ const ReviewDetailPage: React.FC = () => {
                                     readOnly={managerSubmitted}
                                 />
                                 {!managerSubmitted && review.status === 'manager_review_pending' && (
-                                    <div className="mt-6 pt-6 border-t border-slate-700">
-                                        <label className="block text-xs text-slate-400 mb-2">Overall Rating (1-5)</label>
+                                    <div className="mt-6 pt-6 border-t border-line-strong">
+                                        <label className="block text-xs text-fg-muted mb-2">Overall Rating (1-5)</label>
                                         <div className="flex items-center gap-1">
                                             {Array.from({ length: 5 }).map((_, i) => (
                                                 <button
@@ -414,12 +414,12 @@ const ReviewDetailPage: React.FC = () => {
                                                 >
                                                     <Star
                                                         size={24}
-                                                        className={overallRating > i ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600 hover:text-slate-400'}
+                                                        className={overallRating > i ? 'fill-warning text-warning' : 'text-fg-subtle hover:text-fg-muted'}
                                                     />
                                                 </button>
                                             ))}
                                             {overallRating > 0 && (
-                                                <span className="text-sm text-slate-50 ml-2">{overallRating} / 5</span>
+                                                <span className="text-sm text-fg ml-2">{overallRating} / 5</span>
                                             )}
                                         </div>
                                     </div>
@@ -430,25 +430,25 @@ const ReviewDetailPage: React.FC = () => {
                             <div className="space-y-6">
                                 {selfSubmitted && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Self Review (Submitted {formatters.formatDate(review.self_review_submitted_at!)})</h4>
+                                        <h4 className="text-sm font-medium text-fg mb-3">Self Review (Submitted {formatters.formatDate(review.self_review_submitted_at!)})</h4>
                                         <ReviewForm sections={sections} ratingScale={ratingScale} data={selfFormData} onChange={() => {}} readOnly />
                                     </div>
                                 )}
                                 {managerSubmitted && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Manager Review (Submitted {formatters.formatDate(review.manager_review_submitted_at!)})</h4>
+                                        <h4 className="text-sm font-medium text-fg mb-3">Manager Review (Submitted {formatters.formatDate(review.manager_review_submitted_at!)})</h4>
                                         <ReviewForm sections={sections} ratingScale={ratingScale} data={managerFormData} onChange={() => {}} readOnly />
                                     </div>
                                 )}
                                 {!selfSubmitted && !managerSubmitted && (
-                                    <p className="text-sm text-slate-400 text-center py-8">No reviews submitted yet.</p>
+                                    <p className="text-sm text-fg-muted text-center py-8">No reviews submitted yet.</p>
                                 )}
                             </div>
                         )}
                     </>
                 ) : (
                     <div className="text-center py-8">
-                        <p className="text-sm text-slate-400">No template sections available. The review template may not have been configured.</p>
+                        <p className="text-sm text-fg-muted">No template sections available. The review template may not have been configured.</p>
                     </div>
                 )}
             </div>
@@ -459,7 +459,7 @@ const ReviewDetailPage: React.FC = () => {
                     <button
                         onClick={handleSubmitSelfReview}
                         disabled={submitting}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50"
                     >
                         {submitting ? 'Submitting...' : 'Submit Self Review'}
                     </button>
@@ -468,7 +468,7 @@ const ReviewDetailPage: React.FC = () => {
                     <button
                         onClick={handleSubmitManagerReview}
                         disabled={submitting || overallRating === 0}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50"
                     >
                         {submitting ? 'Submitting...' : 'Submit Manager Review'}
                     </button>
@@ -477,7 +477,7 @@ const ReviewDetailPage: React.FC = () => {
                     <button
                         onClick={handleCompleteReview}
                         disabled={submitting}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-success hover:bg-success text-success-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50"
                     >
                         {submitting ? 'Completing...' : 'Complete Review'}
                     </button>

@@ -75,7 +75,7 @@ export const validateDraft = (draft: NewLeaveTypeDraft): string | null => {
 };
 
 const inputClass =
-  'rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-sm text-slate-50 focus:border-teal-500 focus:outline-none';
+  'rounded-nb border border-line-strong bg-surface-raised px-2.5 py-1.5 text-sm text-fg focus:border-primary focus:outline-none';
 
 /**
  * Leave Configuration, shown while creating an employee.
@@ -285,7 +285,7 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
           onChange={e => setCustom({ ...custom, days: e.target.value })}
           className={`${inputClass} w-20`}
         />
-        <label className="flex items-center gap-1.5 text-xs text-slate-300">
+        <label className="flex items-center gap-1.5 text-xs text-fg">
           <input
             type="checkbox"
             checked={custom.isPaid}
@@ -297,38 +297,38 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
           type="button"
           onClick={() => void createCustom()}
           disabled={creating}
-          className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-500 disabled:opacity-50"
+          className="rounded-nb bg-primary px-3 py-1.5 text-xs font-medium text-primary-fg hover:bg-primary-hover disabled:opacity-50"
         >
           Add
         </button>
       </div>
-      {customError && <p className="text-xs text-rose-300">{customError}</p>}
+      {customError && <p className="text-xs text-danger">{customError}</p>}
     </div>
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (!employmentTypeMasterId) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-fg-subtle">
         Select an Employment Type above to load its leave defaults.
       </p>
     );
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading leave configuration…</p>;
+    return <p className="text-sm text-fg-subtle">Loading leave configuration…</p>;
   }
 
   if (error) {
     return (
-      <div className="flex items-start gap-2 rounded-lg border border-rose-700/40 bg-rose-900/20 px-3 py-2">
-        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-rose-400" />
-        <div className="text-xs text-rose-300">
+      <div className="flex items-start gap-2 rounded-nb border border-danger/40 bg-danger-container/20 px-3 py-2">
+        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-danger" />
+        <div className="text-xs text-danger">
           {error}{' '}
           <button
             type="button"
             onClick={() => void load()}
-            className="font-medium underline hover:text-rose-200"
+            className="font-medium underline hover:text-danger"
           >
             Retry
           </button>
@@ -342,9 +342,9 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
   if (rows.length === 0) {
     if (!canCreate) {
       return (
-        <div className="flex items-start gap-2 rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2.5">
-          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-slate-400" />
-          <p className="text-xs text-slate-400">
+        <div className="flex items-start gap-2 rounded-nb border border-line-strong bg-surface-raised/50 px-3 py-2.5">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-fg-muted" />
+          <p className="text-xs text-fg-muted">
             No leave types are set up yet. Ask an HR admin to add them. You can still save this
             person.
           </p>
@@ -353,19 +353,19 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
     }
     return (
       <div className="space-y-3">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-fg-muted">
           Your organization has no leave types yet. Add the ones this employee should get:
         </p>
 
-        <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        <div className="rounded-nb border border-line-strong bg-surface-raised/50 p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-fg-subtle">
             Quick add — common types
           </p>
           <ul className="space-y-1.5">
             {QUICK_ADD_PRESETS.map(p => (
               <li key={p.name} className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-slate-200">
+                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-fg">
                     <input
                       type="checkbox"
                       checked={!!presetPicks[p.name]}
@@ -382,12 +382,12 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
                       className={`${inputClass} w-16`}
                     />
                   ) : (
-                    <span className="w-16 text-center text-xs text-slate-500">—</span>
+                    <span className="w-16 text-center text-xs text-fg-subtle">—</span>
                   )}
-                  <span className="w-12 text-xs text-slate-500">{p.isPaid ? 'Paid' : 'Unpaid'}</span>
+                  <span className="w-12 text-xs text-fg-subtle">{p.isPaid ? 'Paid' : 'Unpaid'}</span>
                 </div>
                 {createErrors[p.name] && (
-                  <p className="pl-6 text-xs text-rose-300">{createErrors[p.name]}</p>
+                  <p className="pl-6 text-xs text-danger">{createErrors[p.name]}</p>
                 )}
               </li>
             ))}
@@ -396,20 +396,20 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
             type="button"
             onClick={() => void createPresets()}
             disabled={creating || pickedPresets.length === 0}
-            className="mt-3 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-500 disabled:opacity-50"
+            className="mt-3 rounded-nb bg-primary px-3 py-1.5 text-xs font-medium text-primary-fg hover:bg-primary-hover disabled:opacity-50"
           >
             {creating ? 'Creating…' : `Create selected (${pickedPresets.length})`}
           </button>
         </div>
 
-        <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        <div className="rounded-nb border border-line-strong bg-surface-raised/50 p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-fg-subtle">
             Or add a custom type
           </p>
           {customForm}
         </div>
 
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-fg-subtle">
           You can skip this. The person can still be saved and leave types assigned later.
         </p>
       </div>
@@ -422,11 +422,11 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-fg-muted">
           {configured ? (
             <>
               Choose the leave types this employee can request. Pre-selected from{' '}
-              <span className="text-slate-300">{typeLabel}</span>.
+              <span className="text-fg">{typeLabel}</span>.
             </>
           ) : (
             <>
@@ -435,21 +435,21 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
             </>
           )}
         </p>
-        <span className="shrink-0 text-xs text-slate-500" data-testid="leave-selected-count">
+        <span className="shrink-0 text-xs text-fg-subtle" data-testid="leave-selected-count">
           {checkedCount} of {rows.length} selected
         </span>
       </div>
 
       {resetNotice && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
-          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-400" />
-          <p className="text-xs text-amber-200">
+        <div className="flex items-start gap-2 rounded-nb border border-warning/25 bg-warning/10 px-3 py-2">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warning" />
+          <p className="text-xs text-warning">
             The employment type changed, so the default leave types were reloaded and your
             employee-specific changes were cleared. Re-apply them below if they still apply.
             <button
               type="button"
               onClick={() => setResetNotice(false)}
-              className="ml-1 font-medium underline hover:text-amber-100"
+              className="ml-1 font-medium underline hover:text-warning"
             >
               Dismiss
             </button>
@@ -458,14 +458,14 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
       )}
 
       {failedNames.length > 0 && (
-        <div className="rounded-lg border border-rose-700/40 bg-rose-900/20 px-3 py-2 text-xs text-rose-300">
+        <div className="rounded-nb border border-danger/40 bg-danger-container/20 px-3 py-2 text-xs text-danger">
           {failedNames.map(n => (
             <p key={n}>Couldn&apos;t create {n}: {createErrors[n]}</p>
           ))}
         </div>
       )}
 
-      <ul className="divide-y divide-slate-700/60 rounded-lg border border-slate-700 bg-slate-800/50">
+      <ul className="divide-y divide-line-strong/60 rounded-nb border border-line-strong bg-surface-raised/50">
         {rows.map(t => {
           const checked = isChecked(t.id);
           const dflt = configured && defaultIds.has(t.id);
@@ -474,7 +474,7 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
           return (
             <li key={t.id}>
               <label
-                className={`flex items-center gap-2 px-3 py-2 ${canManageLeave ? 'cursor-pointer hover:bg-slate-800' : ''}`}
+                className={`flex items-center gap-2 px-3 py-2 ${canManageLeave ? 'cursor-pointer hover:bg-surface-raised' : ''}`}
               >
                 <input
                   type="checkbox"
@@ -485,20 +485,20 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
                 {t.color && (
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.color }} />
                 )}
-                <span className={`min-w-0 flex-1 truncate text-sm ${checked ? 'text-slate-200' : 'text-slate-500'}`}>
+                <span className={`min-w-0 flex-1 truncate text-sm ${checked ? 'text-fg' : 'text-fg-subtle'}`}>
                   {t.name}
                 </span>
                 {t.max_days_per_year != null && (
-                  <span className="shrink-0 text-xs text-slate-500">{t.max_days_per_year} days</span>
+                  <span className="shrink-0 text-xs text-fg-subtle">{t.max_days_per_year} days</span>
                 )}
                 {dflt && (
-                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-slate-500">Default</span>
+                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-fg-subtle">Default</span>
                 )}
                 {removed && (
-                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-amber-400">Removed</span>
+                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-warning">Removed</span>
                 )}
                 {added && (
-                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-teal-400">Added</span>
+                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-primary">Added</span>
                 )}
               </label>
             </li>
@@ -511,7 +511,7 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
           <button
             type="button"
             onClick={() => onOverridesChange([])}
-            className="text-xs font-medium text-teal-400 hover:text-teal-300"
+            className="text-xs font-medium text-primary hover:text-primary"
           >
             Reset to {employmentTypeName || 'employment type'} defaults
           </button>
@@ -520,7 +520,7 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
           <button
             type="button"
             onClick={() => setShowCustom(true)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-teal-400 hover:text-teal-300"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary"
           >
             <Plus size={13} />
             New leave type
@@ -530,7 +530,7 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
 
       {canCreate && showCustom && customForm}
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-fg-subtle">
         {canManageLeave
           ? 'Changes apply to this employee only.'
           : 'You can view but not change the leave types for this employee.'}

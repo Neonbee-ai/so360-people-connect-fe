@@ -85,13 +85,13 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
     return (
         <Modal isOpen onClose={onClose} title={`Leave Types — ${masterName}`}>
             <div className="space-y-4">
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-fg-muted">
                     Select the leave types employees under this employment type should receive by
                     default. Employees with their own configuration keep it.
                 </p>
 
                 {loading ? (
-                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                    <div className="flex items-center gap-2 text-sm text-fg-muted">
                         <Loader2 className="w-4 h-4 animate-spin" /> Loading…
                     </div>
                 ) : (
@@ -99,7 +99,7 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
                         {/* Selecting nothing is a real choice with a real consequence —
                             say what it is rather than letting HR discover it later. */}
                         {selected.size === 0 && (
-                            <p className="text-xs text-amber-400">
+                            <p className="text-xs text-warning">
                                 {configured
                                     ? 'Saving with none selected resets this employment type to unconfigured — every active leave type will apply again.'
                                     : 'This employment type is not configured, so every active leave type applies to its employees.'}
@@ -113,20 +113,20 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search leave types"
                                 aria-label="Search leave types"
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                             />
                         )}
 
-                        <div className="max-h-72 overflow-y-auto border border-slate-800 rounded-lg divide-y divide-slate-800">
+                        <div className="max-h-72 overflow-y-auto border border-line rounded-nb divide-y divide-line">
                             {visible.length === 0 ? (
-                                <p className="px-3 py-4 text-sm text-slate-500">
+                                <p className="px-3 py-4 text-sm text-fg-subtle">
                                     No leave types found. Create them under Leave Types first.
                                 </p>
                             ) : (
                                 visible.map((type) => (
                                     <label
                                         key={type.id}
-                                        className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-800/50"
+                                        className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-surface-raised/50"
                                     >
                                         <input
                                             type="checkbox"
@@ -134,8 +134,8 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
                                             onChange={() => toggle(type.id)}
                                             className="accent-teal-500"
                                         />
-                                        <span className="flex-1 text-sm text-slate-100">{type.name}</span>
-                                        <span className="text-[11px] text-slate-500">
+                                        <span className="flex-1 text-sm text-fg">{type.name}</span>
+                                        <span className="text-[11px] text-fg-subtle">
                                             {type.is_paid ? 'Paid' : 'Unpaid'}
                                             {type.max_days_per_year != null
                                                 ? ` · ${type.max_days_per_year} days/yr`
@@ -147,7 +147,7 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
                         </div>
 
                         {error && (
-                            <p role="alert" className="text-xs text-rose-400">
+                            <p role="alert" className="text-xs text-danger">
                                 {error}
                             </p>
                         )}
@@ -156,7 +156,7 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setSelected(new Set())}
-                                className="text-xs text-slate-400 hover:text-slate-200"
+                                className="text-xs text-fg-muted hover:text-fg"
                             >
                                 Clear selection
                             </button>
@@ -164,7 +164,7 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="px-3 py-1.5 text-sm text-slate-300 hover:text-slate-100"
+                                    className="px-3 py-1.5 text-sm text-fg hover:text-fg"
                                 >
                                     Cancel
                                 </button>
@@ -172,7 +172,7 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
                                     type="button"
                                     onClick={() => void save()}
                                     disabled={saving}
-                                    className="px-3 py-1.5 rounded-lg bg-teal-600 text-sm text-white hover:bg-teal-500 disabled:opacity-50"
+                                    className="px-3 py-1.5 rounded-nb bg-primary text-sm text-primary-fg hover:bg-primary-hover disabled:opacity-50"
                                 >
                                     {saving ? 'Saving…' : 'Save'}
                                 </button>
@@ -198,7 +198,7 @@ const EmploymentTypesPage: React.FC = () => {
                 rowExtraAction={(row) => (
                     <button
                         onClick={() => setEditingLeave({ id: row.id, name: row.name })}
-                        className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
+                        className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised transition-colors"
                         title="Configure default leave types"
                         aria-label={`Configure leave types for ${row.name}`}
                     >

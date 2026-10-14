@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Save, Printer, Download } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import { payrollApi, PayslipTemplate, PayslipLayout, PayslipTableStyle } from '../../../services/payrollApi';
 import { openPrintableDocument, previewPayslipFileName } from '../../../utils/printableDocument';
 
 const PREVIEW_PAYSLIP_NUMBER = 'PS-PREVIEW-0001';
 
-const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
-const labelCls = 'block text-xs text-slate-400 mb-1';
+const inputCls = 'w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
+const labelCls = 'block text-xs text-fg-muted mb-1';
 
 const LAYOUTS: { key: PayslipLayout; label: string }[] = [
     { key: 'light', label: 'Light' },
@@ -87,15 +87,15 @@ const PayslipTemplateTab: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />;
-    if (!template) return <p className="text-sm text-slate-400">Payslip template is not available yet.</p>;
+    if (loading) return <div className="h-64 bg-surface-raised/50 rounded-nb animate-pulse" />;
+    if (!template) return <p className="text-sm text-fg-muted">Payslip template is not available yet.</p>;
 
     return (
         <div className="grid grid-cols-2 gap-5">
             {/* Controls */}
             <div className="space-y-5">
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Layout</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2">Layout</h4>
                     <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Payslip layout">
                         {LAYOUTS.map(layout => (
                             <button
@@ -105,8 +105,8 @@ const PayslipTemplateTab: React.FC = () => {
                                 onClick={() => update({ layout: layout.key })}
                                 className={`px-2 py-3 rounded-lg border text-xs font-medium transition-colors ${
                                     template.layout === layout.key
-                                        ? 'bg-teal-500/10 border-teal-500/40 text-teal-400'
-                                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                                        ? 'bg-primary/10 border-primary/40 text-primary'
+                                        : 'bg-surface border-line text-fg-muted hover:border-line-strong'
                                 }`}
                             >
                                 {layout.label}
@@ -116,7 +116,7 @@ const PayslipTemplateTab: React.FC = () => {
                 </div>
 
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Table Style</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2">Table Style</h4>
                     <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Payslip table style">
                         {TABLE_STYLES.map(style => (
                             <button
@@ -126,8 +126,8 @@ const PayslipTemplateTab: React.FC = () => {
                                 onClick={() => update({ table_style: style.key })}
                                 className={`px-2 py-2.5 rounded-lg border text-xs font-medium transition-colors ${
                                     template.table_style === style.key
-                                        ? 'bg-teal-500/10 border-teal-500/40 text-teal-400'
-                                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                                        ? 'bg-primary/10 border-primary/40 text-primary'
+                                        : 'bg-surface border-line text-fg-muted hover:border-line-strong'
                                 }`}
                             >
                                 {style.label}
@@ -139,28 +139,19 @@ const PayslipTemplateTab: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className={labelCls}>Font</label>
-                        <select value={template.font || 'inter'} onChange={e => update({ font: e.target.value })} className={inputCls}>
-                            <option value="inter">Inter</option>
-                            <option value="roboto">Roboto</option>
-                            <option value="lato">Lato</option>
-                            <option value="georgia">Georgia</option>
-                            <option value="courier">Courier</option>
-                        </select>
+                        <Select name="paysliptemplatetab-select-17" value={template.font || 'inter'} onChange={e => update({ font: e.target.value })} options={[{ value: "inter", label: "Inter" }, { value: "roboto", label: "Roboto" }, { value: "lato", label: "Lato" }, { value: "georgia", label: "Georgia" }, { value: "courier", label: "Courier" }]} />
                     </div>
                     <div>
                         <label className={labelCls}>Paper</label>
-                        <select value={template.paper_format || 'A4'} onChange={e => update({ paper_format: e.target.value as 'A4' | 'Letter' })} className={inputCls}>
-                            <option value="A4">A4</option>
-                            <option value="Letter">Letter</option>
-                        </select>
+                        <Select name="paysliptemplatetab-select-18" value={template.paper_format || 'A4'} onChange={e => update({ paper_format: e.target.value as 'A4' | 'Letter' })} options={[{ value: "A4", label: "A4" }, { value: "Letter", label: "Letter" }]} />
                     </div>
                     <div>
                         <label className={labelCls}>Primary Color</label>
-                        <input type="color" value={template.primary_color || '#0f766e'} onChange={e => update({ primary_color: e.target.value })} className="w-full h-10 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg" />
+                        <input type="color" value={template.primary_color || '#0f766e'} onChange={e => update({ primary_color: e.target.value })} className="w-full h-10 px-2 py-1 bg-surface-raised border border-line-strong rounded-nb" />
                     </div>
                     <div>
                         <label className={labelCls}>Secondary Color</label>
-                        <input type="color" value={template.secondary_color || '#334155'} onChange={e => update({ secondary_color: e.target.value })} className="w-full h-10 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg" />
+                        <input type="color" value={template.secondary_color || '#334155'} onChange={e => update({ secondary_color: e.target.value })} className="w-full h-10 px-2 py-1 bg-surface-raised border border-line-strong rounded-nb" />
                     </div>
                 </div>
 
@@ -187,7 +178,7 @@ const PayslipTemplateTab: React.FC = () => {
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         <Save size={14} /> {saving ? 'Saving…' : 'Save Template'}
                     </button>
@@ -195,16 +186,16 @@ const PayslipTemplateTab: React.FC = () => {
             </div>
 
             {/* Live preview */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-                    <h4 className="text-sm font-semibold text-slate-50">Live Preview</h4>
+            <div className="bg-surface border border-line rounded-nb overflow-hidden">
+                <div className="px-4 py-3 border-b border-line flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-fg">Live Preview</h4>
                     <div className="flex items-center gap-3">
-                        {previewLoading && <span className="text-xs text-slate-500">Refreshing…</span>}
+                        {previewLoading && <span className="text-xs text-fg-subtle">Refreshing…</span>}
                         <button
                             type="button"
                             onClick={openPrintWindow}
                             disabled={!previewHtml}
-                            className="flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-teal-400 disabled:opacity-40 disabled:hover:text-slate-300 transition-colors"
+                            className="flex items-center gap-1.5 text-xs font-medium text-fg hover:text-primary disabled:opacity-40 disabled:hover:text-fg transition-colors"
                         >
                             <Printer size={13} /> Print
                         </button>
@@ -212,23 +203,23 @@ const PayslipTemplateTab: React.FC = () => {
                             type="button"
                             onClick={openPrintWindow}
                             disabled={!previewHtml}
-                            className="flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-teal-400 disabled:opacity-40 disabled:hover:text-slate-300 transition-colors"
+                            className="flex items-center gap-1.5 text-xs font-medium text-fg hover:text-primary disabled:opacity-40 disabled:hover:text-fg transition-colors"
                         >
                             <Download size={13} /> Download PDF
                         </button>
                     </div>
                 </div>
-                <div className="p-4 bg-slate-800/30 min-h-96 overflow-auto">
+                <div className="p-4 bg-surface-raised/30 min-h-96 overflow-auto">
                     {previewHtml ? (
                         // Server-rendered trusted HTML from the people-connect backend's
                         // own template renderer — never user-supplied markup.
                         <div
                             data-testid="payslip-preview"
-                            className="bg-white rounded-lg shadow-xl"
+                            className="bg-white rounded-nb shadow-xl"
                             dangerouslySetInnerHTML={{ __html: previewHtml }}
                         />
                     ) : (
-                        <p className="text-sm text-slate-500 text-center py-16">Preview will appear here as you customize the template.</p>
+                        <p className="text-sm text-fg-subtle text-center py-16">Preview will appear here as you customize the template.</p>
                     )}
                 </div>
             </div>

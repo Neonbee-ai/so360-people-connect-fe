@@ -25,7 +25,7 @@ export const DEFAULT_NUMBERING_SETTINGS: NumberingSettingsValue = {
 };
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
+  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const preview = (rule: NumberingRule) => `${rule.prefix}${String(1).padStart(rule.padding, '0')}`;
 
@@ -34,11 +34,11 @@ const RuleGroup: React.FC<{
   rule: NumberingRule;
   onChange: (rule: NumberingRule) => void;
 }> = ({ title, rule, onChange }) => (
-  <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">{title}</h3>
+  <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+    <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">{title}</h3>
     <div className="grid grid-cols-2 gap-3">
       <div className="space-y-1.5">
-        <label className="text-xs text-slate-400">Prefix</label>
+        <label className="text-xs text-fg-muted">Prefix</label>
         <input
           type="text"
           className={INPUT_CLASS}
@@ -47,7 +47,7 @@ const RuleGroup: React.FC<{
         />
       </div>
       <div className="space-y-1.5">
-        <label className="text-xs text-slate-400">Padding (digits)</label>
+        <label className="text-xs text-fg-muted">Padding (digits)</label>
         <input
           type="number"
           min={1}
@@ -58,8 +58,8 @@ const RuleGroup: React.FC<{
         />
       </div>
     </div>
-    <div className="text-xs text-slate-500">
-      Preview: <span className="font-mono text-blue-400">{preview(rule)}</span>
+    <div className="text-xs text-fg-subtle">
+      Preview: <span className="font-mono text-primary">{preview(rule)}</span>
     </div>
   </div>
 );
@@ -99,7 +99,7 @@ const NumberingSettingsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading numbering settings...</div>;
+    return <div className="p-6 text-fg-muted animate-pulse">Loading numbering settings...</div>;
   }
 
   return (
@@ -124,7 +124,7 @@ const NumberingSettingsPage: React.FC = () => {
         <RuleGroup title="Review Number" rule={value.review} onChange={(r) => setValue((p) => ({ ...p, review: r }))} />
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-slate-500">
+      <div className="flex items-center gap-2 text-xs text-fg-subtle">
         <Hash className="w-3.5 h-3.5" />
         <span>Changes apply to new records only. Existing IDs are never renumbered.</span>
       </div>

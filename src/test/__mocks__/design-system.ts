@@ -1,8 +1,50 @@
 import React from 'react';
 export const Button = (props: any) => props;
 export const Input = (props: any) => props;
-export const Select = (props: any) => props;
-export const Modal = (props: any) => props;
+// Select mirrors Comb Select: label + native <select> built from `options`.
+export const Select = ({ label, name, options = [], placeholder, hint, error, required, size, children, ...rest }: any) =>
+  React.createElement(
+    'div',
+    null,
+    label ? React.createElement('label', { htmlFor: name }, label) : null,
+    React.createElement(
+      'select',
+      { id: name, name, required, ...rest },
+      placeholder ? React.createElement('option', { value: '' }, placeholder) : null,
+      ...options.map((o: any) => React.createElement('option', { key: o.value, value: o.value, disabled: o.disabled }, o.label)),
+    ),
+    error ? React.createElement('p', null, error) : null,
+  );
+// Modal mirrors Comb Modal: renders only when open, dialog labelled by title, Close button.
+export const Modal = ({ open, onClose, title, description, footer, children }: any) =>
+  open
+    ? React.createElement(
+        'div',
+        { role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+        React.createElement('h2', null, title),
+        description ? React.createElement('p', null, description) : null,
+        React.createElement('button', { type: 'button', 'aria-label': 'Close', onClick: onClose }),
+        children,
+        footer,
+      )
+    : null;
+// useConfirm mirrors Comb: [confirm(opts) => Promise<boolean>, dialogElement].
+export const useConfirm = (): [(opts: any) => Promise<boolean>, any] => {
+  const [state, setState] = React.useState<null | { opts: any; resolve: (v: boolean) => void }>(null);
+  const confirm = (opts: any) => new Promise<boolean>((resolve) => setState({ opts, resolve }));
+  const done = (v: boolean) => { state?.resolve(v); setState(null); };
+  const el = state
+    ? React.createElement(
+        'div',
+        { role: 'dialog', 'aria-modal': 'true', 'aria-label': state.opts.title },
+        React.createElement('h3', null, state.opts.title),
+        React.createElement('p', null, state.opts.message),
+        React.createElement('button', { type: 'button', onClick: () => done(false) }, state.opts.cancelLabel || 'Cancel'),
+        React.createElement('button', { type: 'button', onClick: () => done(true) }, state.opts.confirmLabel || 'Confirm'),
+      )
+    : null;
+  return [confirm, el];
+};
 export const Card = (props: any) => props;
 export const Badge = (props: any) => props;
 export const Spinner = (props: any) => props;

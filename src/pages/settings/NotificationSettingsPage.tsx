@@ -49,7 +49,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsValue = {
 };
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
+  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const CHANNELS: { key: keyof NotificationChannelMatrix; label: string }[] = [
   { key: 'email', label: 'Email' },
@@ -115,7 +115,7 @@ const NotificationSettingsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading notification settings...</div>;
+    return <div className="p-6 text-fg-muted animate-pulse">Loading notification settings...</div>;
   }
 
   return (
@@ -133,27 +133,27 @@ const NotificationSettingsPage: React.FC = () => {
         }
       />
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+      <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+        <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
           <Bell className="w-4 h-4" /> Channels x Triggers
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[640px]">
             <thead>
-              <tr className="border-b border-slate-800">
-                <th className="py-2 px-3 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Trigger</th>
+              <tr className="border-b border-line">
+                <th className="py-2 px-3 text-[11px] text-fg-subtle uppercase tracking-widest font-bold">Trigger</th>
                 {CHANNELS.map((c) => (
-                  <th key={c.key} className="py-2 px-3 text-[11px] text-slate-500 uppercase tracking-widest font-bold text-center">
+                  <th key={c.key} className="py-2 px-3 text-[11px] text-fg-subtle uppercase tracking-widest font-bold text-center">
                     {c.label}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y divide-line/50">
               {NOTIFICATION_TRIGGERS.map((t) => (
                 <tr key={t.key}>
-                  <td className="py-2.5 px-3 text-sm text-slate-300">{t.label}</td>
+                  <td className="py-2.5 px-3 text-sm text-fg">{t.label}</td>
                   {CHANNELS.map((c) => (
                     <td key={c.key} className="py-2.5 px-3 text-center">
                       <input
@@ -173,8 +173,8 @@ const NotificationSettingsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <label className="text-xs text-slate-400">Slack Webhook URL</label>
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <label className="text-xs text-fg-muted">Slack Webhook URL</label>
           <input
             type="text"
             className={INPUT_CLASS}
@@ -183,8 +183,8 @@ const NotificationSettingsPage: React.FC = () => {
             placeholder="https://hooks.slack.com/services/..."
           />
         </div>
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <label className="text-xs text-slate-400">Discord / Teams Webhook URL</label>
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <label className="text-xs text-fg-muted">Discord / Teams Webhook URL</label>
           <input
             type="text"
             className={INPUT_CLASS}

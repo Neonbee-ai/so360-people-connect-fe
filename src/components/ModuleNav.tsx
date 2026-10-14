@@ -162,7 +162,7 @@ const ModuleNav: React.FC = () => {
     };
 
     return (
-        <nav className="h-full w-64 bg-slate-900 border-r border-slate-800 overflow-y-auto">
+        <nav className="h-full w-64 bg-surface border-r border-line overflow-y-auto">
             <div className="p-6 space-y-6">
                 {navigationItems.map((section) => {
                     const visibleItems = section.items.filter((item) => {
@@ -180,7 +180,7 @@ const ModuleNav: React.FC = () => {
                     if (visibleItems.length === 0) return null;
                     return (
                     <div key={section.section}>
-                        <h3 className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                        <h3 className="px-4 text-xs font-semibold text-fg-subtle uppercase tracking-wider mb-3">
                             {section.section}
                         </h3>
                         <div className="space-y-1">
@@ -194,8 +194,8 @@ const ModuleNav: React.FC = () => {
                                         className={({ isActive: navIsActive }) =>
                                             `flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors ${
                                                 navIsActive
-                                                    ? 'bg-teal-500/10 text-teal-400 border-l-2 border-teal-500'
-                                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
+                                                    ? 'bg-primary/10 text-primary border-l-2 border-primary'
+                                                    : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
                                             }`
                                         }
                                     >

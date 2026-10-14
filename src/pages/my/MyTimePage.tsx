@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarClock, Clock, Coffee, LogOut, Play, Send } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyOpenSession, MyAttendanceRecord, MyAllocation } from '../../services/meService';
 import { attendanceCorrectionsApi } from '../../services/attendanceService';
@@ -93,30 +93,30 @@ const MyTimePage: React.FC = () => {
             <PageHeader title="My Time" subtitle="Clock in, take breaks, clock out" />
 
             {/* Hero clock card — the one thing this page is for. */}
-            <section className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+            <section className="rounded-nb border border-line bg-surface p-6">
                 {session ? (
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                             <span className="relative flex h-3 w-3">
                                 <span
                                     className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
-                                        onBreak ? 'bg-amber-400' : 'bg-emerald-400'
+                                        onBreak ? 'bg-warning' : 'bg-success'
                                     }`}
                                 />
                                 <span
                                     className={`relative inline-flex h-3 w-3 rounded-full ${
-                                        onBreak ? 'bg-amber-500' : 'bg-emerald-500'
+                                        onBreak ? 'bg-warning' : 'bg-success'
                                     }`}
                                 />
                             </span>
                             <div>
-                                <p className="text-lg font-semibold text-slate-50">
+                                <p className="text-lg font-semibold text-fg">
                                     {onBreak ? 'On break' : 'Clocked in'}
                                     {session.entity_name ? (
-                                        <span className="font-normal text-slate-400"> · {session.entity_name}</span>
+                                        <span className="font-normal text-fg-muted"> · {session.entity_name}</span>
                                     ) : ''}
                                 </p>
-                                <p className="text-sm text-slate-400">
+                                <p className="text-sm text-fg-muted">
                                     Started {elapsed(session.started_at, now)} ago
                                 </p>
                             </div>
@@ -153,8 +153,8 @@ const MyTimePage: React.FC = () => {
                 ) : (
                     <div>
                         <div className="mb-4 flex items-center gap-3">
-                            <span className="inline-block h-3 w-3 rounded-full bg-slate-600" />
-                            <p className="text-lg font-semibold text-slate-50">
+                            <span className="inline-block h-3 w-3 rounded-full bg-line-strong" />
+                            <p className="text-lg font-semibold text-fg">
                                 You&apos;re not clocked in
                             </p>
                         </div>
@@ -163,7 +163,7 @@ const MyTimePage: React.FC = () => {
                             // A job session must book time against a work unit, so with no
                             // assignment there is genuinely nothing to clock in to. Say that
                             // plainly rather than offering a button that cannot work.
-                            <p className="text-sm text-slate-500">
+                            <p className="text-sm text-fg-subtle">
                                 You have no active work assignments. Ask your supervisor to
                                 assign one, then clock in here.
                             </p>
@@ -171,18 +171,7 @@ const MyTimePage: React.FC = () => {
                             <div className="flex flex-wrap items-end gap-3">
                                 <div className="min-w-[220px] flex-1">
                                     <label className={labelCls}>What are you working on?</label>
-                                    <select
-                                        value={picked}
-                                        onChange={e => setPicked(e.target.value)}
-                                        className={inputCls}
-                                    >
-                                        <option value="">Select a job…</option>
-                                        {allocations.map(a => (
-                                            <option key={a.id} value={a.id}>
-                                                {a.entity_name || `${a.entity_type} ${a.entity_id.slice(0, 8)}`}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <Select name="mytime-select-86" value={picked} onChange={e => setPicked(e.target.value)} options={[{ value: "", label: "Select a job…" }, ...allocations.map((a) => ({ value: a.id, label: `${a.entity_name || `$${a.entity_type} $${a.entity_id.slice(0, 8)}`}` }))]} />
                                 </div>
                                 <button
                                     disabled={busy || !picked}
@@ -215,14 +204,14 @@ const MyTimePage: React.FC = () => {
 
             <MyCard title="My attendance" icon={<Clock size={14} />} flush>
                 {history.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-slate-500">
+                    <p className="py-8 text-center text-sm text-fg-subtle">
                         No attendance recorded yet.
                     </p>
                 ) : (
-                    <ul className="divide-y divide-slate-800">
+                    <ul className="divide-y divide-line">
                         {history.slice(0, 30).map(r => (
                             <li key={r.id} className="flex items-center justify-between px-4 py-2.5">
-                                <span className="text-sm text-slate-300">
+                                <span className="text-sm text-fg">
                                     {r.attendance_date}
                                 </span>
                                 <StatusPill status={r.status} />
@@ -289,7 +278,7 @@ const CorrectionRequestsCard: React.FC<{
                 <button
                     type="button"
                     onClick={() => setOpen(v => !v)}
-                    className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                    className="flex items-center gap-1 text-xs text-primary hover:text-primary transition-colors"
                 >
                     {open ? 'Close' : 'Request correction'}
                 </button>
@@ -297,7 +286,7 @@ const CorrectionRequestsCard: React.FC<{
             flush
         >
             {open && (
-                <form onSubmit={submit} className="space-y-4 border-b border-slate-800 p-4">
+                <form onSubmit={submit} className="space-y-4 border-b border-line p-4">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label htmlFor="correction-date" className={labelCls}>Date *</label>
@@ -313,18 +302,7 @@ const CorrectionRequestsCard: React.FC<{
                         </div>
                         <div>
                             <label htmlFor="correction-status" className={labelCls}>Correct status</label>
-                            <select
-                                id="correction-status"
-                                value={status}
-                                onChange={e => setStatus(e.target.value as AttendanceStatus)}
-                                className={inputCls}
-                            >
-                                {CORRECTION_STATUSES.map(s => (
-                                    <option key={s} value={s}>
-                                        {s.replace(/_/g, ' ')}
-                                    </option>
-                                ))}
-                            </select>
+                            <Select name="correction-status" id="correction-status" value={status} onChange={e => setStatus(e.target.value as AttendanceStatus)} options={[...CORRECTION_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))]} />
                         </div>
                         <div>
                             <label htmlFor="correction-check-in" className={labelCls}>Check in</label>
@@ -367,23 +345,23 @@ const CorrectionRequestsCard: React.FC<{
             )}
 
             {corrections.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-500">
+                <p className="py-8 text-center text-sm text-fg-subtle">
                     No correction requests yet. Spotted a wrong or missing day? Request a correction.
                 </p>
             ) : (
-                <ul className="divide-y divide-slate-800">
+                <ul className="divide-y divide-line">
                     {corrections.slice(0, 30).map(c => (
                         <li key={c.id} className="px-4 py-2.5">
                             <div className="flex items-center justify-between gap-3">
-                                <span className="text-sm text-slate-300">{c.attendance_date}</span>
-                                <span className="text-xs text-slate-500">
+                                <span className="text-sm text-fg">{c.attendance_date}</span>
+                                <span className="text-xs text-fg-subtle">
                                     {[c.requested_check_in, c.requested_check_out].filter(Boolean).join(' – ') || c.requested_status || ''}
                                 </span>
                                 <StatusPill status={c.status} />
                             </div>
-                            <p className="mt-0.5 text-xs text-slate-500">{c.reason}</p>
+                            <p className="mt-0.5 text-xs text-fg-subtle">{c.reason}</p>
                             {c.status === 'rejected' && c.review_note && (
-                                <p className="mt-0.5 text-xs text-rose-400">Rejected: {c.review_note}</p>
+                                <p className="mt-0.5 text-xs text-danger">Rejected: {c.review_note}</p>
                             )}
                         </li>
                     ))}

@@ -4,7 +4,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance } from '../services/leaveRequestsService';
@@ -73,12 +73,12 @@ const LeaveRequestsPage: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'draft': return 'bg-slate-600';
-            case 'pending': return 'bg-yellow-600';
-            case 'approved': return 'bg-green-600';
-            case 'rejected': return 'bg-red-600';
-            case 'cancelled': return 'bg-slate-500';
-            default: return 'bg-slate-600';
+            case 'draft': return 'bg-line-strong';
+            case 'pending': return 'bg-warning';
+            case 'approved': return 'bg-success';
+            case 'rejected': return 'bg-danger';
+            case 'cancelled': return 'bg-fg-subtle';
+            default: return 'bg-line-strong';
         }
     };
 
@@ -90,7 +90,7 @@ const LeaveRequestsPage: React.FC = () => {
                 actions={
                     canCreate && <button
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         <Plus size={16} />
                         Request Leave
@@ -100,25 +100,14 @@ const LeaveRequestsPage: React.FC = () => {
 
             {/* Filters */}
             <div className="flex items-center gap-3">
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="draft">Draft</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
+                <Select name="leaverequests-select-55" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Statuses" }, { value: "draft", label: "Draft" }, { value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "rejected", label: "Rejected" }, { value: "cancelled", label: "Cancelled" }]} />
             </div>
 
             {/* Requests Table */}
             {loading ? (
                 <div className="space-y-3">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+                        <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
                     ))}
                 </div>
             ) : requests.length === 0 ? (
@@ -129,34 +118,34 @@ const LeaveRequestsPage: React.FC = () => {
                     action={canCreate ? { label: 'Request Leave', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <div className="bg-surface border border-line rounded-nb overflow-hidden">
                     <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
+                        <thead className="bg-surface-raised/50 border-b border-line">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Person</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Leave Type</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Start Date</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">End Date</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Total Days</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Person</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Leave Type</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Start Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">End Date</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Total Days</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-line">
                             {requests.map(request => (
-                                <tr key={request.id} className="hover:bg-slate-800/50 transition-colors">
+                                <tr key={request.id} className="hover:bg-surface-raised/50 transition-colors">
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 border border-line-strong flex items-center justify-center flex-shrink-0">
                                                 {request.person?.avatar_url ? (
                                                     <img src={request.person.avatar_url} alt="" className="w-8 h-8 rounded-full" />
                                                 ) : (
-                                                    <span className="text-xs font-medium text-teal-400">
+                                                    <span className="text-xs font-medium text-primary">
                                                         {request.person?.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className="text-sm text-slate-50">{request.person?.full_name}</span>
+                                            <span className="text-sm text-fg">{request.person?.full_name}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
@@ -167,29 +156,29 @@ const LeaveRequestsPage: React.FC = () => {
                                                     style={{ backgroundColor: request.leave_type.color }}
                                                 />
                                             )}
-                                            <span className="text-sm text-slate-50">{request.leave_type?.name}</span>
+                                            <span className="text-sm text-fg">{request.leave_type?.name}</span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">
+                                    <td className="px-4 py-3 text-sm text-fg-muted">
                                         {formatters.formatDate(request.start_date)}
-                                        {request.is_half_day_start && <span className="text-xs text-slate-500"> (Half)</span>}
+                                        {request.is_half_day_start && <span className="text-xs text-fg-subtle"> (Half)</span>}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">
+                                    <td className="px-4 py-3 text-sm text-fg-muted">
                                         {formatters.formatDate(request.end_date)}
-                                        {request.is_half_day_end && <span className="text-xs text-slate-500"> (Half)</span>}
+                                        {request.is_half_day_end && <span className="text-xs text-fg-subtle"> (Half)</span>}
                                     </td>
-                                    <td className="px-4 py-3 text-center text-sm font-medium text-slate-50">
+                                    <td className="px-4 py-3 text-center text-sm font-medium text-fg">
                                         {request.total_days}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(request.status)}`}>
+                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-fg ${getStatusColor(request.status)}`}>
                                             {request.status}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <button
                                             onClick={() => setViewingRequest(request)}
-                                            className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                                            className="text-xs text-primary hover:text-primary transition-colors"
                                         >
                                             View
                                         </button>
@@ -415,51 +404,51 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
         <Modal isOpen={isOpen} onClose={onClose} title="Request Leave">
             <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
                 {personError && (
-                    <div className="p-3 rounded-lg bg-red-900/30 border border-red-700/50 text-sm text-red-300">
+                    <div className="p-3 rounded-nb bg-danger-container/30 border border-danger/50 text-sm text-danger">
                         {personError}
                     </div>
                 )}
                 <div>
-                    <label htmlFor="leave-type" className="block text-xs text-slate-400 mb-1">Leave Type *</label>
+                    <label htmlFor="leave-type" className="block text-xs text-fg-muted mb-1">Leave Type *</label>
                     <select
                         id="leave-type"
                         data-field="leave_type_id"
                         value={formData.leave_type_id}
                         onChange={(e) => updateField('leave_type_id', e.target.value)}
                         aria-invalid={!!errors.leave_type_id}
-                        className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.leave_type_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                        className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.leave_type_id ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                     >
                         <option value="">Select leave type</option>
                         {leaveTypes.map(type => (
                             <option key={type.id} value={type.id}>{type.name}</option>
                         ))}
                     </select>
-                    {errors.leave_type_id && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.leave_type_id}</p>}
+                    {errors.leave_type_id && <p role="alert" className="mt-1 text-xs text-danger">{errors.leave_type_id}</p>}
                     {leaveTypesError && (
-                        <p role="alert" className="mt-1 text-xs text-rose-400">{leaveTypesError}</p>
+                        <p role="alert" className="mt-1 text-xs text-danger">{leaveTypesError}</p>
                     )}
                     {/* An empty picker is a configuration answer, not a loading
                         state — say which one, or the user just sees a dead dropdown. */}
                     {!leaveTypesError && !personError && leaveTypes.length === 0 && (
-                        <p className="mt-1 text-xs text-amber-400">
+                        <p className="mt-1 text-xs text-warning">
                             No leave types are configured for your employment type. Contact HR.
                         </p>
                     )}
                     {selectedBalance && (
-                        <div className="mt-2 grid grid-cols-3 gap-2 p-2 bg-slate-800/50 rounded-lg text-center">
+                        <div className="mt-2 grid grid-cols-3 gap-2 p-2 bg-surface-raised/50 rounded-nb text-center">
                             <div>
-                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Allocated</p>
-                                <p className="text-sm font-medium text-slate-200">
+                                <p className="text-[10px] text-fg-subtle uppercase tracking-wider">Allocated</p>
+                                <p className="text-sm font-medium text-fg">
                                     {selectedBalance.opening_balance + selectedBalance.accrued + selectedBalance.adjusted} days
                                 </p>
                             </div>
                             <div>
-                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Used</p>
-                                <p className="text-sm font-medium text-slate-200">{selectedBalance.used} days</p>
+                                <p className="text-[10px] text-fg-subtle uppercase tracking-wider">Used</p>
+                                <p className="text-sm font-medium text-fg">{selectedBalance.used} days</p>
                             </div>
                             <div>
-                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Remaining</p>
-                                <p className="text-sm font-medium text-teal-400">{selectedBalance.available} days</p>
+                                <p className="text-[10px] text-fg-subtle uppercase tracking-wider">Remaining</p>
+                                <p className="text-sm font-medium text-primary">{selectedBalance.available} days</p>
                             </div>
                         </div>
                     )}
@@ -467,7 +456,7 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label htmlFor="leave-start-date" className="block text-xs text-slate-400 mb-1">Start Date *</label>
+                        <label htmlFor="leave-start-date" className="block text-xs text-fg-muted mb-1">Start Date *</label>
                         <input
                             id="leave-start-date"
                             data-field="start_date"
@@ -477,24 +466,24 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                             min={allowsBackdating ? undefined : today}
                             onChange={(e) => updateField('start_date', e.target.value)}
                             aria-invalid={!!errors.start_date}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.start_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                            className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.start_date ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                         />
-                        {errors.start_date && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.start_date}</p>}
+                        {errors.start_date && <p role="alert" className="mt-1 text-xs text-danger">{errors.start_date}</p>}
                         <label className="flex items-center gap-2 mt-2" title="Tick when you are only taking the second half of the first day off.">
                             <input
                                 type="checkbox"
                                 aria-label="Start Date – Half Day"
                                 checked={formData.is_half_day_start}
                                 onChange={(e) => updateField('is_half_day_start', e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
                             />
-                            <span className="text-xs text-slate-400">
+                            <span className="text-xs text-fg-muted">
                                 {isSingleDay ? 'Half Day (this day only)' : 'Start Date – Half Day'}
                             </span>
                         </label>
                     </div>
                     <div>
-                        <label htmlFor="leave-end-date" className="block text-xs text-slate-400 mb-1">End Date *</label>
+                        <label htmlFor="leave-end-date" className="block text-xs text-fg-muted mb-1">End Date *</label>
                         <input
                             id="leave-end-date"
                             data-field="end_date"
@@ -504,9 +493,9 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                             min={formData.start_date || (allowsBackdating ? undefined : today)}
                             onChange={(e) => updateField('end_date', e.target.value)}
                             aria-invalid={!!errors.end_date}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.end_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                            className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.end_date ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                         />
-                        {errors.end_date && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.end_date}</p>}
+                        {errors.end_date && <p role="alert" className="mt-1 text-xs text-danger">{errors.end_date}</p>}
                         {/* Hidden for single-day requests: with start == end there is
                             only one day to halve, so a second checkbox is ambiguous. */}
                         {!isSingleDay && (
@@ -516,26 +505,26 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                                     aria-label="End Date – Half Day"
                                     checked={formData.is_half_day_end}
                                     onChange={(e) => updateField('is_half_day_end', e.target.checked)}
-                                    className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                                    className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
                                 />
-                                <span className="text-xs text-slate-400">End Date – Half Day</span>
+                                <span className="text-xs text-fg-muted">End Date – Half Day</span>
                             </label>
                         )}
                     </div>
                 </div>
 
-                <p className="text-xs text-slate-500 -mt-2">
+                <p className="text-xs text-fg-subtle -mt-2">
                     Each half-day option applies only to its own date — tick “Start Date – Half Day”
                     when you work the morning of your first day off, and “End Date – Half Day”
                     when you return for the afternoon of your last day.
                 </p>
 
-                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-                    <p className="text-sm text-slate-300">
-                        Total Days: <span className="text-teal-400 font-medium">{calculateTotalDays() ?? '—'}</span>
+                <div className="bg-surface-raised/50 border border-line-strong rounded-nb p-3">
+                    <p className="text-sm text-fg">
+                        Total Days: <span className="text-primary font-medium">{calculateTotalDays() ?? '—'}</span>
                     </p>
                     {!hasValidRange && (
-                        <p className="mt-1 text-xs text-slate-500">Fix the dates above to see the total.</p>
+                        <p className="mt-1 text-xs text-fg-subtle">Fix the dates above to see the total.</p>
                     )}
                 </div>
 
@@ -553,26 +542,26 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                 )}
 
                 <div>
-                    <label htmlFor="leave-reason" className="block text-xs text-slate-400 mb-1">Reason *</label>
+                    <label htmlFor="leave-reason" className="block text-xs text-fg-muted mb-1">Reason *</label>
                     <textarea
                         id="leave-reason"
                         data-field="reason"
                         value={formData.reason || ''}
                         onChange={(e) => updateField('reason', e.target.value)}
                         aria-invalid={!!errors.reason}
-                        className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.reason ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                        className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.reason ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                         rows={3}
                         placeholder="Reason for leave..."
                     />
-                    {errors.reason && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.reason}</p>}
+                    {errors.reason && <p role="alert" className="mt-1 text-xs text-danger">{errors.reason}</p>}
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                     >
                         Cancel
                     </button>
@@ -580,7 +569,7 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                         type="submit"
                         disabled={!isFormValid || submitting}
                         title={isFormValid ? undefined : 'Complete all required fields with valid dates to submit.'}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {submitting ? 'Submitting…' : 'Submit Request'}
                     </button>
@@ -623,11 +612,11 @@ const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, 
     const shown = detail ?? request;
 
     const statusColors: Record<string, string> = {
-        draft: 'bg-slate-600',
-        pending: 'bg-yellow-600',
-        approved: 'bg-green-600',
-        rejected: 'bg-red-600',
-        cancelled: 'bg-slate-500',
+        draft: 'bg-line-strong',
+        pending: 'bg-warning',
+        approved: 'bg-success',
+        rejected: 'bg-danger',
+        cancelled: 'bg-fg-subtle',
     };
 
     return (
@@ -635,55 +624,55 @@ const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, 
             <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <p className="text-xs text-slate-400 mb-1">Employee</p>
-                        <p className="text-sm text-slate-50 font-medium">{request.person?.full_name || '—'}</p>
+                        <p className="text-xs text-fg-muted mb-1">Employee</p>
+                        <p className="text-sm text-fg font-medium">{request.person?.full_name || '—'}</p>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-400 mb-1">Status</p>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${statusColors[request.status] || 'bg-slate-600'}`}>
+                        <p className="text-xs text-fg-muted mb-1">Status</p>
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-fg ${statusColors[request.status] || 'bg-line-strong'}`}>
                             {request.status}
                         </span>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-400 mb-1">Leave Type</p>
+                        <p className="text-xs text-fg-muted mb-1">Leave Type</p>
                         <div className="flex items-center gap-2">
                             {request.leave_type?.color && (
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: request.leave_type.color }} />
                             )}
-                            <p className="text-sm text-slate-50">{request.leave_type?.name || '—'}</p>
+                            <p className="text-sm text-fg">{request.leave_type?.name || '—'}</p>
                         </div>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-400 mb-1">Total Days</p>
-                        <p className="text-sm text-slate-50 font-medium">{request.total_days} day{request.total_days !== 1 ? 's' : ''}</p>
+                        <p className="text-xs text-fg-muted mb-1">Total Days</p>
+                        <p className="text-sm text-fg font-medium">{request.total_days} day{request.total_days !== 1 ? 's' : ''}</p>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-400 mb-1">Start Date</p>
-                        <p className="text-sm text-slate-50">
+                        <p className="text-xs text-fg-muted mb-1">Start Date</p>
+                        <p className="text-sm text-fg">
                             {formatters.formatDate(request.start_date)}
-                            {request.is_half_day_start && <span className="text-xs text-slate-500 ml-1">(Half Day)</span>}
+                            {request.is_half_day_start && <span className="text-xs text-fg-subtle ml-1">(Half Day)</span>}
                         </p>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-400 mb-1">End Date</p>
-                        <p className="text-sm text-slate-50">
+                        <p className="text-xs text-fg-muted mb-1">End Date</p>
+                        <p className="text-sm text-fg">
                             {formatters.formatDate(request.end_date)}
-                            {request.is_half_day_end && <span className="text-xs text-slate-500 ml-1">(Half Day)</span>}
+                            {request.is_half_day_end && <span className="text-xs text-fg-subtle ml-1">(Half Day)</span>}
                         </p>
                     </div>
                 </div>
 
                 {request.reason && (
                     <div>
-                        <p className="text-xs text-slate-400 mb-1">Reason</p>
-                        <p className="text-sm text-slate-300 bg-slate-800/50 border border-slate-700 rounded-lg p-3">{request.reason}</p>
+                        <p className="text-xs text-fg-muted mb-1">Reason</p>
+                        <p className="text-sm text-fg bg-surface-raised/50 border border-line-strong rounded-nb p-3">{request.reason}</p>
                     </div>
                 )}
 
                 {shown.status === 'rejected' && shown.rejection_reason && (
                     <div>
-                        <p className="text-xs text-slate-400 mb-1">Rejection Reason</p>
-                        <p className="rounded-lg border border-rose-700/40 bg-rose-900/20 p-3 text-sm text-rose-200">
+                        <p className="text-xs text-fg-muted mb-1">Rejection Reason</p>
+                        <p className="rounded-nb border border-danger/40 bg-danger-container/20 p-3 text-sm text-danger">
                             {shown.rejection_reason}
                         </p>
                     </div>
@@ -696,10 +685,10 @@ const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, 
                     formatDateTime={formatters.formatDateTime}
                 />
 
-                <div className="flex justify-end pt-4 border-t border-slate-800">
+                <div className="flex justify-end pt-4 border-t border-line">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
                     >
                         Close
                     </button>

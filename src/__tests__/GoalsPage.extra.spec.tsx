@@ -157,7 +157,6 @@ describe('GoalsPage — extra scenarios', () => {
     beforeEach(() => {
       mockApi.getAll.mockResolvedValue({ data: sampleGoals });
       mockApi.complete.mockResolvedValue({});
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
     });
 
     it('When Mark Complete is clicked and confirmed / Then goalsApi.complete is called', async () => {
@@ -165,15 +164,16 @@ describe('GoalsPage — extra scenarios', () => {
       await waitFor(() => screen.getByText('Grow revenue'));
       const completeBtns = screen.getAllByText('Mark Complete');
       fireEvent.click(completeBtns[0]);
+      fireEvent.click(await screen.findByRole('button', { name: 'Complete' }));
       await waitFor(() => expect(mockApi.complete).toHaveBeenCalledWith('g1'));
     });
 
     it('When Mark Complete is cancelled / Then goalsApi.complete is NOT called', async () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(false);
       renderPage();
       await waitFor(() => screen.getByText('Grow revenue'));
       const completeBtns = screen.getAllByText('Mark Complete');
       fireEvent.click(completeBtns[0]);
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
       expect(mockApi.complete).not.toHaveBeenCalled();
     });
   });

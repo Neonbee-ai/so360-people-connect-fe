@@ -4,7 +4,7 @@ import {
     ChevronDown, ChevronUp, Briefcase, DollarSign, Layers, Award, Landmark,
     CreditCard, FileText, History, Plus, Eye, Trash2, AlertTriangle, TrendingUp,
 } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import { useShellBridge, useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import Modal from '../Modal';
@@ -17,8 +17,8 @@ import {
     PayrollHistoryEvent, RevisionType,
 } from '../../services/payrollApi';
 
-const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
-const labelCls = 'block text-xs text-slate-400 mb-1';
+const inputCls = 'w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
+const labelCls = 'block text-xs text-fg-muted mb-1';
 
 const IDENTIFIER_TOOLTIPS: Record<string, string> = {
     pan: "Permanent Account Number — the employee's income-tax identity, required for TDS.",
@@ -79,26 +79,26 @@ const PayrollProfileTab: React.FC<PayrollProfileTabProps> = ({ person }) => {
     ];
 
     if (profileLoading) {
-        return <div className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />;
+        return <div className="h-64 bg-surface-raised/50 rounded-nb animate-pulse" />;
     }
 
     return (
         <div className="space-y-3">
             {sections.map(({ key, label, icon: Icon }) => (
-                <div key={key} className="border border-slate-800 rounded-xl overflow-hidden">
+                <div key={key} className="border border-line rounded-nb overflow-hidden">
                     <button
                         onClick={() => toggle(key)}
                         aria-expanded={openSection === key}
-                        className="w-full flex items-center justify-between px-4 py-3 bg-slate-900 hover:bg-slate-800/50 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-raised/50 transition-colors"
                     >
                         <div className="flex items-center gap-2">
-                            <Icon size={15} className="text-teal-400" />
-                            <span className="text-sm font-medium text-slate-50">{label}</span>
+                            <Icon size={15} className="text-primary" />
+                            <span className="text-sm font-medium text-fg">{label}</span>
                         </div>
-                        {openSection === key ? <ChevronUp size={15} className="text-slate-400" /> : <ChevronDown size={15} className="text-slate-400" />}
+                        {openSection === key ? <ChevronUp size={15} className="text-fg-muted" /> : <ChevronDown size={15} className="text-fg-muted" />}
                     </button>
                     {openSection === key && (
-                        <div className="p-4 bg-slate-900/50 border-t border-slate-800">
+                        <div className="p-4 bg-surface/50 border-t border-line">
                             {key === 'employment' && <EmploymentSection person={person} profile={profile} onSaved={loadProfile} />}
                             {key === 'salary' && <SalarySection personId={person.id} />}
                             {key === 'overrides' && <OverridesSection personId={person.id} />}
@@ -106,9 +106,9 @@ const PayrollProfileTab: React.FC<PayrollProfileTabProps> = ({ person }) => {
                             {key === 'tax' && <TaxStatutorySection personId={person.id} profile={profile} onSaved={loadProfile} />}
                             {key === 'bank' && <BankSection personId={person.id} />}
                             {key === 'documents' && (
-                                <p className="text-sm text-slate-400">
+                                <p className="text-sm text-fg-muted">
                                     Payroll documents (proofs, contracts) live with the person's documents.{' '}
-                                    <Link to={`/people/people/${person.id}?tab=overview`} className="text-teal-400 hover:text-teal-300">Open documents</Link>
+                                    <Link to={`/people/people/${person.id}?tab=overview`} className="text-primary hover:text-primary">Open documents</Link>
                                 </p>
                             )}
                             {key === 'history' && <HistorySection personId={person.id} />}
@@ -159,22 +159,19 @@ const EmploymentSection: React.FC<{
                     ['Joining Date', person.start_date || '—'],
                     ['Status', person.status || '—'],
                 ].map(([label, value]) => (
-                    <div key={label} className="bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2">
-                        <div className="text-xs text-slate-500">{label}</div>
-                        <div className="text-sm text-slate-200 capitalize">{value}</div>
+                    <div key={label} className="bg-surface-raised/50 border border-line-strong rounded-nb px-3 py-2">
+                        <div className="text-xs text-fg-subtle">{label}</div>
+                        <div className="text-sm text-fg capitalize">{value}</div>
                     </div>
                 ))}
             </div>
-            <p className="text-xs text-slate-500">Identity fields come from the People Registry and are edited there — never duplicated in payroll.</p>
+            <p className="text-xs text-fg-subtle">Identity fields come from the People Registry and are edited there — never duplicated in payroll.</p>
 
             {/* Editable contract */}
             <div className="grid grid-cols-3 gap-4">
                 <div>
                     <label className={labelCls}>Contract Type</label>
-                    <select value={contract.type || 'permanent'} onChange={e => setContract(c => ({ ...c, type: e.target.value as 'permanent' | 'fixed_term' }))} className={inputCls}>
-                        <option value="permanent">Permanent</option>
-                        <option value="fixed_term">Fixed term</option>
-                    </select>
+                    <Select name="payrollprofiletab-select-2" value={contract.type || 'permanent'} onChange={e => setContract(c => ({ ...c, type: e.target.value as 'permanent' | 'fixed_term' }))} options={[{ value: "permanent", label: "Permanent" }, { value: "fixed_term", label: "Fixed term" }]} />
                 </div>
                 <div>
                     <label className={labelCls}>Contract Start</label>
@@ -188,7 +185,7 @@ const EmploymentSection: React.FC<{
                 )}
             </div>
             <div className="flex justify-end">
-                <button onClick={save} disabled={saving} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+                <button onClick={save} disabled={saving} className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors">
                     {saving ? 'Saving…' : 'Save Contract'}
                 </button>
             </div>
@@ -223,31 +220,31 @@ const SalarySection: React.FC<{ personId: string }> = ({ personId }) => {
 
     const current = assignments.find(a => !a.effective_to) || assignments[0];
 
-    if (loading) return <div className="h-32 bg-slate-800/50 rounded-lg animate-pulse" />;
+    if (loading) return <div className="h-32 bg-surface-raised/50 rounded-nb animate-pulse" />;
 
     return (
         <div className="space-y-4">
             {!current ? (
-                <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/5 border border-amber-500/30 rounded-lg">
-                    <AlertTriangle size={14} className="text-amber-400" />
-                    <span className="text-sm text-amber-400">
+                <div className="flex items-center gap-2 px-4 py-3 bg-warning/5 border border-warning/30 rounded-nb">
+                    <AlertTriangle size={14} className="text-warning" />
+                    <span className="text-sm text-warning">
                         No salary assigned yet. A salary structure is required before this employee can be included in payroll.
                     </span>
                 </div>
             ) : (
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                <div className="bg-surface-raised/50 border border-line-strong rounded-nb p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <div className="text-xs text-slate-500">Current Monthly Wage</div>
-                            <div className="text-xl font-bold text-slate-50">{formatters.formatCurrency(current.monthly_wage)}</div>
-                            <div className="text-xs text-slate-400 mt-1">
+                            <div className="text-xs text-fg-subtle">Current Monthly Wage</div>
+                            <div className="text-xl font-bold text-fg">{formatters.formatCurrency(current.monthly_wage)}</div>
+                            <div className="text-xs text-fg-muted mt-1">
                                 {current.structure_name || 'Structure'} v{current.structure_version} · effective {current.effective_from}
                             </div>
                         </div>
                         {current.annual_ctc != null && (
                             <div className="text-right">
-                                <div className="text-xs text-slate-500">Annual CTC</div>
-                                <div className="text-sm font-semibold text-slate-200">{formatters.formatCurrency(current.annual_ctc)}</div>
+                                <div className="text-xs text-fg-subtle">Annual CTC</div>
+                                <div className="text-sm font-semibold text-fg">{formatters.formatCurrency(current.annual_ctc)}</div>
                             </div>
                         )}
                     </div>
@@ -257,7 +254,7 @@ const SalarySection: React.FC<{ personId: string }> = ({ personId }) => {
             <div className="flex justify-end">
                 <button
                     onClick={() => setShowAdjustModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                 >
                     <TrendingUp size={14} /> Salary Adjustment
                 </button>
@@ -266,12 +263,12 @@ const SalarySection: React.FC<{ personId: string }> = ({ personId }) => {
             {/* Revision timeline */}
             {assignments.length > 0 && (
                 <div className="space-y-2">
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Revision History</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider">Revision History</h4>
                     {assignments.map(assignment => (
-                        <div key={assignment.id} className="flex items-center justify-between px-3 py-2.5 bg-slate-800/40 border border-slate-800 rounded-lg">
+                        <div key={assignment.id} className="flex items-center justify-between px-3 py-2.5 bg-surface-raised/40 border border-line rounded-nb">
                             <div>
-                                <div className="text-sm text-slate-200">{formatters.formatCurrency(assignment.monthly_wage)}/month</div>
-                                <div className="text-xs text-slate-500">
+                                <div className="text-sm text-fg">{formatters.formatCurrency(assignment.monthly_wage)}/month</div>
+                                <div className="text-xs text-fg-subtle">
                                     {assignment.effective_from} → {assignment.effective_to || 'current'}
                                     {assignment.revision_reason ? ` · ${assignment.revision_reason}` : ''}
                                 </div>
@@ -360,15 +357,15 @@ const SalaryAdjustmentModal: React.FC<{
             <form onSubmit={submit} className="space-y-4">
                 {/* Previous → new preview */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3">
-                        <div className="text-xs text-slate-500">Previous</div>
-                        <div className="text-lg font-semibold text-slate-300">
+                    <div className="bg-surface-raised/50 border border-line-strong rounded-nb px-4 py-3">
+                        <div className="text-xs text-fg-subtle">Previous</div>
+                        <div className="text-lg font-semibold text-fg">
                             {current ? formatCurrency(current.monthly_wage) : '—'}
                         </div>
                     </div>
-                    <div className="bg-teal-500/5 border border-teal-500/30 rounded-lg px-4 py-3">
-                        <div className="text-xs text-teal-500">New</div>
-                        <div className="text-lg font-semibold text-teal-400">
+                    <div className="bg-primary/5 border border-primary/30 rounded-nb px-4 py-3">
+                        <div className="text-xs text-primary">New</div>
+                        <div className="text-lg font-semibold text-primary">
                             {form.monthly_wage ? formatCurrency(form.monthly_wage) : '—'}
                         </div>
                     </div>
@@ -386,20 +383,17 @@ const SalaryAdjustmentModal: React.FC<{
                                 <button
                                     type="button"
                                     onClick={goConfigureStructures}
-                                    className="w-full text-left px-3 py-2 bg-amber-500/5 border border-amber-500/30 rounded-lg text-xs text-amber-400 hover:bg-amber-500/10 transition-colors"
+                                    className="w-full text-left px-3 py-2 bg-warning/5 border border-warning/30 rounded-nb text-xs text-warning hover:bg-warning/10 transition-colors"
                                 >
                                     No salary structures configured — Configure Salary Structure →
                                 </button>
                             ) : (
-                                <div className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-400">
+                                <div className="px-3 py-2 bg-surface-raised/50 border border-line-strong rounded-nb text-xs text-fg-muted">
                                     Contact an administrator to configure salary structures.
                                 </div>
                             )
                         ) : (
-                            <select required value={form.structure_id} onChange={e => setForm(f => ({ ...f, structure_id: e.target.value }))} className={inputCls}>
-                                <option value="">Select structure…</option>
-                                {structures.map(s => <option key={s.id} value={s.id}>{s.name} (v{s.version})</option>)}
-                            </select>
+                            <Select name="payrollprofiletab-select-3" required value={form.structure_id} onChange={e => setForm(f => ({ ...f, structure_id: e.target.value }))} options={[{ value: "", label: "Select structure…" }, ...structures.map((s) => ({ value: s.id, label: `${s.name} (v${s.version})` }))]} />
                         )}
                     </div>
                     <div>
@@ -408,13 +402,7 @@ const SalaryAdjustmentModal: React.FC<{
                     </div>
                     <div>
                         <label className={labelCls}>Revision Type</label>
-                        <select value={form.revision_type} onChange={e => setForm(f => ({ ...f, revision_type: e.target.value as RevisionType }))} className={inputCls}>
-                            <option value="initial">Initial</option>
-                            <option value="increment">Increment</option>
-                            <option value="decrement">Decrement</option>
-                            <option value="structure_change">Structure change</option>
-                            <option value="adjustment">Adjustment</option>
-                        </select>
+                        <Select name="payrollprofiletab-select-4" value={form.revision_type} onChange={e => setForm(f => ({ ...f, revision_type: e.target.value as RevisionType }))} options={[{ value: "initial", label: "Initial" }, { value: "increment", label: "Increment" }, { value: "decrement", label: "Decrement" }, { value: "structure_change", label: "Structure change" }, { value: "adjustment", label: "Adjustment" }]} />
                     </div>
                     <div className="col-span-2">
                         <label className={labelCls}>Reason *</label>
@@ -422,9 +410,9 @@ const SalaryAdjustmentModal: React.FC<{
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button type="submit" disabled={saving} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
+                    <button type="submit" disabled={saving} className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors">
                         {saving ? 'Saving…' : 'Apply Adjustment'}
                     </button>
                 </div>
@@ -471,33 +459,33 @@ const OverridesSection: React.FC<{ personId: string }> = ({ personId }) => {
         }
     };
 
-    if (loading) return <div className="h-24 bg-slate-800/50 rounded-lg animate-pulse" />;
+    if (loading) return <div className="h-24 bg-surface-raised/50 rounded-nb animate-pulse" />;
 
     return (
         <div className="space-y-3">
             <div className="flex justify-end">
-                <button onClick={() => setShowModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-medium rounded-lg transition-colors">
+                <button onClick={() => setShowModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-fg text-xs font-medium rounded-nb transition-colors">
                     <Plus size={12} /> Add Override
                 </button>
             </div>
             {overrides.length === 0 ? (
-                <p className="text-sm text-slate-400">No component overrides. Overrides add, remove or change a component just for this employee — e.g. a loan EMI or a one-time bonus.</p>
+                <p className="text-sm text-fg-muted">No component overrides. Overrides add, remove or change a component just for this employee — e.g. a loan EMI or a one-time bonus.</p>
             ) : (
                 <div className="space-y-2">
                     {overrides.map(override => (
-                        <div key={override.id} className="flex items-center justify-between px-3 py-2.5 bg-slate-800/40 border border-slate-800 rounded-lg">
+                        <div key={override.id} className="flex items-center justify-between px-3 py-2.5 bg-surface-raised/40 border border-line rounded-nb">
                             <div>
-                                <div className="text-sm text-slate-200">
+                                <div className="text-sm text-fg">
                                     {override.component_code || override.component_name || override.component_id}
-                                    <span className="text-xs text-slate-500 ml-2 capitalize">{override.action}</span>
-                                    {override.calc_override?.amount != null && <span className="text-xs text-slate-400 ml-2">{override.calc_override.amount}</span>}
+                                    <span className="text-xs text-fg-subtle ml-2 capitalize">{override.action}</span>
+                                    {override.calc_override?.amount != null && <span className="text-xs text-fg-muted ml-2">{override.calc_override.amount}</span>}
                                 </div>
-                                <div className="text-xs text-slate-500">
+                                <div className="text-xs text-fg-subtle">
                                     {override.recurrence === 'one_time' ? 'One time' : `${override.effective_from} → ${override.effective_to || 'ongoing'}`}
                                     {override.reason ? ` · ${override.reason}` : ''}
                                 </div>
                             </div>
-                            <button onClick={() => remove(override)} aria-label="Remove override" className="p-1.5 rounded text-rose-400 hover:text-rose-300 hover:bg-slate-800 transition-colors">
+                            <button onClick={() => remove(override)} aria-label="Remove override" className="p-1.5 rounded text-danger hover:text-danger hover:bg-surface-raised transition-colors">
                                 <Trash2 size={13} />
                             </button>
                         </div>
@@ -544,10 +532,7 @@ const OverrideModal: React.FC<{
             >
                 <div>
                     <label className={labelCls}>Component *</label>
-                    <select required value={form.component_id || ''} onChange={e => setForm(f => ({ ...f, component_id: e.target.value }))} className={inputCls}>
-                        <option value="">Select component…</option>
-                        {components.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
-                    </select>
+                    <Select name="payrollprofiletab-select-5" required value={form.component_id || ''} onChange={e => setForm(f => ({ ...f, component_id: e.target.value }))} options={[{ value: "", label: "Select component…" }, ...components.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` }))]} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -555,11 +540,7 @@ const OverrideModal: React.FC<{
                             Action
                             <FieldTooltip text="Add = component the structure doesn't include. Remove = skip a structure component for this employee. Override = keep it but change the amount." />
                         </label>
-                        <select value={form.action} onChange={e => setForm(f => ({ ...f, action: e.target.value as ComponentOverride['action'] }))} className={inputCls}>
-                            <option value="add">Add</option>
-                            <option value="remove">Remove</option>
-                            <option value="override">Override</option>
-                        </select>
+                        <Select name="payrollprofiletab-select-6" value={form.action} onChange={e => setForm(f => ({ ...f, action: e.target.value as ComponentOverride['action'] }))} options={[{ value: "add", label: "Add" }, { value: "remove", label: "Remove" }, { value: "override", label: "Override" }]} />
                     </div>
                     {form.action !== 'remove' && (
                         <div>
@@ -572,10 +553,7 @@ const OverrideModal: React.FC<{
                             Recurrence
                             <FieldTooltip text="Recurring applies every run in the effective window; one-time applies to a single pay period only." />
                         </label>
-                        <select value={form.recurrence} onChange={e => setForm(f => ({ ...f, recurrence: e.target.value as ComponentOverride['recurrence'] }))} className={inputCls}>
-                            <option value="recurring">Recurring</option>
-                            <option value="one_time">One time</option>
-                        </select>
+                        <Select name="payrollprofiletab-select-7" value={form.recurrence} onChange={e => setForm(f => ({ ...f, recurrence: e.target.value as ComponentOverride['recurrence'] }))} options={[{ value: "recurring", label: "Recurring" }, { value: "one_time", label: "One time" }]} />
                     </div>
                     <div>
                         <label className={labelCls}>Effective From *</label>
@@ -586,9 +564,9 @@ const OverrideModal: React.FC<{
                         <input type="text" value={form.reason || ''} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} className={inputCls} placeholder="Loan EMI recovery" />
                     </div>
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">Add Override</button>
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors">Add Override</button>
                 </div>
             </form>
         </Modal>
@@ -624,24 +602,24 @@ const BenefitsSection: React.FC<{ personId: string }> = ({ personId }) => {
 
     useEffect(() => { load(); }, [load]);
 
-    if (loading) return <div className="h-24 bg-slate-800/50 rounded-lg animate-pulse" />;
+    if (loading) return <div className="h-24 bg-surface-raised/50 rounded-nb animate-pulse" />;
 
     return (
         <div className="space-y-3">
             <div className="flex justify-end">
-                <button onClick={() => { setForm({}); setShowModal(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-medium rounded-lg transition-colors">
+                <button onClick={() => { setForm({}); setShowModal(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-fg text-xs font-medium rounded-nb transition-colors">
                     <Plus size={12} /> Add Benefit
                 </button>
             </div>
             {benefits.length === 0 ? (
-                <p className="text-sm text-slate-400">No benefits assigned to this employee.</p>
+                <p className="text-sm text-fg-muted">No benefits assigned to this employee.</p>
             ) : (
                 <div className="space-y-2">
                     {benefits.map(benefit => (
-                        <div key={benefit.id} className="flex items-center justify-between px-3 py-2.5 bg-slate-800/40 border border-slate-800 rounded-lg">
+                        <div key={benefit.id} className="flex items-center justify-between px-3 py-2.5 bg-surface-raised/40 border border-line rounded-nb">
                             <div>
-                                <div className="text-sm text-slate-200">{benefit.benefit_type_name || benefit.benefit_type_id}</div>
-                                <div className="text-xs text-slate-500">
+                                <div className="text-sm text-fg">{benefit.benefit_type_name || benefit.benefit_type_id}</div>
+                                <div className="text-xs text-fg-subtle">
                                     {benefit.amount_override != null ? `Amount ${benefit.amount_override}` : 'Default amount'} · from {benefit.effective_from}
                                 </div>
                             </div>
@@ -656,7 +634,7 @@ const BenefitsSection: React.FC<{ personId: string }> = ({ personId }) => {
                                     }
                                 }}
                                 aria-label="Remove benefit"
-                                className="p-1.5 rounded text-rose-400 hover:text-rose-300 hover:bg-slate-800 transition-colors"
+                                className="p-1.5 rounded text-danger hover:text-danger hover:bg-surface-raised transition-colors"
                             >
                                 <Trash2 size={13} />
                             </button>
@@ -683,10 +661,7 @@ const BenefitsSection: React.FC<{ personId: string }> = ({ personId }) => {
                 >
                     <div>
                         <label className={labelCls}>Benefit Type *</label>
-                        <select required value={form.benefit_type_id || ''} onChange={e => setForm(f => ({ ...f, benefit_type_id: e.target.value }))} className={inputCls}>
-                            <option value="">Select benefit…</option>
-                            {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
+                        <Select name="payrollprofiletab-select-8" required value={form.benefit_type_id || ''} onChange={e => setForm(f => ({ ...f, benefit_type_id: e.target.value }))} options={[{ value: "", label: "Select benefit…" }, ...types.map((t) => ({ value: t.id, label: t.name }))]} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -698,9 +673,9 @@ const BenefitsSection: React.FC<{ personId: string }> = ({ personId }) => {
                             <input type="date" required value={form.effective_from || ''} onChange={e => setForm(f => ({ ...f, effective_from: e.target.value }))} className={inputCls} />
                         </div>
                     </div>
-                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                        <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">Add Benefit</button>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                        <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors">Add Benefit</button>
                     </div>
                 </form>
             </Modal>
@@ -750,7 +725,7 @@ const TaxStatutorySection: React.FC<{
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                    <span className="text-sm text-slate-300">Tax Regime</span>
+                    <span className="text-sm text-fg">Tax Regime</span>
                     <FieldTooltip text="The regime used for this employee's TDS. The new regime has lower rates without deductions; the old regime honours approved declarations." />
                 </div>
                 <div className="flex items-center gap-2">
@@ -759,7 +734,7 @@ const TaxStatutorySection: React.FC<{
                             key={r}
                             onClick={() => setRegime(r)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                                regime === r ? 'bg-teal-500/10 border-teal-500/40 text-teal-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                                regime === r ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-surface-raised border-line-strong text-fg-muted hover:text-fg'
                             }`}
                         >
                             {r === 'new' ? 'New Regime' : 'Old Regime'}
@@ -783,7 +758,7 @@ const TaxStatutorySection: React.FC<{
                             aria-label={def.label}
                         />
                         {def.required_for_payroll && !identifiers[def.key] && (
-                            <p className="text-xs text-amber-400 mt-1">
+                            <p className="text-xs text-warning mt-1">
                                 {def.label} is required before this employee can be included in payroll.
                             </p>
                         )}
@@ -792,7 +767,7 @@ const TaxStatutorySection: React.FC<{
             </div>
 
             <div className="flex justify-end">
-                <button onClick={save} disabled={saving} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+                <button onClick={save} disabled={saving} className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors">
                     {saving ? 'Saving…' : 'Save Tax & Statutory'}
                 </button>
             </div>
@@ -839,31 +814,31 @@ const BankSection: React.FC<{ personId: string }> = ({ personId }) => {
         }
     };
 
-    if (loading) return <div className="h-24 bg-slate-800/50 rounded-lg animate-pulse" />;
+    if (loading) return <div className="h-24 bg-surface-raised/50 rounded-nb animate-pulse" />;
 
     return (
         <div className="space-y-3">
             <div className="flex justify-end">
-                <button onClick={() => setShowModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-medium rounded-lg transition-colors">
+                <button onClick={() => setShowModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-fg text-xs font-medium rounded-nb transition-colors">
                     <Plus size={12} /> Add Bank Account
                 </button>
             </div>
             {accounts.length === 0 ? (
-                <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/5 border border-amber-500/30 rounded-lg">
-                    <AlertTriangle size={14} className="text-amber-400" />
-                    <span className="text-sm text-amber-400">Bank account is required before this employee can be included in payroll.</span>
+                <div className="flex items-center gap-2 px-4 py-3 bg-warning/5 border border-warning/30 rounded-nb">
+                    <AlertTriangle size={14} className="text-warning" />
+                    <span className="text-sm text-warning">Bank account is required before this employee can be included in payroll.</span>
                 </div>
             ) : (
                 <div className="space-y-2">
                     {accounts.map(account => (
-                        <div key={account.id} className="px-4 py-3 bg-slate-800/40 border border-slate-800 rounded-lg">
+                        <div key={account.id} className="px-4 py-3 bg-surface-raised/40 border border-line rounded-nb">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-sm font-medium text-slate-50">{account.bank_name}</span>
+                                        <span className="text-sm font-medium text-fg">{account.bank_name}</span>
                                         {account.is_primary && <StatusChip status="active" label="Primary" />}
                                     </div>
-                                    <div className="text-xs text-slate-400 mt-0.5">
+                                    <div className="text-xs text-fg-muted mt-0.5">
                                         {account.account_holder} · {revealed[account.id] || `•••• ${account.account_number_last4}`}
                                         {account.ifsc ? ` · ${account.ifsc}` : ''}
                                     </div>
@@ -871,14 +846,14 @@ const BankSection: React.FC<{ personId: string }> = ({ personId }) => {
                                 {canReveal && !revealed[account.id] && (
                                     <button
                                         onClick={() => reveal(account)}
-                                        className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                                        className="flex items-center gap-1 text-xs text-primary hover:text-primary transition-colors"
                                     >
                                         <Eye size={12} /> Reveal
                                     </button>
                                 )}
                             </div>
                             {canReveal && !revealed[account.id] && (
-                                <p className="text-xs text-slate-500 mt-1.5">Revealing the full account number is recorded in the audit log.</p>
+                                <p className="text-xs text-fg-subtle mt-1.5">Revealing the full account number is recorded in the audit log.</p>
                             )}
                         </div>
                     ))}
@@ -944,28 +919,20 @@ const BankAccountModal: React.FC<{
                     </div>
                     <div>
                         <label className={labelCls}>Account Type</label>
-                        <select value={form.account_type} onChange={e => setForm(f => ({ ...f, account_type: e.target.value as BankAccountPayload['account_type'] }))} className={inputCls}>
-                            <option value="savings">Savings</option>
-                            <option value="current">Current</option>
-                        </select>
+                        <Select name="payrollprofiletab-select-9" value={form.account_type} onChange={e => setForm(f => ({ ...f, account_type: e.target.value as BankAccountPayload['account_type'] }))} options={[{ value: "savings", label: "Savings" }, { value: "current", label: "Current" }]} />
                     </div>
                     <div>
                         <label className={labelCls}>Payment Method</label>
-                        <select value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value as BankAccountPayload['payment_method'] }))} className={inputCls}>
-                            <option value="bank_transfer">Bank transfer</option>
-                            <option value="cheque">Cheque</option>
-                            <option value="cash">Cash</option>
-                            <option value="upi">UPI</option>
-                        </select>
+                        <Select name="payrollprofiletab-select-10" value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value as BankAccountPayload['payment_method'] }))} options={[{ value: "bank_transfer", label: "Bank transfer" }, { value: "cheque", label: "Cheque" }, { value: "cash", label: "Cash" }, { value: "upi", label: "UPI" }]} />
                     </div>
                 </div>
                 <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={!!form.is_primary} onChange={e => setForm(f => ({ ...f, is_primary: e.target.checked }))} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                    <span className="text-sm text-slate-300">Primary account for salary payments</span>
+                    <input type="checkbox" checked={!!form.is_primary} onChange={e => setForm(f => ({ ...f, is_primary: e.target.checked }))} className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary" />
+                    <span className="text-sm text-fg">Primary account for salary payments</span>
                 </label>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">Add Account</button>
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors">Add Account</button>
                 </div>
             </form>
         </Modal>
@@ -987,17 +954,17 @@ const HistorySection: React.FC<{ personId: string }> = ({ personId }) => {
             .finally(() => setLoading(false));
     }, [personId]);
 
-    if (loading) return <div className="h-24 bg-slate-800/50 rounded-lg animate-pulse" />;
-    if (events.length === 0) return <p className="text-sm text-slate-400">No payroll history yet for this employee.</p>;
+    if (loading) return <div className="h-24 bg-surface-raised/50 rounded-nb animate-pulse" />;
+    if (events.length === 0) return <p className="text-sm text-fg-muted">No payroll history yet for this employee.</p>;
 
     return (
         <div className="space-y-2">
             {events.map(event => (
-                <div key={event.id} className="flex items-start gap-3 px-3 py-2.5 bg-slate-800/40 border border-slate-800 rounded-lg">
-                    <History size={13} className="text-slate-500 mt-0.5" />
+                <div key={event.id} className="flex items-start gap-3 px-3 py-2.5 bg-surface-raised/40 border border-line rounded-nb">
+                    <History size={13} className="text-fg-subtle mt-0.5" />
                     <div>
-                        <div className="text-sm text-slate-200">{event.description || event.event_type.replace(/[._]/g, ' ')}</div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-sm text-fg">{event.description || event.event_type.replace(/[._]/g, ' ')}</div>
+                        <div className="text-xs text-fg-subtle">
                             {event.created_at}{event.actor_name ? ` · ${event.actor_name}` : ''}
                         </div>
                     </div>

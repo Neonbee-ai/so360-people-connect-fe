@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Download, Upload, FileDown, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import { toast } from '@so360/design-system';
+import { toast, Select } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
 
@@ -137,7 +137,7 @@ const ImportExportPage: React.FC = () => {
 
             {/* Workflow tabs — only one workflow is ever on screen, so Import
                 never shows Export controls and vice versa. */}
-            <div className="flex items-center gap-1 border-b border-slate-800" role="tablist">
+            <div className="flex items-center gap-1 border-b border-line" role="tablist">
                 {(['export', 'import'] as BulkTab[]).map(tab => (
                     <button
                         key={tab}
@@ -147,8 +147,8 @@ const ImportExportPage: React.FC = () => {
                         onClick={() => setActiveTab(tab)}
                         className={`px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors ${
                             activeTab === tab
-                                ? 'border-teal-500 text-teal-400'
-                                : 'border-transparent text-slate-400 hover:text-slate-50'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-fg-muted hover:text-fg'
                         }`}
                     >
                         {tab === 'export' ? 'Export People' : 'Import People'}
@@ -158,63 +158,29 @@ const ImportExportPage: React.FC = () => {
 
             {/* Export Section */}
             {activeTab === 'export' && (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-surface border border-line rounded-nb p-6">
                 <div className="flex items-center gap-2 mb-4">
-                    <Download size={20} className="text-teal-400" />
-                    <h2 className="text-lg font-medium text-slate-50">Export People</h2>
+                    <Download size={20} className="text-primary" />
+                    <h2 className="text-lg font-medium text-fg">Export People</h2>
                 </div>
 
                 <div className="space-y-4">
                     <div className="grid grid-cols-4 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Format</label>
-                            <select
-                                value={exportFormat}
-                                onChange={(e) => setExportFormat(e.target.value as 'csv' | 'excel')}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="csv">CSV</option>
-                                <option value="excel">Excel</option>
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Format</label>
+                            <Select name="importexport-select-49" value={exportFormat} onChange={(e) => setExportFormat(e.target.value as 'csv' | 'excel')} options={[{ value: "csv", label: "CSV" }, { value: "excel", label: "Excel" }]} />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Status</label>
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">All Statuses</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="on_leave">On Leave</option>
-                                <option value="terminated">Terminated</option>
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Status</label>
+                            <Select name="importexport-select-50" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Statuses" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }, { value: "on_leave", label: "On Leave" }, { value: "terminated", label: "Terminated" }]} />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Type</label>
-                            <select
-                                value={typeFilter}
-                                onChange={(e) => setTypeFilter(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">All Types</option>
-                                <option value="employee">Employee</option>
-                                <option value="contractor">Contractor</option>
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Type</label>
+                            <Select name="importexport-select-51" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} options={[{ value: "", label: "All Types" }, { value: "employee", label: "Employee" }, { value: "contractor", label: "Contractor" }]} />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Department</label>
-                            <select
-                                value={departmentFilter}
-                                onChange={(e) => setDepartmentFilter(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">All Departments</option>
-                                {departments.map(dept => (
-                                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                ))}
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Department</label>
+                            <Select name="importexport-select-52" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} options={[{ value: "", label: "All Departments" }, ...departments.map((dept) => ({ value: dept.id, label: dept.name }))]} />
                         </div>
                     </div>
 
@@ -222,14 +188,14 @@ const ImportExportPage: React.FC = () => {
                         <button
                             onClick={handleExport}
                             disabled={isExporting}
-                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50"
                         >
                             {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                             {isExporting ? 'Exporting...' : 'Export People'}
                         </button>
                         <button
                             onClick={handleDownloadTemplate}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-50 text-sm font-medium rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-line hover:bg-line-strong text-fg text-sm font-medium rounded-nb transition-colors"
                         >
                             <FileDown size={16} />
                             Download Template
@@ -241,10 +207,10 @@ const ImportExportPage: React.FC = () => {
 
             {/* Import Section */}
             {activeTab === 'import' && (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-surface border border-line rounded-nb p-6">
                 <div className="flex items-center gap-2 mb-4">
-                    <Upload size={20} className="text-teal-400" />
-                    <h2 className="text-lg font-medium text-slate-50">Import People</h2>
+                    <Upload size={20} className="text-primary" />
+                    <h2 className="text-lg font-medium text-fg">Import People</h2>
                 </div>
 
                 <div className="space-y-4">
@@ -253,17 +219,17 @@ const ImportExportPage: React.FC = () => {
                         desktop viewport. */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <label htmlFor="file-upload" className="text-xs text-slate-400">Upload File</label>
+                            <label htmlFor="file-upload" className="text-xs text-fg-muted">Upload File</label>
                             <button
                                 type="button"
                                 onClick={handleDownloadTemplate}
-                                className="flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors"
+                                className="flex items-center gap-1.5 text-xs text-primary hover:text-primary transition-colors"
                             >
                                 <FileDown size={13} />
                                 Download Template
                             </button>
                         </div>
-                        <div className="border-2 border-dashed border-slate-700 rounded-lg px-4 py-5 text-center hover:border-slate-600 transition-colors">
+                        <div className="border-2 border-dashed border-line-strong rounded-nb px-4 py-5 text-center hover:border-line-strong transition-colors">
                             <input
                                 type="file"
                                 accept=".csv,.xlsx,.xls"
@@ -275,11 +241,11 @@ const ImportExportPage: React.FC = () => {
                                 htmlFor="file-upload"
                                 className="cursor-pointer flex flex-col items-center"
                             >
-                                <Upload className="h-7 w-7 text-slate-600 mb-2" />
-                                <p className="text-sm text-slate-300">
+                                <Upload className="h-7 w-7 text-fg-subtle mb-2" />
+                                <p className="text-sm text-fg">
                                     {importFile ? importFile.name : 'Click to browse or drag and drop'}
                                 </p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-fg-subtle">
                                     Supports CSV and Excel files
                                 </p>
                             </label>
@@ -292,16 +258,16 @@ const ImportExportPage: React.FC = () => {
                             type="checkbox"
                             checked={validateOnly}
                             onChange={(e) => setValidateOnly(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                            className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
                         />
-                        <span className="text-sm text-slate-300">Validate Only (Don't import yet)</span>
+                        <span className="text-sm text-fg">Validate Only (Don't import yet)</span>
                     </label>
 
                     {/* Import Button */}
                     <button
                         onClick={handleImport}
                         disabled={!importFile || isImporting}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                         {isImporting ? 'Processing...' : validateOnly ? 'Validate' : 'Import'}
@@ -312,10 +278,10 @@ const ImportExportPage: React.FC = () => {
                         <div className="mt-6 space-y-4">
                             {/* Success Count */}
                             {validationResults.success > 0 && (
-                                <div className="bg-green-900/20 border border-green-800 rounded-lg p-4">
+                                <div className="bg-success-container/20 border border-success rounded-nb p-4">
                                     <div className="flex items-center gap-2">
-                                        <CheckCircle className="text-green-400" size={20} />
-                                        <p className="text-sm font-medium text-green-400">
+                                        <CheckCircle className="text-success" size={20} />
+                                        <p className="text-sm font-medium text-success">
                                             {validationResults.success} records validated successfully
                                         </p>
                                     </div>
@@ -324,20 +290,20 @@ const ImportExportPage: React.FC = () => {
 
                             {/* Errors */}
                             {validationResults.errors.length > 0 && (
-                                <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
+                                <div className="bg-danger-container/20 border border-danger rounded-nb p-4">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <AlertCircle className="text-red-400" size={20} />
-                                        <p className="text-sm font-medium text-red-400">
+                                        <AlertCircle className="text-danger" size={20} />
+                                        <p className="text-sm font-medium text-danger">
                                             {validationResults.errors.length} errors found
                                         </p>
                                     </div>
                                     <div className="space-y-2 max-h-64 overflow-y-auto">
                                         {validationResults.errors.map((error, index) => (
-                                            <div key={index} className="bg-slate-900 rounded-lg p-3">
-                                                <p className="text-xs text-red-400 font-medium mb-1">
+                                            <div key={index} className="bg-surface rounded-nb p-3">
+                                                <p className="text-xs text-danger font-medium mb-1">
                                                     Row {error.row} - Field: {error.field}
                                                 </p>
-                                                <p className="text-xs text-slate-400">{error.message}</p>
+                                                <p className="text-xs text-fg-muted">{error.message}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -346,8 +312,8 @@ const ImportExportPage: React.FC = () => {
 
                             {/* Action after validation */}
                             {validateOnly && validationResults.errors.length === 0 && validationResults.success > 0 && (
-                                <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                                    <p className="text-sm text-slate-300 mb-3">
+                                <div className="bg-surface-raised border border-line-strong rounded-nb p-4">
+                                    <p className="text-sm text-fg mb-3">
                                         All records are valid. Ready to import?
                                     </p>
                                     <button
@@ -355,7 +321,7 @@ const ImportExportPage: React.FC = () => {
                                             setValidateOnly(false);
                                             handleImport();
                                         }}
-                                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                                     >
                                         Proceed with Import
                                     </button>

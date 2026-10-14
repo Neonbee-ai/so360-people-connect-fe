@@ -146,13 +146,13 @@ const EntityCombo: React.FC<EntityComboProps> = ({
     };
 
     const borderClass = error
-        ? 'border-rose-500 focus-within:border-rose-500'
-        : 'border-slate-700 focus-within:border-teal-500';
+        ? 'border-danger focus-within:border-danger'
+        : 'border-line-strong focus-within:border-primary';
 
     return (
         <div ref={containerRef} className="relative">
             <div
-                className={`flex items-center w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 ${borderClass} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                className={`flex items-center w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg ${borderClass} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 onClick={() => {
                     if (disabled) return;
                     const next = !open;
@@ -162,45 +162,45 @@ const EntityCombo: React.FC<EntityComboProps> = ({
             >
                 {open ? (
                     <>
-                        <Search size={14} className="text-slate-400 mr-2 shrink-0" />
+                        <Search size={14} className="text-fg-muted mr-2 shrink-0" />
                         <input
                             ref={inputRef}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder={selectedLabel || placeholder || 'Search...'}
-                            className="flex-1 bg-transparent outline-none text-sm text-slate-50 placeholder-slate-400"
+                            className="flex-1 bg-transparent outline-none text-sm text-fg placeholder-slate-400"
                             onClick={(e) => e.stopPropagation()}
                         />
                     </>
                 ) : (
-                    <span className={`flex-1 truncate ${selectedLabel ? 'text-slate-50' : 'text-slate-400'}`}>
+                    <span className={`flex-1 truncate ${selectedLabel ? 'text-fg' : 'text-fg-muted'}`}>
                         {selectedLabel || placeholder || 'Select...'}
                     </span>
                 )}
                 {open
-                    ? <ChevronUp size={16} className="ml-2 text-slate-400 shrink-0" />
-                    : <ChevronDown size={16} className="ml-2 text-slate-400 shrink-0" />}
+                    ? <ChevronUp size={16} className="ml-2 text-fg-muted shrink-0" />
+                    : <ChevronDown size={16} className="ml-2 text-fg-muted shrink-0" />}
             </div>
 
             {open && (
-                <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+                <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-surface-raised border border-line-strong rounded-nb shadow-lg">
                     {!ready ? (
-                        <div className="px-3 py-2 text-sm text-slate-400">Select a project first</div>
+                        <div className="px-3 py-2 text-sm text-fg-muted">Select a project first</div>
                     ) : loading ? (
-                        <div className="px-3 py-2 text-sm text-slate-400">Loading...</div>
+                        <div className="px-3 py-2 text-sm text-fg-muted">Loading...</div>
                     ) : loadError ? (
-                        <button type="button" onClick={load} className="w-full text-left px-3 py-2 text-sm text-rose-400 hover:bg-slate-700">
+                        <button type="button" onClick={load} className="w-full text-left px-3 py-2 text-sm text-danger hover:bg-line">
                             Unable to load records. Please try again.
                         </button>
                     ) : filtered.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-slate-400">No {ENTITY_PLURALS[type]} found</div>
+                        <div className="px-3 py-2 text-sm text-fg-muted">No {ENTITY_PLURALS[type]} found</div>
                     ) : (
                         filtered.map((option) => (
                             <button
                                 key={option.id}
                                 type="button"
                                 onClick={() => handleSelect(option)}
-                                className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700 flex items-center ${option.id === value ? 'bg-slate-700/50 text-teal-400' : 'text-slate-50'}`}
+                                className={`w-full text-left px-3 py-2 text-sm hover:bg-line flex items-center ${option.id === value ? 'bg-line/50 text-primary' : 'text-fg'}`}
                             >
                                 <span className="truncate">{option.name}</span>
                             </button>

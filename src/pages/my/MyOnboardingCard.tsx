@@ -95,16 +95,16 @@ const MyOnboardingCard: React.FC = () => {
             <div className="space-y-4">
                 <div>
                     <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-fg-muted">
                             {settled} of {items.length} steps done
                         </span>
-                        <span className="text-xs font-semibold text-teal-400">{percent}%</span>
+                        <span className="text-xs font-semibold text-primary">{percent}%</span>
                     </div>
                     <ProgressBar percent={percent} />
                 </div>
 
                 {pending.length === 0 ? (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-fg-subtle">
                         All your steps are settled — HR is wrapping up the rest.
                     </p>
                 ) : (
@@ -113,16 +113,16 @@ const MyOnboardingCard: React.FC = () => {
                             <li key={item.id}>
                                 <div className="flex items-center justify-between gap-3">
                                     <span className="min-w-0">
-                                        <span className="block truncate text-sm text-slate-300">{item.title}</span>
+                                        <span className="block truncate text-sm text-fg">{item.title}</span>
                                         {item.due_date && (
-                                            <span className="text-xs text-slate-500">Due {item.due_date}</span>
+                                            <span className="text-xs text-fg-subtle">Due {item.due_date}</span>
                                         )}
                                     </span>
                                     {selfCompletable(item) ? (
                                         <button
                                             onClick={() => handleComplete(item)}
                                             disabled={completingId === item.id}
-                                            className="flex shrink-0 items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal-500 disabled:opacity-50"
+                                            className="flex shrink-0 items-center gap-1 rounded-nb bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-fg transition-colors hover:bg-primary-hover disabled:opacity-50"
                                         >
                                             <CheckCircle size={12} />
                                             {completingId === item.id ? 'Saving…' : 'Mark done'}
@@ -132,14 +132,14 @@ const MyOnboardingCard: React.FC = () => {
                                         // the requested document right here.
                                         <button
                                             onClick={() => toggleAttach(item)}
-                                            className="flex shrink-0 items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal-500"
+                                            className="flex shrink-0 items-center gap-1 rounded-nb bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-fg transition-colors hover:bg-primary-hover"
                                         >
                                             <Upload size={12} />
                                             Attach
                                         </button>
                                     ) : item.assignee_role === 'employee' ? (
                                         // Signature steps complete via the Sign flow (B3).
-                                        <span className="shrink-0 text-xs text-slate-500">Awaiting signature</span>
+                                        <span className="shrink-0 text-xs text-fg-subtle">Awaiting signature</span>
                                     ) : (
                                         <StatusPill status="pending" />
                                     )}
@@ -150,33 +150,33 @@ const MyOnboardingCard: React.FC = () => {
                                             e.preventDefault();
                                             void handleAttach(item);
                                         }}
-                                        className="mt-2 space-y-2 rounded-lg border border-slate-700 bg-slate-800/60 p-2.5"
+                                        className="mt-2 space-y-2 rounded-nb border border-line-strong bg-surface-raised/60 p-2.5"
                                     >
                                         <input
                                             value={fileName}
                                             onChange={e => setFileName(e.target.value)}
                                             placeholder="File name (e.g. passport.pdf)"
-                                            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-50 placeholder-slate-500 focus:border-teal-500 focus:outline-none"
+                                            className="w-full rounded-nb border border-line-strong bg-surface px-2.5 py-1.5 text-xs text-fg placeholder-slate-500 focus:border-primary focus:outline-none"
                                         />
                                         <input
                                             value={fileUrl}
                                             onChange={e => setFileUrl(e.target.value)}
                                             placeholder="Link to the file (optional)"
-                                            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-50 placeholder-slate-500 focus:border-teal-500 focus:outline-none"
+                                            className="w-full rounded-nb border border-line-strong bg-surface px-2.5 py-1.5 text-xs text-fg placeholder-slate-500 focus:border-primary focus:outline-none"
                                         />
                                         <div className="flex justify-end gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() => setAttachingId(null)}
                                                 disabled={uploading}
-                                                className="px-2 py-1 text-xs text-slate-400 hover:text-slate-50 disabled:opacity-50"
+                                                className="px-2 py-1 text-xs text-fg-muted hover:text-fg disabled:opacity-50"
                                             >
                                                 Cancel
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={uploading || !fileName.trim()}
-                                                className="rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="rounded-nb bg-primary px-2.5 py-1 text-xs font-medium text-primary-fg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 {uploading ? 'Attaching…' : 'Attach document'}
                                             </button>

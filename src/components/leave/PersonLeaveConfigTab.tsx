@@ -22,9 +22,9 @@ const SOURCE_LABEL: Record<string, string> = {
 };
 
 const SOURCE_CLASS: Record<string, string> = {
-    employment_type: 'bg-slate-700/60 text-slate-300',
-    employee: 'bg-teal-900/40 text-teal-300',
-    org_default: 'bg-slate-800 text-slate-400',
+    employment_type: 'bg-line/60 text-fg',
+    employee: 'bg-primary-container/40 text-primary',
+    org_default: 'bg-surface-raised text-fg-muted',
 };
 
 /**
@@ -91,7 +91,7 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
 
     if (loading) {
         return (
-            <div className="flex items-center gap-2 p-4 text-sm text-slate-400">
+            <div className="flex items-center gap-2 p-4 text-sm text-fg-muted">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Loading leave configuration…
             </div>
@@ -101,11 +101,11 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
     if (error && !config) {
         return (
             <div className="p-4">
-                <p role="alert" className="text-sm text-rose-400">{error}</p>
+                <p role="alert" className="text-sm text-danger">{error}</p>
                 <button
                     type="button"
                     onClick={() => void load()}
-                    className="mt-2 text-xs text-teal-400 hover:text-teal-300"
+                    className="mt-2 text-xs text-primary hover:text-primary"
                 >
                     Retry
                 </button>
@@ -122,26 +122,26 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
     const row = (type: ApplicableLeaveType, withheld: boolean) => (
         <div
             key={type.id}
-            className="flex items-center justify-between gap-3 px-3 py-2 border-b border-slate-800 last:border-0"
+            className="flex items-center justify-between gap-3 px-3 py-2 border-b border-line last:border-0"
         >
             <div className="min-w-0">
-                <p className={`text-sm ${withheld ? 'text-slate-500 line-through' : 'text-slate-100'}`}>
+                <p className={`text-sm ${withheld ? 'text-fg-subtle line-through' : 'text-fg'}`}>
                     {type.name}
                 </p>
                 {type.max_days_per_year != null && !withheld && (
-                    <p className="text-[11px] text-slate-500">{type.max_days_per_year} days/year</p>
+                    <p className="text-[11px] text-fg-subtle">{type.max_days_per_year} days/year</p>
                 )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
                 <span
                     className={`px-2 py-0.5 rounded text-[11px] ${
-                        withheld ? 'bg-rose-900/30 text-rose-300' : SOURCE_CLASS[type.source]
+                        withheld ? 'bg-danger-container/30 text-danger' : SOURCE_CLASS[type.source]
                     }`}
                 >
                     {withheld ? 'Withheld' : SOURCE_LABEL[type.source]}
                 </span>
                 {canEdit && savingId === type.id && (
-                    <Loader2 className="w-4 h-4 text-slate-500 animate-spin" />
+                    <Loader2 className="w-4 h-4 text-fg-subtle animate-spin" />
                 )}
                 {canEdit && savingId !== type.id && withheld && (
                     <button
@@ -155,7 +155,7 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
                                 `${type.name} restored.`,
                             )
                         }
-                        className="p-1 text-slate-400 hover:text-teal-300"
+                        className="p-1 text-fg-muted hover:text-primary"
                     >
                         <RotateCcw className="w-4 h-4" />
                     </button>
@@ -172,7 +172,7 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
                                 `${type.name} withheld from this employee.`,
                             )
                         }
-                        className="p-1 text-slate-400 hover:text-rose-300"
+                        className="p-1 text-fg-muted hover:text-danger"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -185,8 +185,8 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
         <div className="space-y-4">
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h3 className="text-sm font-medium text-slate-100">Leave Configuration</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <h3 className="text-sm font-medium text-fg">Leave Configuration</h3>
+                    <p className="text-xs text-fg-subtle mt-0.5">
                         {config.inherits_all ? (
                             <>
                                 {employmentTypeLabel ?? config.employment_type ?? 'This employment type'} has
@@ -204,12 +204,12 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
                 </div>
             </div>
 
-            {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
-            {notice && !error && <p className="text-xs text-teal-400">{notice}</p>}
+            {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+            {notice && !error && <p className="text-xs text-primary">{notice}</p>}
 
-            <div className="border border-slate-800 rounded-lg overflow-hidden">
+            <div className="border border-line rounded-nb overflow-hidden">
                 {config.leave_types.length === 0 ? (
-                    <p className="px-3 py-4 text-sm text-slate-500">
+                    <p className="px-3 py-4 text-sm text-fg-subtle">
                         No leave types apply to this employee.
                     </p>
                 ) : (
@@ -219,10 +219,10 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
 
             {config.excluded.length > 0 && (
                 <div>
-                    <p className="text-xs text-slate-500 mb-1">
+                    <p className="text-xs text-fg-subtle mb-1">
                         Withheld from this employee — balances and history are preserved
                     </p>
-                    <div className="border border-slate-800 rounded-lg overflow-hidden">
+                    <div className="border border-line rounded-nb overflow-hidden">
                         {config.excluded.map((t) => row(t, true))}
                     </div>
                 </div>
@@ -230,7 +230,7 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
 
             {canEdit && addable.length > 0 && (
                 <div>
-                    <p className="text-xs text-slate-500 mb-1">
+                    <p className="text-xs text-fg-subtle mb-1">
                         Add for this employee only — other employees are unaffected
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -246,7 +246,7 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
                                         `${t.name} added for this employee.`,
                                     )
                                 }
-                                className="flex items-center gap-1 px-2 py-1 rounded border border-slate-700 text-xs text-slate-300 hover:border-teal-600 hover:text-teal-300 disabled:opacity-50"
+                                className="flex items-center gap-1 px-2 py-1 rounded border border-line-strong text-xs text-fg hover:border-primary hover:text-primary disabled:opacity-50"
                             >
                                 {savingId === t.id ? (
                                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -261,7 +261,7 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
             )}
 
             {canEdit && addable.length === 0 && config.excluded.length === 0 && (
-                <p className="flex items-center gap-1 text-xs text-slate-500">
+                <p className="flex items-center gap-1 text-xs text-fg-subtle">
                     <Check className="w-3 h-3" /> Every leave type in this organization already applies.
                 </p>
             )}

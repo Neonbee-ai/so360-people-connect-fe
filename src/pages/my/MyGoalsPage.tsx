@@ -51,15 +51,15 @@ const MyGoalsPage: React.FC = () => {
                     {goals.map(g => (
                         <li
                             key={g.id}
-                            className="rounded-xl border border-slate-800 bg-slate-900 p-4"
+                            className="rounded-nb border border-line bg-surface p-4"
                         >
                             <div className="mb-2 flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                    <p className="text-sm font-medium text-slate-50">
+                                    <p className="text-sm font-medium text-fg">
                                         {g.title}
                                     </p>
                                     {g.description && (
-                                        <p className="mt-1 text-xs text-slate-500">
+                                        <p className="mt-1 text-xs text-fg-subtle">
                                             {g.description}
                                         </p>
                                     )}
@@ -68,15 +68,15 @@ const MyGoalsPage: React.FC = () => {
                             </div>
 
                             <div className="mt-3">
-                                <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+                                <div className="mb-1 flex items-center justify-between text-xs text-fg-subtle">
                                     <span>Progress</span>
-                                    <span className="font-medium text-slate-300">{g.progress_percentage ?? 0}%</span>
+                                    <span className="font-medium text-fg">{g.progress_percentage ?? 0}%</span>
                                 </div>
                                 <ProgressBar percent={g.progress_percentage ?? 0} />
                             </div>
 
                             {g.target_date && (
-                                <p className="mt-2 text-xs text-slate-500">
+                                <p className="mt-2 text-xs text-fg-subtle">
                                     Target: {g.target_date}
                                 </p>
                             )}

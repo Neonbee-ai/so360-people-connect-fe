@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { ClipboardCheck, CheckCircle, Ban, Play, Upload } from 'lucide-react';
-import { toast, getErrorMessage } from '@so360/design-system';
+import { toast, getErrorMessage, Select } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import Modal from './Modal';
 import EmptyState from './EmptyState';
@@ -26,9 +26,9 @@ const ASSIGNEE_LABELS: Record<string, string> = {
 };
 
 const ITEM_STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  done: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  waived: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+  pending: 'bg-warning/10 text-warning border-warning/20',
+  done: 'bg-success/10 text-success border-success/20',
+  waived: 'bg-fg-subtle/10 text-fg-muted border-fg-subtle/20',
 };
 
 const ItemStatusPill: React.FC<{ status: string }> = ({ status }) => (
@@ -199,8 +199,8 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
   if (loading) {
     return (
       <div className="space-y-3">
-        <div className="h-10 animate-pulse rounded-lg bg-slate-800/50" />
-        <div className="h-24 animate-pulse rounded-lg bg-slate-800/50" />
+        <div className="h-10 animate-pulse rounded-nb bg-surface-raised/50" />
+        <div className="h-24 animate-pulse rounded-nb bg-surface-raised/50" />
       </div>
     );
   }
@@ -236,25 +236,13 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
               <div>
                 <label
                   htmlFor="onboarding-template"
-                  className="mb-1.5 block text-xs font-medium text-slate-400"
+                  className="mb-1.5 block text-xs font-medium text-fg-muted"
                 >
                   Onboarding template
                 </label>
-                <select
-                  id="onboarding-template"
-                  value={chosenTemplateId}
-                  onChange={e => setChosenTemplateId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-50 focus:border-teal-500 focus:outline-none"
-                >
-                  <option value="">Use the organization default</option>
-                  {templates.map(t => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}{t.is_default ? ' (default)' : ''}
-                    </option>
-                  ))}
-                </select>
+                <Select name="onboarding-template" id="onboarding-template" value={chosenTemplateId} onChange={e => setChosenTemplateId(e.target.value)} options={[{ value: "", label: "Use the organization default" }, ...templates.map((t) => ({ value: t.id, label: `${t.name}${t.is_default ? ' (default)' : ''}` }))]} />
                 {!chosenTemplateId && !templates.some(t => t.is_default) && (
-                  <p className="mt-1.5 text-xs text-amber-400">
+                  <p className="mt-1.5 text-xs text-warning">
                     No default template is set — pick one above, or set a default in Settings →
                     Onboarding.
                   </p>
@@ -263,11 +251,11 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
             )}
 
             {templatesFailed && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-fg-subtle">
                 Couldn't load the template list.{' '}
                 <button
                   onClick={() => void loadTemplates()}
-                  className="font-medium text-teal-400 hover:text-teal-300"
+                  className="font-medium text-primary hover:text-primary"
                 >
                   Retry
                 </button>
@@ -278,7 +266,7 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
             <button
               onClick={handleStart}
               disabled={starting}
-              className="w-full rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-nb bg-primary px-4 py-2 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {starting ? 'Starting…' : 'Start onboarding'}
             </button>
@@ -295,37 +283,37 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
   return (
     <div className="space-y-4">
       {/* Progress header */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+      <div className="bg-surface-raised border border-line-strong rounded-nb p-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <ClipboardCheck size={16} className="text-teal-400" />
-            <span className="text-sm font-medium text-slate-50">
+            <ClipboardCheck size={16} className="text-primary" />
+            <span className="text-sm font-medium text-fg">
               {instance.status === 'completed' ? 'Onboarding complete' : 'Onboarding in progress'}
             </span>
             <ItemStatusPill status={instance.status === 'completed' ? 'done' : 'pending'} />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-fg-muted">
               {settled} of {items.length} steps settled
             </span>
             {canManage && instance.status === 'in_progress' && (
               <button
                 onClick={handleCancel}
-                className="text-xs text-slate-500 hover:text-rose-400 transition-colors"
+                className="text-xs text-fg-subtle hover:text-danger transition-colors"
               >
                 Cancel onboarding
               </button>
             )}
           </div>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-900">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-surface">
           <div
             data-testid="onboarding-progress"
-            className="h-full rounded-full bg-teal-500 transition-all"
+            className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${percent}%` }}
           />
         </div>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-fg-subtle">
           Started {instance.started_at?.slice(0, 10)}
           {instance.completed_at ? ` · Completed ${instance.completed_at.slice(0, 10)}` : ''}
         </p>
@@ -334,23 +322,23 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
       {/* Checklist */}
       <div className="space-y-2">
         {items.map(item => (
-          <div key={item.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+          <div key={item.id} className="bg-surface-raised border border-line-strong rounded-nb p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-sm font-medium ${item.status === 'pending' ? 'text-slate-50' : 'text-slate-400 line-through'}`}>
+                  <span className={`text-sm font-medium ${item.status === 'pending' ? 'text-fg' : 'text-fg-muted line-through'}`}>
                     {item.title}
                   </span>
                   <ItemStatusPill status={item.status} />
-                  {!item.is_required && <span className="text-[10px] uppercase tracking-wider text-slate-600">Optional</span>}
+                  {!item.is_required && <span className="text-[10px] uppercase tracking-wider text-fg-subtle">Optional</span>}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-xs text-fg-subtle">
                   {ITEM_TYPE_LABELS[item.item_type] ?? item.item_type}
                   {' · '}Assigned to {ASSIGNEE_LABELS[item.assignee_role] ?? item.assignee_role}
                   {item.due_date && ` · Due ${item.due_date}`}
                 </div>
-                {item.description && <p className="mt-1 text-xs text-slate-400">{item.description}</p>}
-                {item.note && <p className="mt-1 text-xs text-slate-500 italic">Note: {item.note}</p>}
+                {item.description && <p className="mt-1 text-xs text-fg-muted">{item.description}</p>}
+                {item.note && <p className="mt-1 text-xs text-fg-subtle italic">Note: {item.note}</p>}
               </div>
               {item.status === 'pending' && instance.status === 'in_progress' && (
                 <div className="flex shrink-0 items-center gap-2">
@@ -358,7 +346,7 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
                     <button
                       onClick={() => setAttaching(item)}
                       disabled={actingItemId === item.id}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-lg text-xs text-white font-medium transition-colors"
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-primary hover:bg-primary-hover disabled:opacity-50 rounded-nb text-xs text-primary-fg font-medium transition-colors"
                     >
                       <Upload size={12} /> Attach document
                     </button>
@@ -366,14 +354,14 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
                   <button
                     onClick={() => handleComplete(item)}
                     disabled={actingItemId === item.id}
-                    className="flex items-center gap-1 px-2.5 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-lg text-xs text-white font-medium transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-primary hover:bg-primary-hover disabled:opacity-50 rounded-nb text-xs text-primary-fg font-medium transition-colors"
                   >
                     <CheckCircle size={12} /> Complete
                   </button>
                   <button
                     onClick={() => setWaiving(item)}
                     disabled={actingItemId === item.id}
-                    className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 rounded-lg text-xs text-slate-300 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-line hover:bg-line-strong border border-line-strong disabled:opacity-50 rounded-nb text-xs text-fg transition-colors"
                   >
                     <Ban size={12} /> Waive
                   </button>
@@ -428,29 +416,29 @@ const WaiveModal: React.FC<{
         }}
         className="space-y-4"
       >
-        <p className="text-sm text-slate-400">
-          Waive <span className="text-slate-200 font-medium">{item?.title}</span>? A waived required
+        <p className="text-sm text-fg-muted">
+          Waive <span className="text-fg font-medium">{item?.title}</span>? A waived required
           step counts as settled. A reason is required.
         </p>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Reason <span className="text-red-400">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1">Reason <span className="text-danger">*</span></label>
           <textarea
             required
             value={note}
             onChange={e => setNote(e.target.value)}
             rows={3}
             placeholder="Why this step doesn't apply"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
         </div>
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} disabled={busy} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50 disabled:opacity-50">
+          <button type="button" onClick={onClose} disabled={busy} className="px-3 py-1.5 text-sm text-fg-muted hover:text-fg disabled:opacity-50">
             Cancel
           </button>
           <button
             type="submit"
             disabled={busy || !note.trim()}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg"
+            className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb"
           >
             {busy ? 'Waiving…' : 'Waive Item'}
           </button>
@@ -489,38 +477,38 @@ const AttachDocumentModal: React.FC<{
         }}
         className="space-y-4"
       >
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-fg-muted">
           Attach the collected document for{' '}
-          <span className="text-slate-200 font-medium">{item?.title}</span>. It is filed into the
+          <span className="text-fg font-medium">{item?.title}</span>. It is filed into the
           person's documents and the step is marked done.
         </p>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">File name <span className="text-red-400">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1">File name <span className="text-danger">*</span></label>
           <input
             required
             value={fileName}
             onChange={e => setFileName(e.target.value)}
             placeholder="e.g. passport.pdf"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
         </div>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Link to the file (optional)</label>
+          <label className="block text-xs text-fg-muted mb-1">Link to the file (optional)</label>
           <input
             value={fileUrl}
             onChange={e => setFileUrl(e.target.value)}
             placeholder="https://…"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
         </div>
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} disabled={busy} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50 disabled:opacity-50">
+          <button type="button" onClick={onClose} disabled={busy} className="px-3 py-1.5 text-sm text-fg-muted hover:text-fg disabled:opacity-50">
             Cancel
           </button>
           <button
             type="submit"
             disabled={busy || !fileName.trim()}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg"
+            className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb"
           >
             {busy ? 'Attaching…' : 'Attach & Mark Done'}
           </button>

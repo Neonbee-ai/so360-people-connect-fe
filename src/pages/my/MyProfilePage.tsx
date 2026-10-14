@@ -21,9 +21,9 @@ import { MyCard, Skeleton, primaryBtn, inputCls, labelCls } from './myUi';
  */
 
 const ReadOnlyRow: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
-    <div className="flex items-center justify-between border-b border-slate-800 py-2.5 last:border-0">
-        <span className="text-sm text-slate-500">{label}</span>
-        <span className="text-sm text-slate-50">{value || '—'}</span>
+    <div className="flex items-center justify-between border-b border-line py-2.5 last:border-0">
+        <span className="text-sm text-fg-subtle">{label}</span>
+        <span className="text-sm text-fg">{value || '—'}</span>
     </div>
 );
 
@@ -78,7 +78,7 @@ const MyProfilePage: React.FC = () => {
 
             <div className="grid gap-4 md:grid-cols-2">
                 <MyCard title="Employment" icon={<BadgeCheck size={14} />}>
-                    <p className="mb-3 text-xs text-slate-500">
+                    <p className="mb-3 text-xs text-fg-subtle">
                         These are maintained by your administrator.
                     </p>
                     <ReadOnlyRow label="Name" value={person?.full_name} />
@@ -89,7 +89,7 @@ const MyProfilePage: React.FC = () => {
                 </MyCard>
 
                 <MyCard title="Contact details" icon={<Phone size={14} />}>
-                    <p className="mb-3 text-xs text-slate-500">
+                    <p className="mb-3 text-xs text-fg-subtle">
                         You can keep these up to date yourself.
                     </p>
 

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, toast } from '@so360/design-system';
+import { Button, toast, Select } from '@so360/design-system';
 import { Award, Save, X, Info } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import { settingsApi } from '../../services/orgSettingsService';
@@ -26,11 +26,11 @@ export const DEFAULT_PERFORMANCE_SETTINGS: PerformanceSettingsValue = {
 };
 
 const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
+  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="space-y-1.5">
-    <label className="text-xs text-slate-400">{label}</label>
+    <label className="text-xs text-fg-muted">{label}</label>
     {children}
   </div>
 );
@@ -72,7 +72,7 @@ const TagListField: React.FC<{
           {items.map((item) => (
             <span
               key={item}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-blue-600/10 text-blue-400 border border-blue-600/30"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-primary/10 text-primary border border-primary/30"
             >
               {item}
               <button type="button" onClick={() => onChange(items.filter((i) => i !== item))}>
@@ -124,7 +124,7 @@ const PerformanceSettingsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading performance settings...</div>;
+    return <div className="p-6 text-fg-muted animate-pulse">Loading performance settings...</div>;
   }
 
   return (
@@ -143,29 +143,21 @@ const PerformanceSettingsPage: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
             <Award className="w-4 h-4" /> Review Cycle &amp; Rating
           </h3>
 
           <Field label="Review Cycle">
-            <select
-              className={INPUT_CLASS}
-              value={value.review_cycle}
-              onChange={(e) => set('review_cycle', e.target.value as PerformanceSettingsValue['review_cycle'])}
-            >
-              <option value="quarterly">Quarterly</option>
-              <option value="half_yearly">Half-Yearly</option>
-              <option value="annual">Annual</option>
-            </select>
+            <Select name="performancesettings-select-101" value={value.review_cycle} onChange={(e) => set('review_cycle', e.target.value as PerformanceSettingsValue['review_cycle'])} options={[{ value: "quarterly", label: "Quarterly" }, { value: "half_yearly", label: "Half-Yearly" }, { value: "annual", label: "Annual" }]} />
           </Field>
 
-          <div className="flex items-start gap-2.5 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-400">
-            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-500" />
+          <div className="flex items-start gap-2.5 rounded-nb border border-line bg-bg px-3 py-2.5 text-xs text-fg-muted">
+            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-fg-subtle" />
             <span>
               Rating scale and templates are configured per template, not org-wide — different
               reviews legitimately need different scales. Manage those in{' '}
-              <Link to="/people/reviews/templates" className="text-blue-400 hover:text-blue-300 underline">
+              <Link to="/people/reviews/templates" className="text-primary hover:text-primary underline">
                 Review Templates
               </Link>
               .
@@ -173,8 +165,8 @@ const PerformanceSettingsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Categories &amp; Competencies</h3>
+        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
+          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Categories &amp; Competencies</h3>
 
           <TagListField
             label="KPI Categories"

@@ -64,7 +64,7 @@ export default function PerformanceEvidencePanel({
 
   if (blocks === null) {
     return (
-      <div className="text-sm text-slate-400">Loading performance evidence…</div>
+      <div className="text-sm text-fg-muted">Loading performance evidence…</div>
     );
   }
 
@@ -73,13 +73,13 @@ export default function PerformanceEvidencePanel({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-200">
+        <h3 className="text-sm font-semibold text-fg">
           Measured performance
         </h3>
         {periodStart && periodEnd && (
           <button
             type="button"
-            className="text-xs text-slate-400 hover:text-slate-200"
+            className="text-xs text-fg-muted hover:text-fg"
             onClick={() => setShowAll((v) => !v)}
           >
             {scoped ? 'Show all periods' : 'Only this review period'}
@@ -87,10 +87,10 @@ export default function PerformanceEvidencePanel({
         )}
       </div>
 
-      {error && <div className="text-sm text-rose-300">{error}</div>}
+      {error && <div className="text-sm text-danger">{error}</div>}
 
       {!blocks.length ? (
-        <div className="rounded border border-dashed border-slate-700 p-4 text-sm text-slate-400">
+        <div className="rounded border border-dashed border-line-strong p-4 text-sm text-fg-muted">
           {scoped
             ? 'No measured evidence covering this review period. A CRM sales review pushes it here when it is finalized.'
             : 'No measured evidence for this person yet.'}
@@ -105,17 +105,17 @@ export default function PerformanceEvidencePanel({
             return (
               <div
                 key={b.id}
-                className="rounded border border-slate-700 bg-slate-800/40 p-3"
+                className="rounded border border-line-strong bg-surface-raised/40 p-3"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-sm text-slate-200">
+                  <span className="text-sm text-fg">
                     {b.period_start} → {b.period_end}
-                    <span className="ml-2 text-xs uppercase tracking-wide text-slate-500">
+                    <span className="ml-2 text-xs uppercase tracking-wide text-fg-subtle">
                       {b.period_type} · {b.source}
                     </span>
                   </span>
                   {headline?.attainment != null && (
-                    <span className="text-sm text-slate-100">
+                    <span className="text-sm text-fg">
                       {headline.metric}: {Math.round(headline.attainment * 100)}%
                     </span>
                   )}
@@ -128,8 +128,8 @@ export default function PerformanceEvidencePanel({
                         key={`${b.id}-${i}`}
                         className="flex justify-between gap-6 text-xs"
                       >
-                        <span className="text-slate-400">{m.metric}</span>
-                        <span className="text-slate-300">
+                        <span className="text-fg-muted">{m.metric}</span>
+                        <span className="text-fg">
                           {m.actual ?? '—'} / {m.target ?? '—'}
                           {m.attainment != null &&
                             ` · ${Math.round(m.attainment * 100)}%`}
@@ -140,7 +140,7 @@ export default function PerformanceEvidencePanel({
                 )}
 
                 {(wl?.won_count != null || wl?.lost_count != null) && (
-                  <div className="mt-2 text-xs text-slate-400">
+                  <div className="mt-2 text-xs text-fg-muted">
                     Won {wl?.won_count ?? 0} · Lost {wl?.lost_count ?? 0}
                     {wl?.top_reason?.label
                       ? ` · Top loss reason: ${wl.top_reason.label}`
@@ -149,12 +149,12 @@ export default function PerformanceEvidencePanel({
                 )}
 
                 {actions.length > 0 && (
-                  <ul className="mt-2 list-disc pl-4 text-xs text-slate-400">
+                  <ul className="mt-2 list-disc pl-4 text-xs text-fg-muted">
                     {actions
                       .filter((a) => a?.text)
                       .map((a, i) => (
                         <li key={`${b.id}-a${i}`}>
-                          <span className="text-slate-500">{a.kind}: </span>
+                          <span className="text-fg-subtle">{a.kind}: </span>
                           {a.text}
                         </li>
                       ))}
@@ -162,7 +162,7 @@ export default function PerformanceEvidencePanel({
                 )}
 
                 {/* Never presented as live data — see the component note. */}
-                <div className="mt-2 text-[11px] text-slate-500">
+                <div className="mt-2 text-[11px] text-fg-subtle">
                   As measured on {String(b.computed_at).slice(0, 10)}; not a
                   live figure.
                 </div>

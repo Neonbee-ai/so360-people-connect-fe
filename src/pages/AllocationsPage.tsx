@@ -8,7 +8,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, useConfirm, Select } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
@@ -88,8 +88,10 @@ const AllocationsPage: React.FC = () => {
         loadAllocations();
     };
 
+    const [confirm, confirmDialog] = useConfirm();
+
     const handleCancel = async (id: string) => {
-        if (!confirm('Cancel this allocation? This action cannot be undone.')) return;
+        if (!(await confirm({ title: 'Cancel allocation', message: 'Cancel this allocation? This action cannot be undone.', intent: 'danger', confirmLabel: 'Cancel allocation' }))) return;
         try {
             await allocationsApi.cancel(id);
             toast.success('Allocation cancelled');
@@ -118,13 +120,14 @@ const AllocationsPage: React.FC = () => {
 
     return (
         <div className="p-6 space-y-5">
+          {confirmDialog}
             <PageHeader
                 title="Allocations"
                 subtitle="Assign people to execution entities with capacity control"
                 actions={canCreateAllocation ? (
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
                     >
                         <Plus size={16} />
                         New Allocation
@@ -136,34 +139,12 @@ const AllocationsPage: React.FC = () => {
                 the stats never float away from the filter group. */}
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-3">
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="planned">Planned</option>
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
-                <select
-                    value={entityTypeFilter}
-                    onChange={(e) => setEntityTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Entity Types</option>
-                    <option value="project">Project</option>
-                    <option value="task">Task</option>
-                    <option value="lead">Lead</option>
-                    <option value="customer">Customer</option>
-                    <option value="opportunity">Opportunity</option>
-                    <option value="department">Department</option>
-                </select>
+                <Select name="allocations-select-25" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Statuses" }, { value: "planned", label: "Planned" }, { value: "active", label: "Active" }, { value: "completed", label: "Completed" }, { value: "cancelled", label: "Cancelled" }]} />
+                <Select name="allocations-select-26" value={entityTypeFilter} onChange={(e) => setEntityTypeFilter(e.target.value)} options={[{ value: "", label: "All Entity Types" }, { value: "project", label: "Project" }, { value: "task", label: "Task" }, { value: "lead", label: "Lead" }, { value: "customer", label: "Customer" }, { value: "opportunity", label: "Opportunity" }, { value: "department", label: "Department" }]} />
                 <select
                     value={departmentFilter}
                     onChange={(e) => setDepartmentFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                    className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                 >
                     <option value="">All Departments</option>
                     {departments.map(dept => (
@@ -175,10 +156,10 @@ const AllocationsPage: React.FC = () => {
                 </div>
 
                 {/* Summary Stats */}
-                <div className="flex items-center gap-4 text-xs text-slate-400">
+                <div className="flex items-center gap-4 text-xs text-fg-muted">
                     <span>{allocations.length} allocation{allocations.length !== 1 ? 's' : ''}</span>
                     <span>{allocations.filter(a => a.status === 'active').length} active</span>
-                    <span className="text-amber-400">
+                    <span className="text-warning">
                         {Object.values(allocationsByPerson).filter(p => p.totalPct > 100).length} overallocated
                     </span>
                 </div>
@@ -188,7 +169,7 @@ const AllocationsPage: React.FC = () => {
             {loading ? (
                 <div className="space-y-3">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-24 bg-slate-800/50 rounded-xl animate-pulse" />
+                        <div key={i} className="h-24 bg-surface-raised/50 rounded-nb animate-pulse" />
                     ))}
                 </div>
             ) : allocations.length === 0 ? (
@@ -207,10 +188,10 @@ const AllocationsPage: React.FC = () => {
                         return (
                             <div
                                 key={alloc.id}
-                                className={`bg-slate-900 border rounded-xl p-4 transition-all ${
+                                className={`bg-surface border rounded-xl p-4 transition-all ${
                                     isOverallocated && alloc.status === 'active'
-                                        ? 'border-amber-500/30'
-                                        : 'border-slate-800 hover:border-slate-700'
+                                        ? 'border-warning/30'
+                                        : 'border-line hover:border-line-strong'
                                 }`}
                             >
                                 {/* Fixed column track so every row lines up: avatar |
@@ -219,8 +200,8 @@ const AllocationsPage: React.FC = () => {
                                     entity name can never push them out of alignment. */}
                                 <div className="grid items-center gap-4 grid-cols-[2.5rem_minmax(0,1fr)_5.5rem_6rem_4.5rem]">
                                     {/* Person Avatar */}
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-xs font-medium text-teal-400">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 border border-line-strong flex items-center justify-center flex-shrink-0">
+                                        <span className="text-xs font-medium text-primary">
                                             {(alloc.person?.full_name || 'U').split(' ').map(n => n[0]).join('').substring(0, 2)}
                                         </span>
                                     </div>
@@ -230,33 +211,33 @@ const AllocationsPage: React.FC = () => {
                                         <div className="flex items-center gap-2 mb-0.5 min-w-0">
                                             <span
                                                 onClick={() => navigate(`/people/people/${alloc.person_id}`)}
-                                                className="text-sm font-medium text-slate-50 hover:text-teal-400 cursor-pointer truncate"
+                                                className="text-sm font-medium text-fg hover:text-primary cursor-pointer truncate"
                                             >
                                                 {alloc.person?.full_name || 'Unknown Person'}
                                             </span>
-                                            <ArrowRight size={12} className="text-slate-600 flex-shrink-0" />
-                                            <span className="text-sm text-slate-300 truncate">
+                                            <ArrowRight size={12} className="text-fg-subtle flex-shrink-0" />
+                                            <span className="text-sm text-fg truncate">
                                                 {alloc.entity_name || alloc.entity_id}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-xs text-slate-500 min-w-0">
+                                        <div className="flex items-center gap-3 text-xs text-fg-subtle min-w-0">
                                             <span className="flex items-center gap-1 flex-shrink-0">
                                                 <Calendar size={11} />
                                                 {alloc.start_date} to {alloc.end_date}
                                             </span>
-                                            <span className="text-slate-600 flex-shrink-0 capitalize">{alloc.entity_type}</span>
+                                            <span className="text-fg-subtle flex-shrink-0 capitalize">{alloc.entity_type}</span>
                                             {alloc.notes && <span className="truncate">{alloc.notes}</span>}
                                         </div>
                                     </div>
 
                                     {/* Allocation Value */}
                                     <div className="text-right">
-                                        <div className="text-lg font-bold text-slate-50 leading-tight">
+                                        <div className="text-lg font-bold text-fg leading-tight">
                                             {alloc.allocation_value}
-                                            <span className="text-sm text-slate-400 ml-0.5">%</span>
+                                            <span className="text-sm text-fg-muted ml-0.5">%</span>
                                         </div>
                                         {isOverallocated && alloc.status === 'active' && (
-                                            <div className="text-xs text-amber-400 leading-tight">
+                                            <div className="text-xs text-warning leading-tight">
                                                 Total: {personData.totalPct}%
                                             </div>
                                         )}
@@ -274,7 +255,7 @@ const AllocationsPage: React.FC = () => {
                                             <>
                                                 <button
                                                     onClick={() => setEditingAllocation(alloc)}
-                                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-50 hover:bg-slate-800 transition-colors"
+                                                    className="p-1.5 rounded-nb text-fg-subtle hover:text-fg hover:bg-surface-raised transition-colors"
                                                     title="Edit"
                                                     aria-label="Edit allocation"
                                                 >
@@ -282,7 +263,7 @@ const AllocationsPage: React.FC = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleCancel(alloc.id)}
-                                                    className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                                                    className="p-1.5 rounded-nb text-fg-subtle hover:text-danger hover:bg-surface-raised transition-colors"
                                                     title="Cancel"
                                                     aria-label="Cancel allocation"
                                                 >
@@ -297,12 +278,12 @@ const AllocationsPage: React.FC = () => {
                                     non-active allocations) so each row is the same height
                                     and the bar always sits the same distance from the
                                     card edge. */}
-                                <div className="mt-3 pt-3 border-t border-slate-800/50">
-                                    <div className="w-full bg-slate-800 rounded-full h-1.5" role="presentation">
+                                <div className="mt-3 pt-3 border-t border-line/50">
+                                    <div className="w-full bg-surface-raised rounded-full h-1.5" role="presentation">
                                         {alloc.status === 'active' && (
                                             <div
                                                 className={`h-1.5 rounded-full transition-all ${
-                                                    (alloc.allocation_value ?? 0) > 80 ? 'bg-amber-500' : 'bg-teal-500'
+                                                    (alloc.allocation_value ?? 0) > 80 ? 'bg-warning' : 'bg-primary'
                                                 }`}
                                                 style={{ width: `${Math.min(alloc.allocation_value ?? 0, 100)}%` }}
                                             />
@@ -470,48 +451,24 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
             <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Person Selection */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Resource</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Resource</h4>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Person *</label>
-                        <select
-                            required
-                            value={formData.person_id}
-                            onChange={(e) => updateField('person_id', e.target.value)}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.person_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                        >
-                            <option value="">Select a person...</option>
-                            {people.map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.full_name} - {p.job_title || p.type}
-                                    {canViewCompensation ? ` (${formatters.formatCurrency(p.cost_rate)}/${p.cost_rate_unit})` : ''}
-                                </option>
-                            ))}
-                        </select>
-                        {errors.person_id && <p className="mt-1 text-xs text-rose-400">{errors.person_id}</p>}
+                        <label className="block text-xs text-fg-muted mb-1">Person *</label>
+                        <Select name="allocations-select-28" required value={formData.person_id} onChange={(e) => updateField('person_id', e.target.value)} options={[{ value: "", label: "Select a person..." }, ...people.map((p) => ({ value: p.id, label: `${p.full_name} - ${p.job_title || p.type}${canViewCompensation ? ` (${formatters.formatCurrency(p.cost_rate)}/${p.cost_rate_unit})` : ''}` }))]} />
+                        {errors.person_id && <p className="mt-1 text-xs text-danger">{errors.person_id}</p>}
                     </div>
                 </div>
 
                 {/* Execution Entity */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Execution Entity</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Execution Entity</h4>
                     <div className="grid grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Entity Type *</label>
-                            <select
-                                value={formData.entity_type}
-                                onChange={(e) => handleEntityTypeChange(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="project">Project</option>
-                                <option value="task">Task</option>
-                                <option value="lead">Lead</option>
-                                <option value="customer">Customer</option>
-                                <option value="opportunity">Opportunity</option>
-                                <option value="department">Department</option>
-                            </select>
+                            <label className="block text-xs text-fg-muted mb-1">Entity Type *</label>
+                            <Select name="allocations-select-29" value={formData.entity_type} onChange={(e) => handleEntityTypeChange(e.target.value)} options={[{ value: "project", label: "Project" }, { value: "task", label: "Task" }, { value: "lead", label: "Lead" }, { value: "customer", label: "Customer" }, { value: "opportunity", label: "Opportunity" }, { value: "department", label: "Department" }]} />
                         </div>
                         <div className="col-span-2">
-                            <label className="block text-xs text-slate-400 mb-1">
+                            <label className="block text-xs text-fg-muted mb-1">
                                 {formData.entity_type === 'task' ? 'Project & Task *' : 'Entity *'}
                             </label>
                             <EntitySelector
@@ -521,55 +478,55 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                                 onChange={handleEntitySelect}
                                 error={!!errors.entity_id}
                             />
-                            {errors.entity_id && <p className="mt-1 text-xs text-rose-400">{errors.entity_id}</p>}
+                            {errors.entity_id && <p className="mt-1 text-xs text-danger">{errors.entity_id}</p>}
                         </div>
                     </div>
                 </div>
 
                 {/* Allocation Window */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Allocation Window</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Allocation Window</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Start Date *</label>
+                            <label className="block text-xs text-fg-muted mb-1">Start Date *</label>
                             <input
                                 type="date" required aria-label="Start Date" value={formData.start_date}
                                 onChange={(e) => updateField('start_date', e.target.value)}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.start_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.start_date ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                             />
-                            <p className="mt-1 text-xs text-slate-500">Defaults to today — the allocation starts as soon as it is created.</p>
-                            {errors.start_date && <p className="mt-1 text-xs text-rose-400">{errors.start_date}</p>}
+                            <p className="mt-1 text-xs text-fg-subtle">Defaults to today — the allocation starts as soon as it is created.</p>
+                            {errors.start_date && <p className="mt-1 text-xs text-danger">{errors.start_date}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">End Date *</label>
+                            <label className="block text-xs text-fg-muted mb-1">End Date *</label>
                             <input
                                 type="date" required aria-label="End Date" value={formData.end_date}
                                 min={formData.start_date || undefined}
                                 onChange={(e) => updateField('end_date', e.target.value)}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.end_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                                className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.end_date ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                             />
-                            <p className="mt-1 text-xs text-slate-500">Required — allocations are costed over a closed window.</p>
-                            {errors.end_date && <p className="mt-1 text-xs text-rose-400">{errors.end_date}</p>}
+                            <p className="mt-1 text-xs text-fg-subtle">Required — allocations are costed over a closed window.</p>
+                            {errors.end_date && <p className="mt-1 text-xs text-danger">{errors.end_date}</p>}
                         </div>
                     </div>
                 </div>
 
                 {/* Allocation Amount */}
                 <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Allocation Amount</h4>
+                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Allocation Amount</h4>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Allocation Percentage *</label>
+                        <label className="block text-xs text-fg-muted mb-1">Allocation Percentage *</label>
                         <input
                             type="number" required min="1" max="100" step="1"
                             aria-label="Allocation Percentage"
                             value={formData.allocation_percentage}
                             onChange={(e) => updateField('allocation_percentage', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.allocation_percentage ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                            className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.allocation_percentage ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                         />
                         {errors.allocation_percentage ? (
-                            <p className="mt-1 text-xs text-rose-400">{errors.allocation_percentage}</p>
+                            <p className="mt-1 text-xs text-danger">{errors.allocation_percentage}</p>
                         ) : (
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-fg-subtle">
                                 Share of this person's working capacity, 1–100%. The bar below previews the value entered here.
                             </p>
                         )}
@@ -577,48 +534,48 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
 
                     {/* Visual Preview */}
                     <div className="mt-3">
-                        <div className="w-full bg-slate-800 rounded-full h-2">
+                        <div className="w-full bg-surface-raised rounded-full h-2">
                             <div
                                 className={`h-2 rounded-full transition-all ${
-                                    Number(formData.allocation_percentage) > 80 ? 'bg-amber-500' :
-                                    Number(formData.allocation_percentage) > 50 ? 'bg-teal-500' : 'bg-blue-500'
+                                    Number(formData.allocation_percentage) > 80 ? 'bg-warning' :
+                                    Number(formData.allocation_percentage) > 50 ? 'bg-primary' : 'bg-primary'
                                 }`}
                                 style={{ width: `${Math.min(Number(formData.allocation_percentage) || 0, 100)}%` }}
                             />
                         </div>
-                        <div className="text-xs text-slate-500 mt-1 text-right">{Number(formData.allocation_percentage) || 0}% capacity</div>
+                        <div className="text-xs text-fg-subtle mt-1 text-right">{Number(formData.allocation_percentage) || 0}% capacity</div>
                     </div>
                 </div>
 
                 {/* Notes */}
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Notes</label>
+                    <label className="block text-xs text-fg-muted mb-1">Notes</label>
                     <textarea
                         value={formData.notes || ''}
                         onChange={(e) => updateField('notes', e.target.value)}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 resize-none"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary resize-none"
                         placeholder="Additional context for this allocation..."
                     />
                 </div>
 
                 {/* API error banner */}
                 {apiError && (
-                    <div className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-400">
+                    <div className="px-3 py-2 bg-danger/10 border border-danger/30 rounded-nb text-sm text-danger">
                         {apiError}
                     </div>
                 )}
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50">
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={submitting || !isFormValid}
                         title={isFormValid ? undefined : 'Complete all required fields to create the allocation.'}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {submitting ? 'Creating…' : 'Create Allocation'}
                     </button>
@@ -674,74 +631,66 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
     return (
         <Modal isOpen={true} onClose={onClose} title={`Edit Allocation - ${allocation.entity_name || allocation.entity_id}`} size="md">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="text-xs text-slate-500 mb-4">
+                <div className="text-xs text-fg-subtle mb-4">
                     {allocation.person?.full_name} allocated to {allocation.entity_name || allocation.entity_id}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Start Date</label>
+                        <label className="block text-xs text-fg-muted mb-1">Start Date</label>
                         <input
                             type="date" value={formData.start_date}
                             onChange={(e) => setFormData(d => ({ ...d, start_date: e.target.value }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">End Date</label>
+                        <label className="block text-xs text-fg-muted mb-1">End Date</label>
                         <input
                             type="date" value={formData.end_date}
                             onChange={(e) => setFormData(d => ({ ...d, end_date: e.target.value }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Allocation Percentage (1-100%)</label>
+                        <label className="block text-xs text-fg-muted mb-1">Allocation Percentage (1-100%)</label>
                         <input
                             type="number" min="1" max="100" value={formData.allocation_percentage}
                             onChange={(e) => { setError(''); setFormData(d => ({ ...d, allocation_percentage: e.target.value === '' ? 0 : parseFloat(e.target.value) })); }}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${error ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                            className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${error ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                         />
-                        {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
+                        {error && <p className="mt-1 text-xs text-danger">{error}</p>}
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1">Status</label>
-                        <select
-                            value={formData.status}
-                            onChange={(e) => setFormData(d => ({ ...d, status: e.target.value as AllocationStatus }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="planned">Planned</option>
-                            <option value="active">Active</option>
-                            <option value="completed">Completed</option>
-                        </select>
+                        <label className="block text-xs text-fg-muted mb-1">Status</label>
+                        <Select name="allocations-select-30" value={formData.status} onChange={(e) => setFormData(d => ({ ...d, status: e.target.value as AllocationStatus }))} options={[{ value: "planned", label: "Planned" }, { value: "active", label: "Active" }, { value: "completed", label: "Completed" }]} />
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Notes</label>
+                    <label className="block text-xs text-fg-muted mb-1">Notes</label>
                     <textarea
                         value={formData.notes}
                         onChange={(e) => setFormData(d => ({ ...d, notes: e.target.value }))}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 resize-none"
+                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary resize-none"
                     />
                 </div>
 
                 {apiError && (
-                    <div className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-400">
+                    <div className="px-3 py-2 bg-danger/10 border border-danger/30 rounded-nb text-sm text-danger">
                         {apiError}
                     </div>
                 )}
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
+                <div className="flex justify-end gap-3 pt-4 border-t border-line">
+                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50">
                         Cancel
                     </button>
-                    <button type="submit" disabled={submitting} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                    <button type="submit" disabled={submitting} className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50">
                         {submitting ? 'Saving…' : 'Save Changes'}
                     </button>
                 </div>

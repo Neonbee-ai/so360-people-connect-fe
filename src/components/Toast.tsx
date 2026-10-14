@@ -19,8 +19,8 @@ interface ToastProps {
 }
 
 const STYLES: Record<ToastType, string> = {
-    success: 'border-emerald-700 bg-emerald-950 text-emerald-200',
-    error: 'border-rose-700 bg-rose-950 text-rose-200',
+    success: 'border-success bg-success-container text-success',
+    error: 'border-danger bg-danger-container text-danger',
 };
 
 const Toast: React.FC<ToastProps> = ({ message, type, onClose, autoCloseMs = 4000 }) => {
@@ -36,7 +36,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, autoCloseMs = 400
         <div
             role="status"
             aria-live="polite"
-            className={`fixed bottom-6 right-6 z-50 flex items-start gap-2.5 rounded-lg border px-4 py-3 text-sm shadow-lg ${STYLES[type]}`}
+            className={`fixed bottom-6 right-6 z-50 flex items-start gap-2.5 rounded-nb border px-4 py-3 text-sm shadow-lg ${STYLES[type]}`}
         >
             <Icon size={16} className="mt-0.5 shrink-0" />
             <span className="max-w-xs">{message}</span>

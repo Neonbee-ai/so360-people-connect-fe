@@ -74,22 +74,22 @@ const PayslipsPage: React.FC = () => {
             {/* Filters */}
             <div className="flex items-end gap-3">
                 <div className="w-64">
-                    <label className="block text-xs text-slate-400 mb-1">Employee</label>
+                    <label className="block text-xs text-fg-muted mb-1">Employee</label>
                     <PersonPicker options={people} value={personId} onChange={id => setPersonId(id)} placeholder="All employees" emptyMessage="No people available" />
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">From</label>
-                    <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                    <label className="block text-xs text-fg-muted mb-1">From</label>
+                    <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary" />
                 </div>
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">To</label>
-                    <input type="date" value={to} onChange={e => setTo(e.target.value)} className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
+                    <label className="block text-xs text-fg-muted mb-1">To</label>
+                    <input type="date" value={to} onChange={e => setTo(e.target.value)} className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary" />
                 </div>
             </div>
 
             {loading ? (
                 <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-slate-800/50 rounded-xl animate-pulse" />)}
+                    {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-surface-raised/50 rounded-nb animate-pulse" />)}
                 </div>
             ) : payslips.length === 0 ? (
                 <EmptyState
@@ -98,32 +98,32 @@ const PayslipsPage: React.FC = () => {
                     description="Payslips appear here after a payroll run is closed."
                 />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <div className="bg-surface border border-line rounded-nb overflow-hidden">
                     <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
+                        <thead className="bg-surface-raised/50 border-b border-line">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Payslip #</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Employee</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Period</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Net Pay</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Visibility</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Payslip #</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Employee</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Period</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Net Pay</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Visibility</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-line">
                             {payslips.map(payslip => (
-                                <tr key={payslip.id} className="hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-4 py-3 text-sm font-medium text-slate-50">{payslip.payslip_number}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-300">{payslip.person_name || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">
+                                <tr key={payslip.id} className="hover:bg-surface-raised/50 transition-colors">
+                                    <td className="px-4 py-3 text-sm font-medium text-fg">{payslip.payslip_number}</td>
+                                    <td className="px-4 py-3 text-sm text-fg">{payslip.person_name || '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-fg-muted">
                                         {formatters.formatDate(payslip.period_start)} – {formatters.formatDate(payslip.period_end)}
                                     </td>
-                                    <td className="px-4 py-3 text-right text-sm text-slate-200">{formatters.formatCurrency(payslip.net_pay)}</td>
+                                    <td className="px-4 py-3 text-right text-sm text-fg">{formatters.formatCurrency(payslip.net_pay)}</td>
                                     <td className="px-4 py-3 text-center"><StatusChip status={payslip.visibility || 'published'} /></td>
                                     <td className="px-4 py-3 text-right">
                                         <div className="inline-flex items-center gap-3">
-                                            <button onClick={() => openPayslip(payslip)} className="text-xs text-teal-400 hover:text-teal-300 transition-colors">View</button>
-                                            <button onClick={() => download(payslip)} aria-label={`Download ${payslip.payslip_number}`} className="text-slate-400 hover:text-slate-50 transition-colors"><FileDown size={14} /></button>
+                                            <button onClick={() => openPayslip(payslip)} className="text-xs text-primary hover:text-primary transition-colors">View</button>
+                                            <button onClick={() => download(payslip)} aria-label={`Download ${payslip.payslip_number}`} className="text-fg-muted hover:text-fg transition-colors"><FileDown size={14} /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -149,30 +149,30 @@ export const PayslipViewModal: React.FC<{
         {payslip && (
             <div className="space-y-4">
                 <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">
+                    <span className="text-fg-muted">
                         {formatDate(payslip.period_start)} – {formatDate(payslip.period_end)}
                     </span>
-                    {payslip.person_name && <span className="text-slate-300">{payslip.person_name}</span>}
+                    {payslip.person_name && <span className="text-fg">{payslip.person_name}</span>}
                 </div>
                 {payslip.lines && payslip.lines.length > 0 && (
-                    <div className="border border-slate-800 rounded-xl overflow-hidden">
+                    <div className="border border-line rounded-nb overflow-hidden">
                         <table className="w-full">
-                            <tbody className="divide-y divide-slate-800">
+                            <tbody className="divide-y divide-line">
                                 {payslip.lines.map(line => (
                                     <tr key={line.id || line.component_code}>
                                         <td className="px-4 py-2"><StatusChip status={line.kind} /></td>
-                                        <td className="px-4 py-2 text-sm text-slate-300">{line.component_name}</td>
-                                        <td className="px-4 py-2 text-right text-sm text-slate-200">{formatCurrency(line.amount)}</td>
+                                        <td className="px-4 py-2 text-sm text-fg">{line.component_name}</td>
+                                        <td className="px-4 py-2 text-right text-sm text-fg">{formatCurrency(line.amount)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 )}
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 space-y-2">
-                    <div className="flex justify-between text-sm"><span className="text-slate-400">Gross</span><span className="text-slate-200">{formatCurrency(payslip.gross)}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-slate-400">Deductions</span><span className="text-slate-200">{formatCurrency(payslip.total_deductions)}</span></div>
-                    <div className="flex justify-between text-sm font-semibold"><span className="text-slate-300">Net Pay</span><span className="text-teal-400">{formatCurrency(payslip.net_pay)}</span></div>
+                <div className="bg-surface-raised/50 border border-line-strong rounded-nb p-4 space-y-2">
+                    <div className="flex justify-between text-sm"><span className="text-fg-muted">Gross</span><span className="text-fg">{formatCurrency(payslip.gross)}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-fg-muted">Deductions</span><span className="text-fg">{formatCurrency(payslip.total_deductions)}</span></div>
+                    <div className="flex justify-between text-sm font-semibold"><span className="text-fg">Net Pay</span><span className="text-primary">{formatCurrency(payslip.net_pay)}</span></div>
                 </div>
             </div>
         )}

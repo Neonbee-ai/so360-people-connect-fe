@@ -1,6 +1,43 @@
 import React from 'react';
 
 declare module '@so360/design-system' {
+    export interface ModalProps {
+        open: boolean;
+        onClose: () => void;
+        title: string;
+        description?: string;
+        size?: 'sm' | 'md' | 'lg' | 'xl';
+        footer?: React.ReactNode;
+        children?: React.ReactNode;
+        closeOnOverlayClick?: boolean;
+        name?: string;
+        'data-testid'?: string;
+    }
+    export const Modal: React.FC<ModalProps>;
+
+    export interface SelectOption { value: string; label: string; disabled?: boolean }
+    export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
+        label?: string;
+        name: string;
+        options: SelectOption[];
+        placeholder?: string;
+        hint?: string;
+        error?: string;
+        required?: boolean;
+        'data-testid'?: string;
+    }
+    export const Select: React.ForwardRefExoticComponent<SelectProps & React.RefAttributes<HTMLSelectElement>>;
+
+    export interface ConfirmOptions {
+        title: string;
+        message: React.ReactNode;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        intent?: 'default' | 'danger';
+        name?: string;
+    }
+    export function useConfirm(): [(opts: ConfirmOptions) => Promise<boolean>, React.ReactElement];
+
     export interface QuotaBarProps {
         label: string;
         icon?: React.ReactNode;
