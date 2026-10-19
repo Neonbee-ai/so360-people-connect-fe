@@ -126,7 +126,7 @@ const EntityCombo: React.FC<EntityComboProps> = ({
             emptyText={emptyText}
             loadOptions={loadOptions}
             debounceMs={300}
-            onChange={(id) => onSelect(id ? seenRef.current.get(id) ?? { id, name: '' } as EntityOption : null)}
+            onChange={(id: string | null) => onSelect(id ? seenRef.current.get(id) ?? { id, name: '' } as EntityOption : null)}
         />
     );
 };
