@@ -118,7 +118,7 @@ const MyTaxDeclarationPage: React.FC = () => {
                 <Stack gap="default">
                     {/* Status timeline */}
                     <Card name="status-timeline">
-                        <Cluster gap="default" align="center" wrap>
+                        <Cluster gap="default" align="center">
                             {STATUS_TIMELINE.map((step, index) => {
                                 const done = statusIndex > index || declaration?.status === 'approved';
                                 const current = statusIndex === index;

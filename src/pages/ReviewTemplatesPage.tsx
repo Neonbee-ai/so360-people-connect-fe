@@ -139,8 +139,8 @@ const ReviewTemplatesPage: React.FC = () => {
                     },
                 ]}
                 rowActions={canCreate ? (t) => [
-                    { label: 'Clone template', onClick: () => handleClone(t) },
-                    { label: 'Edit', onClick: () => setEditingTemplate(t) },
+                    { label: 'Clone template', onSelect: () => handleClone(t) },
+                    { label: 'Edit', onSelect: () => setEditingTemplate(t) },
                 ] : undefined}
             />
 

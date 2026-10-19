@@ -86,7 +86,7 @@ const PayrollReportsPage: React.FC = () => {
             title="Payroll Reports"
             description="Registers, cost splits and statutory summaries"
             filters={
-                <Cluster gap="default" align="end" wrap>
+                <Cluster gap="default" align="end">
                     <DateInput name="from" label="From" value={filters.from} onChange={v => setFilters(f => ({ ...f, from: v }))} />
                     <DateInput name="to" label="To" value={filters.to} onChange={v => setFilters(f => ({ ...f, to: v }))} />
                     <Select

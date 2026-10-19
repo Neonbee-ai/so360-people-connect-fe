@@ -101,7 +101,7 @@ const PayslipsPage: React.FC = () => {
                 loading={loading}
                 isEmpty={payslips.length === 0}
                 filters={
-                    <Cluster gap="default" align="end" wrap>
+                    <Cluster gap="default" align="end">
                         <Stack gap="tight">
                             <span className="text-nb-caption text-fg-muted">Employee</span>
                             <PersonPicker options={people} value={personId} onChange={id => setPersonId(id)} placeholder="All employees" emptyMessage="No people available" />

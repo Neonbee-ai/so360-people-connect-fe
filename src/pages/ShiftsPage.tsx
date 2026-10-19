@@ -105,8 +105,8 @@ const ShiftsPage: React.FC = () => {
           interactive: true,
           render: (shift: Shift) => (
             <Cluster gap="tight">
-              <IconButton label="Edit" onClick={() => setEditing(shift)}><Edit2 size={14} /></IconButton>
-              <IconButton label="Delete" variant="danger" onClick={() => handleDelete(shift.id)}><Trash2 size={14} /></IconButton>
+              <IconButton label="Edit" icon={<Edit2 size={14} />} onClick={() => setEditing(shift)} />
+              <IconButton label="Delete" variant="danger" icon={<Trash2 size={14} />} onClick={() => handleDelete(shift.id)} />
             </Cluster>
           ),
         } as DataTableColumn<Shift>]
@@ -266,14 +266,14 @@ const ShiftModal: React.FC<ShiftModalProps> = ({ isOpen, onClose, onCreate, onUp
           <Switch
             name="shift-night"
             label="Night shift"
-            checked={form.is_night_shift}
+            checked={!!form.is_night_shift}
             onCheckedChange={(v: boolean) => set('is_night_shift', v)}
           />
           {shift && (
             <Switch
               name="shift-form-active"
               label="Active"
-              checked={form.is_active}
+              checked={!!form.is_active}
               onCheckedChange={(v: boolean) => set('is_active', v)}
             />
           )}

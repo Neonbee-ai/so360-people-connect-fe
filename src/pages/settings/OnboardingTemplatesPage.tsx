@@ -170,13 +170,13 @@ const OnboardingTemplatesPage: React.FC = () => {
     <ListPageTemplate
       title="Onboarding Templates"
       description="Checklists that guide every new hire's first weeks"
-      actions={
-        canManage ? (
-          <Button type="button" variant="secondary" onClick={() => setShowCatalog(true)}>
+      headerSecondaryActions={
+        canManage ? [
+          <Button key="standard-templates" type="button" variant="secondary" onClick={() => setShowCatalog(true)}>
             <Sparkles size={16} />
             Standard Templates
           </Button>
-        ) : undefined
+        ] : undefined
       }
       primaryAction={
         canManage ? (
@@ -606,7 +606,7 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
                         <IconButton name={`onboarding-item-down-${row.key}`} variant="ghost" size="sm" label="Move down" icon={<ArrowDown size={13} />} onClick={() => moveItem(row.key, 1)} disabled={index === items.length - 1} />
                         <IconButton name={`onboarding-item-remove-${row.key}`} variant="ghost" size="sm" label="Remove item" icon={<Trash2 size={13} />} onClick={() => removeItem(row.key)} />
                       </Cluster>
-                      <Grid columns={4} gap="tight">
+                      <Grid columns={4} gap="sm">
                         <Select name={`onboarding-item-type-${row.key}`} label="Type" value={row.item_type} onChange={e => setItem(row.key, { item_type: e.target.value as OnboardingItemType })} aria-label={`Item ${index + 1} type`} options={[...ONBOARDING_ITEM_TYPES.map((t) => ({ value: t, label: ITEM_TYPE_LABELS[t] }))]} />
                         <Select name={`onboarding-item-assignee-${row.key}`} label="Assignee" value={row.assignee_role} onChange={e => setItem(row.key, { assignee_role: e.target.value as OnboardingAssigneeRole })} aria-label={`Item ${index + 1} assignee`} options={[...ONBOARDING_ASSIGNEE_ROLES.map((r) => ({ value: r, label: ASSIGNEE_LABELS[r] }))]} />
                         <NumberInput

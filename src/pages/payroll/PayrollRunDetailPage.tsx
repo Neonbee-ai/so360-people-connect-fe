@@ -225,7 +225,7 @@ const PayrollRunDetailPage: React.FC = () => {
         <>
             <DetailPageTemplate
                 title={`Payroll Run #${run.run_number}`}
-                description={`${run.period_start ? formatters.formatDate(run.period_start) : ''} – ${run.period_end ? formatters.formatDate(run.period_end) : ''} · Pay date ${formatters.formatDate(run.pay_date)}`}
+                meta={`${run.period_start ? formatters.formatDate(run.period_start) : ''} – ${run.period_end ? formatters.formatDate(run.period_end) : ''} · Pay date ${formatters.formatDate(run.pay_date)}`}
                 status={<StatusChip status={run.status} />}
                 secondaryActions={secondaryActions}
             >
@@ -242,7 +242,7 @@ const PayrollRunDetailPage: React.FC = () => {
                     {/* Stepper */}
                     {!isCancelled && (
                         <Card name="run-stepper">
-                            <Cluster gap="tight" align="center" wrap>
+                            <Cluster gap="tight" align="center">
                                 {STEPS.map((step, index) => {
                                     const isCompleted = currentIndex > index;
                                     const isCurrent = currentIndex === index;

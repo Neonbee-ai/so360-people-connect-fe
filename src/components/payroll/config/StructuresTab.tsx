@@ -318,8 +318,8 @@ const StructureBuilder: React.FC<{
                 </Cluster>
             </Cluster>
 
-            <Grid columns={3} gap="md">
-                <GridItem span={2}>
+            <Grid columns="auto" gap="md">
+                <GridItem span={8}>
                     <Stack gap="default">
                         <Cluster>
                             <Select
@@ -357,7 +357,7 @@ const StructureBuilder: React.FC<{
                     </Stack>
                 </GridItem>
 
-                <GridItem span={1}>
+                <GridItem span={4}>
                     <Stack gap="default">
                         <Card title="Sample Preview">
                             <Stack gap="default">
