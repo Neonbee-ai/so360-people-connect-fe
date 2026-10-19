@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Plus } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import { toast, Drawer, Select } from '@so360/design-system';
+import { Button, Cluster, DashboardPageTemplate, DateInput, Drawer, Grid, Select, Stack, Textarea, toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance } from '../../services/meService';
 import { leaveRequestsApi } from '../../services/leaveRequestsService';
@@ -10,7 +9,7 @@ import type { LeaveRequest } from '../../services/leaveRequestsService';
 import { leaveTypesApi, LeaveType } from '../../services/leaveTypesService';
 import { peopleApi } from '../../services/peopleService';
 import ApproverSelector from '../../components/leave/ApproverSelector';
-import { MyCard, StatTile, StatusPill, Skeleton, primaryBtn, secondaryBtn, inputCls, labelCls } from './myUi';
+import { MyCard, StatTile, StatusPill, Skeleton } from './myUi';
 
 /**
  * My Leave — the employee's own balances, history and request form.
@@ -117,58 +116,58 @@ const MyLeavePage: React.FC = () => {
     };
 
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
+        <>
+            <DashboardPageTemplate
                 title="My Leave"
-                subtitle="Your balances and requests"
-                actions={
-                    <button onClick={() => setFormOpen(true)} className={primaryBtn}>
+                description="Your balances and requests"
+                primaryAction={
+                    <Button onClick={() => setFormOpen(true)}>
                         <Plus size={16} /> Request leave
-                    </button>
+                    </Button>
+                }
+                kpis={
+                    balances.length > 0 ? (
+                        <Grid columns={4}>
+                            {balances.map(b => (
+                                <StatTile
+                                    key={b.id}
+                                    label={b.leave_type?.name ?? 'Leave'}
+                                    value={b.available}
+                                    hint={`days available · ${b.used} used`}
+                                />
+                            ))}
+                        </Grid>
+                    ) : undefined
+                }
+                primary={
+                    <MyCard title="My requests" icon={<CalendarDays size={14} />}>
+                        {loading ? (
+                            <Skeleton rows={3} />
+                        ) : requests.length === 0 ? (
+                            <EmptyState
+                                icon={CalendarDays}
+                                title="No leave requests yet"
+                                description="When you request time off it will appear here."
+                            />
+                        ) : (
+                            <Stack gap="default">
+                                {requests.map(r => (
+                                    <Cluster key={r.id} justify="between">
+                                        <Stack gap="tight">
+                                            <p className="text-nb-sm text-fg">{r.leave_type?.name ?? 'Leave'}</p>
+                                            <p className="text-nb-sm text-fg-subtle">
+                                                {r.start_date} → {r.end_date}
+                                                {r.total_days ? ` · ${r.total_days} day(s)` : ''}
+                                            </p>
+                                        </Stack>
+                                        <StatusPill status={r.status} />
+                                    </Cluster>
+                                ))}
+                            </Stack>
+                        )}
+                    </MyCard>
                 }
             />
-
-            {balances.length > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {balances.map(b => (
-                        <StatTile
-                            key={b.id}
-                            label={b.leave_type?.name ?? 'Leave'}
-                            value={b.available}
-                            hint={`days available · ${b.used} used`}
-                        />
-                    ))}
-                </div>
-            )}
-
-            <MyCard title="My requests" icon={<CalendarDays size={14} />} flush>
-                {loading ? (
-                    <Skeleton rows={3} className="p-4" />
-                ) : requests.length === 0 ? (
-                    <EmptyState
-                        icon={CalendarDays}
-                        title="No leave requests yet"
-                        description="When you request time off it will appear here."
-                    />
-                ) : (
-                    <ul className="divide-y divide-line">
-                        {requests.map(r => (
-                            <li key={r.id} className="flex items-center justify-between px-4 py-3">
-                                <div>
-                                    <p className="text-sm text-fg">
-                                        {r.leave_type?.name ?? 'Leave'}
-                                    </p>
-                                    <p className="text-xs text-fg-subtle">
-                                        {r.start_date} → {r.end_date}
-                                        {r.total_days ? ` · ${r.total_days} day(s)` : ''}
-                                    </p>
-                                </div>
-                                <StatusPill status={r.status} />
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </MyCard>
 
             <Drawer
                 isOpen={formOpen}
@@ -176,52 +175,47 @@ const MyLeavePage: React.FC = () => {
                 title="Request leave"
                 size="sm"
                 footer={
-                    <div className="flex justify-end gap-3">
-                        <button onClick={() => setFormOpen(false)} className={secondaryBtn}>
+                    <Cluster justify="end">
+                        <Button variant="secondary" onClick={() => setFormOpen(false)}>
                             Cancel
-                        </button>
-                        <button onClick={submit} disabled={submitting} className={primaryBtn}>
+                        </Button>
+                        <Button onClick={submit} disabled={submitting}>
                             {submitting ? 'Submitting…' : 'Submit request'}
-                        </button>
-                    </div>
+                        </Button>
+                    </Cluster>
                 }
             >
-                <div className="space-y-4">
-                    <div>
-                        <label className={labelCls}>Leave type</label>
-                        <Select name="myleave-select-85" value={form.leave_type_id} onChange={e => setForm({ ...form, leave_type_id: e.target.value })} options={[{ value: "", label: "Select…" }, ...leaveTypes.map((t) => ({ value: t.id, label: t.name }))]} />
-                    </div>
+                <Stack gap="default">
+                    <Select
+                        name="leave_type_id"
+                        label="Leave type"
+                        value={form.leave_type_id}
+                        onChange={e => setForm({ ...form, leave_type_id: e.target.value })}
+                        options={[{ value: '', label: 'Select…' }, ...leaveTypes.map(t => ({ value: t.id, label: t.name }))]}
+                    />
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className={labelCls}>From</label>
-                            <input
-                                type="date"
-                                value={form.start_date}
-                                onChange={e => setForm({ ...form, start_date: e.target.value })}
-                                className={inputCls}
-                            />
-                        </div>
-                        <div>
-                            <label className={labelCls}>To</label>
-                            <input
-                                type="date"
-                                value={form.end_date}
-                                onChange={e => setForm({ ...form, end_date: e.target.value })}
-                                className={inputCls}
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className={labelCls}>Reason (optional)</label>
-                        <textarea
-                            value={form.reason}
-                            onChange={e => setForm({ ...form, reason: e.target.value })}
-                            rows={3}
-                            className={inputCls}
+                    <Grid columns={2}>
+                        <DateInput
+                            name="start_date"
+                            label="From"
+                            value={form.start_date}
+                            onChange={iso => setForm({ ...form, start_date: iso })}
                         />
-                    </div>
+                        <DateInput
+                            name="end_date"
+                            label="To"
+                            value={form.end_date}
+                            onChange={iso => setForm({ ...form, end_date: iso })}
+                        />
+                    </Grid>
+
+                    <Textarea
+                        name="reason"
+                        label="Reason (optional)"
+                        value={form.reason}
+                        onChange={e => setForm({ ...form, reason: e.target.value })}
+                        rows={3}
+                    />
 
                     {myPersonId && (
                         <ApproverSelector
@@ -232,9 +226,9 @@ const MyLeavePage: React.FC = () => {
                             helpText="Leave blank to route to your department's configured head."
                         />
                     )}
-                </div>
+                </Stack>
             </Drawer>
-        </div>
+        </>
     );
 };
 

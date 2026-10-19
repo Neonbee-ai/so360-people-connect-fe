@@ -36,7 +36,7 @@ vi.mock('../../services/peopleService', () => ({
 
 vi.mock('@so360/design-system', async () => {
     const React = (await import('react')).default;
-    return { ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../../test/__mocks__/design-system')), 
+    return { ...(await import('../../test/__mocks__/design-system')), 
         toast: { success: vi.fn(), error: vi.fn() },
         // Faithful-enough Drawer: renders only when open, children + footer
         // present — mirrors src/test/__mocks__/design-system.ts.

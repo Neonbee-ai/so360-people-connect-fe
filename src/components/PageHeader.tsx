@@ -1,4 +1,5 @@
 import React from 'react';
+import { PageHeader as CombPageHeader } from '@so360/design-system';
 
 interface PageHeaderProps {
     title: string;
@@ -6,16 +7,9 @@ interface PageHeaderProps {
     actions?: React.ReactNode;
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => {
-    return (
-        <div className="flex items-center justify-between mb-6">
-            <div>
-                <h1 className="text-2xl font-bold text-fg">{title}</h1>
-                {subtitle && <p className="text-sm text-fg-muted mt-1">{subtitle}</p>}
-            </div>
-            {actions && <div className="flex items-center gap-3">{actions}</div>}
-        </div>
-    );
-};
+/** Thin adapter: keeps the legacy `subtitle` API while rendering the Comb PageHeader. */
+const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => (
+    <CombPageHeader title={title} description={subtitle} actions={actions} />
+);
 
 export default PageHeader;

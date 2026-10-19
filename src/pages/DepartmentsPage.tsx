@@ -1,12 +1,27 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, ChevronDown, ChevronRight, Users } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { QuotaBar, QuotaGate, toast, Select } from '@so360/design-system';
+import {
+    Alert,
+    Button,
+    Card,
+    Checkbox,
+    Cluster,
+    FieldGrid,
+    IconButton,
+    ListPageTemplate,
+    QuotaBar,
+    QuotaGate,
+    Select,
+    Stack,
+    Textarea,
+    TextField,
+    toast,
+} from '@so360/design-system';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
 import type { Person } from '../types/people';
@@ -100,67 +115,61 @@ const DepartmentsPage: React.FC = () => {
 
         return (
             <React.Fragment key={dept.id}>
-                <div
-                    className="bg-surface border border-line rounded-nb p-4 hover:border-line-strong hover:bg-surface-raised/50 transition-all"
-                    style={{ marginLeft: `${depth * 20}px` }}
-                >
-                    <div className="flex items-center gap-4">
-                        {/* Expand/Collapse */}
-                        <button
-                            onClick={() => hasChildren && toggleExpand(dept.id)}
-                            className={`flex-shrink-0 ${hasChildren ? 'text-fg-muted hover:text-primary' : 'text-fg-subtle'}`}
-                            disabled={!hasChildren}
-                        >
-                            {hasChildren ? (
-                                isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
-                            ) : (
-                                <div className="w-4" />
-                            )}
-                        </button>
+                <div style={{ marginLeft: `${depth * 20}px` }}>
+                    <Card padding="sm" name={`department-${dept.id}`}>
+                        <Cluster gap="default" justify="between">
+                            <Cluster gap="default">
+                                {/* Expand/Collapse */}
+                                <IconButton
+                                    label={hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : 'No sub-departments'}
+                                    icon={hasChildren ? (isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />) : <ChevronRight size={16} className="invisible" />}
+                                    size="sm"
+                                    onClick={() => hasChildren && toggleExpand(dept.id)}
+                                    disabled={!hasChildren}
+                                />
 
-                        {/* Info — clickable area navigates to department detail */}
-                        <div
-                            className="flex-1 min-w-0 cursor-pointer"
-                            onClick={() => navigate(`/people/departments/${dept.id}`)}
-                        >
-                            <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-sm font-medium text-fg truncate hover:text-primary transition-colors">{dept.name}</span>
-                                <span className="text-xs text-fg-subtle">{dept.code}</span>
-                                <StatusBadge status={dept.is_active ? 'active' : 'inactive'} />
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-fg-subtle">
-                                {/* A department without a head has no reporting edge, so leave
-                                    approvals and reviewer eligibility for everyone in it resolve
-                                    to nobody. Silent until now, which is how the platform reached
-                                    32 departments with 0 heads. */}
-                                {!dept.head_person_id && dept.is_active && (
-                                    <span
-                                        className="text-warning"
-                                        title="Leave approvals and reviews for this department have nobody to route to"
-                                    >
-                                        No head assigned
-                                    </span>
-                                )}
-                                {dept.head_person && (
-                                    <span>Head: {dept.head_person.full_name}</span>
-                                )}
-                                {dept.employee_count !== undefined && (
-                                    <span className="flex items-center gap-1">
-                                        <Users size={12} />
-                                        {dept.employee_count} employees
-                                    </span>
-                                )}
-                            </div>
-                        </div>
+                                {/* Info — clickable area navigates to department detail */}
+                                <div
+                                    className="min-w-0 cursor-pointer"
+                                    onClick={() => navigate(`/people/departments/${dept.id}`)}
+                                >
+                                    <Cluster>
+                                        <span className="text-nb-sm font-medium text-fg truncate hover:text-primary transition-colors">{dept.name}</span>
+                                        <span className="text-nb-caption text-fg-subtle">{dept.code}</span>
+                                        <StatusBadge status={dept.is_active ? 'active' : 'inactive'} />
+                                    </Cluster>
+                                    <Cluster gap="default" className="text-nb-caption text-fg-subtle">
+                                        {/* A department without a head has no reporting edge, so leave
+                                            approvals and reviewer eligibility for everyone in it resolve
+                                            to nobody. Silent until now, which is how the platform reached
+                                            32 departments with 0 heads. */}
+                                        {!dept.head_person_id && dept.is_active && (
+                                            <span
+                                                className="text-warning"
+                                                title="Leave approvals and reviews for this department have nobody to route to"
+                                            >
+                                                No head assigned
+                                            </span>
+                                        )}
+                                        {dept.head_person && (
+                                            <span>Head: {dept.head_person.full_name}</span>
+                                        )}
+                                        {dept.employee_count !== undefined && (
+                                            <Cluster gap="tight">
+                                                <Users size={12} />
+                                                {dept.employee_count} employees
+                                            </Cluster>
+                                        )}
+                                    </Cluster>
+                                </div>
+                            </Cluster>
 
-                        {/* Actions */}
-                        {canEdit && <button
-                            onClick={() => setEditingDepartment(dept)}
-                            className="px-3 py-1.5 text-xs text-primary hover:text-primary transition-colors"
-                        >
-                            Edit
-                        </button>}
-                    </div>
+                            {/* Actions */}
+                            {canEdit && <Button variant="ghost" size="sm" onClick={() => setEditingDepartment(dept)}>
+                                Edit
+                            </Button>}
+                        </Cluster>
+                    </Card>
                 </div>
 
                 {/* Children */}
@@ -169,68 +178,68 @@ const DepartmentsPage: React.FC = () => {
         );
     };
 
+    const visibleDepartments = isSandboxMode ? departments.slice(0, sandboxEntryLimit) : departments;
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
+        <>
+            <ListPageTemplate
                 title="Departments"
-                subtitle="Manage organizational structure"
-                actions={
-                    canCreate && <QuotaGate
-                        quotaKey="max_departments"
-                        moduleCode="people"
-                        used={quotaData?.current_usage ?? 0}
-                        limit={quotaData?.limit ?? 0}
-                        isUnlimited={quotaData?.is_unlimited}
-                        disableOnExceeded
-                    >
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        disabled={isSandboxMode}
-                        title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb transition-colors"
-                    >
-                        <Building2 size={16} />
-                        Create Department
-                    </button>
-                    </QuotaGate>
+                description="Manage organizational structure"
+                primaryAction={
+                    canCreate ? (
+                        <QuotaGate
+                            quotaKey="max_departments"
+                            moduleCode="people"
+                            used={quotaData?.current_usage ?? 0}
+                            limit={quotaData?.limit ?? 0}
+                            isUnlimited={quotaData?.is_unlimited}
+                            disableOnExceeded
+                        >
+                            <Button
+                                onClick={() => setShowCreateModal(true)}
+                                disabled={isSandboxMode}
+                                title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
+                            >
+                                <Building2 size={16} />
+                                Create Department
+                            </Button>
+                        </QuotaGate>
+                    ) : undefined
                 }
-            />
-
-            {quotaData && (
-                <QuotaBar
-                    label="Departments"
-                    used={quotaData.current_usage}
-                    limit={quotaData.limit}
-                    isUnlimited={quotaData.is_unlimited}
-                />
-            )}
-
-            {isSandboxMode && isLimited(departments.length) && (
-                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-warning/10 border border-warning/25 rounded-nb text-warning text-sm">
-                    <span className="font-semibold">Sandbox:</span>
-                    <span>Showing {sandboxEntryLimit} of {departments.length} records. Switch to Production to view all.</span>
-                </div>
-            )}
-
-            {/* Departments Tree */}
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-20 bg-surface-raised/50 rounded-nb animate-pulse" />
-                    ))}
-                </div>
-            ) : departments.length === 0 ? (
-                <EmptyState
-                    icon={Building2}
-                    title="No departments found"
-                    description="Create your first department to organize your team."
-                    action={canCreate ? { label: 'Create Department', onClick: () => setShowCreateModal(true) } : undefined}
-                />
-            ) : (
-                <div className="space-y-2">
-                    {(isSandboxMode ? departments.slice(0, sandboxEntryLimit) : departments).map(dept => renderDepartment(dept))}
-                </div>
-            )}
+                loading={loading}
+                isEmpty={departments.length === 0}
+                empty={
+                    <EmptyState
+                        icon={Building2}
+                        title="No departments found"
+                        description="Create your first department to organize your team."
+                        action={canCreate ? { label: 'Create Department', onClick: () => setShowCreateModal(true) } : undefined}
+                    />
+                }
+                kpis={
+                    quotaData || (isSandboxMode && isLimited(departments.length)) ? (
+                        <Stack>
+                            {quotaData && (
+                                <QuotaBar
+                                    label="Departments"
+                                    used={quotaData.current_usage}
+                                    limit={quotaData.limit}
+                                    isUnlimited={quotaData.is_unlimited}
+                                />
+                            )}
+                            {isSandboxMode && isLimited(departments.length) && (
+                                <Alert variant="warning">
+                                    <span className="font-semibold">Sandbox:</span>{' '}
+                                    <span>Showing {sandboxEntryLimit} of {departments.length} records. Switch to Production to view all.</span>
+                                </Alert>
+                            )}
+                        </Stack>
+                    ) : undefined
+                }
+            >
+                {/* Departments Tree */}
+                <Stack gap="tight">{visibleDepartments.map(dept => renderDepartment(dept))}</Stack>
+            </ListPageTemplate>
 
             {/* Create/Edit Modal */}
             <DepartmentModal
@@ -244,8 +253,7 @@ const DepartmentsPage: React.FC = () => {
                 department={editingDepartment}
                 departments={departments}
             />
-
-        </div>
+        </>
     );
 };
 
@@ -402,111 +410,91 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
         <Modal isOpen={isOpen} onClose={onClose} title={department ? 'Edit Department' : 'Create Department'}>
             {/* noValidate: application-level inline messages replace the browser's
                 native validation bubbles, which are inconsistent across browsers. */}
-            <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="dept-code" className="block text-xs text-fg-muted mb-1">Code *</label>
-                        <input
+            <form ref={formRef} onSubmit={handleSubmit} noValidate>
+                <Stack gap="default">
+                    <FieldGrid columns={2}>
+                        <TextField
                             id="dept-code"
+                            name="dept-code"
                             data-field="code"
-                            type="text"
+                            label="Code *"
                             value={formData.code}
                             onChange={(e) => updateField('code', e.target.value)}
                             aria-invalid={!!errors.code}
                             aria-describedby={errors.code ? 'dept-code-error' : undefined}
-                            className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.code ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                             placeholder="ENG"
+                            error={errors.code || undefined}
+                            hint={errors.code ? undefined : '2–20 letters/numbers, e.g. ENG or HR-01.'}
                         />
-                        {errors.code
-                            ? <p id="dept-code-error" role="alert" className="mt-1 text-xs text-danger">{errors.code}</p>
-                            : <p className="mt-1 text-xs text-fg-subtle">2–20 letters/numbers, e.g. ENG or HR-01.</p>}
-                    </div>
-                    <div>
-                        <label htmlFor="dept-name" className="block text-xs text-fg-muted mb-1">Name *</label>
-                        <input
+                        <TextField
                             id="dept-name"
+                            name="dept-name"
                             data-field="name"
-                            type="text"
+                            label="Name *"
                             value={formData.name}
                             onChange={(e) => updateField('name', e.target.value)}
                             aria-invalid={!!errors.name}
                             aria-describedby={errors.name ? 'dept-name-error' : undefined}
-                            className={`w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg focus:outline-none ${errors.name ? 'border-danger focus:border-danger' : 'border-line-strong focus:border-primary'}`}
                             placeholder="Engineering"
+                            error={errors.name || undefined}
                         />
-                        {errors.name && <p id="dept-name-error" role="alert" className="mt-1 text-xs text-danger">{errors.name}</p>}
-                    </div>
-                </div>
+                    </FieldGrid>
 
-                <div>
-                    <label className="block text-xs text-fg-muted mb-1">Description</label>
-                    <textarea
+                    <Textarea
+                        name="dept-description"
+                        label="Description"
                         value={formData.description || ''}
                         onChange={(e) => updateField('description', e.target.value)}
-                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                         rows={3}
                         placeholder="Department description..."
                     />
-                </div>
 
-                <div>
-                    <label className="block text-xs text-fg-muted mb-1">Parent Department</label>
-                    <select
+                    <Select
+                        name="dept-parent"
+                        label="Parent Department"
                         value={formData.parent_id || ''}
                         onChange={(e) => updateField('parent_id', e.target.value || undefined)}
-                        className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
-                    >
-                        <option value="">None (Top Level)</option>
-                        {eligibleParents.map(dept => (
-                            <option key={dept.id} value={dept.id}>
-                                {dept.depth > 0 ? `${'  '.repeat(dept.depth)}└ ` : ''}{dept.name}
-                            </option>
-                        ))}
-                    </select>
-                    {reportingPath && (
-                        <p className="mt-1.5 text-xs text-fg-subtle">
-                            Reporting Path: {reportingPath.join(' → ')}
-                        </p>
-                    )}
-                </div>
-
-                <div>
-                    <label className="block text-xs text-fg-muted mb-1">Department Head</label>
-                    <Select name="departments-select-35" value={formData.head_person_id || ''} onChange={(e) => updateField('head_person_id', e.target.value || undefined)} options={[{ value: "", label: "Not assigned" }, ...people.map((person) => ({ value: person.id, label: `${person.full_name}${person.job_title ? ` — $${person.job_title}` : ''}` }))]} />
-                    <p className="mt-1.5 text-xs text-fg-subtle">
-                        Approvals and reviews for this department route to its head.
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        id="is_active"
-                        checked={formData.is_active}
-                        onChange={(e) => updateField('is_active', e.target.checked)}
-                        className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
+                        options={[
+                            { value: '', label: 'None (Top Level)' },
+                            ...eligibleParents.map(dept => ({
+                                value: dept.id,
+                                label: `${dept.depth > 0 ? `${'  '.repeat(dept.depth)}└ ` : ''}${dept.name}`,
+                            })),
+                        ]}
+                        hint={reportingPath ? `Reporting Path: ${reportingPath.join(' → ')}` : undefined}
                     />
-                    <label htmlFor="is_active" className="text-sm text-fg">Active</label>
-                </div>
 
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-line">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={!isFormValid}
-                        title={isFormValid ? undefined : 'Enter a valid department code and name.'}
-                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {department ? 'Update' : 'Create'}
-                    </button>
-                </div>
+                    <Select
+                        name="departments-select-35"
+                        label="Department Head"
+                        value={formData.head_person_id || ''}
+                        onChange={(e) => updateField('head_person_id', e.target.value || undefined)}
+                        options={[{ value: "", label: "Not assigned" }, ...people.map((person) => ({ value: person.id, label: `${person.full_name}${person.job_title ? ` — $${person.job_title}` : ''}` }))]}
+                        hint="Approvals and reviews for this department route to its head."
+                    />
+
+                    <Checkbox
+                        id="is_active"
+                        name="is_active"
+                        label="Active"
+                        checked={!!formData.is_active}
+                        onChange={(e) => updateField('is_active', e.target.checked)}
+                    />
+
+                    {/* Actions */}
+                    <Cluster justify="end">
+                        <Button type="button" variant="ghost" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={!isFormValid}
+                            title={isFormValid ? undefined : 'Enter a valid department code and name.'}
+                        >
+                            {department ? 'Update' : 'Create'}
+                        </Button>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );

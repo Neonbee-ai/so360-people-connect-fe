@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Button, Card, Stack, Cluster, Skeleton } from '@so360/design-system';
 import {
   performanceBlocksApi,
   PerformanceBlock,
@@ -64,113 +65,108 @@ export default function PerformanceEvidencePanel({
 
   if (blocks === null) {
     return (
-      <div className="text-sm text-fg-muted">Loading performance evidence…</div>
+      <Stack gap="tight">
+        <span className="text-nb-body text-fg-muted">Loading performance evidence…</span>
+        <Skeleton variant="rect" className="h-nb-12 w-full" />
+      </Stack>
     );
   }
 
   const scoped = !showAll && periodStart && periodEnd;
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-fg">
-          Measured performance
-        </h3>
+    <Stack>
+      <Cluster justify="between">
+        <h3 className="text-nb-label text-fg">Measured performance</h3>
         {periodStart && periodEnd && (
-          <button
-            type="button"
-            className="text-xs text-fg-muted hover:text-fg"
-            onClick={() => setShowAll((v) => !v)}
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
             {scoped ? 'Show all periods' : 'Only this review period'}
-          </button>
+          </Button>
         )}
-      </div>
+      </Cluster>
 
-      {error && <div className="text-sm text-danger">{error}</div>}
+      {error && <p role="alert" className="text-nb-body text-danger">{error}</p>}
 
       {!blocks.length ? (
-        <div className="rounded border border-dashed border-line-strong p-4 text-sm text-fg-muted">
-          {scoped
-            ? 'No measured evidence covering this review period. A CRM sales review pushes it here when it is finalized.'
-            : 'No measured evidence for this person yet.'}
-        </div>
+        <Card>
+          <p className="text-nb-body text-fg-muted">
+            {scoped
+              ? 'No measured evidence covering this review period. A CRM sales review pushes it here when it is finalized.'
+              : 'No measured evidence for this person yet.'}
+          </p>
+        </Card>
       ) : (
-        <div className="space-y-3">
+        <Stack>
           {blocks.map((b) => {
             const headline = b.payload?.results?.headline;
             const metrics = b.payload?.results?.metrics ?? [];
             const wl = b.payload?.win_loss;
             const actions = b.payload?.action_items ?? [];
             return (
-              <div
-                key={b.id}
-                className="rounded border border-line-strong bg-surface-raised/40 p-3"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-sm text-fg">
-                    {b.period_start} → {b.period_end}
-                    <span className="ml-2 text-xs uppercase tracking-wide text-fg-subtle">
-                      {b.period_type} · {b.source}
+              <Card key={b.id}>
+                <Stack gap="tight">
+                  <Cluster justify="between">
+                    <span className="text-nb-body text-fg">
+                      {b.period_start} → {b.period_end}
+                      <span className="text-nb-caption text-fg-subtle">
+                        {' '}{b.period_type} · {b.source}
+                      </span>
                     </span>
-                  </span>
-                  {headline?.attainment != null && (
-                    <span className="text-sm text-fg">
-                      {headline.metric}: {Math.round(headline.attainment * 100)}%
-                    </span>
-                  )}
-                </div>
+                    {headline?.attainment != null && (
+                      <span className="text-nb-body text-fg">
+                        {headline.metric}: {Math.round(headline.attainment * 100)}%
+                      </span>
+                    )}
+                  </Cluster>
 
-                {metrics.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    {metrics.map((m, i) => (
-                      <div
-                        key={`${b.id}-${i}`}
-                        className="flex justify-between gap-6 text-xs"
-                      >
-                        <span className="text-fg-muted">{m.metric}</span>
-                        <span className="text-fg">
-                          {m.actual ?? '—'} / {m.target ?? '—'}
-                          {m.attainment != null &&
-                            ` · ${Math.round(m.attainment * 100)}%`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {(wl?.won_count != null || wl?.lost_count != null) && (
-                  <div className="mt-2 text-xs text-fg-muted">
-                    Won {wl?.won_count ?? 0} · Lost {wl?.lost_count ?? 0}
-                    {wl?.top_reason?.label
-                      ? ` · Top loss reason: ${wl.top_reason.label}`
-                      : ''}
-                  </div>
-                )}
-
-                {actions.length > 0 && (
-                  <ul className="mt-2 list-disc pl-4 text-xs text-fg-muted">
-                    {actions
-                      .filter((a) => a?.text)
-                      .map((a, i) => (
-                        <li key={`${b.id}-a${i}`}>
-                          <span className="text-fg-subtle">{a.kind}: </span>
-                          {a.text}
-                        </li>
+                  {metrics.length > 0 && (
+                    <Stack gap="none">
+                      {metrics.map((m, i) => (
+                        <Cluster key={`${b.id}-${i}`} justify="between">
+                          <span className="text-nb-caption text-fg-muted">{m.metric}</span>
+                          <span className="text-nb-caption text-fg">
+                            {m.actual ?? '—'} / {m.target ?? '—'}
+                            {m.attainment != null &&
+                              ` · ${Math.round(m.attainment * 100)}%`}
+                          </span>
+                        </Cluster>
                       ))}
-                  </ul>
-                )}
+                    </Stack>
+                  )}
 
-                {/* Never presented as live data — see the component note. */}
-                <div className="mt-2 text-[11px] text-fg-subtle">
-                  As measured on {String(b.computed_at).slice(0, 10)}; not a
-                  live figure.
-                </div>
-              </div>
+                  {(wl?.won_count != null || wl?.lost_count != null) && (
+                    <div className="text-nb-caption text-fg-muted">
+                      Won {wl?.won_count ?? 0} · Lost {wl?.lost_count ?? 0}
+                      {wl?.top_reason?.label
+                        ? ` · Top loss reason: ${wl.top_reason.label}`
+                        : ''}
+                    </div>
+                  )}
+
+                  {actions.length > 0 && (
+                    <ul className="list-disc pl-nb-4 text-nb-caption text-fg-muted">
+                      {actions
+                        .filter((a) => a?.text)
+                        .map((a, i) => (
+                          <li key={`${b.id}-a${i}`}>
+                            <span className="text-fg-subtle">{a.kind}: </span>
+                            {a.text}
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+
+                  {/* Never presented as live data — see the component note. */}
+                  <div className="text-nb-caption text-fg-subtle">
+                    As measured on {String(b.computed_at).slice(0, 10)}; not a
+                    live figure.
+                  </div>
+                </Stack>
+              </Card>
             );
           })}
-        </div>
+        </Stack>
       )}
-    </div>
+    </Stack>
   );
 }

@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Edit2, Trash2, ListChecks, ArrowUp, ArrowDown, X } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
-import EmptyState from '../../components/EmptyState';
-import Modal from '../../components/Modal';
-import { toast } from '@so360/design-system';
+import {
+  Badge, Button, Cluster, DataTable, EmptyState, Modal, Select, SettingsPageTemplate, Skeleton, Stack, Switch, TextField, toast,
+} from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import {
   customFieldDefsApi,
@@ -118,30 +117,81 @@ const CustomFieldsPage: React.FC = () => {
     }
   };
 
-  return (
-    <div className="p-6 space-y-5">
-      <PageHeader
-        title="Employee Custom Fields"
-        subtitle="Define additional fields to capture on the Person record — they appear on the Add/Edit Person form"
-        actions={
-          canManage && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
-            >
-              <Plus size={16} />
-              Add Custom Field
-            </button>
-          )
-        }
-      />
+  const columns = [
+    {
+      key: 'label',
+      header: 'Label',
+      render: (row: CustomFieldDef) => (
+        <Stack gap="none">
+          <span className="font-medium text-fg" data-testid={`custom-field-row-${row.field_key}`}>{row.label}</span>
+          <span className="text-nb-xs text-fg-subtle">{row.field_key}</span>
+        </Stack>
+      ),
+    },
+    { key: 'field_type', header: 'Type', render: (row: CustomFieldDef) => FIELD_TYPE_LABELS[row.field_type] },
+    { key: 'is_required', header: 'Required', render: (row: CustomFieldDef) => (row.is_required ? 'Yes' : 'No') },
+    {
+      key: 'is_active',
+      header: 'Active',
+      render: (row: CustomFieldDef) =>
+        canManage ? (
+          <Switch
+            name={`active_${row.field_key}`}
+            label={row.is_active ? 'Deactivate' : 'Activate'}
+            hideLabel
+            checked={row.is_active}
+            onCheckedChange={() => handleToggleActive(row)}
+          />
+        ) : (
+          <Badge tone={row.is_active ? 'primary' : 'neutral'}>{row.is_active ? 'Active' : 'Inactive'}</Badge>
+        ),
+    },
+    ...(canManage
+      ? [{
+          key: 'actions',
+          header: 'Actions',
+          render: (row: CustomFieldDef) => {
+            const index = rows.findIndex(r => r.id === row.id);
+            return (
+              <Cluster gap="tight">
+                <Button variant="ghost" size="sm" aria-label="Move up" title="Move up" disabled={index === 0} onClick={() => handleMove(index, -1)}>
+                  <ArrowUp className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" aria-label="Move down" title="Move down" disabled={index === rows.length - 1} onClick={() => handleMove(index, 1)}>
+                  <ArrowDown className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" aria-label="Edit" title="Edit" onClick={() => setEditing(row)}>
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" aria-label="Delete" title="Delete" onClick={() => handleDelete(row.id)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </Cluster>
+            );
+          },
+        }]
+      : []),
+  ];
 
+  const addAction = canManage ? (
+    <Button variant="primary" onClick={() => setShowModal(true)} className="gap-nb-2">
+      <Plus className="w-4 h-4" />
+      Add Custom Field
+    </Button>
+  ) : undefined;
+
+  return (
+    <SettingsPageTemplate
+      title="Employee Custom Fields"
+      description="Define additional fields to capture on the Person record — they appear on the Add/Edit Person form"
+      primaryAction={addAction}
+    >
       {loading ? (
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
-          ))}
-        </div>
+        <Stack gap="default">
+          <Skeleton variant="rect" />
+          <Skeleton variant="rect" />
+          <Skeleton variant="rect" />
+        </Stack>
       ) : loadError ? (
         <EmptyState
           icon={ListChecks}
@@ -156,82 +206,7 @@ const CustomFieldsPage: React.FC = () => {
           action={canManage ? { label: 'Add Custom Field', onClick: () => setShowModal(true) } : undefined}
         />
       ) : (
-        <div className="overflow-hidden rounded-nb border border-line">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-raised/50 text-left">
-                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Label</th>
-                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Required</th>
-                <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Active</th>
-                {canManage && <th className="px-4 py-3 text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {rows.map((row, index) => (
-                <tr key={row.id} data-testid={`custom-field-row-${row.field_key}`} className="bg-surface hover:bg-surface-raised/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-fg">
-                    {row.label}
-                    <div className="text-xs text-fg-subtle">{row.field_key}</div>
-                  </td>
-                  <td className="px-4 py-3 text-fg-muted">{FIELD_TYPE_LABELS[row.field_type]}</td>
-                  <td className="px-4 py-3 text-fg-muted">{row.is_required ? 'Yes' : 'No'}</td>
-                  <td className="px-4 py-3">
-                    {canManage ? (
-                      <button
-                        onClick={() => handleToggleActive(row)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${row.is_active ? 'bg-primary' : 'bg-line'}`}
-                        title={row.is_active ? 'Deactivate' : 'Activate'}
-                      >
-                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${row.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
-                    ) : (
-                      <span className={`text-xs ${row.is_active ? 'text-primary' : 'text-fg-subtle'}`}>
-                        {row.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    )}
-                  </td>
-                  {canManage && (
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleMove(index, -1)}
-                          disabled={index === 0}
-                          className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          title="Move up"
-                        >
-                          <ArrowUp size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleMove(index, 1)}
-                          disabled={index === rows.length - 1}
-                          className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          title="Move down"
-                        >
-                          <ArrowDown size={14} />
-                        </button>
-                        <button
-                          onClick={() => setEditing(row)}
-                          className="p-1.5 rounded text-fg-muted hover:text-primary hover:bg-surface-raised transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(row.id)}
-                          className="p-1.5 rounded text-fg-muted hover:text-danger hover:bg-surface-raised transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable columns={columns} rows={rows} rowKey={(r: CustomFieldDef) => r.id} />
       )}
 
       <CustomFieldFormModal
@@ -241,7 +216,7 @@ const CustomFieldsPage: React.FC = () => {
         onUpdate={handleUpdate}
         row={editing}
       />
-    </div>
+    </SettingsPageTemplate>
   );
 };
 
@@ -316,109 +291,90 @@ const CustomFieldFormModal: React.FC<CustomFieldFormModalProps> = ({ isOpen, onC
     }
   };
 
+  const formId = 'custom-field-form';
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={row ? `Edit ${row.label}` : 'Add Custom Field'} size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs text-fg-muted mb-1">Label <span className="text-danger">*</span></label>
-          <input
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      name="custom-field-modal"
+      title={row ? `Edit ${row.label}` : 'Add Custom Field'}
+      size="md"
+      footer={
+        <Cluster gap="default">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="submit" form={formId} variant="primary">{row ? 'Save Changes' : 'Add Custom Field'}</Button>
+        </Cluster>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit}>
+        <Stack gap="default">
+          <TextField
+            name="label"
+            label="Label"
             required
             value={form.label}
             onChange={e => set('label', e.target.value)}
             placeholder="e.g. Blood Group"
-            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
-        </div>
 
-        <div>
-          <label className="block text-xs text-fg-muted mb-1">Field Type <span className="text-danger">*</span></label>
-          <select
+          <Select
+            name="field_type"
+            label="Field Type"
+            required
             value={form.field_type}
             disabled={!!row}
             onChange={e => set('field_type', e.target.value as CustomFieldType)}
-            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary disabled:opacity-60"
-          >
-            {Object.entries(FIELD_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-          {row && <p className="text-xs text-fg-subtle mt-1">Field type can't be changed after creation to avoid stranding recorded values.</p>}
-        </div>
+            options={Object.entries(FIELD_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
+            hint={row ? "Field type can't be changed after creation to avoid stranding recorded values." : undefined}
+          />
 
-        {isChoiceType && (
-          <div data-testid="options-editor">
-            <label className="block text-xs text-fg-muted mb-1">Options</label>
-            <div className="flex gap-2 mb-2">
-              <input
-                value={optionInput}
-                onChange={e => setOptionInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOption(); } }}
-                placeholder="Type an option and press Enter"
-                className="flex-1 px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
-              />
-              <button
-                type="button"
-                onClick={addOption}
-                className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg hover:text-fg hover:border-primary transition-colors"
-              >
-                Add
-              </button>
+          {isChoiceType && (
+            <div data-testid="options-editor">
+              <Stack gap="tight">
+                <Cluster gap="tight">
+                  <TextField
+                    name="option_input"
+                    label="Options"
+                    value={optionInput}
+                    onChange={e => setOptionInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOption(); } }}
+                    placeholder="Type an option and press Enter"
+                  />
+                  <Button type="button" variant="secondary" onClick={addOption}>Add</Button>
+                </Cluster>
+                <Cluster gap="tight">
+                  {(form.options || []).map(option => (
+                    <Badge key={option} tone="neutral">
+                      {option}
+                      <Button type="button" variant="ghost" size="sm" aria-label={`Remove ${option}`} onClick={() => removeOption(option)}>
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                  {(form.options || []).length === 0 && (
+                    <span className="text-nb-xs text-fg-subtle">No options added yet.</span>
+                  )}
+                </Cluster>
+              </Stack>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {(form.options || []).map(option => (
-                <span key={option} className="inline-flex items-center gap-1 px-2 py-1 bg-surface-raised border border-line-strong rounded-full text-xs text-fg">
-                  {option}
-                  <button type="button" onClick={() => removeOption(option)} className="text-fg-subtle hover:text-danger">
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-              {(form.options || []).length === 0 && (
-                <span className="text-xs text-fg-subtle">No options added yet.</span>
-              )}
-            </div>
-          </div>
-        )}
+          )}
 
-        <div className="flex items-center gap-3">
-          <label className="text-xs text-fg-muted">Required</label>
-          <button
-            type="button"
-            onClick={() => set('is_required', !form.is_required)}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_required ? 'bg-primary' : 'bg-line'}`}
-          >
-            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${form.is_required ? 'translate-x-5' : 'translate-x-1'}`} />
-          </button>
-        </div>
+          <Switch
+            name="is_required"
+            label="Required"
+            checked={!!form.is_required}
+            onCheckedChange={v => set('is_required', v)}
+          />
 
-        {row && (
-          <div className="flex items-center gap-3">
-            <label className="text-xs text-fg-muted">Active</label>
-            <button
-              type="button"
-              onClick={() => set('is_active', !form.is_active)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_active ? 'bg-primary' : 'bg-line'}`}
-            >
-              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${form.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
-            </button>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
-          >
-            {row ? 'Save Changes' : 'Add Custom Field'}
-          </button>
-        </div>
+          {row && (
+            <Switch
+              name="is_active"
+              label="Active"
+              checked={!!form.is_active}
+              onCheckedChange={v => set('is_active', v)}
+            />
+          )}
+        </Stack>
       </form>
     </Modal>
   );

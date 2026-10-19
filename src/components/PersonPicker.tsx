@@ -88,12 +88,12 @@ function PersonPicker<T extends PickablePerson = PickablePerson>({
 
     if (selected) {
         return (
-            <div className="flex items-center justify-between px-3 py-2 bg-surface-raised border border-line-strong rounded-nb" data-testid={testId}>
-                <span className="text-sm text-fg">{selected.full_name}</span>
+            <div className="flex items-center justify-between px-nb-3 py-nb-2 bg-surface-raised border border-line-strong rounded-nb" data-testid={testId}>
+                <span className="text-nb-sm text-fg">{selected.full_name}</span>
                 <button
                     type="button"
                     onClick={() => onChange('')}
-                    className="text-xs text-fg-muted hover:text-danger"
+                    className="text-nb-caption text-fg-muted hover:text-danger"
                 >
                     Clear
                 </button>
@@ -114,19 +114,19 @@ function PersonPicker<T extends PickablePerson = PickablePerson>({
                 onClick={() => !disabled && setIsOpen(true)}
                 onChange={(e) => { setSearch(e.target.value); setIsOpen(true); }}
                 onKeyDown={(e) => { if (e.key === 'Escape') setIsOpen(false); }}
-                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-nb-3 py-nb-2 bg-surface-raised border border-line-strong rounded-nb text-nb-sm text-fg focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
             />
 
             {disabled && disabledMessage && (
-                <p className="mt-1 text-xs text-fg-subtle">{disabledMessage}</p>
+                <p className="mt-1 text-nb-caption text-fg-subtle">{disabledMessage}</p>
             )}
 
             {isOpen && !disabled && (
                 <div className="mt-1 max-h-40 overflow-y-auto bg-surface-raised border border-line-strong rounded-nb">
                     {loading ? (
-                        <p className="px-3 py-2 text-xs text-fg-subtle">Loading…</p>
+                        <p className="px-nb-3 py-nb-2 text-nb-caption text-fg-subtle">Loading…</p>
                     ) : filtered.length === 0 ? (
-                        <p className="px-3 py-2 text-xs text-fg-subtle">
+                        <p className="px-nb-3 py-nb-2 text-nb-caption text-fg-subtle">
                             {options.length === 0 ? emptyMessage : 'No matches found'}
                         </p>
                     ) : (
@@ -135,7 +135,7 @@ function PersonPicker<T extends PickablePerson = PickablePerson>({
                                 key={p.id}
                                 type="button"
                                 onClick={() => { onChange(p.id, p); setSearch(''); setIsOpen(false); }}
-                                className="w-full text-left px-3 py-2 text-sm text-fg hover:bg-line hover:text-fg"
+                                className="w-full text-left px-nb-3 py-nb-2 text-nb-sm text-fg hover:bg-line hover:text-fg"
                             >
                                 {p.full_name} {p.job_title ? `(${p.job_title})` : ''}
                             </button>

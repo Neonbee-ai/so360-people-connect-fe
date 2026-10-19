@@ -1,18 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Calendar, Check, Search, X } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Calendar, Check, X } from 'lucide-react';
+import { Button, Cluster, DashboardPageTemplate, SearchInput, SegmentedControl, Stack, TextField } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { WhosOutEntry, DirectoryEntry, TeamLeaveRequest } from '../../services/meService';
-import {
-    Avatar,
-    MyCard,
-    Skeleton,
-    StatusPill,
-    dangerBtn,
-    inputCls,
-    primaryBtn,
-    secondaryBtn,
-} from './myUi';
+import { Avatar, MyCard, Skeleton, StatusPill } from './myUi';
 
 /**
  * My Team — Who's Out and the colleague directory.
@@ -91,192 +82,173 @@ const MyTeamPage: React.FC = () => {
         p.full_name?.toLowerCase().includes(search.toLowerCase()),
     );
 
+    const muted = 'text-nb-sm text-fg-subtle';
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader title="My Team" subtitle="Who's away, and who to contact" />
-
-            {/* Team Leave — rendered ONLY for department heads with pending
-                requests. The backend returns [] for everyone else, so absence
-                of the card is the normal employee experience. */}
-            {!loading && teamLeave.length > 0 && (
-                <MyCard title="Team leave approvals" icon={<Calendar size={14} />} flush>
-                    <ul className="divide-y divide-line">
-                        {teamLeave.map(r => (
-                            <li key={r.id} className="space-y-2 px-4 py-3">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        <Avatar name={r.person?.full_name} />
-                                        <div className="min-w-0">
-                                            <p className="truncate text-sm text-fg">
-                                                {r.person?.full_name ?? 'A team member'}
-                                            </p>
-                                            <p className="truncate text-xs text-fg-subtle">
-                                                {r.start_date === r.end_date
-                                                    ? r.start_date
-                                                    : `${r.start_date} → ${r.end_date}`}
-                                                {r.leave_type?.name ? ` · ${r.leave_type.name}` : ''}
-                                            </p>
-                                            {r.reason && (
-                                                <p className="mt-0.5 truncate text-xs text-fg-muted">
-                                                    {r.reason}
+        <DashboardPageTemplate
+            title="My Team"
+            description="Who's away, and who to contact"
+            kpis={
+                /* Team Leave — rendered ONLY for department heads with pending
+                   requests. The backend returns [] for everyone else, so absence
+                   of the card is the normal employee experience. */
+                !loading && teamLeave.length > 0 ? (
+                    <MyCard title="Team leave approvals" icon={<Calendar size={14} />}>
+                        <Stack gap="default">
+                            {teamLeave.map(r => (
+                                <Stack key={r.id} gap="tight">
+                                    <Cluster justify="between">
+                                        <Cluster>
+                                            <Avatar name={r.person?.full_name} />
+                                            <Stack gap="tight">
+                                                <p className="truncate text-nb-sm text-fg">
+                                                    {r.person?.full_name ?? 'A team member'}
                                                 </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex shrink-0 items-center gap-2">
-                                        <StatusPill status={r.status} />
-                                        <button
-                                            onClick={() => void approve(r.id)}
-                                            disabled={actingId === r.id}
-                                            className={`${primaryBtn} !px-3 !py-1.5 !text-xs`}
-                                        >
-                                            <Check size={12} /> Approve
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setRejectingId(prev => (prev === r.id ? null : r.id));
-                                                setRejectReason('');
-                                            }}
-                                            disabled={actingId === r.id}
-                                            className={`${dangerBtn} !px-3 !py-1.5 !text-xs`}
-                                        >
-                                            <X size={12} /> Reject
-                                        </button>
-                                    </div>
-                                </div>
-                                {rejectingId === r.id && (
-                                    <div className="flex items-center gap-2 pl-11">
-                                        <input
-                                            value={rejectReason}
-                                            onChange={e => setRejectReason(e.target.value)}
-                                            placeholder="Reason for rejection (required)"
-                                            className={inputCls}
-                                            aria-label="Rejection reason"
-                                        />
-                                        <button
-                                            onClick={() => void confirmReject(r.id)}
-                                            disabled={!rejectReason.trim() || actingId === r.id}
-                                            className={`${dangerBtn} !px-3 !py-1.5 !text-xs shrink-0`}
-                                        >
-                                            Confirm reject
-                                        </button>
-                                        <button
-                                            onClick={() => { setRejectingId(null); setRejectReason(''); }}
-                                            className={`${secondaryBtn} !px-3 !py-1.5 !text-xs shrink-0`}
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                </MyCard>
-            )}
-
-            <div className="flex gap-1 border-b border-line">
-                {(['out', 'directory'] as const).map(t => (
-                    <button
-                        key={t}
-                        onClick={() => setTab(t)}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${
-                            tab === t
-                                ? 'border-b-2 border-primary text-primary'
-                                : 'text-fg-subtle hover:text-fg'
-                        }`}
-                    >
-                        {t === 'out' ? "Who's out" : 'Directory'}
-                    </button>
-                ))}
-            </div>
-
-            {loading ? (
-                <Skeleton rows={3} />
-            ) : tab === 'out' ? (
-                whosOut.length === 0 ? (
-                    <p className="py-10 text-center text-sm text-fg-subtle">
-                        Nobody is scheduled to be away in the next 30 days.
-                    </p>
-                ) : (
-                    <ul className="divide-y divide-line rounded-nb border border-line bg-surface">
-                        {whosOut.map(w => (
-                            <li
-                                key={`${w.person_id}-${w.start_date}`}
-                                className="flex items-center justify-between gap-3 px-4 py-3"
-                            >
-                                <div className="flex min-w-0 items-center gap-3">
-                                    <Avatar name={w.full_name} />
-                                    <div className="min-w-0">
-                                        <p className="truncate text-sm text-fg">
-                                            {w.full_name ?? 'A colleague'}
-                                        </p>
-                                        {w.job_title && (
-                                            <p className="truncate text-xs text-fg-subtle">
-                                                {w.job_title}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                <span className="shrink-0 text-xs text-fg-subtle">
-                                    {w.start_date === w.end_date
-                                        ? w.start_date
-                                        : `${w.start_date} → ${w.end_date}`}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                )
-            ) : (
-                <>
-                    <div className="relative">
-                        <Search
-                            size={16}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle"
-                        />
-                        <input
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Search colleagues"
-                            className={`${inputCls} pl-9`}
-                        />
-                    </div>
-
-                    {filtered.length === 0 ? (
-                        <p className="py-10 text-center text-sm text-fg-subtle">
-                            No colleagues found.
-                        </p>
-                    ) : (
-                        <ul className="divide-y divide-line rounded-nb border border-line bg-surface">
-                            {filtered.map(p => (
-                                <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        <Avatar name={p.full_name} />
-                                        <div className="min-w-0">
-                                            <p className="truncate text-sm text-fg">
-                                                {p.full_name}
-                                            </p>
-                                            {p.job_title && (
-                                                <p className="truncate text-xs text-fg-subtle">
-                                                    {p.job_title}
+                                                <p className={`truncate ${muted}`}>
+                                                    {r.start_date === r.end_date
+                                                        ? r.start_date
+                                                        : `${r.start_date} → ${r.end_date}`}
+                                                    {r.leave_type?.name ? ` · ${r.leave_type.name}` : ''}
                                                 </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {p.email && (
-                                        <a
-                                            href={`mailto:${p.email}`}
-                                            className="shrink-0 text-xs text-primary hover:text-primary"
-                                        >
-                                            {p.email}
-                                        </a>
+                                                {r.reason && (
+                                                    <p className="truncate text-nb-sm text-fg-muted">{r.reason}</p>
+                                                )}
+                                            </Stack>
+                                        </Cluster>
+                                        <Cluster>
+                                            <StatusPill status={r.status} />
+                                            <Button
+                                                size="sm"
+                                                onClick={() => void approve(r.id)}
+                                                disabled={actingId === r.id}
+                                            >
+                                                <Check size={12} /> Approve
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="danger"
+                                                onClick={() => {
+                                                    setRejectingId(prev => (prev === r.id ? null : r.id));
+                                                    setRejectReason('');
+                                                }}
+                                                disabled={actingId === r.id}
+                                            >
+                                                <X size={12} /> Reject
+                                            </Button>
+                                        </Cluster>
+                                    </Cluster>
+                                    {rejectingId === r.id && (
+                                        <Cluster>
+                                            <TextField
+                                                name={`reject-reason-${r.id}`}
+                                                value={rejectReason}
+                                                onChange={e => setRejectReason(e.target.value)}
+                                                placeholder="Reason for rejection (required)"
+                                                aria-label="Rejection reason"
+                                            />
+                                            <Button
+                                                size="sm"
+                                                variant="danger"
+                                                onClick={() => void confirmReject(r.id)}
+                                                disabled={!rejectReason.trim() || actingId === r.id}
+                                            >
+                                                Confirm reject
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="secondary"
+                                                onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </Cluster>
                                     )}
-                                </li>
+                                </Stack>
                             ))}
-                        </ul>
-                    )}
-                </>
-            )}
-        </div>
+                        </Stack>
+                    </MyCard>
+                ) : undefined
+            }
+            toolbarEnd={
+                <SegmentedControl
+                    aria-label="Team view"
+                    value={tab}
+                    onChange={v => setTab(v as 'out' | 'directory')}
+                    options={[
+                        { value: 'out', label: "Who's out" },
+                        { value: 'directory', label: 'Directory' },
+                    ]}
+                />
+            }
+            primary={
+                loading ? (
+                    <Skeleton rows={3} />
+                ) : tab === 'out' ? (
+                    whosOut.length === 0 ? (
+                        <p className={muted}>Nobody is scheduled to be away in the next 30 days.</p>
+                    ) : (
+                        <MyCard title="Who's out">
+                            <Stack gap="default">
+                                {whosOut.map(w => (
+                                    <Cluster key={`${w.person_id}-${w.start_date}`} justify="between">
+                                        <Cluster>
+                                            <Avatar name={w.full_name} />
+                                            <Stack gap="tight">
+                                                <p className="truncate text-nb-sm text-fg">
+                                                    {w.full_name ?? 'A colleague'}
+                                                </p>
+                                                {w.job_title && <p className={`truncate ${muted}`}>{w.job_title}</p>}
+                                            </Stack>
+                                        </Cluster>
+                                        <span className={muted}>
+                                            {w.start_date === w.end_date
+                                                ? w.start_date
+                                                : `${w.start_date} → ${w.end_date}`}
+                                        </span>
+                                    </Cluster>
+                                ))}
+                            </Stack>
+                        </MyCard>
+                    )
+                ) : (
+                    <Stack gap="default">
+                        <SearchInput
+                            name="colleague-search"
+                            value={search}
+                            onChange={setSearch}
+                            placeholder="Search colleagues"
+                        />
+
+                        {filtered.length === 0 ? (
+                            <p className={muted}>No colleagues found.</p>
+                        ) : (
+                            <MyCard title="Directory">
+                                <Stack gap="default">
+                                    {filtered.map(p => (
+                                        <Cluster key={p.id} justify="between">
+                                            <Cluster>
+                                                <Avatar name={p.full_name} />
+                                                <Stack gap="tight">
+                                                    <p className="truncate text-nb-sm text-fg">{p.full_name}</p>
+                                                    {p.job_title && (
+                                                        <p className={`truncate ${muted}`}>{p.job_title}</p>
+                                                    )}
+                                                </Stack>
+                                            </Cluster>
+                                            {p.email && (
+                                                <a href={`mailto:${p.email}`} className="text-nb-sm text-primary">
+                                                    {p.email}
+                                                </a>
+                                            )}
+                                        </Cluster>
+                                    ))}
+                                </Stack>
+                            </MyCard>
+                        )}
+                    </Stack>
+                )
+            }
+        />
     );
 };
 

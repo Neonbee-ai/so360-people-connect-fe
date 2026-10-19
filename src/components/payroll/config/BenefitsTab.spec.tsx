@@ -50,7 +50,7 @@ describe('GIVEN the benefit types tab', () => {
     render(<BenefitsTab />);
     await waitFor(() => expect(screen.getByText('No benefit types')).toBeInTheDocument());
     fireEvent.click(screen.getAllByText('New Benefit Type')[1]);
-    await waitFor(() => expect(screen.getByText('Name *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('Name')).toBeInTheDocument());
   });
 
   it('WHEN the list API fails THEN the tab falls back to the empty state', async () => {
@@ -113,9 +113,9 @@ describe('GIVEN the benefit type modal', () => {
     render(<BenefitsTab />);
     await waitFor(() => expect(screen.getByText('Health Insurance')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New Benefit Type'));
-    await waitFor(() => expect(screen.getByText('Name *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('Name')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Cancel'));
-    await waitFor(() => expect(screen.queryByText('Name *')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByLabelText('Name')).not.toBeInTheDocument());
     expect(mockApi.benefitTypes.create).not.toHaveBeenCalled();
   });
 

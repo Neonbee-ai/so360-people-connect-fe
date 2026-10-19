@@ -267,7 +267,7 @@ describe('AllocationsPage — edit allocation', () => {
 
     fireEvent.change(screen.getByDisplayValue('80'), { target: { value: '200' } });
     // Use fireEvent.submit on the form directly — same pattern as create validation tests
-    const form = document.querySelector('form.space-y-4') as HTMLFormElement;
+    const form = document.querySelector('form') as HTMLFormElement;
     fireEvent.submit(form);
 
     await waitFor(() => expect(screen.getByText(/between 1 and 100/)).toBeInTheDocument());

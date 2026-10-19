@@ -17,12 +17,7 @@ const { toastMock } = vi.hoisted(() => ({
   toastMock: { success: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../test/__mocks__/design-system')), 
-  Button: ({ children, onClick, disabled, type }: any) => (
-    <button onClick={onClick} disabled={disabled} type={type}>{children}</button>
-  ),
-  toast: toastMock,
-}));
+vi.mock('@so360/design-system', async () => ({ ...(await import('../test/__mocks__/design-system')), toast: toastMock }));
 
 import { settingsApi } from '../services/orgSettingsService';
 import ResourceAllocationSettingsPage, {

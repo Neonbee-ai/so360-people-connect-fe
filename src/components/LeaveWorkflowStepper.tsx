@@ -25,21 +25,21 @@ export const LeaveWorkflowStepper: React.FC<LeaveWorkflowStepperProps> = ({ stat
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-fg">
                         <CheckCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-xs mt-2 text-center w-16 text-primary">Draft</span>
+                    <span className="text-nb-caption mt-nb-2 text-center w-16 text-primary">Draft</span>
                 </div>
                 <div className="flex-1 h-0.5 min-w-4 bg-primary" />
                 <div className="flex flex-col items-center">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-fg">
                         <CheckCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-xs mt-2 text-center w-16 text-primary">Submitted</span>
+                    <span className="text-nb-caption mt-nb-2 text-center w-16 text-primary">Submitted</span>
                 </div>
                 <div className="flex-1 h-0.5 min-w-4 bg-danger" />
                 <div className="flex flex-col items-center">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-danger text-danger-fg">
                         <XCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-xs mt-2 text-center w-16 text-danger">Rejected</span>
+                    <span className="text-nb-caption mt-nb-2 text-center w-16 text-danger">Rejected</span>
                 </div>
             </div>
         );
@@ -47,9 +47,9 @@ export const LeaveWorkflowStepper: React.FC<LeaveWorkflowStepperProps> = ({ stat
 
     if (mappedStatus === 'cancelled') {
         return (
-            <div className="flex items-center gap-3 px-4 py-3 bg-line/30 rounded-nb border border-line-strong/30">
+            <div className="flex items-center gap-nb-3 px-nb-4 py-nb-3 bg-line/30 rounded-nb border border-line-strong/30">
                 <Ban className="w-5 h-5 text-fg-subtle" />
-                <span className="text-fg-subtle font-medium text-sm">Cancelled</span>
+                <span className="text-fg-subtle text-nb-body">Cancelled</span>
             </div>
         );
     }
@@ -77,7 +77,7 @@ export const LeaveWorkflowStepper: React.FC<LeaveWorkflowStepperProps> = ({ stat
                                 )}
                                 {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                             </div>
-                            <span className={`text-xs mt-2 text-center w-16 ${
+                            <span className={`text-nb-caption mt-nb-2 text-center w-16 ${
                                 isCompleted || isCurrent ? 'text-primary' : 'text-fg-subtle'
                             }`}>
                                 {STATE_LABELS[state]}

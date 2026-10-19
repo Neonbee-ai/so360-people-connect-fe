@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, toast, Select } from '@so360/design-system';
-import { Award, Save, X, Info } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Badge, Banner, Button, Cluster, Grid, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, TextField, toast } from '@so360/design-system';
+import { Save, X } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
@@ -25,22 +24,13 @@ export const DEFAULT_PERFORMANCE_SETTINGS: PerformanceSettingsValue = {
   competency_library: [],
 };
 
-const INPUT_CLASS =
-  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
-
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs text-fg-muted">{label}</label>
-    {children}
-  </div>
-);
-
 const TagListField: React.FC<{
+  name: string;
   label: string;
   items: string[];
   placeholder?: string;
   onChange: (items: string[]) => void;
-}> = ({ label, items, placeholder, onChange }) => {
+}> = ({ name, label, items, placeholder, onChange }) => {
   const [draft, setDraft] = useState('');
 
   const addItem = () => {
@@ -50,11 +40,11 @@ const TagListField: React.FC<{
   };
 
   return (
-    <Field label={label}>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          className={INPUT_CLASS}
+    <Stack gap="tight">
+      <Cluster gap="tight">
+        <TextField
+          name={name}
+          label={label}
           value={draft}
           placeholder={placeholder}
           onChange={(e) => setDraft(e.target.value)}
@@ -66,23 +56,26 @@ const TagListField: React.FC<{
           }}
         />
         <Button variant="secondary" type="button" onClick={addItem}>Add</Button>
-      </div>
+      </Cluster>
       {items.length > 0 && (
-        <div className="flex flex-wrap gap-2 pt-1">
+        <Cluster gap="tight">
           {items.map((item) => (
-            <span
-              key={item}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-primary/10 text-primary border border-primary/30"
-            >
+            <Badge key={item} tone="primary">
               {item}
-              <button type="button" onClick={() => onChange(items.filter((i) => i !== item))}>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                aria-label={`Remove ${item}`}
+                onClick={() => onChange(items.filter((i) => i !== item))}
+              >
                 <X className="w-3 h-3" />
-              </button>
-            </span>
+              </Button>
+            </Badge>
           ))}
-        </div>
+        </Cluster>
       )}
-    </Field>
+    </Stack>
   );
 };
 
@@ -123,67 +116,64 @@ const PerformanceSettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div className="p-6 text-fg-muted animate-pulse">Loading performance settings...</div>;
-  }
+  const saveAction = canManage ? (
+    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
+      <Save className="w-4 h-4" />
+      {saving ? 'Saving...' : 'Save Changes'}
+    </Button>
+  ) : undefined;
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Performance Settings"
-        subtitle="Review cycles, KPI categories, and competency library"
-        actions={
-          canManage && (
-            <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )
-        }
-      />
+    <SettingsPageTemplate
+      title="Performance Settings"
+      description="Review cycles, KPI categories, and competency library"
+      primaryAction={saveAction}
+    >
+      {loading ? (
+        <Spinner aria-label="Loading performance settings..." />
+      ) : (
+        <Grid columns={2} gap="lg">
+          <SettingsCard title="Review Cycle & Rating">
+            <Stack gap="default">
+              <Select
+                name="review_cycle"
+                label="Review Cycle"
+                value={value.review_cycle}
+                onChange={(e) => set('review_cycle', e.target.value as PerformanceSettingsValue['review_cycle'])}
+                options={[{ value: 'quarterly', label: 'Quarterly' }, { value: 'half_yearly', label: 'Half-Yearly' }, { value: 'annual', label: 'Annual' }]}
+              />
+              <Banner variant="info">
+                Rating scale and templates are configured per template, not org-wide — different
+                reviews legitimately need different scales. Manage those in{' '}
+                <Link to="/people/reviews/templates" className="text-primary underline">
+                  Review Templates
+                </Link>
+                .
+              </Banner>
+            </Stack>
+          </SettingsCard>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
-            <Award className="w-4 h-4" /> Review Cycle &amp; Rating
-          </h3>
-
-          <Field label="Review Cycle">
-            <Select name="performancesettings-select-101" value={value.review_cycle} onChange={(e) => set('review_cycle', e.target.value as PerformanceSettingsValue['review_cycle'])} options={[{ value: "quarterly", label: "Quarterly" }, { value: "half_yearly", label: "Half-Yearly" }, { value: "annual", label: "Annual" }]} />
-          </Field>
-
-          <div className="flex items-start gap-2.5 rounded-nb border border-line bg-bg px-3 py-2.5 text-xs text-fg-muted">
-            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-fg-subtle" />
-            <span>
-              Rating scale and templates are configured per template, not org-wide — different
-              reviews legitimately need different scales. Manage those in{' '}
-              <Link to="/people/reviews/templates" className="text-primary hover:text-primary underline">
-                Review Templates
-              </Link>
-              .
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Categories &amp; Competencies</h3>
-
-          <TagListField
-            label="KPI Categories"
-            items={value.kpi_categories}
-            placeholder="e.g. Quality of Work"
-            onChange={(items) => set('kpi_categories', items)}
-          />
-
-          <TagListField
-            label="Competency Library"
-            items={value.competency_library}
-            placeholder="e.g. Communication"
-            onChange={(items) => set('competency_library', items)}
-          />
-        </div>
-      </div>
-    </div>
+          <SettingsCard title="Categories & Competencies">
+            <Stack gap="default">
+              <TagListField
+                name="kpi_category_draft"
+                label="KPI Categories"
+                items={value.kpi_categories}
+                placeholder="e.g. Quality of Work"
+                onChange={(items) => set('kpi_categories', items)}
+              />
+              <TagListField
+                name="competency_draft"
+                label="Competency Library"
+                items={value.competency_library}
+                placeholder="e.g. Communication"
+                onChange={(items) => set('competency_library', items)}
+              />
+            </Stack>
+          </SettingsCard>
+        </Grid>
+      )}
+    </SettingsPageTemplate>
   );
 };
 

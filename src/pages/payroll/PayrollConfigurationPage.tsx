@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, CalendarRange, Layers, FileText, Award, Landmark, Receipt } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { SettingsPageTemplate } from '@so360/design-system';
 import SettingsTab from '../../components/payroll/config/SettingsTab';
 import GroupsPeriodsTab from '../../components/payroll/config/GroupsPeriodsTab';
 import ComponentsTab from '../../components/payroll/config/ComponentsTab';
@@ -11,56 +10,35 @@ import PayslipTemplateTab from '../../components/payroll/config/PayslipTemplateT
 
 type TabKey = 'settings' | 'groups' | 'components' | 'structures' | 'benefits' | 'statutory' | 'template';
 
-const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-    { key: 'settings', label: 'Settings', icon: Settings },
-    { key: 'groups', label: 'Groups & Periods', icon: CalendarRange },
-    { key: 'components', label: 'Components', icon: Layers },
-    { key: 'structures', label: 'Structures', icon: FileText },
-    { key: 'benefits', label: 'Benefits', icon: Award },
-    { key: 'statutory', label: 'Statutory', icon: Landmark },
-    { key: 'template', label: 'Payslip Template', icon: Receipt },
+const TABS: { key: TabKey; label: string }[] = [
+    { key: 'settings', label: 'Settings' },
+    { key: 'groups', label: 'Groups & Periods' },
+    { key: 'components', label: 'Components' },
+    { key: 'structures', label: 'Structures' },
+    { key: 'benefits', label: 'Benefits' },
+    { key: 'statutory', label: 'Statutory' },
+    { key: 'template', label: 'Payslip Template' },
 ];
 
 const PayrollConfigurationPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabKey>('settings');
 
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
-                title="Payroll Configuration"
-                subtitle="Pay policies, salary components, structures and the statutory pack"
-            />
-
-            <div className="bg-surface border border-line rounded-nb">
-                <div className="border-b border-line">
-                    <div className="flex items-center gap-1 px-5 py-3 overflow-x-auto">
-                        {TABS.map(({ key, label, icon: Icon }) => (
-                            <button
-                                key={key}
-                                onClick={() => setActiveTab(key)}
-                                className={`shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                    activeTab === key
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'text-fg-muted hover:text-fg hover:bg-surface-raised'
-                                }`}
-                            >
-                                <Icon size={14} className="inline mr-1.5" />
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                <div className="p-5">
-                    {activeTab === 'settings' && <SettingsTab />}
-                    {activeTab === 'groups' && <GroupsPeriodsTab />}
-                    {activeTab === 'components' && <ComponentsTab />}
-                    {activeTab === 'structures' && <StructuresTab />}
-                    {activeTab === 'benefits' && <BenefitsTab />}
-                    {activeTab === 'statutory' && <StatutoryTab />}
-                    {activeTab === 'template' && <PayslipTemplateTab />}
-                </div>
-            </div>
-        </div>
+        <SettingsPageTemplate
+            title="Payroll Configuration"
+            description="Pay policies, salary components, structures and the statutory pack"
+            sections={TABS.map(({ key, label }) => ({ id: key, label }))}
+            activeSection={activeTab}
+            onSectionChange={id => setActiveTab(id as TabKey)}
+        >
+            {activeTab === 'settings' && <SettingsTab />}
+            {activeTab === 'groups' && <GroupsPeriodsTab />}
+            {activeTab === 'components' && <ComponentsTab />}
+            {activeTab === 'structures' && <StructuresTab />}
+            {activeTab === 'benefits' && <BenefitsTab />}
+            {activeTab === 'statutory' && <StatutoryTab />}
+            {activeTab === 'template' && <PayslipTemplateTab />}
+        </SettingsPageTemplate>
     );
 };
 

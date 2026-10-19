@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, toast, Select } from '@so360/design-system';
-import { Clock, Save } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Button, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, Switch, toast } from '@so360/design-system';
+import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
@@ -22,26 +21,6 @@ export const DEFAULT_TIMESHEET_SETTINGS: TimesheetSettingsValue = {
   edit_window_days: 3,
   approval_rules: 'manager',
 };
-
-const INPUT_CLASS =
-  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
-
-const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = ({ checked, onChange }) => (
-  <button
-    type="button"
-    onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-primary' : 'bg-line'}`}
-  >
-    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-1'}`} />
-  </button>
-);
-
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs text-fg-muted">{label}</label>
-    {children}
-  </div>
-);
 
 const TimesheetSettingsPage: React.FC = () => {
   const shell = useShellBridge();
@@ -80,74 +59,75 @@ const TimesheetSettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div className="p-6 text-fg-muted animate-pulse">Loading timesheet settings...</div>;
-  }
+  const saveAction = canManage ? (
+    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
+      <Save className="w-4 h-4" />
+      {saving ? 'Saving...' : 'Save Changes'}
+    </Button>
+  ) : undefined;
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Timesheet Settings"
-        subtitle="Submission requirements, reminders, and lock/edit windows for the Timesheet module"
-        actions={
-          canManage && (
-            <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )
-        }
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
-            <Clock className="w-4 h-4" /> Submission Rules
-          </h3>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-fg-muted">Daily Submission Required</span>
-            <Toggle checked={value.daily_submission_required} onChange={(v) => set('daily_submission_required', v)} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-fg-muted">Weekly Submission Required</span>
-            <Toggle checked={value.weekly_submission_required} onChange={(v) => set('weekly_submission_required', v)} />
-          </div>
-
-          <Field label="Reminder Frequency">
-            <Select name="timesheetsettings-select-103" value={value.reminder_frequency} onChange={(e) => set('reminder_frequency', e.target.value as TimesheetSettingsValue['reminder_frequency'])} options={[{ value: "daily", label: "Daily" }, { value: "weekly", label: "Weekly" }, { value: "none", label: "None" }]} />
-          </Field>
-        </div>
-
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Windows &amp; Approval</h3>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Lock Period (days)">
-              <input
-                type="number"
-                className={INPUT_CLASS}
-                value={value.lock_period_days}
-                onChange={(e) => set('lock_period_days', parseInt(e.target.value, 10) || 0)}
+    <SettingsPageTemplate
+      title="Timesheet Settings"
+      description="Submission requirements, reminders, and lock/edit windows for the Timesheet module"
+      primaryAction={saveAction}
+    >
+      {loading ? (
+        <Spinner aria-label="Loading timesheet settings..." />
+      ) : (
+        <Grid columns={2} gap="lg">
+          <SettingsCard title="Submission Rules">
+            <Stack gap="default">
+              <Switch
+                name="daily_submission_required"
+                label="Daily Submission Required"
+                checked={value.daily_submission_required}
+                onCheckedChange={(v) => set('daily_submission_required', v)}
               />
-            </Field>
-            <Field label="Edit Window (days)">
-              <input
-                type="number"
-                className={INPUT_CLASS}
-                value={value.edit_window_days}
-                onChange={(e) => set('edit_window_days', parseInt(e.target.value, 10) || 0)}
+              <Switch
+                name="weekly_submission_required"
+                label="Weekly Submission Required"
+                checked={value.weekly_submission_required}
+                onCheckedChange={(v) => set('weekly_submission_required', v)}
               />
-            </Field>
-          </div>
+              <Select
+                name="reminder_frequency"
+                label="Reminder Frequency"
+                value={value.reminder_frequency}
+                onChange={(e) => set('reminder_frequency', e.target.value as TimesheetSettingsValue['reminder_frequency'])}
+                options={[{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }, { value: 'none', label: 'None' }]}
+              />
+            </Stack>
+          </SettingsCard>
 
-          <Field label="Approval Rules">
-            <Select name="timesheetsettings-select-104" value={value.approval_rules} onChange={(e) => set('approval_rules', e.target.value as TimesheetSettingsValue['approval_rules'])} options={[{ value: "manager", label: "Direct Manager" }, { value: "approval_chain", label: "Approval Chain" }, { value: "auto_approve", label: "Auto-Approve" }]} />
-          </Field>
-        </div>
-      </div>
-    </div>
+          <SettingsCard title="Windows & Approval">
+            <Stack gap="default">
+              <Grid columns={2} gap="md">
+                <NumberInput
+                  name="lock_period_days"
+                  label="Lock Period (days)"
+                  value={value.lock_period_days}
+                  onChange={(n) => set('lock_period_days', Math.trunc(n ?? 0))}
+                />
+                <NumberInput
+                  name="edit_window_days"
+                  label="Edit Window (days)"
+                  value={value.edit_window_days}
+                  onChange={(n) => set('edit_window_days', Math.trunc(n ?? 0))}
+                />
+              </Grid>
+              <Select
+                name="approval_rules"
+                label="Approval Rules"
+                value={value.approval_rules}
+                onChange={(e) => set('approval_rules', e.target.value as TimesheetSettingsValue['approval_rules'])}
+                options={[{ value: 'manager', label: 'Direct Manager' }, { value: 'approval_chain', label: 'Approval Chain' }, { value: 'auto_approve', label: 'Auto-Approve' }]}
+              />
+            </Stack>
+          </SettingsCard>
+        </Grid>
+      )}
+    </SettingsPageTemplate>
   );
 };
 

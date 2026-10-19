@@ -4,11 +4,10 @@ import {
     ArrowLeft, CheckCircle, Circle, Ban, AlertTriangle, RefreshCw,
     UserMinus, UserPlus, ChevronDown, ChevronUp, Play, RotateCcw,
 } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, Button, IconButton, Card, Modal, ConfirmDialog, Stack, Cluster, Skeleton, Textarea, DetailPageTemplate, DataTable } from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
-import PageHeader from '../../components/PageHeader';
-import Modal from '../../components/Modal';
 import StatusChip from '../../components/payroll/StatusChip';
 import {
     payrollApi, PayrollRun, PayrollRunEmployee, PayrollRunLine, PayrollAlert, RunStatus,
@@ -121,10 +120,10 @@ const PayrollRunDetailPage: React.FC = () => {
     };
 
     if (loading) {
-        return <div className="p-6"><div className="h-96 bg-surface-raised/50 rounded-nb animate-pulse" /></div>;
+        return <Skeleton variant="rect" className="h-96" />;
     }
     if (!run || !id) {
-        return <div className="p-6 text-sm text-fg-muted">Payroll run not found.</div>;
+        return <p className="text-nb-body text-fg-muted">Payroll run not found.</p>;
     }
 
     const isDraft = run.status === 'draft';
@@ -138,481 +137,453 @@ const PayrollRunDetailPage: React.FC = () => {
     const isClosed = run.status === 'closed';
     const isCancelled = run.status === 'cancelled';
 
+    const reviewColumns: DataTableColumn<PayrollRunEmployee>[] = [
+        { key: 'employee', header: 'Employee', render: e => (
+            <Stack gap="none">
+                <span className="text-nb-body text-fg">{e.person_name}</span>
+                <span className="text-nb-caption text-fg-subtle">{e.department_name}</span>
+            </Stack>
+        ) },
+        { key: 'gross', header: 'Gross', align: 'right', render: e => formatters.formatCurrency(e.gross || 0) },
+        { key: 'deductions', header: 'Deductions', align: 'right', render: e => formatters.formatCurrency(e.total_deductions || 0) },
+        { key: 'net', header: 'Net', align: 'right', render: e => <span className="text-fg">{formatters.formatCurrency(e.net_pay || 0)}</span> },
+        { key: 'employer_cost', header: 'Employer Cost', align: 'right', render: e => formatters.formatCurrency(e.employer_cost || 0) },
+        { key: 'variance', header: 'vs Last Run', align: 'right', render: e => {
+            const variance = e.previous_net_pay != null && e.net_pay != null ? e.net_pay - e.previous_net_pay : null;
+            return variance === null ? <span className="text-fg-subtle">—</span> : (
+                <span className={variance >= 0 ? 'text-success' : 'text-danger'}>
+                    {variance >= 0 ? '+' : ''}{formatters.formatCurrency(variance)}
+                </span>
+            );
+        } },
+        { key: 'lines', header: '', align: 'right', render: e => {
+            const isExpanded = expandedEmployeeId === e.id;
+            return (
+                <Stack gap="tight">
+                    <IconButton
+                        icon={isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        label={`Toggle component lines for ${e.person_name}`}
+                        hideTooltip
+                        onClick={() => toggleLines(e)}
+                    />
+                    {isExpanded && (!employeeLines[e.id] ? (
+                        <Skeleton variant="rect" className="h-8" />
+                    ) : (
+                        <Stack gap="tight">
+                            {employeeLines[e.id].map(line => (
+                                <Cluster key={line.id} gap="default" justify="between" align="center">
+                                    <Cluster gap="tight" align="center">
+                                        <StatusChip status={line.kind} />
+                                        <span className="text-nb-caption text-fg">{line.component_name}</span>
+                                    </Cluster>
+                                    <span className="text-nb-caption text-fg">{formatters.formatCurrency(line.amount)}</span>
+                                </Cluster>
+                            ))}
+                        </Stack>
+                    ))}
+                </Stack>
+            );
+        } },
+    ];
+
+    const secondaryActions = [
+        <Button key="all-runs" variant="ghost" onClick={() => navigate('/people/payroll/runs')}>
+            <ArrowLeft size={14} /> All Runs
+        </Button>,
+        ...(canReopen ? [
+            <Button
+                key="reopen"
+                variant="secondary"
+                size="sm"
+                onClick={() => setReasonPrompt({
+                    title: 'Reopen Run',
+                    label: 'Why is this run being reopened?',
+                    onSubmit: reason => act(() => payrollApi.runs.reopen(id, reason), 'Run reopened'),
+                })}
+            >
+                <RotateCcw size={12} /> Reopen
+            </Button>,
+        ] : []),
+        ...(canCancel ? [
+            <Button
+                key="cancel"
+                variant="danger"
+                size="sm"
+                onClick={() => setConfirm({
+                    title: 'Cancel Payroll Run',
+                    message: `This will cancel run #${run.run_number}. Nothing will be paid and the period reopens for a new run.`,
+                    confirmLabel: 'Cancel Run',
+                    onConfirm: () => act(() => payrollApi.runs.cancel(id), 'Run cancelled'),
+                })}
+            >
+                <Ban size={12} /> Cancel
+            </Button>,
+        ] : []),
+    ];
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
+        <>
+            <DetailPageTemplate
                 title={`Payroll Run #${run.run_number}`}
-                subtitle={`${run.period_start ? formatters.formatDate(run.period_start) : ''} – ${run.period_end ? formatters.formatDate(run.period_end) : ''} · Pay date ${formatters.formatDate(run.pay_date)}`}
-                actions={
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => navigate('/people/payroll/runs')} className="flex items-center gap-1.5 px-3 py-2 text-sm text-fg-muted hover:text-fg transition-colors">
-                            <ArrowLeft size={14} /> All Runs
-                        </button>
-                        <StatusChip status={run.status} />
-                        {canReopen && (
-                            <button
-                                onClick={() => setReasonPrompt({
-                                    title: 'Reopen Run',
-                                    label: 'Why is this run being reopened?',
-                                    onSubmit: reason => act(() => payrollApi.runs.reopen(id, reason), 'Run reopened'),
-                                })}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-surface-raised hover:bg-line border border-line-strong text-fg text-xs font-medium rounded-nb transition-colors"
-                            >
-                                <RotateCcw size={12} /> Reopen
-                            </button>
-                        )}
-                        {canCancel && (
-                            <button
-                                onClick={() => setConfirm({
-                                    title: 'Cancel Payroll Run',
-                                    message: `This will cancel run #${run.run_number}. Nothing will be paid and the period reopens for a new run.`,
-                                    confirmLabel: 'Cancel Run',
-                                    onConfirm: () => act(() => payrollApi.runs.cancel(id), 'Run cancelled'),
-                                })}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-danger/10 hover:bg-danger-hover/20 border border-danger/30 text-danger text-xs font-medium rounded-nb transition-colors"
-                            >
-                                <Ban size={12} /> Cancel
-                            </button>
-                        )}
-                    </div>
-                }
-            />
-
-            {isCancelled && (
-                <div className="flex items-center gap-3 px-4 py-3 bg-surface-raised/50 rounded-nb border border-line-strong">
-                    <Ban size={16} className="text-fg-subtle" />
-                    <span className="text-sm text-fg-muted">This run was cancelled. It is kept for audit only.</span>
-                </div>
-            )}
-
-            {/* Stepper */}
-            {!isCancelled && (
-                <div className="bg-surface border border-line rounded-nb p-5">
-                    <div className="flex items-center gap-0">
-                        {STEPS.map((step, index) => {
-                            const isCompleted = currentIndex > index;
-                            const isCurrent = currentIndex === index;
-                            const isLast = index === STEPS.length - 1;
-                            return (
-                                <React.Fragment key={step}>
-                                    <button
-                                        onClick={() => setActiveStep(step)}
-                                        className="flex flex-col items-center focus:outline-none"
-                                        aria-current={isCurrent ? 'step' : undefined}
-                                    >
-                                        <div className={`flex items-center justify-center w-8 h-8 rounded-full transition-all ${
-                                            isCompleted ? 'bg-primary text-primary-fg' :
-                                            isCurrent ? 'bg-primary/20 border-2 border-primary text-primary' :
-                                            'bg-surface-raised border border-line-strong text-fg-subtle'
-                                        }`}>
-                                            {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                                        </div>
-                                        <span className={`text-xs mt-2 text-center w-16 ${
-                                            shownStep === step ? 'text-primary font-semibold' :
-                                            isCompleted || isCurrent ? 'text-primary' : 'text-fg-subtle'
-                                        }`}>
-                                            {STEP_LABELS[step]}
-                                        </span>
-                                    </button>
-                                    {!isLast && <div className={`flex-1 h-0.5 min-w-4 ${isCompleted ? 'bg-primary' : 'bg-line'}`} />}
-                                </React.Fragment>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* Step content */}
-            {!isCancelled && (
-                <div className="bg-surface border border-line rounded-nb p-5 space-y-4">
-                    {/* PREPARE */}
-                    {shownStep === 'prepare' && (
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-semibold text-fg">Included Employees ({included.length})</h3>
-                            {included.length === 0 ? (
-                                <p className="text-sm text-fg-muted">No employees are in this run yet. Employees join based on their payroll group.</p>
-                            ) : (
-                                <div className="divide-y divide-line border border-line rounded-nb overflow-hidden">
-                                    {included.map(employee => (
-                                        <div key={employee.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-surface-raised/50 transition-colors">
-                                            <div>
-                                                <span className="text-sm text-fg">{employee.person_name}</span>
-                                                <span className="text-xs text-fg-subtle ml-2">{[employee.employee_code, employee.department_name].filter(Boolean).join(' · ')}</span>
-                                            </div>
-                                            {isDraft && (
-                                                <button
-                                                    onClick={() => setReasonPrompt({
-                                                        title: `Exclude ${employee.person_name}`,
-                                                        label: 'Why is this employee excluded from this run?',
-                                                        onSubmit: reason => act(() => payrollApi.runs.exclude(id, employee.person_id, reason), `${employee.person_name} excluded`),
-                                                    })}
-                                                    className="flex items-center gap-1 text-xs text-danger hover:text-danger transition-colors"
-                                                >
-                                                    <UserMinus size={12} /> Exclude
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            {excluded.length > 0 && (
-                                <>
-                                    <h3 className="text-sm font-semibold text-fg">Excluded Employees ({excluded.length})</h3>
-                                    <div className="divide-y divide-line border border-line rounded-nb overflow-hidden">
-                                        {excluded.map(employee => (
-                                            <div key={employee.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-surface-raised/50 transition-colors">
-                                                <div>
-                                                    <span className="text-sm text-fg-muted">{employee.person_name}</span>
-                                                    {employee.exclusion_reason && <span className="text-xs text-warning/80 ml-2">{employee.exclusion_reason}</span>}
-                                                </div>
-                                                {isDraft && (
-                                                    <button
-                                                        onClick={() => act(() => payrollApi.runs.include(id, employee.person_id), `${employee.person_name} included`)}
-                                                        className="flex items-center gap-1 text-xs text-primary hover:text-primary transition-colors"
-                                                    >
-                                                        <UserPlus size={12} /> Include
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                description={`${run.period_start ? formatters.formatDate(run.period_start) : ''} – ${run.period_end ? formatters.formatDate(run.period_end) : ''} · Pay date ${formatters.formatDate(run.pay_date)}`}
+                status={<StatusChip status={run.status} />}
+                secondaryActions={secondaryActions}
+            >
+                <Stack gap="default">
+                    {isCancelled && (
+                        <Card name="run-cancelled">
+                            <Cluster gap="default" align="center">
+                                <Ban size={16} className="text-fg-subtle" />
+                                <span className="text-nb-body text-fg-muted">This run was cancelled. It is kept for audit only.</span>
+                            </Cluster>
+                        </Card>
                     )}
 
-                    {/* VALIDATE */}
-                    {shownStep === 'validate' && (
-                        <div className="space-y-3">
-                            <h3 className="text-sm font-semibold text-fg">Blocking Issues</h3>
-                            {alerts.filter(a => a.count > 0).length === 0 ? (
-                                <div className="flex items-center gap-2 px-4 py-3 bg-success/5 border border-success/30 rounded-nb">
-                                    <CheckCircle size={15} className="text-success" />
-                                    <span className="text-sm text-success">No blocking issues — this run is ready to calculate.</span>
-                                </div>
-                            ) : (
-                                alerts.filter(a => a.count > 0).map(alert => (
-                                    <div key={alert.key} className="flex items-center justify-between px-4 py-3 bg-warning/5 border border-warning/30 rounded-nb">
-                                        <div className="flex items-center gap-2">
-                                            <AlertTriangle size={14} className="text-warning" />
-                                            <span className="text-sm text-fg">{alert.label}</span>
-                                        </div>
-                                        <span className="text-xs text-warning">{alert.count} employee{alert.count === 1 ? '' : 's'}</span>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    )}
-
-                    {/* CALCULATE */}
-                    {shownStep === 'calculate' && (
-                        <div className="space-y-4">
-                            {run.status === 'calculating' ? (
-                                <div className="flex items-center gap-3 px-4 py-3 bg-primary/5 border border-primary/30 rounded-nb">
-                                    <RefreshCw size={15} className="text-primary animate-spin" />
-                                    <span className="text-sm text-primary">Calculating salaries… refresh to see progress.</span>
-                                    <button onClick={load} className="text-xs text-primary hover:text-primary ml-auto">Refresh</button>
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm text-fg-muted">
-                                        {run.calculated_at
-                                            ? `Last calculated ${formatters.formatDateTime(run.calculated_at)}.`
-                                            : 'Salaries have not been calculated yet.'}
-                                    </p>
-                                    {canCalculate && (
-                                        <button
-                                            onClick={() => act(() => payrollApi.runs.calculate(id), 'Calculation started')}
-                                            disabled={acting}
-                                            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
+                    {/* Stepper */}
+                    {!isCancelled && (
+                        <Card name="run-stepper">
+                            <Cluster gap="tight" align="center" wrap>
+                                {STEPS.map((step, index) => {
+                                    const isCompleted = currentIndex > index;
+                                    const isCurrent = currentIndex === index;
+                                    return (
+                                        <Button
+                                            key={step}
+                                            variant={shownStep === step ? 'secondary' : 'ghost'}
+                                            size="sm"
+                                            onClick={() => setActiveStep(step)}
+                                            aria-current={isCurrent ? 'step' : undefined}
                                         >
-                                            <Play size={14} /> {run.calculated_at ? 'Recalculate' : 'Calculate'}
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                            {errorRows.length > 0 && (
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-semibold text-danger uppercase tracking-wider">Calculation Errors ({errorRows.length})</h4>
-                                    {errorRows.map(employee => (
-                                        <div key={employee.id} className="px-4 py-2.5 bg-danger/5 border border-danger/30 rounded-nb">
-                                            <div className="text-sm text-fg">{employee.person_name}</div>
-                                            <div className="text-xs text-danger">{employee.error_detail || 'Unknown calculation error'}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                            {isCompleted ? <CheckCircle className="size-4" /> : <Circle className="size-4" />}
+                                            <span className={isCompleted || isCurrent ? 'text-primary' : 'text-fg-subtle'}>{STEP_LABELS[step]}</span>
+                                        </Button>
+                                    );
+                                })}
+                            </Cluster>
+                        </Card>
                     )}
 
-                    {/* REVIEW */}
-                    {shownStep === 'review' && (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-semibold text-fg">Employee Pay Review</h3>
-                                {canSubmitReview && (
-                                    <button
-                                        onClick={() => setConfirm({
-                                            title: 'Submit for Approval',
-                                            message: `Send run #${run.run_number} (${included.length} employees, net ${formatters.formatCurrency(run.net_total || 0)}) for approval?`,
-                                            confirmLabel: 'Submit for Approval',
-                                            onConfirm: () => act(() => payrollApi.runs.submitReview(id), 'Submitted for approval'),
-                                        })}
-                                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
-                                    >
-                                        Submit for Approval
-                                    </button>
-                                )}
-                            </div>
-                            <div className="border border-line rounded-nb overflow-hidden">
-                                <table className="w-full">
-                                    <thead className="bg-surface-raised/50 border-b border-line">
-                                        <tr>
-                                            <th className="px-4 py-2.5 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Employee</th>
-                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Gross</th>
-                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Deductions</th>
-                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Net</th>
-                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Employer Cost</th>
-                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">vs Last Run</th>
-                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-fg-muted uppercase tracking-wider" />
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-line">
-                                        {included.map(employee => {
-                                            const variance = employee.previous_net_pay != null && employee.net_pay != null
-                                                ? employee.net_pay - employee.previous_net_pay : null;
-                                            const isExpanded = expandedEmployeeId === employee.id;
-                                            return (
-                                                <React.Fragment key={employee.id}>
-                                                    <tr className="hover:bg-surface-raised/50 transition-colors">
-                                                        <td className="px-4 py-2.5">
-                                                            <div className="text-sm text-fg">{employee.person_name}</div>
-                                                            <div className="text-xs text-fg-subtle">{employee.department_name}</div>
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-right text-sm text-fg">{formatters.formatCurrency(employee.gross || 0)}</td>
-                                                        <td className="px-4 py-2.5 text-right text-sm text-fg">{formatters.formatCurrency(employee.total_deductions || 0)}</td>
-                                                        <td className="px-4 py-2.5 text-right text-sm font-medium text-fg">{formatters.formatCurrency(employee.net_pay || 0)}</td>
-                                                        <td className="px-4 py-2.5 text-right text-sm text-fg">{formatters.formatCurrency(employee.employer_cost || 0)}</td>
-                                                        <td className="px-4 py-2.5 text-right text-xs">
-                                                            {variance === null ? <span className="text-fg-subtle">—</span> : (
-                                                                <span className={variance >= 0 ? 'text-success' : 'text-danger'}>
-                                                                    {variance >= 0 ? '+' : ''}{formatters.formatCurrency(variance)}
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-right">
-                                                            <button
-                                                                onClick={() => toggleLines(employee)}
-                                                                aria-label={`Toggle component lines for ${employee.person_name}`}
-                                                                className="p-1 rounded text-fg-muted hover:text-fg hover:bg-surface-raised"
+                    {/* Step content */}
+                    {!isCancelled && (
+                        <Card name="run-step">
+                            <Stack gap="default">
+                                {/* PREPARE */}
+                                {shownStep === 'prepare' && (
+                                    <Stack gap="default">
+                                        <h3 className="text-nb-title text-fg">Included Employees ({included.length})</h3>
+                                        {included.length === 0 ? (
+                                            <p className="text-nb-body text-fg-muted">No employees are in this run yet. Employees join based on their payroll group.</p>
+                                        ) : (
+                                            <Stack gap="tight">
+                                                {included.map(employee => (
+                                                    <Cluster key={employee.id} gap="default" justify="between" align="center">
+                                                        <div>
+                                                            <span className="text-nb-body text-fg">{employee.person_name}</span>
+                                                            <span className="text-nb-caption text-fg-subtle ml-2">{[employee.employee_code, employee.department_name].filter(Boolean).join(' · ')}</span>
+                                                        </div>
+                                                        {isDraft && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setReasonPrompt({
+                                                                    title: `Exclude ${employee.person_name}`,
+                                                                    label: 'Why is this employee excluded from this run?',
+                                                                    onSubmit: reason => act(() => payrollApi.runs.exclude(id, employee.person_id, reason), `${employee.person_name} excluded`),
+                                                                })}
                                                             >
-                                                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                    {isExpanded && (
-                                                        <tr>
-                                                            <td colSpan={7} className="px-6 py-3 bg-surface-raised/30">
-                                                                {!employeeLines[employee.id] ? (
-                                                                    <div className="h-8 bg-surface-raised/60 rounded animate-pulse" />
-                                                                ) : (
-                                                                    <div className="space-y-1">
-                                                                        {employeeLines[employee.id].map(line => (
-                                                                            <div key={line.id} className="flex items-center justify-between text-xs">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <StatusChip status={line.kind} />
-                                                                                    <span className="text-fg">{line.component_name}</span>
-                                                                                </div>
-                                                                                <span className="text-fg">{formatters.formatCurrency(line.amount)}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </React.Fragment>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
+                                                                <UserMinus size={12} /> Exclude
+                                                            </Button>
+                                                        )}
+                                                    </Cluster>
+                                                ))}
+                                            </Stack>
+                                        )}
+                                        {excluded.length > 0 && (
+                                            <>
+                                                <h3 className="text-nb-title text-fg">Excluded Employees ({excluded.length})</h3>
+                                                <Stack gap="tight">
+                                                    {excluded.map(employee => (
+                                                        <Cluster key={employee.id} gap="default" justify="between" align="center">
+                                                            <div>
+                                                                <span className="text-nb-body text-fg-muted">{employee.person_name}</span>
+                                                                {employee.exclusion_reason && <span className="text-nb-caption text-warning ml-2">{employee.exclusion_reason}</span>}
+                                                            </div>
+                                                            {isDraft && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => act(() => payrollApi.runs.include(id, employee.person_id), `${employee.person_name} included`)}
+                                                                >
+                                                                    <UserPlus size={12} /> Include
+                                                                </Button>
+                                                            )}
+                                                        </Cluster>
+                                                    ))}
+                                                </Stack>
+                                            </>
+                                        )}
+                                    </Stack>
+                                )}
 
-                    {/* APPROVE */}
-                    {shownStep === 'approve' && (
-                        <div className="space-y-4 max-w-lg">
-                            <h3 className="text-sm font-semibold text-fg">Approval</h3>
-                            <TotalsCard run={run} formatCurrency={formatters.formatCurrency} />
-                            {canApprove ? (
-                                <button
-                                    onClick={() => setConfirm({
-                                        title: 'Approve Payroll Run',
-                                        message: `Approve run #${run.run_number}: ${run.employee_count || included.length} employees, net payout ${formatters.formatCurrency(run.net_total || 0)}. After approval, amounts can no longer be changed.`,
-                                        confirmLabel: 'Approve Run',
-                                        onConfirm: () => act(() => payrollApi.runs.approve(id), 'Run approved'),
-                                    })}
-                                    disabled={acting}
-                                    className="w-full px-4 py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
-                                >
-                                    Approve Run
-                                </button>
-                            ) : (
-                                <p className="text-sm text-fg-muted">
-                                    {currentIndex > 4 ? 'This run has been approved.' : 'Approval becomes available once the run is submitted for approval.'}
-                                </p>
-                            )}
-                        </div>
-                    )}
+                                {/* VALIDATE */}
+                                {shownStep === 'validate' && (
+                                    <Stack gap="tight">
+                                        <h3 className="text-nb-title text-fg">Blocking Issues</h3>
+                                        {alerts.filter(a => a.count > 0).length === 0 ? (
+                                            <Cluster gap="tight" align="center">
+                                                <CheckCircle size={15} className="text-success" />
+                                                <span className="text-nb-body text-success">No blocking issues — this run is ready to calculate.</span>
+                                            </Cluster>
+                                        ) : (
+                                            alerts.filter(a => a.count > 0).map(alert => (
+                                                <Cluster key={alert.key} gap="default" justify="between" align="center">
+                                                    <Cluster gap="tight" align="center">
+                                                        <AlertTriangle size={14} className="text-warning" />
+                                                        <span className="text-nb-body text-fg">{alert.label}</span>
+                                                    </Cluster>
+                                                    <span className="text-nb-caption text-warning">{alert.count} employee{alert.count === 1 ? '' : 's'}</span>
+                                                </Cluster>
+                                            ))
+                                        )}
+                                    </Stack>
+                                )}
 
-                    {/* PAY */}
-                    {shownStep === 'pay' && (
-                        <div className="space-y-4 max-w-lg">
-                            <h3 className="text-sm font-semibold text-fg">Payment</h3>
-                            <TotalsCard run={run} formatCurrency={formatters.formatCurrency} />
-                            {canMarkPaid ? (
-                                <button
-                                    onClick={() => setConfirm({
-                                        title: 'Mark Run as Paid',
-                                        message: `Confirm that ${formatters.formatCurrency(run.net_total || 0)} has been paid out to ${run.employee_count || included.length} employees for run #${run.run_number}.`,
-                                        confirmLabel: 'Mark as Paid',
-                                        onConfirm: () => act(() => payrollApi.runs.markPaid(id), 'Run marked as paid'),
-                                    })}
-                                    disabled={acting}
-                                    className="w-full px-4 py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
-                                >
-                                    Mark as Paid
-                                </button>
-                            ) : (
-                                <p className="text-sm text-fg-muted">
-                                    {currentIndex > 5 ? `Paid ${run.paid_at ? formatters.formatDateTime(run.paid_at) : ''}.` : 'Payment becomes available once the run is approved.'}
-                                </p>
-                            )}
-                        </div>
-                    )}
+                                {/* CALCULATE */}
+                                {shownStep === 'calculate' && (
+                                    <Stack gap="default">
+                                        {run.status === 'calculating' ? (
+                                            <Cluster gap="default" align="center">
+                                                <RefreshCw size={15} className="text-primary animate-spin" />
+                                                <span className="text-nb-body text-primary">Calculating salaries… refresh to see progress.</span>
+                                                <Button variant="ghost" size="sm" onClick={load}>Refresh</Button>
+                                            </Cluster>
+                                        ) : (
+                                            <Cluster gap="default" justify="between" align="center">
+                                                <p className="text-nb-body text-fg-muted">
+                                                    {run.calculated_at
+                                                        ? `Last calculated ${formatters.formatDateTime(run.calculated_at)}.`
+                                                        : 'Salaries have not been calculated yet.'}
+                                                </p>
+                                                {canCalculate && (
+                                                    <Button
+                                                        onClick={() => act(() => payrollApi.runs.calculate(id), 'Calculation started')}
+                                                        disabled={acting}
+                                                    >
+                                                        <Play size={14} /> {run.calculated_at ? 'Recalculate' : 'Calculate'}
+                                                    </Button>
+                                                )}
+                                            </Cluster>
+                                        )}
+                                        {errorRows.length > 0 && (
+                                            <Stack gap="tight">
+                                                <h4 className="text-nb-caption text-danger">Calculation Errors ({errorRows.length})</h4>
+                                                {errorRows.map(employee => (
+                                                    <div key={employee.id}>
+                                                        <div className="text-nb-body text-fg">{employee.person_name}</div>
+                                                        <div className="text-nb-caption text-danger">{employee.error_detail || 'Unknown calculation error'}</div>
+                                                    </div>
+                                                ))}
+                                            </Stack>
+                                        )}
+                                    </Stack>
+                                )}
 
-                    {/* CLOSE */}
-                    {shownStep === 'close' && (
-                        <div className="space-y-4 max-w-lg">
-                            <h3 className="text-sm font-semibold text-fg">Close Run</h3>
-                            {canClose && (
-                                <button
-                                    onClick={() => setConfirm({
-                                        title: 'Close Payroll Run',
-                                        message: `This will close run #${run.run_number} and generate ${run.employee_count || included.length} payslips. A closed run can never be modified again.`,
-                                        confirmLabel: 'Close Run',
-                                        onConfirm: () => act(() => payrollApi.runs.close(id), 'Run closed'),
-                                    })}
-                                    disabled={acting}
-                                    className="w-full px-4 py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
-                                >
-                                    Close Run
-                                </button>
-                            )}
-                            {isClosed && (
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between px-4 py-3 bg-surface-raised/50 border border-line-strong rounded-nb">
-                                        <span className="text-sm text-fg">Payslip generation</span>
-                                        <StatusChip status={run.payslips_generated ? 'posted' : 'pending'} label={run.payslips_generated ? 'Generated' : 'Pending'} />
-                                    </div>
-                                    <div className="flex items-center justify-between px-4 py-3 bg-surface-raised/50 border border-line-strong rounded-nb">
-                                        <span className="text-sm text-fg">Accounting posting</span>
-                                        <div className="flex items-center gap-2">
-                                            <StatusChip status={run.posting_status || 'not_posted'} />
-                                            {run.posting_status === 'failed' && (
-                                                <button
-                                                    onClick={() => act(() => payrollApi.runs.postToAccounting(id), 'Posting retried')}
-                                                    className="flex items-center gap-1 text-xs text-primary hover:text-primary transition-colors"
+                                {/* REVIEW */}
+                                {shownStep === 'review' && (
+                                    <Stack gap="default">
+                                        <Cluster gap="default" justify="between" align="center">
+                                            <h3 className="text-nb-title text-fg">Employee Pay Review</h3>
+                                            {canSubmitReview && (
+                                                <Button
+                                                    onClick={() => setConfirm({
+                                                        title: 'Submit for Approval',
+                                                        message: `Send run #${run.run_number} (${included.length} employees, net ${formatters.formatCurrency(run.net_total || 0)}) for approval?`,
+                                                        confirmLabel: 'Submit for Approval',
+                                                        onConfirm: () => act(() => payrollApi.runs.submitReview(id), 'Submitted for approval'),
+                                                    })}
                                                 >
-                                                    <RefreshCw size={12} /> Retry
-                                                </button>
+                                                    Submit for Approval
+                                                </Button>
                                             )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            {!canClose && !isClosed && (
-                                <p className="text-sm text-fg-muted">Closing becomes available once the run has been paid.</p>
-                            )}
-                        </div>
+                                        </Cluster>
+                                        <DataTable name="payroll-run-review" rows={included} columns={reviewColumns} rowKey={e => e.id} />
+                                    </Stack>
+                                )}
+
+                                {/* APPROVE */}
+                                {shownStep === 'approve' && (
+                                    <Stack gap="default">
+                                        <h3 className="text-nb-title text-fg">Approval</h3>
+                                        <TotalsCard run={run} formatCurrency={formatters.formatCurrency} />
+                                        {canApprove ? (
+                                            <Button
+                                                onClick={() => setConfirm({
+                                                    title: 'Approve Payroll Run',
+                                                    message: `Approve run #${run.run_number}: ${run.employee_count || included.length} employees, net payout ${formatters.formatCurrency(run.net_total || 0)}. After approval, amounts can no longer be changed.`,
+                                                    confirmLabel: 'Approve Run',
+                                                    onConfirm: () => act(() => payrollApi.runs.approve(id), 'Run approved'),
+                                                })}
+                                                disabled={acting}
+                                            >
+                                                Approve Run
+                                            </Button>
+                                        ) : (
+                                            <p className="text-nb-body text-fg-muted">
+                                                {currentIndex > 4 ? 'This run has been approved.' : 'Approval becomes available once the run is submitted for approval.'}
+                                            </p>
+                                        )}
+                                    </Stack>
+                                )}
+
+                                {/* PAY */}
+                                {shownStep === 'pay' && (
+                                    <Stack gap="default">
+                                        <h3 className="text-nb-title text-fg">Payment</h3>
+                                        <TotalsCard run={run} formatCurrency={formatters.formatCurrency} />
+                                        {canMarkPaid ? (
+                                            <Button
+                                                onClick={() => setConfirm({
+                                                    title: 'Mark Run as Paid',
+                                                    message: `Confirm that ${formatters.formatCurrency(run.net_total || 0)} has been paid out to ${run.employee_count || included.length} employees for run #${run.run_number}.`,
+                                                    confirmLabel: 'Mark as Paid',
+                                                    onConfirm: () => act(() => payrollApi.runs.markPaid(id), 'Run marked as paid'),
+                                                })}
+                                                disabled={acting}
+                                            >
+                                                Mark as Paid
+                                            </Button>
+                                        ) : (
+                                            <p className="text-nb-body text-fg-muted">
+                                                {currentIndex > 5 ? `Paid ${run.paid_at ? formatters.formatDateTime(run.paid_at) : ''}.` : 'Payment becomes available once the run is approved.'}
+                                            </p>
+                                        )}
+                                    </Stack>
+                                )}
+
+                                {/* CLOSE */}
+                                {shownStep === 'close' && (
+                                    <Stack gap="default">
+                                        <h3 className="text-nb-title text-fg">Close Run</h3>
+                                        {canClose && (
+                                            <Button
+                                                onClick={() => setConfirm({
+                                                    title: 'Close Payroll Run',
+                                                    message: `This will close run #${run.run_number} and generate ${run.employee_count || included.length} payslips. A closed run can never be modified again.`,
+                                                    confirmLabel: 'Close Run',
+                                                    onConfirm: () => act(() => payrollApi.runs.close(id), 'Run closed'),
+                                                })}
+                                                disabled={acting}
+                                            >
+                                                Close Run
+                                            </Button>
+                                        )}
+                                        {isClosed && (
+                                            <Stack gap="tight">
+                                                <Cluster gap="default" justify="between" align="center">
+                                                    <span className="text-nb-body text-fg">Payslip generation</span>
+                                                    <StatusChip status={run.payslips_generated ? 'posted' : 'pending'} label={run.payslips_generated ? 'Generated' : 'Pending'} />
+                                                </Cluster>
+                                                <Cluster gap="default" justify="between" align="center">
+                                                    <span className="text-nb-body text-fg">Accounting posting</span>
+                                                    <Cluster gap="tight" align="center">
+                                                        <StatusChip status={run.posting_status || 'not_posted'} />
+                                                        {run.posting_status === 'failed' && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => act(() => payrollApi.runs.postToAccounting(id), 'Posting retried')}
+                                                            >
+                                                                <RefreshCw size={12} /> Retry
+                                                            </Button>
+                                                        )}
+                                                    </Cluster>
+                                                </Cluster>
+                                            </Stack>
+                                        )}
+                                        {!canClose && !isClosed && (
+                                            <p className="text-nb-body text-fg-muted">Closing becomes available once the run has been paid.</p>
+                                        )}
+                                    </Stack>
+                                )}
+                            </Stack>
+                        </Card>
                     )}
-                </div>
-            )}
+                </Stack>
+            </DetailPageTemplate>
 
             {/* Confirmation dialog for irreversible steps */}
-            <Modal isOpen={!!confirm} onClose={() => setConfirm(null)} title={confirm?.title || ''} size="sm">
-                <div className="space-y-4">
-                    <p className="text-sm text-fg">{confirm?.message}</p>
-                    <div className="flex justify-end gap-3 pt-4 border-t border-line">
-                        <button onClick={() => setConfirm(null)} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
-                        <button
-                            onClick={() => confirm?.onConfirm()}
-                            disabled={acting}
-                            className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors"
-                        >
-                            {confirm?.confirmLabel}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+            <ConfirmDialog
+                open={!!confirm}
+                title={confirm?.title || ''}
+                message={confirm?.message}
+                confirmLabel={confirm?.confirmLabel}
+                onConfirm={() => confirm?.onConfirm()}
+                onCancel={() => setConfirm(null)}
+            />
 
             {/* Reason prompt (exclude / reopen) */}
-            <Modal isOpen={!!reasonPrompt} onClose={() => setReasonPrompt(null)} title={reasonPrompt?.title || ''} size="sm">
+            <Modal
+                open={!!reasonPrompt}
+                onClose={() => setReasonPrompt(null)}
+                title={reasonPrompt?.title || ''}
+                size="sm"
+                footer={<ReasonFooter busy={acting} onCancel={() => setReasonPrompt(null)} />}
+            >
                 <ReasonForm
                     label={reasonPrompt?.label || 'Reason'}
-                    onCancel={() => setReasonPrompt(null)}
                     onSubmit={reason => reasonPrompt?.onSubmit(reason)}
-                    busy={acting}
                 />
             </Modal>
-        </div>
+        </>
     );
 };
 
 const TotalsCard: React.FC<{ run: PayrollRun; formatCurrency: (v: number) => string }> = ({ run, formatCurrency }) => (
-    <div className="bg-surface-raised/50 border border-line-strong rounded-nb p-4 space-y-2">
-        {[
-            ['Employees', String(run.employee_count ?? 0)],
-            ['Gross Pay', formatCurrency(run.gross_total || 0)],
-            ['Deductions', formatCurrency(run.deduction_total || 0)],
-            ['Employer Contributions', formatCurrency(run.employer_contribution_total || 0)],
-            ['Net Payout', formatCurrency(run.net_total || 0)],
-            ['Total Employer Cost', formatCurrency(run.employer_cost_total || 0)],
-        ].map(([label, value]) => (
-            <div key={label} className="flex items-center justify-between text-sm">
-                <span className="text-fg-muted">{label}</span>
-                <span className="text-fg font-medium">{value}</span>
-            </div>
-        ))}
-    </div>
+    <Card name="run-totals">
+        <Stack gap="tight">
+            {[
+                ['Employees', String(run.employee_count ?? 0)],
+                ['Gross Pay', formatCurrency(run.gross_total || 0)],
+                ['Deductions', formatCurrency(run.deduction_total || 0)],
+                ['Employer Contributions', formatCurrency(run.employer_contribution_total || 0)],
+                ['Net Payout', formatCurrency(run.net_total || 0)],
+                ['Total Employer Cost', formatCurrency(run.employer_cost_total || 0)],
+            ].map(([label, value]) => (
+                <Cluster key={label} gap="default" justify="between" align="center">
+                    <span className="text-nb-body text-fg-muted">{label}</span>
+                    <span className="text-nb-body text-fg">{value}</span>
+                </Cluster>
+            ))}
+        </Stack>
+    </Card>
+);
+
+const REASON_FORM_ID = 'payroll-run-reason-form';
+
+// The submit button lives in the modal footer, so it needs the form's validity
+// from outside; ReasonForm reports it through a shared DOM form attribute.
+const ReasonFooter: React.FC<{ busy: boolean; onCancel: () => void }> = ({ busy, onCancel }) => (
+    <Cluster gap="default" justify="end">
+        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" form={REASON_FORM_ID} disabled={busy}>Confirm</Button>
+    </Cluster>
 );
 
 const ReasonForm: React.FC<{
     label: string;
-    busy: boolean;
-    onCancel: () => void;
     onSubmit: (reason: string) => void;
-}> = ({ label, busy, onCancel, onSubmit }) => {
+}> = ({ label, onSubmit }) => {
     const [reason, setReason] = useState('');
     return (
-        <form onSubmit={e => { e.preventDefault(); if (reason.trim()) onSubmit(reason.trim()); }} className="space-y-4">
-            <div>
-                <label className="block text-xs text-fg-muted mb-1">{label} *</label>
-                <textarea
-                    required
-                    value={reason}
-                    onChange={e => setReason(e.target.value)}
-                    rows={2}
-                    className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
-                />
-            </div>
-            <div className="flex justify-end gap-3 pt-4 border-t border-line">
-                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
-                <button type="submit" disabled={busy || !reason.trim()} className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors">
-                    Confirm
-                </button>
-            </div>
+        <form id={REASON_FORM_ID} onSubmit={e => { e.preventDefault(); if (reason.trim()) onSubmit(reason.trim()); }}>
+            <Textarea
+                name="reason"
+                label={label}
+                required
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                rows={2}
+            />
         </form>
     );
 };

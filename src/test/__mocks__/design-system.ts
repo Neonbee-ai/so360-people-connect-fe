@@ -1,6 +1,6 @@
 import React from 'react';
-export const Button = (props: any) => props;
-export const Input = (props: any) => props;
+// Rendering stand-ins for Comb primitives/floorplans (Button, TextField, Card, ListPageTemplate, ...).
+export * from './design-system.comb';
 // Select mirrors Comb Select: label + native <select> built from `options`.
 export const Select = ({ label, name, options = [], placeholder, hint, error, required, size, children, ...rest }: any) =>
   React.createElement(
@@ -13,6 +13,7 @@ export const Select = ({ label, name, options = [], placeholder, hint, error, re
       placeholder ? React.createElement('option', { value: '' }, placeholder) : null,
       ...options.map((o: any) => React.createElement('option', { key: o.value, value: o.value, disabled: o.disabled }, o.label)),
     ),
+    hint ? React.createElement('p', null, hint) : null,
     error ? React.createElement('p', null, error) : null,
   );
 // Modal mirrors Comb Modal: renders only when open, dialog labelled by title, Close button.
@@ -45,13 +46,7 @@ export const useConfirm = (): [(opts: any) => Promise<boolean>, any] => {
     : null;
   return [confirm, el];
 };
-export const Card = (props: any) => props;
-export const Badge = (props: any) => props;
-export const Spinner = (props: any) => props;
-export const Tooltip = (props: any) => props;
 export const QuotaGate = ({ children }: any) => React.createElement(React.Fragment, null, children);
-export const QuotaBar = () => null;
-export const Pagination = () => null;
 
 // 5-state feature route, mirroring the real contract: enabled (and while
 // loading — fail-open) renders children; locked/disabled/hidden render their
@@ -98,7 +93,7 @@ export const Drawer = ({ isOpen, onClose, title, subtitle, footer, onBack, child
 
 // Real <table> so cell content, custom renderers, and empty/loading branches
 // are observable in specs.
-export const DataTable = ({ columns, rows, rowKey, loading, emptyState, onRowClick }: any) => {
+export const DataTable = ({ columns, rows, rowKey, loading, emptyState, onRowClick, rowActions }: any) => {
   if (loading) return React.createElement('div', { 'data-testid': 'datatable-loading' });
   if (!rows || rows.length === 0) return emptyState ?? null;
   return React.createElement(
@@ -111,6 +106,7 @@ export const DataTable = ({ columns, rows, rowKey, loading, emptyState, onRowCli
         'tr',
         null,
         columns.map((c: any) => React.createElement('th', { key: c.key }, c.header)),
+        rowActions ? React.createElement('th', { key: '__actions' }) : null,
       ),
     ),
     React.createElement(
@@ -123,6 +119,15 @@ export const DataTable = ({ columns, rows, rowKey, loading, emptyState, onRowCli
           columns.map((c: any) =>
             React.createElement('td', { key: c.key }, c.render ? c.render(row) : String(row[c.key] ?? '—')),
           ),
+          rowActions
+            ? React.createElement(
+                'td',
+                { key: '__actions', onClick: (e: any) => e.stopPropagation() },
+                rowActions(row).map((it: any) =>
+                  React.createElement('button', { key: it.label, type: 'button', disabled: it.disabled, onClick: it.onSelect }, it.label),
+                ),
+              )
+            : null,
         ),
       ),
     ),

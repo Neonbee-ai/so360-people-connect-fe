@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { CheckCircle, AlertTriangle, X } from 'lucide-react';
+import { IconButton } from '@so360/design-system';
 
 /**
  * Inline toast.
@@ -36,13 +37,11 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, autoCloseMs = 400
         <div
             role="status"
             aria-live="polite"
-            className={`fixed bottom-6 right-6 z-50 flex items-start gap-2.5 rounded-nb border px-4 py-3 text-sm shadow-lg ${STYLES[type]}`}
+            className={`fixed bottom-nb-6 right-nb-6 z-50 flex items-start gap-nb-2 rounded-nb border px-nb-4 py-nb-3 text-nb-sm shadow-lg ${STYLES[type]}`}
         >
             <Icon size={16} className="mt-0.5 shrink-0" />
             <span className="max-w-xs">{message}</span>
-            <button onClick={onClose} aria-label="Dismiss" className="ml-1 shrink-0 opacity-70 hover:opacity-100">
-                <X size={14} />
-            </button>
+            <IconButton label="Dismiss" size="sm" icon={<X size={14} />} onClick={onClose} />
         </div>
     );
 };

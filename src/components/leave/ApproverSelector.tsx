@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Search, Check, X, Star } from 'lucide-react';
+import { Check, X, Star } from 'lucide-react';
+import { Badge, Button, IconButton, SearchInput, Stack, Cluster } from '@so360/design-system';
 import { leaveRequestsApi, type EligibleApprover } from '../../services/leaveRequestsService';
 
 interface ApproverSelectorProps {
@@ -109,61 +110,49 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
   const selectedPeople = value.map(id => known[id]).filter(Boolean) as EligibleApprover[];
 
   return (
-    <div>
-      <label className="mb-1 block text-xs text-fg-muted">{label}</label>
+    <Stack gap="tight">
+      <span className="text-nb-caption text-fg-muted">{label}</span>
 
       {selectedPeople.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-1.5">
+        <Cluster gap="tight">
           {selectedPeople.map(p => (
-            <span
-              key={p.id}
-              className="inline-flex items-center gap-1.5 rounded-nb-sm border border-primary/25 bg-primary/10 py-1 pl-2 pr-1 text-xs text-primary"
-            >
+            <Badge key={p.id} tone="primary">
               {p.full_name}
               {!disabled && (
-                <button
-                  type="button"
+                <IconButton
+                  label={`Remove ${p.full_name}`}
+                  size="sm"
+                  variant="ghost"
                   onClick={() => toggle(p.id)}
-                  aria-label={`Remove ${p.full_name}`}
-                  className="rounded p-0.5 text-primary/70 transition-colors hover:bg-primary-hover/20 hover:text-primary"
-                >
-                  <X size={12} />
-                </button>
+                  icon={<X size={12} />}
+                />
               )}
-            </span>
+            </Badge>
           ))}
-        </div>
+        </Cluster>
       )}
 
-      <div className="relative">
-        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
-        <input
-          type="search"
-          value={search}
-          disabled={disabled}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search manager or employee…"
-          aria-label="Search approvers"
-          className="w-full rounded-nb border border-line-strong bg-surface-raised py-2 pl-9 pr-3 text-sm text-fg focus:border-primary focus:outline-none disabled:opacity-50"
-        />
-      </div>
+      <SearchInput
+        name="approver-search"
+        value={search}
+        disabled={disabled}
+        onChange={setSearch}
+        placeholder="Search manager or employee…"
+        aria-label="Search approvers"
+      />
 
-      <div className="mt-2 max-h-48 overflow-y-auto rounded-nb border border-line-strong bg-surface-raised">
+      <div className="max-h-48 overflow-y-auto rounded-nb border border-line-strong bg-surface-raised">
         {loading ? (
-          <p className="px-3 py-3 text-xs text-fg-subtle">Loading people…</p>
+          <p className="p-nb-3 text-nb-caption text-fg-subtle">Loading people…</p>
         ) : error ? (
-          <div className="px-3 py-3">
-            <p className="text-xs text-danger">{error}</p>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="mt-1 text-xs font-medium text-primary hover:text-primary"
-            >
+          <div className="p-nb-3">
+            <p className="text-nb-caption text-danger">{error}</p>
+            <Button type="button" variant="ghost" size="sm" onClick={() => void load()}>
               Retry
-            </button>
+            </Button>
           </div>
         ) : results.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-fg-subtle">
+          <p className="p-nb-3 text-nb-caption text-fg-subtle">
             {debounced ? 'No matching people' : 'No eligible approvers found.'}
           </p>
         ) : (
@@ -175,20 +164,20 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
                 key={p.id}
                 disabled={disabled}
                 onClick={() => toggle(p.id)}
-                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-line/50 disabled:cursor-not-allowed ${selected ? 'bg-primary/10' : ''}`}
+                className={`flex w-full items-center gap-nb-3 p-nb-3 text-left text-nb-body transition-colors hover:bg-line/50 disabled:cursor-not-allowed ${selected ? 'bg-primary/10' : ''}`}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-nb-2">
                     <span className="truncate text-fg">{p.full_name}</span>
                     {p.is_suggested && (
-                      <span className="inline-flex shrink-0 items-center gap-0.5 rounded border border-primary/25 px-1 py-px text-[10px] text-primary">
+                      <Badge tone="primary" size="sm">
                         <Star size={9} />
                         Your manager
-                      </span>
+                      </Badge>
                     )}
                   </span>
                   {(p.job_title || p.department_name) && (
-                    <span className="block truncate text-xs text-fg-subtle">
+                    <span className="block truncate text-nb-caption text-fg-subtle">
                       {[p.job_title, p.department_name].filter(Boolean).join(' · ')}
                     </span>
                   )}
@@ -200,12 +189,12 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
         )}
       </div>
 
-      <p className="mt-1.5 text-xs text-fg-subtle">
+      <p className="text-nb-caption text-fg-subtle">
         {value.length > 0
           ? `All ${value.length} selected approver${value.length === 1 ? '' : 's'} must approve before the leave is granted.`
           : helpText}
       </p>
-    </div>
+    </Stack>
   );
 };
 

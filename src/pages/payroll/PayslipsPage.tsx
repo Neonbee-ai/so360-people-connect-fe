@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Receipt, FileDown } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, Button, IconButton, ListPageTemplate, DataTable, DateInput, Modal, Stack, Cluster, Card } from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
-import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import Modal from '../../components/Modal';
 import StatusChip from '../../components/payroll/StatusChip';
 import PersonPicker, { PickablePerson } from '../../components/PersonPicker';
 import { payrollApi, Payslip } from '../../services/payrollApi';
@@ -67,74 +66,63 @@ const PayslipsPage: React.FC = () => {
         }
     };
 
+    const columns: DataTableColumn<Payslip>[] = [
+        { key: 'payslip_number', header: 'Payslip #', render: p => <span className="text-fg">{p.payslip_number}</span> },
+        { key: 'person_name', header: 'Employee', render: p => <span className="text-fg">{p.person_name || '—'}</span> },
+        {
+            key: 'period',
+            header: 'Period',
+            render: p => (
+                <span className="text-fg-muted">
+                    {formatters.formatDate(p.period_start)} – {formatters.formatDate(p.period_end)}
+                </span>
+            ),
+        },
+        { key: 'net_pay', header: 'Net Pay', align: 'right', render: p => <span className="text-fg">{formatters.formatCurrency(p.net_pay)}</span> },
+        { key: 'visibility', header: 'Visibility', align: 'center', render: p => <StatusChip status={p.visibility || 'published'} /> },
+        {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: p => (
+                <Cluster gap="tight" align="center" justify="end">
+                    <Button variant="ghost" size="sm" onClick={() => openPayslip(p)}>View</Button>
+                    <IconButton icon={<FileDown size={14} />} label={`Download ${p.payslip_number}`} onClick={() => download(p)} />
+                </Cluster>
+            ),
+        },
+    ];
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader title="Payslips" subtitle="All generated payslips across pay runs" />
-
-            {/* Filters */}
-            <div className="flex items-end gap-3">
-                <div className="w-64">
-                    <label className="block text-xs text-fg-muted mb-1">Employee</label>
-                    <PersonPicker options={people} value={personId} onChange={id => setPersonId(id)} placeholder="All employees" emptyMessage="No people available" />
-                </div>
-                <div>
-                    <label className="block text-xs text-fg-muted mb-1">From</label>
-                    <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary" />
-                </div>
-                <div>
-                    <label className="block text-xs text-fg-muted mb-1">To</label>
-                    <input type="date" value={to} onChange={e => setTo(e.target.value)} className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary" />
-                </div>
-            </div>
-
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-surface-raised/50 rounded-nb animate-pulse" />)}
-                </div>
-            ) : payslips.length === 0 ? (
-                <EmptyState
-                    icon={Receipt}
-                    title="No payslips"
-                    description="Payslips appear here after a payroll run is closed."
-                />
-            ) : (
-                <div className="bg-surface border border-line rounded-nb overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-surface-raised/50 border-b border-line">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Payslip #</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Employee</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Period</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Net Pay</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Visibility</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-line">
-                            {payslips.map(payslip => (
-                                <tr key={payslip.id} className="hover:bg-surface-raised/50 transition-colors">
-                                    <td className="px-4 py-3 text-sm font-medium text-fg">{payslip.payslip_number}</td>
-                                    <td className="px-4 py-3 text-sm text-fg">{payslip.person_name || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-fg-muted">
-                                        {formatters.formatDate(payslip.period_start)} – {formatters.formatDate(payslip.period_end)}
-                                    </td>
-                                    <td className="px-4 py-3 text-right text-sm text-fg">{formatters.formatCurrency(payslip.net_pay)}</td>
-                                    <td className="px-4 py-3 text-center"><StatusChip status={payslip.visibility || 'published'} /></td>
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="inline-flex items-center gap-3">
-                                            <button onClick={() => openPayslip(payslip)} className="text-xs text-primary hover:text-primary transition-colors">View</button>
-                                            <button onClick={() => download(payslip)} aria-label={`Download ${payslip.payslip_number}`} className="text-fg-muted hover:text-fg transition-colors"><FileDown size={14} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+        <>
+            <ListPageTemplate
+                title="Payslips"
+                description="All generated payslips across pay runs"
+                loading={loading}
+                isEmpty={payslips.length === 0}
+                filters={
+                    <Cluster gap="default" align="end" wrap>
+                        <Stack gap="tight">
+                            <span className="text-nb-caption text-fg-muted">Employee</span>
+                            <PersonPicker options={people} value={personId} onChange={id => setPersonId(id)} placeholder="All employees" emptyMessage="No people available" />
+                        </Stack>
+                        <DateInput name="from" label="From" value={from} onChange={setFrom} />
+                        <DateInput name="to" label="To" value={to} onChange={setTo} />
+                    </Cluster>
+                }
+                empty={
+                    <EmptyState
+                        icon={Receipt}
+                        title="No payslips"
+                        description="Payslips appear here after a payroll run is closed."
+                    />
+                }
+            >
+                <DataTable name="payslips" columns={columns} rows={payslips} rowKey={p => p.id} />
+            </ListPageTemplate>
 
             <PayslipViewModal payslip={viewing} onClose={() => setViewing(null)} formatCurrency={formatters.formatCurrency} formatDate={formatters.formatDate} />
-        </div>
+        </>
     );
 };
 
@@ -145,36 +133,38 @@ export const PayslipViewModal: React.FC<{
     formatCurrency: (v: number) => string;
     formatDate: (d: string) => string;
 }> = ({ payslip, onClose, formatCurrency, formatDate }) => (
-    <Modal isOpen={!!payslip} onClose={onClose} title={payslip ? `Payslip ${payslip.payslip_number}` : ''} size="lg">
+    <Modal open={!!payslip} onClose={onClose} title={payslip ? `Payslip ${payslip.payslip_number}` : ''} size="lg">
         {payslip && (
-            <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-fg-muted">
+            <Stack gap="default">
+                <Cluster gap="default" justify="between" align="center">
+                    <span className="text-nb-body text-fg-muted">
                         {formatDate(payslip.period_start)} – {formatDate(payslip.period_end)}
                     </span>
-                    {payslip.person_name && <span className="text-fg">{payslip.person_name}</span>}
-                </div>
+                    {payslip.person_name && <span className="text-nb-body text-fg">{payslip.person_name}</span>}
+                </Cluster>
                 {payslip.lines && payslip.lines.length > 0 && (
-                    <div className="border border-line rounded-nb overflow-hidden">
-                        <table className="w-full">
-                            <tbody className="divide-y divide-line">
-                                {payslip.lines.map(line => (
-                                    <tr key={line.id || line.component_code}>
-                                        <td className="px-4 py-2"><StatusChip status={line.kind} /></td>
-                                        <td className="px-4 py-2 text-sm text-fg">{line.component_name}</td>
-                                        <td className="px-4 py-2 text-right text-sm text-fg">{formatCurrency(line.amount)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <Card padding="sm">
+                        <Stack gap="tight">
+                            {payslip.lines.map(line => (
+                                <Cluster key={line.id || line.component_code} gap="default" justify="between" align="center">
+                                    <Cluster gap="default" align="center">
+                                        <StatusChip status={line.kind} />
+                                        <span className="text-nb-body text-fg">{line.component_name}</span>
+                                    </Cluster>
+                                    <span className="text-nb-body text-fg">{formatCurrency(line.amount)}</span>
+                                </Cluster>
+                            ))}
+                        </Stack>
+                    </Card>
                 )}
-                <div className="bg-surface-raised/50 border border-line-strong rounded-nb p-4 space-y-2">
-                    <div className="flex justify-between text-sm"><span className="text-fg-muted">Gross</span><span className="text-fg">{formatCurrency(payslip.gross)}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-fg-muted">Deductions</span><span className="text-fg">{formatCurrency(payslip.total_deductions)}</span></div>
-                    <div className="flex justify-between text-sm font-semibold"><span className="text-fg">Net Pay</span><span className="text-primary">{formatCurrency(payslip.net_pay)}</span></div>
-                </div>
-            </div>
+                <Card padding="md">
+                    <Stack gap="tight">
+                        <Cluster gap="default" justify="between"><span className="text-nb-body text-fg-muted">Gross</span><span className="text-nb-body text-fg">{formatCurrency(payslip.gross)}</span></Cluster>
+                        <Cluster gap="default" justify="between"><span className="text-nb-body text-fg-muted">Deductions</span><span className="text-nb-body text-fg">{formatCurrency(payslip.total_deductions)}</span></Cluster>
+                        <Cluster gap="default" justify="between"><span className="text-nb-body text-fg">Net Pay</span><span className="text-nb-body text-primary">{formatCurrency(payslip.net_pay)}</span></Cluster>
+                    </Stack>
+                </Card>
+            </Stack>
         )}
     </Modal>
 );

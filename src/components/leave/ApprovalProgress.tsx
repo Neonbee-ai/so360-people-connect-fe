@@ -53,20 +53,20 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
   const rejected = approvals.find(a => a.status === 'rejected');
 
   return (
-    <div className="rounded-nb border border-line-strong bg-surface-raised/50 p-3">
-      <div className="mb-2.5 flex items-center justify-between gap-3">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-fg-muted">
+    <div className="rounded-nb border border-line-strong bg-surface-raised/50 p-nb-3">
+      <div className="mb-nb-3 flex items-center justify-between gap-nb-3">
+        <h4 className="text-nb-label text-fg-muted">
           Approval Progress
         </h4>
-        <span className={`text-xs font-medium ${rejected ? 'text-danger' : 'text-fg-muted'}`}>
+        <span className={`text-nb-caption font-medium ${rejected ? 'text-danger' : 'text-fg-muted'}`}>
           {rejected ? 'Rejected' : `${approved} of ${total} approved`}
         </span>
       </div>
 
-      <ol className="space-y-2">
+      <ol className="flex flex-col gap-nb-2">
         {submittedAt && (
-          <li className="flex items-start gap-2.5 text-sm">
-            <span className="mt-0.5 shrink-0 text-fg-subtle">
+          <li className="flex items-start gap-nb-2 text-nb-body">
+            <span className="mt-nb-1 shrink-0 text-fg-subtle">
               <Check size={14} />
             </span>
             <span className="min-w-0 flex-1">
@@ -74,7 +74,7 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
                 Submitted{submittedByName ? ` by ${submittedByName}` : ''}
               </span>
               {fmt(submittedAt) && (
-                <span className="block text-xs text-fg-subtle">{fmt(submittedAt)}</span>
+                <span className="block text-nb-caption text-fg-subtle">{fmt(submittedAt)}</span>
               )}
             </span>
           </li>
@@ -85,23 +85,23 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
           const Icon = meta.icon;
           const name = a.approver?.full_name ?? 'Unknown approver';
           return (
-            <li key={a.id} className="flex items-start gap-2.5 text-sm">
-              <span className={`mt-0.5 shrink-0 ${meta.className}`}>
+            <li key={a.id} className="flex items-start gap-nb-2 text-nb-body">
+              <span className={`mt-nb-1 shrink-0 ${meta.className}`}>
                 <Icon size={14} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-x-2">
+                <span className="flex flex-wrap items-center gap-x-nb-2">
                   <span className="text-fg">{name}</span>
-                  <span className={`text-xs ${meta.className}`}>{meta.label}</span>
+                  <span className={`text-nb-caption ${meta.className}`}>{meta.label}</span>
                 </span>
                 {a.approver?.job_title && (
-                  <span className="block text-xs text-fg-subtle">{a.approver.job_title}</span>
+                  <span className="block text-nb-caption text-fg-subtle">{a.approver.job_title}</span>
                 )}
                 {a.responded_at && fmt(a.responded_at) && (
-                  <span className="block text-xs text-fg-subtle">{fmt(a.responded_at)}</span>
+                  <span className="block text-nb-caption text-fg-subtle">{fmt(a.responded_at)}</span>
                 )}
                 {a.decision_notes && (
-                  <span className="mt-1 block rounded border border-line-strong bg-surface/60 px-2 py-1 text-xs text-fg-muted">
+                  <span className="mt-nb-1 block rounded border border-line-strong bg-surface/60 px-nb-2 py-nb-1 text-nb-caption text-fg-muted">
                     {a.decision_notes}
                   </span>
                 )}

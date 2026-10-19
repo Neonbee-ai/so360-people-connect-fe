@@ -1,14 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ClipboardCheck, X, Check, RotateCcw } from 'lucide-react';
-import { toast, Select } from '@so360/design-system';
+import { toast, Select, Button, IconButton, Card, Drawer, Stack, Cluster, TextField, Textarea, DataTable, ListPageTemplate } from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
-import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import StatusChip from '../../components/payroll/StatusChip';
 import { payrollApi, TaxDeclaration, DeclarationStatus } from '../../services/payrollApi';
-
-const inputCls = 'px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const STATUS_OPTIONS: DeclarationStatus[] = ['submitted', 'under_review', 'approved', 'rejected', 'reopened', 'draft'];
 
@@ -47,62 +45,40 @@ const TaxDeclarationsPage: React.FC = () => {
         }
     };
 
+    const columns: DataTableColumn<TaxDeclaration>[] = [
+        { key: 'person', header: 'Employee', render: d => d.person_name || d.person_id },
+        { key: 'fiscal_year', header: 'Fiscal Year', render: d => d.fiscal_year },
+        { key: 'regime', header: 'Regime', align: 'center', render: d => <span className="uppercase">{d.regime}</span> },
+        { key: 'declared', header: 'Declared', align: 'right', render: d => formatters.formatCurrency(d.total_declared || 0) },
+        { key: 'status', header: 'Status', align: 'center', render: d => <StatusChip status={d.status} /> },
+        { key: 'actions', header: 'Actions', align: 'right', render: d => <Button variant="ghost" size="sm" onClick={() => openDetail(d)}>Review</Button> },
+    ];
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader title="Tax Declarations" subtitle="Review employee investment declarations" />
-
-            {/* Filters */}
-            <div className="flex items-end gap-3">
-                <div>
-                    <label className="block text-xs text-fg-muted mb-1">Fiscal Year</label>
-                    <input type="text" value={fiscalYear} onChange={e => setFiscalYear(e.target.value)} placeholder="2026-27" className={inputCls} />
-                </div>
-                <div>
-                    <label className="block text-xs text-fg-muted mb-1">Status</label>
-                    <Select name="taxdeclarations-select-91" value={status} onChange={e => setStatus(e.target.value)} options={[{ value: "", label: "All statuses" }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))]} />
-                </div>
-            </div>
-
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-surface-raised/50 rounded-nb animate-pulse" />)}
-                </div>
-            ) : declarations.length === 0 ? (
-                <EmptyState
-                    icon={ClipboardCheck}
-                    title="No tax declarations"
-                    description="Employee declarations appear here once submitted from their self-service portal."
-                />
-            ) : (
-                <div className="bg-surface border border-line rounded-nb overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-surface-raised/50 border-b border-line">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Employee</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Fiscal Year</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Regime</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Declared</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-line">
-                            {declarations.map(declaration => (
-                                <tr key={declaration.id} className="hover:bg-surface-raised/50 transition-colors">
-                                    <td className="px-4 py-3 text-sm font-medium text-fg">{declaration.person_name || declaration.person_id}</td>
-                                    <td className="px-4 py-3 text-sm text-fg-muted">{declaration.fiscal_year}</td>
-                                    <td className="px-4 py-3 text-center text-sm text-fg-muted uppercase">{declaration.regime}</td>
-                                    <td className="px-4 py-3 text-right text-sm text-fg">{formatters.formatCurrency(declaration.total_declared || 0)}</td>
-                                    <td className="px-4 py-3 text-center"><StatusChip status={declaration.status} /></td>
-                                    <td className="px-4 py-3 text-right">
-                                        <button onClick={() => openDetail(declaration)} className="text-xs text-primary hover:text-primary transition-colors">Review</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+        <>
+            <ListPageTemplate
+                title="Tax Declarations"
+                description="Review employee investment declarations"
+                filters={
+                    <Cluster gap="default" align="end">
+                        <TextField name="fiscal_year" label="Fiscal Year" value={fiscalYear} onChange={e => setFiscalYear(e.target.value)} placeholder="2026-27" />
+                        <Select name="taxdeclarations-select-91" label="Status" value={status} onChange={e => setStatus(e.target.value)} options={[{ value: "", label: "All statuses" }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))]} />
+                    </Cluster>
+                }
+                loading={loading}
+                isEmpty={!loading && declarations.length === 0}
+                empty={
+                    <EmptyState
+                        icon={ClipboardCheck}
+                        title="No tax declarations"
+                        description="Employee declarations appear here once submitted from their self-service portal."
+                    />
+                }
+            >
+                {!loading && declarations.length > 0 && (
+                    <DataTable name="tax-declarations" rows={declarations} columns={columns} rowKey={d => d.id} />
+                )}
+            </ListPageTemplate>
 
             <DeclarationReviewDrawer
                 declaration={selected}
@@ -110,7 +86,7 @@ const TaxDeclarationsPage: React.FC = () => {
                 onChanged={() => { setSelected(null); load(); }}
                 formatCurrency={formatters.formatCurrency}
             />
-        </div>
+        </>
     );
 };
 
@@ -162,75 +138,63 @@ const DeclarationReviewDrawer: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 z-[600] flex justify-end">
-            <div className="fixed inset-0 bg-overlay/60 backdrop-blur-sm" onClick={onClose} />
-            <div role="dialog" aria-modal="true" aria-label="Tax declaration review" className="relative w-full max-w-lg h-full bg-surface border-l border-line shadow-2xl overflow-y-auto">
-                <div className="sticky top-0 bg-surface border-b border-line px-5 py-4 flex items-center justify-between z-10">
-                    <div>
-                        <h2 className="text-base font-semibold text-fg">{declaration.person_name || 'Declaration'}</h2>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-fg-muted">FY {declaration.fiscal_year}</span>
-                            <span className="text-xs text-fg-muted uppercase">{declaration.regime} regime</span>
-                            <StatusChip status={declaration.status} />
-                        </div>
-                    </div>
-                    <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-nb text-fg-muted hover:text-fg hover:bg-surface-raised transition-colors">
-                        <X size={18} />
-                    </button>
-                </div>
+        <Drawer
+            isOpen
+            onClose={onClose}
+            title={declaration.person_name || 'Declaration'}
+            subtitle={`FY ${declaration.fiscal_year}`}
+            size="md"
+            footer={
+                <Cluster gap="tight" justify="end">
+                    <Button onClick={() => decide('approve')} disabled={busy}><Check size={14} /> Approve</Button>
+                    <Button variant="danger" onClick={() => decide('reject')} disabled={busy}><X size={14} /> Reject</Button>
+                    <Button variant="secondary" onClick={() => decide('reopen')} disabled={busy}><RotateCcw size={14} /> Reopen</Button>
+                </Cluster>
+            }
+        >
+            <Stack gap="default">
+                <Cluster gap="tight" align="center">
+                    <span className="text-nb-caption text-fg-muted uppercase">{declaration.regime} regime</span>
+                    <StatusChip status={declaration.status} />
+                </Cluster>
 
-                <div className="p-5 space-y-4">
-                    {(declaration.items || []).length === 0 ? (
-                        <p className="text-sm text-fg-muted">No declaration items.</p>
-                    ) : (
-                        (declaration.items || []).map(item => (
-                            <div key={item.id} className="bg-surface-raised/50 border border-line-strong rounded-nb p-4 space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-semibold text-fg-muted uppercase tracking-wider">{item.category}</span>
+                {(declaration.items || []).length === 0 ? (
+                    <p className="text-nb-body text-fg-muted">No declaration items.</p>
+                ) : (
+                    (declaration.items || []).map(item => (
+                        <Card key={item.id} name={`declaration-item-${item.id}`}>
+                            <Stack gap="tight">
+                                <Cluster gap="default" justify="between" align="center">
+                                    <span className="text-nb-caption text-fg-muted">{item.category}</span>
                                     {item.status && <StatusChip status={item.status} />}
-                                </div>
-                                {item.description && <p className="text-sm text-fg">{item.description}</p>}
-                                <div className="flex items-center justify-between text-sm">
+                                </Cluster>
+                                {item.description && <p className="text-nb-body text-fg">{item.description}</p>}
+                                <Cluster gap="default" justify="between" align="center">
                                     <span className="text-fg-muted">Declared</span>
                                     <span className="text-fg">{formatCurrency(item.declared_amount)}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input
+                                </Cluster>
+                                <Cluster gap="tight" align="center">
+                                    <TextField
+                                        name={`approved-amount-${item.id}`}
                                         type="number"
                                         min={0}
                                         step="0.01"
                                         placeholder={`Approved amount (default ${item.declared_amount})`}
                                         value={approvedAmounts[item.id || ''] ?? (item.approved_amount != null ? String(item.approved_amount) : '')}
                                         onChange={e => setApprovedAmounts(prev => ({ ...prev, [item.id || '']: e.target.value }))}
-                                        className="flex-1 px-3 py-1.5 bg-surface-raised border border-line-strong rounded-nb text-xs text-fg focus:outline-none focus:border-primary"
                                         aria-label={`Approved amount for ${item.category}`}
                                     />
-                                    <button onClick={() => item.id && reviewItem(item.id, 'approved')} disabled={busy} aria-label={`Approve ${item.category}`} className="p-1.5 rounded-nb bg-success/10 text-success hover:bg-success/20 transition-colors"><Check size={14} /></button>
-                                    <button onClick={() => item.id && reviewItem(item.id, 'rejected')} disabled={busy} aria-label={`Reject ${item.category}`} className="p-1.5 rounded-nb bg-danger/10 text-danger hover:bg-danger-hover/20 transition-colors"><X size={14} /></button>
-                                </div>
-                            </div>
-                        ))
-                    )}
+                                    <IconButton icon={<Check size={14} />} label={`Approve ${item.category}`} hideTooltip disabled={busy} onClick={() => item.id && reviewItem(item.id, 'approved')} />
+                                    <IconButton icon={<X size={14} />} label={`Reject ${item.category}`} hideTooltip variant="danger" disabled={busy} onClick={() => item.id && reviewItem(item.id, 'rejected')} />
+                                </Cluster>
+                            </Stack>
+                        </Card>
+                    ))
+                )}
 
-                    <div>
-                        <label className="block text-xs text-fg-muted mb-1">Review Notes</label>
-                        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary" />
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-2 border-t border-line">
-                        <button onClick={() => decide('approve')} disabled={busy} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-fg text-sm font-medium rounded-nb transition-colors">
-                            <Check size={14} /> Approve
-                        </button>
-                        <button onClick={() => decide('reject')} disabled={busy} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-danger/10 hover:bg-danger-hover/20 border border-danger/30 disabled:opacity-50 text-danger text-sm font-medium rounded-nb transition-colors">
-                            <X size={14} /> Reject
-                        </button>
-                        <button onClick={() => decide('reopen')} disabled={busy} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-surface-raised hover:bg-line border border-line-strong disabled:opacity-50 text-fg text-sm font-medium rounded-nb transition-colors">
-                            <RotateCcw size={14} /> Reopen
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+                <Textarea name="review_notes" label="Review Notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
+            </Stack>
+        </Drawer>
     );
 };
 

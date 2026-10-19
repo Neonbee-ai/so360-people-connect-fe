@@ -12,7 +12,7 @@ vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({ ...mockShellFlags }),
 }));
 
-vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../test/__mocks__/design-system')), 
+vi.mock('@so360/design-system', async () => ({ ...(await import('../test/__mocks__/design-system')),
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
@@ -75,7 +75,7 @@ describe('ShiftsPage', () => {
       mockApi.update.mockResolvedValue({ id: 's1', is_active: false });
       renderPage();
       await waitFor(() => expect(screen.getByText('Morning')).toBeInTheDocument());
-      const toggles = screen.getAllByTitle('Deactivate');
+      const toggles = screen.getAllByRole('switch', { name: 'Deactivate' });
       fireEvent.click(toggles[0]);
       await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('s1', { is_active: false }));
     });

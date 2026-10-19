@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Target } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Card, Cluster, DashboardPageTemplate, Stack } from '@so360/design-system';
 import EmptyState from '../../components/EmptyState';
 import { meService } from '../../services/meService';
 import type { MyGoal } from '../../services/meService';
@@ -35,56 +35,39 @@ const MyGoalsPage: React.FC = () => {
     useEffect(() => { void load(); }, [load]);
 
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader title="My Goals" subtitle="What you're working towards" />
-
-            {loading ? (
-                <Skeleton rows={3} />
-            ) : goals.length === 0 ? (
-                <EmptyState
-                    icon={Target}
-                    title="No goals yet"
-                    description="Goals set for you by your manager will appear here."
-                />
-            ) : (
-                <ul className="space-y-3">
-                    {goals.map(g => (
-                        <li
-                            key={g.id}
-                            className="rounded-nb border border-line bg-surface p-4"
-                        >
-                            <div className="mb-2 flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className="text-sm font-medium text-fg">
-                                        {g.title}
-                                    </p>
-                                    {g.description && (
-                                        <p className="mt-1 text-xs text-fg-subtle">
-                                            {g.description}
-                                        </p>
+        <DashboardPageTemplate
+            title="My Goals"
+            description="What you're working towards"
+            primary={
+                loading ? (
+                    <Skeleton rows={3} />
+                ) : goals.length === 0 ? (
+                    <EmptyState
+                        icon={Target}
+                        title="No goals yet"
+                        description="Goals set for you by your manager will appear here."
+                    />
+                ) : (
+                    <Stack gap="default">
+                        {goals.map(g => (
+                            <Card key={g.id} title={g.title} actions={<StatusPill status={g.status} />}>
+                                <Stack gap="tight">
+                                    {g.description && <p className="text-nb-sm text-fg-subtle">{g.description}</p>}
+                                    <Cluster justify="between">
+                                        <span className="text-nb-sm text-fg-subtle">Progress</span>
+                                        <span className="text-nb-sm font-medium text-fg">{g.progress_percentage ?? 0}%</span>
+                                    </Cluster>
+                                    <ProgressBar percent={g.progress_percentage ?? 0} />
+                                    {g.target_date && (
+                                        <p className="text-nb-sm text-fg-subtle">Target: {g.target_date}</p>
                                     )}
-                                </div>
-                                <StatusPill status={g.status} />
-                            </div>
-
-                            <div className="mt-3">
-                                <div className="mb-1 flex items-center justify-between text-xs text-fg-subtle">
-                                    <span>Progress</span>
-                                    <span className="font-medium text-fg">{g.progress_percentage ?? 0}%</span>
-                                </div>
-                                <ProgressBar percent={g.progress_percentage ?? 0} />
-                            </div>
-
-                            {g.target_date && (
-                                <p className="mt-2 text-xs text-fg-subtle">
-                                    Target: {g.target_date}
-                                </p>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
+                                </Stack>
+                            </Card>
+                        ))}
+                    </Stack>
+                )
+            }
+        />
     );
 };
 

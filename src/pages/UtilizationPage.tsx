@@ -6,11 +6,9 @@ import {
 } from 'lucide-react';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
-import PageHeader from '../components/PageHeader';
-import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import { toast } from '@so360/design-system';
+import { toast, Button, IconButton, ListPageTemplate, KpiCard, Banner, Stack, Cluster, DataTable } from '@so360/design-system';
 import { utilizationApi } from '../services/peopleService';
 import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import type { UtilizationData, UtilizationSummary } from '../types/people';
@@ -135,230 +133,200 @@ const UtilizationPage: React.FC = () => {
         return 'Low';
     };
 
-    if (loading) {
-        return (
-            <div className="p-6">
-                <div className="animate-pulse space-y-6">
-                    <div className="h-8 w-48 bg-surface-raised rounded" />
-                    <div className="grid grid-cols-4 gap-4">
-                        {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-surface-raised rounded-nb" />)}
-                    </div>
-                    <div className="space-y-3">
-                        {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-surface-raised rounded-nb" />)}
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    const idleCost = idlePeople.reduce((sum, d) => {
+        const idleHours = (d?.utilization?.available_hours ?? 0) - (d?.utilization?.actual_hours ?? 0);
+        return sum + (idleHours * (d?.person?.cost_rate || 0));
+    }, 0);
 
     return (
-        <div className="p-6 space-y-6">
-            <PageHeader
-                title="Utilization Intelligence"
-                subtitle="Planned vs Actual | Idle detection | Burn rate signals"
-                actions={
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-                            className="px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-xs text-fg hover:text-fg transition-colors"
-                        >
-                            {viewMode === 'cards' ? 'Table View' : 'Card View'}
-                        </button>
-                        <button
-                            onClick={loadData}
-                            className="p-2 bg-surface-raised border border-line-strong rounded-nb text-fg hover:text-fg transition-colors"
-                            title="Refresh"
-                        >
-                            <RefreshCw size={14} />
-                        </button>
-                    </div>
-                }
-            />
-
-            {/* Period Navigator */}
-            <div className="flex items-center justify-between bg-surface border border-line rounded-nb px-5 py-3">
-                <button
-                    onClick={() => setWeekOffset(prev => prev - 1)}
-                    className="p-1.5 rounded-nb text-fg-muted hover:text-fg hover:bg-surface-raised transition-colors"
-                >
-                    <ChevronLeft size={18} />
-                </button>
-                <div className="text-center">
-                    <div className="text-sm font-medium text-fg flex items-center gap-2">
-                        <Calendar size={14} className="text-primary" />
-                        Week of {period.start || 'Loading...'}
-                    </div>
-                    <div className="text-xs text-fg-subtle">
-                        {period.start} to {period.end}
-                    </div>
-                </div>
-                <button
-                    onClick={() => setWeekOffset(prev => Math.min(prev + 1, 0))}
-                    disabled={weekOffset >= 0}
-                    className="p-1.5 rounded-nb text-fg-muted hover:text-fg hover:bg-surface-raised transition-colors disabled:opacity-30"
-                >
-                    <ChevronRight size={18} />
-                </button>
-            </div>
-
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                    label="Avg Utilization"
-                    value={`${summary?.avg_utilization_pct || 0}%`}
-                    icon={Target}
-                    color={(summary?.avg_utilization_pct || 0) >= 60 ? 'emerald' : 'amber'}
-                />
-                <StatCard
-                    label="Weekly Burn"
-                    value={formatCurrency(summary?.total_cost_this_week || 0)}
-                    icon={DollarSign}
-                    color="purple"
-                />
-                <StatCard
-                    label="Total Hours"
-                    value={summary?.total_hours_this_week || 0}
-                    icon={Clock}
-                    color="blue"
-                />
-                <StatCard
-                    label="Active Resources"
-                    value={summary?.total_people || 0}
-                    icon={Users}
-                    color="teal"
-                />
-            </div>
-
-            {/* Signals Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className={`bg-surface border rounded-xl p-4 ${idlePeople.length > 0 ? 'border-danger/30' : 'border-line'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-fg-muted">Idle Resources</span>
-                        <TrendingDown size={14} className="text-danger" />
-                    </div>
-                    <div className={`text-2xl font-bold ${idlePeople.length > 0 ? 'text-danger' : 'text-fg'}`}>
-                        {idlePeople.length}
-                    </div>
-                    {idlePeople.length > 0 && (
-                        <div className="text-xs text-fg-subtle mt-1 line-clamp-2">
-                            {idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ')}
-                        </div>
-                    )}
-                </div>
-                <div className={`bg-surface border rounded-xl p-4 ${overallocated.length > 0 ? 'border-warning/30' : 'border-line'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-fg-muted">Overallocated</span>
-                        <TrendingUp size={14} className="text-warning" />
-                    </div>
-                    <div className={`text-2xl font-bold ${overallocated.length > 0 ? 'text-warning' : 'text-fg'}`}>
-                        {overallocated.length}
-                    </div>
-                    {overallocated.length > 0 && (
-                        <div className="text-xs text-fg-subtle mt-1 line-clamp-2">
-                            {overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ')}
-                        </div>
-                    )}
-                </div>
-                <div className="bg-surface border border-line rounded-nb p-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-fg-muted">Healthy</span>
-                        <BarChart3 size={14} className="text-success" />
-                    </div>
-                    <div className="text-2xl font-bold text-success">{healthyCount}</div>
-                    <div className="text-xs text-fg-subtle mt-1">Within normal range</div>
-                </div>
-            </div>
-
-            {/* Sort Controls */}
-            <div className="flex items-center gap-2">
-                <span className="text-xs text-fg-subtle mr-1">Sort by:</span>
-                {(['utilization', 'name', 'cost'] as const).map(key => (
-                    <button
-                        key={key}
-                        onClick={() => {
-                            if (sortBy === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-                            else { setSortBy(key); setSortDir('desc'); }
-                        }}
-                        // Border on both states keeps the buttons the same size,
-                        // so selecting one does not nudge the others sideways.
-                        className={`min-w-[92px] px-2.5 py-1 rounded text-xs text-center transition-colors border ${
-                            sortBy === key
-                                ? 'bg-primary/10 text-primary border-primary/30'
-                                : 'text-fg-muted border-transparent hover:text-fg hover:border-line-strong'
-                        }`}
-                    >
-                        {key.charAt(0).toUpperCase() + key.slice(1)}
-                        {sortBy === key && (sortDir === 'asc' ? ' ^' : ' v')}
-                    </button>
-                ))}
-            </div>
-
-            {/* Utilization Data */}
-            {sortedData.length === 0 ? (
+        <ListPageTemplate
+            title="Utilization Intelligence"
+            description="Planned vs Actual | Idle detection | Burn rate signals"
+            primaryAction={(
+                <Cluster gap="tight" align="center">
+                    <Button variant="secondary" onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}>
+                        {viewMode === 'cards' ? 'Table View' : 'Card View'}
+                    </Button>
+                    <IconButton label="Refresh" variant="ghost" icon={<RefreshCw size={14} />} onClick={loadData} />
+                </Cluster>
+            )}
+            loading={loading}
+            isEmpty={sortedData.length === 0}
+            empty={(
                 <EmptyState
                     icon={BarChart3}
                     title="No utilization data"
                     description="Utilization metrics will appear once people are allocated and time is logged."
                 />
-            ) : viewMode === 'cards' ? (
-                <div className="space-y-3">
-                    {sortedData.map((item) => (
-                        <UtilizationCard key={item.person.id} data={item} />
-                    ))}
-                </div>
-            ) : (
-                <UtilizationTable data={sortedData} />
             )}
+            kpis={(
+                <div className="grid grid-cols-1 wc-medium:grid-cols-2 wc-expanded:grid-cols-4 gap-nb-4">
+                    <KpiCard
+                        label="Avg Utilization"
+                        value={`${summary?.avg_utilization_pct || 0}%`}
+                        icon={Target}
+                    />
+                    <KpiCard
+                        label="Weekly Burn"
+                        value={formatCurrency(summary?.total_cost_this_week || 0)}
+                        icon={DollarSign}
+                    />
+                    <KpiCard
+                        label="Total Hours"
+                        value={summary?.total_hours_this_week || 0}
+                        icon={Clock}
+                    />
+                    <KpiCard
+                        label="Active Resources"
+                        value={summary?.total_people || 0}
+                        icon={Users}
+                    />
+                </div>
+            )}
+            filters={(
+                <Stack gap="default">
+                    {/* Period Navigator */}
+                    <Cluster justify="between" align="center" className="bg-surface border border-line rounded-nb px-nb-5 py-nb-3">
+                        <IconButton
+                            label="Previous week"
+                            variant="ghost"
+                            icon={<ChevronLeft size={18} />}
+                            onClick={() => setWeekOffset(prev => prev - 1)}
+                        />
+                        <div className="text-center">
+                            <div className="text-nb-sm font-medium text-fg flex items-center gap-nb-2">
+                                <Calendar size={14} className="text-primary" />
+                                Week of {period.start || 'Loading...'}
+                            </div>
+                            <div className="text-nb-xs text-fg-subtle">
+                                {period.start} to {period.end}
+                            </div>
+                        </div>
+                        <IconButton
+                            label="Next week"
+                            variant="ghost"
+                            icon={<ChevronRight size={18} />}
+                            onClick={() => setWeekOffset(prev => Math.min(prev + 1, 0))}
+                            disabled={weekOffset >= 0}
+                        />
+                    </Cluster>
 
-            {/* Idle Cost Signal */}
-            {idlePeople.length > 0 && (
-                // p-5 matches the resource cards above so this panel shares
-                // their content width and left edge.
-                <div className="bg-danger/5 border border-danger/20 rounded-nb p-5">
-                    <div className="flex items-start gap-3">
-                        <AlertTriangle size={18} className="text-danger mt-0.5 flex-shrink-0" />
-                        <div className="min-w-0">
-                            <div className="text-sm font-medium text-danger">Idle Cost Signal</div>
-                            <div className="text-xs text-fg-muted mt-1">
-                                {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
-                                Estimated idle cost: {formatCurrency(
-                                    idlePeople.reduce((sum, d) => {
-                                        const idleHours = (d?.utilization?.available_hours ?? 0) - (d?.utilization?.actual_hours ?? 0);
-                                        return sum + (idleHours * (d?.person?.cost_rate || 0));
-                                    }, 0)
-                                )} this period.
+                    {/* Signals Row */}
+                    <div className="grid grid-cols-1 wc-medium:grid-cols-3 gap-nb-4">
+                        <div className={`bg-surface border rounded-xl p-nb-4 ${idlePeople.length > 0 ? 'border-danger/30' : 'border-line'}`}>
+                            <div className="flex items-center justify-between mb-nb-2">
+                                <span className="text-nb-xs font-medium text-fg-muted">Idle Resources</span>
+                                <TrendingDown size={14} className="text-danger" />
                             </div>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                                {idlePeople.map((d, idx) => (
-                                    <span key={d?.person?.id || idx} className="px-2 py-0.5 bg-surface-raised border border-line-strong rounded text-xs text-fg">
-                                        {d?.person?.full_name || 'Unknown'} ({safePct(d)}%)
-                                    </span>
-                                ))}
+                            <div className={`text-nb-2xl font-bold ${idlePeople.length > 0 ? 'text-danger' : 'text-fg'}`}>
+                                {idlePeople.length}
                             </div>
+                            {idlePeople.length > 0 && (
+                                <div className="text-nb-xs text-fg-subtle mt-nb-1 line-clamp-2">
+                                    {idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ')}
+                                </div>
+                            )}
+                        </div>
+                        <div className={`bg-surface border rounded-xl p-nb-4 ${overallocated.length > 0 ? 'border-warning/30' : 'border-line'}`}>
+                            <div className="flex items-center justify-between mb-nb-2">
+                                <span className="text-nb-xs font-medium text-fg-muted">Overallocated</span>
+                                <TrendingUp size={14} className="text-warning" />
+                            </div>
+                            <div className={`text-nb-2xl font-bold ${overallocated.length > 0 ? 'text-warning' : 'text-fg'}`}>
+                                {overallocated.length}
+                            </div>
+                            {overallocated.length > 0 && (
+                                <div className="text-nb-xs text-fg-subtle mt-nb-1 line-clamp-2">
+                                    {overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ')}
+                                </div>
+                            )}
+                        </div>
+                        <div className="bg-surface border border-line rounded-nb p-nb-4">
+                            <div className="flex items-center justify-between mb-nb-2">
+                                <span className="text-nb-xs font-medium text-fg-muted">Healthy</span>
+                                <BarChart3 size={14} className="text-success" />
+                            </div>
+                            <div className="text-nb-2xl font-bold text-success">{healthyCount}</div>
+                            <div className="text-nb-xs text-fg-subtle mt-nb-1">Within normal range</div>
                         </div>
                     </div>
-                </div>
-            )}
 
-            {/* Burn Rate Signal */}
-            {summary && summary.burn_rate_daily > 0 && (
-                <div className="bg-surface border border-line rounded-nb p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="text-sm font-medium text-fg">Burn Rate Signal</div>
-                            <div className="text-xs text-fg-subtle mt-0.5">
-                                Based on approved time entries for the current period
+                    {/* Sort Controls */}
+                    <Cluster gap="tight" align="center">
+                        <span className="text-nb-xs text-fg-subtle mr-nb-1">Sort by:</span>
+                        {(['utilization', 'name', 'cost'] as const).map(key => (
+                            <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                    if (sortBy === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                                    else { setSortBy(key); setSortDir('desc'); }
+                                }}
+                                // Border on both states keeps the buttons the same size,
+                                // so selecting one does not nudge the others sideways.
+                                className={`min-w-[92px] px-nb-3 py-nb-1 rounded-nb text-nb-xs text-center transition-colors border ${
+                                    sortBy === key
+                                        ? 'bg-primary/10 text-primary border-primary/30'
+                                        : 'text-fg-muted border-transparent hover:text-fg hover:border-line-strong'
+                                }`}
+                            >
+                                {key.charAt(0).toUpperCase() + key.slice(1)}
+                                {sortBy === key && (sortDir === 'asc' ? ' ^' : ' v')}
+                            </button>
+                        ))}
+                    </Cluster>
+                </Stack>
+            )}
+        >
+            <Stack gap="default">
+                {/* Utilization Data */}
+                {viewMode === 'cards' ? (
+                    <Stack gap="tight">
+                        {sortedData.map((item) => (
+                            <UtilizationCard key={item.person.id} data={item} />
+                        ))}
+                    </Stack>
+                ) : (
+                    <UtilizationTable data={sortedData} />
+                )}
+
+                {/* Idle Cost Signal */}
+                {idlePeople.length > 0 && (
+                    <Banner variant="danger">
+                        <div className="text-nb-sm font-medium">Idle Cost Signal</div>
+                        <div className="text-nb-xs mt-nb-1">
+                            {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
+                            Estimated idle cost: {formatCurrency(idleCost)} this period.
+                        </div>
+                        <Cluster gap="tight" className="mt-nb-2">
+                            {idlePeople.map((d, idx) => (
+                                <span key={d?.person?.id || idx} className="px-nb-2 py-nb-1 bg-surface-raised border border-line-strong rounded-nb text-nb-xs text-fg">
+                                    {d?.person?.full_name || 'Unknown'} ({safePct(d)}%)
+                                </span>
+                            ))}
+                        </Cluster>
+                    </Banner>
+                )}
+
+                {/* Burn Rate Signal */}
+                {summary && summary.burn_rate_daily > 0 && (
+                    <div className="bg-surface border border-line rounded-nb p-nb-4">
+                        <Cluster justify="between" align="center">
+                            <div>
+                                <div className="text-nb-sm font-medium text-fg">Burn Rate Signal</div>
+                                <div className="text-nb-xs text-fg-subtle mt-nb-1">
+                                    Based on approved time entries for the current period
+                                </div>
                             </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-lg font-bold text-fg">{formatCurrency(summary.burn_rate_daily)}/day</div>
-                            <div className="text-xs text-fg-subtle">{formatCurrency(summary.burn_rate_daily * 5)}/week</div>
-                        </div>
+                            <div className="text-right">
+                                <div className="text-nb-lg font-bold text-fg">{formatCurrency(summary.burn_rate_daily)}/day</div>
+                                <div className="text-nb-xs text-fg-subtle">{formatCurrency(summary.burn_rate_daily * 5)}/week</div>
+                            </div>
+                        </Cluster>
                     </div>
-                </div>
-            )}
-
-        </div>
+                )}
+            </Stack>
+        </ListPageTemplate>
     );
 };
 
@@ -533,88 +501,86 @@ const UtilizationTable: React.FC<{ data: UtilizationData[] }> = ({ data }) => {
         actualCost: item?.utilization?.actual_cost ?? 0,
     }));
 
+    const cell = (value: React.ReactNode) => <span className="text-nb-sm text-fg">{value}</span>;
+    const sum = (f: (r: typeof rows[number]) => number) => rows.reduce((t, r) => t + f(r), 0);
+    const avg = (f: (r: typeof rows[number]) => number) => (rows.length > 0 ? Math.round(sum(f) / rows.length) : 0);
+
     return (
-        <div className="bg-surface border border-line rounded-nb overflow-hidden">
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 bg-surface-raised/50 text-xs font-medium text-fg-muted uppercase tracking-wider">
-                <div>Person</div>
-                <div className="text-right">Available</div>
-                <div className="text-right">Planned</div>
-                <div className="text-right">Actual</div>
-                <div className="text-right">Util %</div>
-                <div className="text-right">Alloc %</div>
-                <div className="text-right">Variance</div>
-                <div className="text-right">Cost</div>
-            </div>
-            <div className="divide-y divide-line">
-                {rows.map((row) => (
-                    <div
-                        key={row.key}
-                        className={`grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 items-center hover:bg-surface-raised/30 ${
-                            row.isIdle ? 'bg-danger/3' :
-                            row.isOverallocated ? 'bg-warning/3' : ''
-                        }`}
-                    >
-                        <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 border border-line-strong flex items-center justify-center flex-shrink-0">
-                                <span className="text-[10px] font-medium text-primary">
-                                    {row.fullName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                </span>
-                            </div>
+        <Stack gap="none">
+            <DataTable
+                name="utilization-table"
+                rowKey={(row: typeof rows[number]) => row.key}
+                rows={rows}
+                columns={[
+                    {
+                        key: 'person',
+                        header: 'Person',
+                        render: (row: typeof rows[number]) => (
                             <div className="min-w-0">
-                                <div className="text-sm text-fg truncate">{row.fullName}</div>
-                                <div className="text-xs text-fg-subtle truncate">{row.jobTitle}</div>
+                                <div className="text-nb-sm text-fg truncate">{row.fullName}</div>
+                                <div className="text-nb-xs text-fg-subtle truncate">{row.jobTitle}</div>
                             </div>
-                        </div>
-                        <div className="text-right text-sm text-fg">{row.availableHours}h</div>
-                        <div className="text-right text-sm text-fg">{row.plannedHours}h</div>
-                        <div className="text-right text-sm text-fg font-medium">{row.actualHours}h</div>
-                        <div className={`text-right text-sm font-bold ${
-                            row.utilizationPct >= 70 ? 'text-success' :
-                            row.utilizationPct >= 50 ? 'text-primary' :
-                            row.utilizationPct >= 30 ? 'text-primary' : 'text-danger'
-                        }`}>
-                            {row.utilizationPct}%
-                        </div>
-                        <div className={`text-right text-sm ${row.allocationPct > 100 ? 'text-warning font-bold' : 'text-fg-muted'}`}>
-                            {row.allocationPct}%
-                        </div>
-                        <div className={`text-right text-sm ${
-                            row.varianceHours > 0 ? 'text-success' :
-                            row.varianceHours < -5 ? 'text-warning' : 'text-fg-muted'
-                        }`}>
-                            {row.varianceHours > 0 ? '+' : ''}{row.varianceHours}h
-                        </div>
-                        <div className="text-right text-sm text-fg">{formatCurrency(row.actualCost)}</div>
-                    </div>
-                ))}
-            </div>
+                        ),
+                    },
+                    { key: 'available', header: 'Available', align: 'right', render: (row: typeof rows[number]) => cell(`${row.availableHours}h`) },
+                    { key: 'planned', header: 'Planned', align: 'right', render: (row: typeof rows[number]) => cell(`${row.plannedHours}h`) },
+                    { key: 'actual', header: 'Actual', align: 'right', render: (row: typeof rows[number]) => cell(`${row.actualHours}h`) },
+                    {
+                        key: 'util',
+                        header: 'Util %',
+                        align: 'right',
+                        render: (row: typeof rows[number]) => (
+                            <span className={`text-nb-sm font-bold ${
+                                row.utilizationPct >= 70 ? 'text-success' :
+                                row.utilizationPct >= 30 ? 'text-primary' : 'text-danger'
+                            }`}>
+                                {row.utilizationPct}%
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'alloc',
+                        header: 'Alloc %',
+                        align: 'right',
+                        hideBelow: 'medium',
+                        render: (row: typeof rows[number]) => (
+                            <span className={`text-nb-sm ${row.allocationPct > 100 ? 'text-warning font-bold' : 'text-fg-muted'}`}>
+                                {row.allocationPct}%
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'variance',
+                        header: 'Variance',
+                        align: 'right',
+                        hideBelow: 'medium',
+                        render: (row: typeof rows[number]) => (
+                            <span className={`text-nb-sm ${
+                                row.varianceHours > 0 ? 'text-success' :
+                                row.varianceHours < -5 ? 'text-warning' : 'text-fg-muted'
+                            }`}>
+                                {row.varianceHours > 0 ? '+' : ''}{row.varianceHours}h
+                            </span>
+                        ),
+                    },
+                    { key: 'cost', header: 'Cost', align: 'right', render: (row: typeof rows[number]) => cell(formatCurrency(row.actualCost)) },
+                ]}
+            />
 
             {/* Totals row */}
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px_80px_80px_80px] gap-2 px-5 py-3 bg-surface-raised/50 border-t border-line-strong">
-                <div className="text-xs font-medium text-fg-muted">TOTALS ({rows.length} people)</div>
-                <div className="text-right text-xs font-medium text-fg">
-                    {rows.reduce((sum, r) => sum + r.availableHours, 0)}h
-                </div>
-                <div className="text-right text-xs font-medium text-fg">
-                    {rows.reduce((sum, r) => sum + r.plannedHours, 0)}h
-                </div>
-                <div className="text-right text-xs font-medium text-fg">
-                    {rows.reduce((sum, r) => sum + r.actualHours, 0)}h
-                </div>
-                <div className="text-right text-xs font-medium text-primary">
-                    {rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.utilizationPct, 0) / rows.length) : 0}%
-                </div>
-                <div className="text-right text-xs font-medium text-fg-muted">
-                    {rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.allocationPct, 0) / rows.length) : 0}%
-                </div>
-                <div className="text-right text-xs font-medium text-fg-muted">
-                    {rows.reduce((sum, r) => sum + r.varianceHours, 0)}h
-                </div>
-                <div className="text-right text-xs font-medium text-fg">
-                    {formatCurrency(rows.reduce((sum, r) => sum + r.actualCost, 0))}
-                </div>
-            </div>
-        </div>
+            <Cluster justify="between" align="center" className="bg-surface-raised border border-line rounded-nb px-nb-5 py-nb-3">
+                <span className="text-nb-xs font-medium text-fg-muted">TOTALS ({rows.length} people)</span>
+                <Cluster gap="default" align="center">
+                    <span className="text-nb-xs font-medium text-fg">{sum(r => r.availableHours)}h</span>
+                    <span className="text-nb-xs font-medium text-fg">{sum(r => r.plannedHours)}h</span>
+                    <span className="text-nb-xs font-medium text-fg">{sum(r => r.actualHours)}h</span>
+                    <span className="text-nb-xs font-medium text-primary">{avg(r => r.utilizationPct)}%</span>
+                    <span className="text-nb-xs font-medium text-fg-muted">{avg(r => r.allocationPct)}%</span>
+                    <span className="text-nb-xs font-medium text-fg-muted">{sum(r => r.varianceHours)}h</span>
+                    <span className="text-nb-xs font-medium text-fg">{formatCurrency(sum(r => r.actualCost))}</span>
+                </Cluster>
+            </Cluster>
+        </Stack>
     );
 };
 

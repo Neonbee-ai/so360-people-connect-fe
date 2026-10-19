@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { CalendarClock, Plus } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
+import { CalendarClock } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import Modal from '../components/Modal';
-import { toast, Select } from '@so360/design-system';
+import {
+    toast, Select, Button, ListPageTemplate, DataTable, Modal, TextField, Textarea, Checkbox, NumberInput,
+    ColorPicker, FormSection, Stack, Cluster,
+} from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { leaveTypesApi, LeaveType, CreateLeaveTypePayload } from '../services/leaveTypesService';
 
@@ -58,109 +60,62 @@ const LeaveTypesPage: React.FC = () => {
         }
     };
 
+    /*
+     * Rows are not navigation targets: the row-actions menu owns editing. A
+     * row-wide click plus a dedicated Edit action were two ways to do the same
+     * thing, and the row swallowed clicks meant only to read a value.
+     */
+    const columns: DataTableColumn<LeaveType>[] = [
+        {
+            key: 'name',
+            header: 'Name',
+            render: (lt) => (
+                <Cluster gap="tight" align="center">
+                    {lt.color && <span aria-hidden="true" className="size-3 rounded-full" style={{ backgroundColor: lt.color }} />}
+                    <span className="text-nb-body text-fg">{lt.name}</span>
+                </Cluster>
+            ),
+        },
+        { key: 'code', header: 'Code', render: (lt) => <span className="text-fg-muted">{lt.code}</span> },
+        { key: 'is_paid', header: 'Paid', align: 'center', render: (lt) => <StatusBadge status={lt.is_paid ? 'paid' : 'unpaid'} /> },
+        { key: 'requires_approval', header: 'Approval', align: 'center', render: (lt) => <StatusBadge status={lt.requires_approval ? 'required' : 'not_required'} /> },
+        { key: 'accrual_type', header: 'Accrual', render: (lt) => <span className="capitalize text-fg-muted">{lt.accrual_type}</span> },
+        { key: 'max_days_per_year', header: 'Max Days/Year', align: 'center', hideBelow: 'medium', render: (lt) => <span className="text-fg-muted">{lt.max_days_per_year || '-'}</span> },
+        { key: 'carry_forward_allowed', header: 'Carry Forward', align: 'center', hideBelow: 'expanded', render: (lt) => <StatusBadge status={lt.carry_forward_allowed ? 'allowed' : 'not_allowed'} /> },
+        { key: 'is_active', header: 'Status', align: 'center', render: (lt) => <StatusBadge status={lt.is_active ? 'active' : 'inactive'} /> },
+    ];
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
+        <>
+            <ListPageTemplate
                 title="Leave Types"
-                subtitle="Configure leave policies and accrual rules"
-                actions={
-                    canCreate && <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
-                    >
+                description="Configure leave policies and accrual rules"
+                loading={loading}
+                isEmpty={leaveTypes.length === 0}
+                primaryAction={canCreate ? (
+                    <Button onClick={() => setShowCreateModal(true)}>
                         <CalendarClock size={16} />
                         Create Leave Type
-                    </button>
+                    </Button>
+                ) : undefined}
+                empty={
+                    <EmptyState
+                        icon={CalendarClock}
+                        title="No leave types found"
+                        description="Create leave types to manage employee time off."
+                        action={canCreate ? { label: 'Create Leave Type', onClick: () => setShowCreateModal(true) } : undefined}
+                    />
                 }
-            />
-
-            {/* Leave Types Table */}
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-16 bg-surface-raised/50 rounded-nb animate-pulse" />
-                    ))}
-                </div>
-            ) : leaveTypes.length === 0 ? (
-                <EmptyState
-                    icon={CalendarClock}
-                    title="No leave types found"
-                    description="Create leave types to manage employee time off."
-                    action={canCreate ? { label: 'Create Leave Type', onClick: () => setShowCreateModal(true) } : undefined}
+            >
+                <DataTable
+                    name="leave-types"
+                    columns={columns}
+                    rows={leaveTypes}
+                    rowKey={(lt) => lt.id}
+                    rowActions={canCreate ? (lt) => [{ label: 'Edit', onSelect: () => setEditingLeaveType(lt) }] : undefined}
                 />
-            ) : (
-                <div className="bg-surface border border-line rounded-nb overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-surface-raised/50 border-b border-line">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Code</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Paid</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Approval</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Accrual</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Max Days/Year</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Carry Forward</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-line">
-                            {/*
-                              * Rows are not navigation targets — the Actions
-                              * column owns editing. A row-wide click plus a
-                              * dedicated Edit button were two ways to do the
-                              * same thing, and the row swallowed clicks meant
-                              * only to read a value.
-                              */}
-                            {leaveTypes.map(leaveType => (
-                                <tr
-                                    key={leaveType.id}
-                                    className="hover:bg-surface-raised/50 transition-colors"
-                                >
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
-                                            {leaveType.color && (
-                                                <div
-                                                    className="w-3 h-3 rounded-full"
-                                                    style={{ backgroundColor: leaveType.color }}
-                                                />
-                                            )}
-                                            <span className="text-sm font-medium text-fg">{leaveType.name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-fg-muted">{leaveType.code}</td>
-                                    <td className="px-4 py-3 text-center">
-                                        <StatusBadge status={leaveType.is_paid ? 'paid' : 'unpaid'} />
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <StatusBadge status={leaveType.requires_approval ? 'required' : 'not_required'} />
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-fg-muted capitalize">{leaveType.accrual_type}</td>
-                                    <td className="px-4 py-3 text-center text-sm text-fg-muted">
-                                        {leaveType.max_days_per_year || '-'}
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <StatusBadge status={leaveType.carry_forward_allowed ? 'allowed' : 'not_allowed'} />
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <StatusBadge status={leaveType.is_active ? 'active' : 'inactive'} />
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        {canCreate && <button
-                                            onClick={() => setEditingLeaveType(leaveType)}
-                                            className="text-sm font-semibold text-primary hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 rounded transition-colors"
-                                        >
-                                            Edit
-                                        </button>}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            </ListPageTemplate>
 
-            {/* Create/Edit Modal */}
             <LeaveTypeModal
                 isOpen={showCreateModal || !!editingLeaveType}
                 onClose={() => {
@@ -171,8 +126,7 @@ const LeaveTypesPage: React.FC = () => {
                 onUpdate={handleUpdate}
                 leaveType={editingLeaveType}
             />
-
-        </div>
+        </>
     );
 };
 
@@ -243,177 +197,103 @@ const LeaveTypeModal: React.FC<LeaveTypeModalProps> = ({ isOpen, onClose, onCrea
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={leaveType ? 'Edit Leave Type' : 'Create Leave Type'} size="lg">
-            <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Basic Info */}
-                <div>
-                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Basic Information</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs text-fg-muted mb-1">Code *</label>
-                            <input
-                                type="text"
+        <Modal
+            open={isOpen}
+            onClose={onClose}
+            title={leaveType ? 'Edit Leave Type' : 'Create Leave Type'}
+            size="lg"
+            footer={
+                <Cluster gap="default" justify="end">
+                    <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button type="submit" form="leave-type-form">{leaveType ? 'Update' : 'Create'}</Button>
+                </Cluster>
+            }
+        >
+            <form id="leave-type-form" onSubmit={handleSubmit}>
+                <Stack gap="region">
+                    <FormSection title="Basic Information" variant="plain" columns={2}>
+                            <TextField
+                                name="leave-type-code"
+                                label="Code"
                                 required
                                 value={formData.code}
                                 onChange={(e) => updateField('code', e.target.value)}
-                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                                 placeholder="AL"
                             />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-fg-muted mb-1">Name *</label>
-                            <input
-                                type="text"
+                            <TextField
+                                name="leave-type-name"
+                                label="Name"
                                 required
                                 value={formData.name}
                                 onChange={(e) => updateField('name', e.target.value)}
-                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
                                 placeholder="Annual Leave"
                             />
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-xs text-fg-muted mb-1">Description</label>
-                            <textarea
+                            <Textarea
+                                name="leave-type-description"
+                                label="Description"
+                                rows={2}
                                 value={formData.description || ''}
                                 onChange={(e) => updateField('description', e.target.value)}
-                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
-                                rows={2}
                             />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-fg-muted mb-1">Color</label>
-                            <input
-                                type="color"
+                            <ColorPicker
+                                name="leave-type-color"
+                                label="Color"
                                 value={formData.color || '#10b981'}
-                                onChange={(e) => updateField('color', e.target.value)}
-                                className="w-full h-10 px-3 py-2 bg-surface-raised border border-line-strong rounded-nb focus:outline-none focus:border-primary"
+                                onChange={(v) => updateField('color', v)}
                             />
-                        </div>
-                    </div>
-                </div>
+                    </FormSection>
 
-                {/* Policies */}
-                <div>
-                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Policies</h4>
-                    <div className="space-y-2">
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={formData.is_paid}
-                                onChange={(e) => updateField('is_paid', e.target.checked)}
-                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
-                            />
-                            <span className="text-sm text-fg">Paid Leave</span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={formData.requires_approval}
-                                onChange={(e) => updateField('requires_approval', e.target.checked)}
-                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
-                            />
-                            <span className="text-sm text-fg">Requires Approval</span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={formData.requires_documentation}
-                                onChange={(e) => updateField('requires_documentation', e.target.checked)}
-                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
-                            />
-                            <span className="text-sm text-fg">Requires Documentation</span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={formData.carry_forward_allowed}
-                                onChange={(e) => updateField('carry_forward_allowed', e.target.checked)}
-                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
-                            />
-                            <span className="text-sm text-fg">Allow Carry Forward</span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={formData.is_active}
-                                onChange={(e) => updateField('is_active', e.target.checked)}
-                                className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary"
-                            />
-                            <span className="text-sm text-fg">Active</span>
-                        </label>
-                    </div>
-                </div>
+                    <FormSection title="Policies" variant="plain">
+                        <Stack gap="tight">
+                            <Checkbox name="leave-type-is-paid" label="Paid Leave" checked={formData.is_paid} onChange={(e) => updateField('is_paid', e.target.checked)} />
+                            <Checkbox name="leave-type-requires-approval" label="Requires Approval" checked={formData.requires_approval} onChange={(e) => updateField('requires_approval', e.target.checked)} />
+                            <Checkbox name="leave-type-requires-documentation" label="Requires Documentation" checked={formData.requires_documentation} onChange={(e) => updateField('requires_documentation', e.target.checked)} />
+                            <Checkbox name="leave-type-carry-forward" label="Allow Carry Forward" checked={formData.carry_forward_allowed} onChange={(e) => updateField('carry_forward_allowed', e.target.checked)} />
+                            <Checkbox name="leave-type-is-active" label="Active" checked={formData.is_active} onChange={(e) => updateField('is_active', e.target.checked)} />
+                        </Stack>
+                    </FormSection>
 
-                {/* Accrual & Limits */}
-                <div>
-                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Accrual & Limits</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs text-fg-muted mb-1">Accrual Type</label>
-                            <Select name="leavetypes-select-57" value={formData.accrual_type} onChange={(e) => updateField('accrual_type', e.target.value)} options={[{ value: "annual", label: "Annual" }, { value: "monthly", label: "Monthly" }, { value: "none", label: "None" }]} />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-fg-muted mb-1">Max Days Per Year</label>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={formData.max_days_per_year || ''}
-                                onChange={(e) => updateField('max_days_per_year', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
+                    <FormSection title="Accrual & Limits" variant="plain" columns={2}>
+                            <Select
+                                name="leavetypes-select-57"
+                                label="Accrual Type"
+                                value={formData.accrual_type}
+                                onChange={(e) => updateField('accrual_type', e.target.value)}
+                                options={[{ value: 'annual', label: 'Annual' }, { value: 'monthly', label: 'Monthly' }, { value: 'none', label: 'None' }]}
                             />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-fg-muted mb-1">Accrual Rate (days/month)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={formData.accrual_rate || ''}
-                                onChange={(e) => updateField('accrual_rate', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
+                            <NumberInput
+                                name="leave-type-max-days"
+                                label="Max Days Per Year"
+                                min={0}
+                                step={0.5}
+                                value={formData.max_days_per_year || null}
+                                onChange={(v) => updateField('max_days_per_year', v || undefined)}
                             />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-fg-muted mb-1">Max Carry Forward Days</label>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={formData.max_carry_forward_days || ''}
-                                onChange={(e) => updateField('max_carry_forward_days', parseFloat(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
+                            <NumberInput
+                                name="leave-type-accrual-rate"
+                                label="Accrual Rate (days/month)"
+                                min={0}
+                                step={0.01}
+                                value={formData.accrual_rate || null}
+                                onChange={(v) => updateField('accrual_rate', v || undefined)}
                             />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-fg-muted mb-1">Notice Period (days)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={formData.notice_period_days || ''}
-                                onChange={(e) => updateField('notice_period_days', parseInt(e.target.value) || undefined)}
-                                className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary"
+                            <NumberInput
+                                name="leave-type-max-carry"
+                                label="Max Carry Forward Days"
+                                min={0}
+                                step={0.5}
+                                value={formData.max_carry_forward_days || null}
+                                onChange={(v) => updateField('max_carry_forward_days', v || undefined)}
                             />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-line">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors"
-                    >
-                        {leaveType ? 'Update' : 'Create'}
-                    </button>
-                </div>
+                            <NumberInput
+                                name="leave-type-notice"
+                                label="Notice Period (days)"
+                                min={0}
+                                value={formData.notice_period_days || null}
+                                onChange={(v) => updateField('notice_period_days', v ? Math.trunc(v) : undefined)}
+                            />
+                    </FormSection>
+                </Stack>
             </form>
         </Modal>
     );

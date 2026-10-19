@@ -1,14 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Award } from 'lucide-react';
-import { toast, Select } from '@so360/design-system';
+import {
+    toast, Button, Cluster, DataTable, FieldGrid, FormActions, NumberInput, Select, Skeleton, Stack, TextField, Checkbox,
+} from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import Modal from '../../Modal';
 import EmptyState from '../../EmptyState';
 import StatusChip from '../StatusChip';
-import FieldTooltip from '../FieldTooltip';
 import { payrollApi, BenefitType } from '../../../services/payrollApi';
-
-const inputCls = 'w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
-const labelCls = 'block text-xs text-fg-muted mb-1';
 
 const BenefitsTab: React.FC = () => {
     const [benefitTypes, setBenefitTypes] = useState<BenefitType[]>([]);
@@ -47,19 +46,30 @@ const BenefitsTab: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="h-64 bg-surface-raised/50 rounded-nb animate-pulse" />;
+    if (loading) return <Skeleton variant="text" lines={6} />;
+
+    const columns: DataTableColumn<BenefitType>[] = [
+        { key: 'name', header: 'Name', render: b => <span className="font-medium text-fg">{b.name}</span> },
+        { key: 'default_amount', header: 'Default Amount', align: 'right', render: b => <>{b.default_amount ?? '—'}</> },
+        { key: 'payer', header: 'Payer', align: 'center', render: b => <span className="capitalize">{b.payer}</span> },
+        { key: 'taxable', header: 'Taxable', align: 'center', render: b => <>{b.taxable ? 'Yes' : 'No'}</> },
+        { key: 'is_active', header: 'Status', align: 'center', render: b => <StatusChip status={b.is_active ? 'active' : 'inactive'} /> },
+        {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: b => <Button variant="ghost" size="sm" onClick={() => { setEditing(b); setShowModal(true); }}>Edit</Button>,
+        },
+    ];
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-fg">Benefit Types</h3>
-                <button
-                    onClick={() => { setEditing(null); setShowModal(true); }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-fg text-xs font-medium rounded-nb transition-colors"
-                >
+        <Stack>
+            <Cluster justify="between">
+                <h3 className="text-nb-section-title text-fg">Benefit Types</h3>
+                <Button size="sm" onClick={() => { setEditing(null); setShowModal(true); }}>
                     <Plus size={13} /> New Benefit Type
-                </button>
-            </div>
+                </Button>
+            </Cluster>
 
             {benefitTypes.length === 0 ? (
                 <EmptyState
@@ -69,38 +79,11 @@ const BenefitsTab: React.FC = () => {
                     action={{ label: 'New Benefit Type', onClick: () => setShowModal(true) }}
                 />
             ) : (
-                <div className="bg-surface border border-line rounded-nb overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-surface-raised/50 border-b border-line">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider">Name</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Default Amount</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Payer</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Taxable</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-fg-muted uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-line">
-                            {benefitTypes.map(benefit => (
-                                <tr key={benefit.id} className="hover:bg-surface-raised/50 transition-colors">
-                                    <td className="px-4 py-3 text-sm font-medium text-fg">{benefit.name}</td>
-                                    <td className="px-4 py-3 text-sm text-fg-muted text-right">{benefit.default_amount ?? '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-fg-muted text-center capitalize">{benefit.payer}</td>
-                                    <td className="px-4 py-3 text-center text-sm text-fg-muted">{benefit.taxable ? 'Yes' : 'No'}</td>
-                                    <td className="px-4 py-3 text-center"><StatusChip status={benefit.is_active ? 'active' : 'inactive'} /></td>
-                                    <td className="px-4 py-3 text-right">
-                                        <button onClick={() => { setEditing(benefit); setShowModal(true); }} className="text-xs text-primary hover:text-primary transition-colors">Edit</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable columns={columns} rows={benefitTypes} rowKey={b => b.id} name="benefit-types" />
             )}
 
             <BenefitModal isOpen={showModal} benefit={editing} onClose={() => { setShowModal(false); setEditing(null); }} onSave={handleSave} />
-        </div>
+        </Stack>
     );
 };
 
@@ -118,39 +101,39 @@ const BenefitModal: React.FC<{
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={benefit ? 'Edit Benefit Type' : 'New Benefit Type'}>
-            <form onSubmit={e => { e.preventDefault(); if (form.name) onSave(form); }} className="space-y-4">
-                <div>
-                    <label className={labelCls}>Name *</label>
-                    <input type="text" required value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inputCls} placeholder="Health Insurance" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className={labelCls}>Default Amount</label>
-                        <input type="number" min={0} step="0.01" value={form.default_amount ?? ''} onChange={e => setForm(f => ({ ...f, default_amount: e.target.value ? parseFloat(e.target.value) : undefined }))} className={inputCls} />
-                    </div>
-                    <div>
-                        <label className={labelCls}>
-                            Payer
-                            <FieldTooltip text="Who bears the cost: the employer (adds to employer cost), the employee (deducted from pay), or shared between both." />
-                        </label>
-                        <Select name="benefitstab-select-11" value={form.payer} onChange={e => setForm(f => ({ ...f, payer: e.target.value as BenefitType['payer'] }))} options={[{ value: "employer", label: "Employer" }, { value: "employee", label: "Employee" }, { value: "shared", label: "Shared" }]} />
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.taxable} onChange={e => setForm(f => ({ ...f, taxable: e.target.checked }))} className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary" />
-                        <span className="text-sm text-fg">Taxable</span>
-                        <FieldTooltip text="Employer-paid taxable benefits count as a perquisite in the employee's taxable income." />
-                    </label>
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="w-4 h-4 rounded border-line-strong bg-surface-raised text-primary focus:ring-primary" />
-                        <span className="text-sm text-fg">Active</span>
-                    </label>
-                </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-line">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium rounded-nb transition-colors">{benefit ? 'Update' : 'Create'}</button>
-                </div>
+            <form onSubmit={e => { e.preventDefault(); if (form.name) onSave(form); }}>
+                <Stack>
+                    <TextField name="benefit-name" label="Name" required value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Health Insurance" />
+                    <FieldGrid columns={2}>
+                        <NumberInput
+                            name="benefit-default-amount"
+                            label="Default Amount"
+                            min={0}
+                            step={0.01}
+                            value={form.default_amount ?? null}
+                            onChange={v => setForm(f => ({ ...f, default_amount: v ?? undefined }))}
+                        />
+                        <Select
+                            name="benefit-payer"
+                            label="Payer"
+                            hint="Who bears the cost: the employer (adds to employer cost), the employee (deducted from pay), or shared between both."
+                            value={form.payer}
+                            onChange={e => setForm(f => ({ ...f, payer: e.target.value as BenefitType['payer'] }))}
+                            options={[{ value: 'employer', label: 'Employer' }, { value: 'employee', label: 'Employee' }, { value: 'shared', label: 'Shared' }]}
+                        />
+                    </FieldGrid>
+                    <Stack gap="tight">
+                        <Checkbox
+                            name="benefit-taxable"
+                            label="Taxable"
+                            description="Employer-paid taxable benefits count as a perquisite in the employee's taxable income."
+                            checked={!!form.taxable}
+                            onChange={e => setForm(f => ({ ...f, taxable: e.target.checked }))}
+                        />
+                        <Checkbox name="benefit-active" label="Active" checked={!!form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+                    </Stack>
+                    <FormActions divider onCancel={onClose} submitLabel={benefit ? 'Update' : 'Create'} />
+                </Stack>
             </form>
         </Modal>
     );

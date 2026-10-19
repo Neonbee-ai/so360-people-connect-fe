@@ -90,7 +90,7 @@ export default function DepartmentSelector({
   return (
     <div ref={containerRef} className={`relative ${className || ''}`}>
       <div
-        className="flex items-center w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg cursor-pointer focus-within:border-primary"
+        className="flex items-center w-full px-nb-3 py-nb-2 bg-surface-raised border border-line-strong rounded-nb text-nb-sm text-fg cursor-pointer focus-within:border-primary"
         onClick={() => {
           setOpen(!open);
           if (!open) setTimeout(() => inputRef.current?.focus(), 0);
@@ -102,7 +102,7 @@ export default function DepartmentSelector({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={selectedDept ? selectedDept.name : placeholder}
-            className="flex-1 bg-transparent outline-none text-sm text-fg placeholder-slate-400"
+            className="flex-1 bg-transparent outline-none text-nb-sm text-fg placeholder:text-fg-subtle"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
@@ -131,16 +131,16 @@ export default function DepartmentSelector({
       {open && (
         <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-surface-raised border border-line-strong rounded-nb shadow-lg">
           {loading ? (
-            <div className="px-3 py-2 text-sm text-fg-muted">Loading...</div>
+            <div className="px-nb-3 py-nb-2 text-nb-sm text-fg-muted">Loading...</div>
           ) : filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-fg-muted">No departments found</div>
+            <div className="px-nb-3 py-nb-2 text-nb-sm text-fg-muted">No departments found</div>
           ) : (
             filtered.map((dept) => (
               <button
                 key={dept.id}
                 type="button"
                 onClick={() => handleSelect(dept.id)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-line flex items-center ${
+                className={`w-full text-left px-nb-3 py-nb-2 text-nb-sm hover:bg-line flex items-center ${
                   dept.id === value ? 'bg-line/50 text-primary' : 'text-fg'
                 }`}
               >
@@ -151,7 +151,7 @@ export default function DepartmentSelector({
                 )}
                 <span className="truncate">{dept.name}</span>
                 {dept.code && (
-                  <span className="ml-auto text-xs text-fg-subtle shrink-0">{dept.code}</span>
+                  <span className="ml-auto text-nb-caption text-fg-subtle shrink-0">{dept.code}</span>
                 )}
               </button>
             ))

@@ -44,7 +44,7 @@ describe('Given StatCard with a negative trend', () => {
 describe('Given StatCard without a trend', () => {
   it('When no trend is provided / Then no trend indicator is rendered', () => {
     const { container } = render(<StatCard label="Total" value={100} icon={MockIcon} />);
-    expect(container.querySelectorAll('span').length).toBe(0);
+    expect(container.textContent).not.toMatch(/%/);
   });
 });
 

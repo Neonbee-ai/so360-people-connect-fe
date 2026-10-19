@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Save, BadgeCheck, Phone } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
-import { toast } from '@so360/design-system';
+import { Button, Cluster, DashboardPageTemplate, Grid, Stack, TextField, toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import { peopleApi } from '../../services/peopleService';
 import type { Person } from '../../types/people';
-import { MyCard, Skeleton, primaryBtn, inputCls, labelCls } from './myUi';
+import { MyCard, Skeleton } from './myUi';
 
 /**
  * My Profile.
@@ -21,10 +20,10 @@ import { MyCard, Skeleton, primaryBtn, inputCls, labelCls } from './myUi';
  */
 
 const ReadOnlyRow: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
-    <div className="flex items-center justify-between border-b border-line py-2.5 last:border-0">
-        <span className="text-sm text-fg-subtle">{label}</span>
-        <span className="text-sm text-fg">{value || '—'}</span>
-    </div>
+    <Cluster justify="between">
+        <span className="text-nb-sm text-fg-subtle">{label}</span>
+        <span className="text-nb-sm text-fg">{value || '—'}</span>
+    </Cluster>
 );
 
 const MyProfilePage: React.FC = () => {
@@ -63,57 +62,53 @@ const MyProfilePage: React.FC = () => {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="p-6 space-y-5">
-                <PageHeader title="My Profile" subtitle="Your details" />
-                <Skeleton rows={3} />
-            </div>
-        );
-    }
-
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader title="My Profile" subtitle="Your details" />
+        <DashboardPageTemplate
+            title="My Profile"
+            description="Your details"
+            primary={
+                loading ? (
+                    <Skeleton rows={3} />
+                ) : (
+                    <Grid columns={2}>
+                        <MyCard title="Employment" icon={<BadgeCheck size={14} />}>
+                            <Stack gap="tight">
+                                <p className="text-nb-sm text-fg-subtle">These are maintained by your administrator.</p>
+                                <ReadOnlyRow label="Name" value={person?.full_name} />
+                                <ReadOnlyRow label="Employee ID" value={(person as any)?.employee_id} />
+                                <ReadOnlyRow label="Job title" value={person?.job_title} />
+                                <ReadOnlyRow label="Email" value={person?.email} />
+                                <ReadOnlyRow label="Joined" value={(person as any)?.date_of_joining} />
+                            </Stack>
+                        </MyCard>
 
-            <div className="grid gap-4 md:grid-cols-2">
-                <MyCard title="Employment" icon={<BadgeCheck size={14} />}>
-                    <p className="mb-3 text-xs text-fg-subtle">
-                        These are maintained by your administrator.
-                    </p>
-                    <ReadOnlyRow label="Name" value={person?.full_name} />
-                    <ReadOnlyRow label="Employee ID" value={(person as any)?.employee_id} />
-                    <ReadOnlyRow label="Job title" value={person?.job_title} />
-                    <ReadOnlyRow label="Email" value={person?.email} />
-                    <ReadOnlyRow label="Joined" value={(person as any)?.date_of_joining} />
-                </MyCard>
-
-                <MyCard title="Contact details" icon={<Phone size={14} />}>
-                    <p className="mb-3 text-xs text-fg-subtle">
-                        You can keep these up to date yourself.
-                    </p>
-
-                    <label className={labelCls}>Phone</label>
-                    <input
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        className={`${inputCls} mb-3`}
-                    />
-
-                    <label className={labelCls}>Emergency contact</label>
-                    <input
-                        value={emergency}
-                        onChange={e => setEmergency(e.target.value)}
-                        placeholder="Name and number"
-                        className={`${inputCls} mb-4`}
-                    />
-
-                    <button onClick={save} disabled={saving} className={primaryBtn}>
-                        <Save size={16} /> {saving ? 'Saving…' : 'Save changes'}
-                    </button>
-                </MyCard>
-            </div>
-        </div>
+                        <MyCard title="Contact details" icon={<Phone size={14} />}>
+                            <Stack gap="default">
+                                <p className="text-nb-sm text-fg-subtle">You can keep these up to date yourself.</p>
+                                <TextField
+                                    name="phone"
+                                    label="Phone"
+                                    value={phone}
+                                    onChange={e => setPhone(e.target.value)}
+                                />
+                                <TextField
+                                    name="emergency_contact"
+                                    label="Emergency contact"
+                                    value={emergency}
+                                    onChange={e => setEmergency(e.target.value)}
+                                    placeholder="Name and number"
+                                />
+                                <Cluster>
+                                    <Button onClick={save} disabled={saving}>
+                                        <Save size={16} /> {saving ? 'Saving…' : 'Save changes'}
+                                    </Button>
+                                </Cluster>
+                            </Stack>
+                        </MyCard>
+                    </Grid>
+                )
+            }
+        />
     );
 };
 

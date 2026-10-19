@@ -152,7 +152,7 @@ const EntityCombo: React.FC<EntityComboProps> = ({
     return (
         <div ref={containerRef} className="relative">
             <div
-                className={`flex items-center w-full px-3 py-2 bg-surface-raised border rounded-lg text-sm text-fg ${borderClass} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                className={`flex items-center w-full px-nb-3 py-nb-2 bg-surface-raised border rounded-lg text-nb-sm text-fg ${borderClass} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 onClick={() => {
                     if (disabled) return;
                     const next = !open;
@@ -168,7 +168,7 @@ const EntityCombo: React.FC<EntityComboProps> = ({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder={selectedLabel || placeholder || 'Search...'}
-                            className="flex-1 bg-transparent outline-none text-sm text-fg placeholder-slate-400"
+                            className="flex-1 bg-transparent outline-none text-nb-sm text-fg placeholder:text-fg-subtle"
                             onClick={(e) => e.stopPropagation()}
                         />
                     </>
@@ -185,22 +185,22 @@ const EntityCombo: React.FC<EntityComboProps> = ({
             {open && (
                 <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-surface-raised border border-line-strong rounded-nb shadow-lg">
                     {!ready ? (
-                        <div className="px-3 py-2 text-sm text-fg-muted">Select a project first</div>
+                        <div className="px-nb-3 py-nb-2 text-nb-sm text-fg-muted">Select a project first</div>
                     ) : loading ? (
-                        <div className="px-3 py-2 text-sm text-fg-muted">Loading...</div>
+                        <div className="px-nb-3 py-nb-2 text-nb-sm text-fg-muted">Loading...</div>
                     ) : loadError ? (
-                        <button type="button" onClick={load} className="w-full text-left px-3 py-2 text-sm text-danger hover:bg-line">
+                        <button type="button" onClick={load} className="w-full text-left px-nb-3 py-nb-2 text-nb-sm text-danger hover:bg-line">
                             Unable to load records. Please try again.
                         </button>
                     ) : filtered.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-fg-muted">No {ENTITY_PLURALS[type]} found</div>
+                        <div className="px-nb-3 py-nb-2 text-nb-sm text-fg-muted">No {ENTITY_PLURALS[type]} found</div>
                     ) : (
                         filtered.map((option) => (
                             <button
                                 key={option.id}
                                 type="button"
                                 onClick={() => handleSelect(option)}
-                                className={`w-full text-left px-3 py-2 text-sm hover:bg-line flex items-center ${option.id === value ? 'bg-line/50 text-primary' : 'text-fg'}`}
+                                className={`w-full text-left px-nb-3 py-nb-2 text-nb-sm hover:bg-line flex items-center ${option.id === value ? 'bg-line/50 text-primary' : 'text-fg'}`}
                             >
                                 <span className="truncate">{option.name}</span>
                             </button>

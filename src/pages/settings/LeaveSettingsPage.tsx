@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, toast, Select } from '@so360/design-system';
-import { CalendarRange, Save, Info } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Banner, Button, Grid, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, Switch, toast } from '@so360/design-system';
+import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
@@ -36,26 +35,6 @@ const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
-
-const INPUT_CLASS =
-  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
-
-const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = ({ checked, onChange }) => (
-  <button
-    type="button"
-    onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-primary' : 'bg-line'}`}
-  >
-    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-1'}`} />
-  </button>
-);
-
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs text-fg-muted">{label}</label>
-    {children}
-  </div>
-);
 
 const LeaveSettingsPage: React.FC = () => {
   const shell = useShellBridge();
@@ -94,76 +73,82 @@ const LeaveSettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div className="p-6 text-fg-muted animate-pulse">Loading leave settings...</div>;
-  }
+  const saveAction = canManage ? (
+    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
+      <Save className="w-4 h-4" />
+      {saving ? 'Saving...' : 'Save Changes'}
+    </Button>
+  ) : undefined;
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Leave Policy"
-        subtitle="Leave year and calendar rules applied across every leave type"
-        actions={
-          canManage && (
-            <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )
-        }
-      />
+    <SettingsPageTemplate
+      title="Leave Policy"
+      description="Leave year and calendar rules applied across every leave type"
+      primaryAction={saveAction}
+    >
+      {loading ? (
+        <Spinner aria-label="Loading leave settings..." />
+      ) : (
+        <Grid columns={2} gap="lg">
+          <SettingsCard title="Leave Calendar">
+            <Stack gap="default">
+              <Select
+                name="leave_year_start_month"
+                label="Leave Year Start Month"
+                value={value.leave_year_start_month}
+                onChange={(e) => set('leave_year_start_month', e.target.value)}
+                options={MONTHS.map((m) => ({ value: m, label: m }))}
+              />
+              <Select
+                name="weekend_policy"
+                label="Weekend Policy"
+                value={value.weekend_policy}
+                onChange={(e) => set('weekend_policy', e.target.value as LeaveSettingsValue['weekend_policy'])}
+                options={[{ value: 'exclude', label: 'Exclude weekends from leave count' }, { value: 'include', label: 'Include weekends in leave count' }]}
+              />
+              <Select
+                name="half_day_rule"
+                label="Half Day Rule"
+                value={value.half_day_rule}
+                onChange={(e) => set('half_day_rule', e.target.value as LeaveSettingsValue['half_day_rule'])}
+                options={[{ value: 'first_half', label: 'First half only' }, { value: 'second_half', label: 'Second half only' }, { value: 'both', label: 'Both halves allowed' }]}
+              />
+            </Stack>
+          </SettingsCard>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
-            <CalendarRange className="w-4 h-4" /> Leave Calendar
-          </h3>
-
-          <Field label="Leave Year Start Month">
-            <Select name="leavesettings-select-93" value={value.leave_year_start_month} onChange={(e) => set('leave_year_start_month', e.target.value)} options={[...MONTHS.map((m) => ({ value: m, label: m }))]} />
-          </Field>
-
-          <Field label="Weekend Policy">
-            <Select name="leavesettings-select-94" value={value.weekend_policy} onChange={(e) => set('weekend_policy', e.target.value as LeaveSettingsValue['weekend_policy'])} options={[{ value: "exclude", label: "Exclude weekends from leave count" }, { value: "include", label: "Include weekends in leave count" }]} />
-          </Field>
-
-          <Field label="Half Day Rule">
-            <Select name="leavesettings-select-95" value={value.half_day_rule} onChange={(e) => set('half_day_rule', e.target.value as LeaveSettingsValue['half_day_rule'])} options={[{ value: "first_half", label: "First half only" }, { value: "second_half", label: "Second half only" }, { value: "both", label: "Both halves allowed" }]} />
-          </Field>
-        </div>
-
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Calendar Rules</h3>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-fg-muted">Holiday Inclusion (count holidays within a leave span)</span>
-            <Toggle checked={value.holiday_inclusion} onChange={(v) => set('holiday_inclusion', v)} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-fg-muted">Sandwich Rule</span>
-            <Toggle checked={value.sandwich_rule} onChange={(v) => set('sandwich_rule', v)} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-fg-muted">Auto Expiry of Unused, Non-Carried Leave at Year End</span>
-            <Toggle checked={value.auto_expiry} onChange={(v) => set('auto_expiry', v)} />
-          </div>
-
-          <div className="flex items-start gap-2.5 rounded-nb border border-line bg-bg px-3 py-2.5 text-xs text-fg-muted">
-            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-fg-subtle" />
-            <span>
-              Accrual rate and carry-forward are configured per leave type, not org-wide — different types
-              legitimately accrue and carry over differently. Set those in{' '}
-              <Link to="/people/leaves/types" className="text-primary hover:text-primary underline">
-                Leave Types
-              </Link>
-              .
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
+          <SettingsCard title="Calendar Rules">
+            <Stack gap="default">
+              <Switch
+                name="holiday_inclusion"
+                label="Holiday Inclusion (count holidays within a leave span)"
+                checked={value.holiday_inclusion}
+                onCheckedChange={(v) => set('holiday_inclusion', v)}
+              />
+              <Switch
+                name="sandwich_rule"
+                label="Sandwich Rule"
+                checked={value.sandwich_rule}
+                onCheckedChange={(v) => set('sandwich_rule', v)}
+              />
+              <Switch
+                name="auto_expiry"
+                label="Auto Expiry of Unused, Non-Carried Leave at Year End"
+                checked={value.auto_expiry}
+                onCheckedChange={(v) => set('auto_expiry', v)}
+              />
+              <Banner variant="info">
+                Accrual rate and carry-forward are configured per leave type, not org-wide — different types
+                legitimately accrue and carry over differently. Set those in{' '}
+                <Link to="/people/leaves/types" className="text-primary underline">
+                  Leave Types
+                </Link>
+                .
+              </Banner>
+            </Stack>
+          </SettingsCard>
+        </Grid>
+      )}
+    </SettingsPageTemplate>
   );
 };
 

@@ -23,7 +23,7 @@ vi.mock('../../services/meService', () => ({
     },
 }));
 
-vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../../test/__mocks__/design-system')), 
+vi.mock('@so360/design-system', async () => ({ ...(await import('../../test/__mocks__/design-system')), 
     toast: { success: vi.fn(), error: vi.fn() },
 }));
 

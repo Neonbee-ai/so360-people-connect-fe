@@ -202,7 +202,7 @@ describe('PersonDetailPage — extra scenarios', () => {
       renderPage();
       await waitFor(() => screen.getByText('Alice Smith'));
       // The shell mounts People Connect at /people/*; the list lives at /people/people.
-      fireEvent.click(screen.getByText('Back to People'));
+      fireEvent.click(screen.getByRole('button', { name: 'Back to People' }));
       expect(mockNavigate).toHaveBeenCalledWith('/people/people');
     });
   });

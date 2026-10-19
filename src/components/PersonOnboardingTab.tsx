@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { ClipboardCheck, CheckCircle, Ban, Play, Upload } from 'lucide-react';
-import { toast, getErrorMessage, Select } from '@so360/design-system';
+import {
+  toast, getErrorMessage, Select, Button, Badge, Card, Progress, Skeleton, Stack, Cluster, TextField, Textarea,
+} from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import Modal from './Modal';
 import EmptyState from './EmptyState';
@@ -25,20 +27,16 @@ const ASSIGNEE_LABELS: Record<string, string> = {
   employee: 'Employee',
 };
 
-const ITEM_STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-warning/10 text-warning border-warning/20',
-  done: 'bg-success/10 text-success border-success/20',
-  waived: 'bg-fg-subtle/10 text-fg-muted border-fg-subtle/20',
+const ITEM_STATUS_TONES: Record<string, 'warning' | 'success' | 'neutral'> = {
+  pending: 'warning',
+  done: 'success',
+  waived: 'neutral',
 };
 
 const ItemStatusPill: React.FC<{ status: string }> = ({ status }) => (
-  <span
-    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${
-      ITEM_STATUS_STYLES[status] ?? ITEM_STATUS_STYLES.pending
-    }`}
-  >
-    {status}
-  </span>
+  <Badge tone={ITEM_STATUS_TONES[status] ?? 'warning'}>
+    <span className="capitalize">{status}</span>
+  </Badge>
 );
 
 /**
@@ -198,10 +196,10 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        <div className="h-10 animate-pulse rounded-nb bg-surface-raised/50" />
-        <div className="h-24 animate-pulse rounded-nb bg-surface-raised/50" />
-      </div>
+      <Stack>
+        <Skeleton variant="rect" className="h-nb-12 w-full" />
+        <Skeleton variant="rect" className="h-nb-12 w-full" />
+      </Stack>
     );
   }
 
@@ -223,7 +221,7 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
     }
 
     return (
-      <div className="space-y-4">
+      <Stack>
         <EmptyState
           icon={ClipboardCheck}
           title="No onboarding"
@@ -231,48 +229,40 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
         />
 
         {canManage && (
-          <div className="mx-auto w-full max-w-sm space-y-3">
+          <Stack>
             {templates.length > 0 && (
-              <div>
-                <label
-                  htmlFor="onboarding-template"
-                  className="mb-1.5 block text-xs font-medium text-fg-muted"
-                >
-                  Onboarding template
-                </label>
-                <Select name="onboarding-template" id="onboarding-template" value={chosenTemplateId} onChange={e => setChosenTemplateId(e.target.value)} options={[{ value: "", label: "Use the organization default" }, ...templates.map((t) => ({ value: t.id, label: `${t.name}${t.is_default ? ' (default)' : ''}` }))]} />
+              <Stack gap="tight">
+                <Select
+                  label="Onboarding template"
+                  name="onboarding-template"
+                  id="onboarding-template"
+                  value={chosenTemplateId}
+                  onChange={e => setChosenTemplateId(e.target.value)}
+                  options={[{ value: "", label: "Use the organization default" }, ...templates.map((t) => ({ value: t.id, label: `${t.name}${t.is_default ? ' (default)' : ''}` }))]}
+                />
                 {!chosenTemplateId && !templates.some(t => t.is_default) && (
-                  <p className="mt-1.5 text-xs text-warning">
+                  <p className="text-nb-caption text-warning">
                     No default template is set — pick one above, or set a default in Settings →
                     Onboarding.
                   </p>
                 )}
-              </div>
+              </Stack>
             )}
 
             {templatesFailed && (
-              <p className="text-xs text-fg-subtle">
-                Couldn't load the template list.{' '}
-                <button
-                  onClick={() => void loadTemplates()}
-                  className="font-medium text-primary hover:text-primary"
-                >
-                  Retry
-                </button>
-                {' '}— starting will still use the organization default.
-              </p>
+              <Cluster gap="tight">
+                <span className="text-nb-caption text-fg-subtle">Couldn't load the template list.</span>
+                <Button variant="ghost" size="sm" onClick={() => void loadTemplates()}>Retry</Button>
+                <span className="text-nb-caption text-fg-subtle">— starting will still use the organization default.</span>
+              </Cluster>
             )}
 
-            <button
-              onClick={handleStart}
-              disabled={starting}
-              className="w-full rounded-nb bg-primary px-4 py-2 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            <Button onClick={handleStart} disabled={starting}>
               {starting ? 'Starting…' : 'Start onboarding'}
-            </button>
-          </div>
+            </Button>
+          </Stack>
         )}
-      </div>
+      </Stack>
     );
   }
 
@@ -281,94 +271,75 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
   const percent = items.length === 0 ? 0 : Math.round((settled / items.length) * 100);
 
   return (
-    <div className="space-y-4">
+    <Stack>
       {/* Progress header */}
-      <div className="bg-surface-raised border border-line-strong rounded-nb p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <ClipboardCheck size={16} className="text-primary" />
-            <span className="text-sm font-medium text-fg">
-              {instance.status === 'completed' ? 'Onboarding complete' : 'Onboarding in progress'}
-            </span>
-            <ItemStatusPill status={instance.status === 'completed' ? 'done' : 'pending'} />
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-fg-muted">
-              {settled} of {items.length} steps settled
-            </span>
-            {canManage && instance.status === 'in_progress' && (
-              <button
-                onClick={handleCancel}
-                className="text-xs text-fg-subtle hover:text-danger transition-colors"
-              >
-                Cancel onboarding
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-surface">
-          <div
-            data-testid="onboarding-progress"
-            className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-        <p className="mt-1 text-xs text-fg-subtle">
-          Started {instance.started_at?.slice(0, 10)}
-          {instance.completed_at ? ` · Completed ${instance.completed_at.slice(0, 10)}` : ''}
-        </p>
-      </div>
+      <Card>
+        <Stack gap="tight">
+          <Cluster justify="between">
+            <Cluster>
+              <ClipboardCheck size={16} className="text-primary" />
+              <span className="text-nb-body text-fg">
+                {instance.status === 'completed' ? 'Onboarding complete' : 'Onboarding in progress'}
+              </span>
+              <ItemStatusPill status={instance.status === 'completed' ? 'done' : 'pending'} />
+            </Cluster>
+            <Cluster>
+              <span className="text-nb-caption text-fg-muted">
+                {settled} of {items.length} steps settled
+              </span>
+              {canManage && instance.status === 'in_progress' && (
+                <Button variant="ghost" size="sm" onClick={handleCancel}>
+                  Cancel onboarding
+                </Button>
+              )}
+            </Cluster>
+          </Cluster>
+          <Progress value={percent} label="Onboarding progress" />
+          <p className="text-nb-caption text-fg-subtle">
+            Started {instance.started_at?.slice(0, 10)}
+            {instance.completed_at ? ` · Completed ${instance.completed_at.slice(0, 10)}` : ''}
+          </p>
+        </Stack>
+      </Card>
 
       {/* Checklist */}
-      <div className="space-y-2">
+      <Stack gap="tight">
         {items.map(item => (
-          <div key={item.id} className="bg-surface-raised border border-line-strong rounded-nb p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-sm font-medium ${item.status === 'pending' ? 'text-fg' : 'text-fg-muted line-through'}`}>
+          <Card key={item.id}>
+            <Cluster justify="between" align="start">
+              <Stack gap="tight">
+                <Cluster>
+                  <span className={`text-nb-body ${item.status === 'pending' ? 'text-fg' : 'text-fg-muted line-through'}`}>
                     {item.title}
                   </span>
                   <ItemStatusPill status={item.status} />
-                  {!item.is_required && <span className="text-[10px] uppercase tracking-wider text-fg-subtle">Optional</span>}
-                </div>
-                <div className="mt-1 text-xs text-fg-subtle">
+                  {!item.is_required && <span className="text-nb-caption text-fg-subtle">Optional</span>}
+                </Cluster>
+                <span className="text-nb-caption text-fg-subtle">
                   {ITEM_TYPE_LABELS[item.item_type] ?? item.item_type}
                   {' · '}Assigned to {ASSIGNEE_LABELS[item.assignee_role] ?? item.assignee_role}
                   {item.due_date && ` · Due ${item.due_date}`}
-                </div>
-                {item.description && <p className="mt-1 text-xs text-fg-muted">{item.description}</p>}
-                {item.note && <p className="mt-1 text-xs text-fg-subtle italic">Note: {item.note}</p>}
-              </div>
+                </span>
+                {item.description && <p className="text-nb-caption text-fg-muted">{item.description}</p>}
+                {item.note && <p className="text-nb-caption text-fg-subtle italic">Note: {item.note}</p>}
+              </Stack>
               {item.status === 'pending' && instance.status === 'in_progress' && (
-                <div className="flex shrink-0 items-center gap-2">
+                <Cluster>
                   {item.item_type === 'document_upload' && canManage && (
-                    <button
-                      onClick={() => setAttaching(item)}
-                      disabled={actingItemId === item.id}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-primary hover:bg-primary-hover disabled:opacity-50 rounded-nb text-xs text-primary-fg font-medium transition-colors"
-                    >
+                    <Button size="sm" onClick={() => setAttaching(item)} disabled={actingItemId === item.id}>
                       <Upload size={12} /> Attach document
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    onClick={() => handleComplete(item)}
-                    disabled={actingItemId === item.id}
-                    className="flex items-center gap-1 px-2.5 py-1.5 bg-primary hover:bg-primary-hover disabled:opacity-50 rounded-nb text-xs text-primary-fg font-medium transition-colors"
-                  >
+                  <Button size="sm" onClick={() => handleComplete(item)} disabled={actingItemId === item.id}>
                     <CheckCircle size={12} /> Complete
-                  </button>
-                  <button
-                    onClick={() => setWaiving(item)}
-                    disabled={actingItemId === item.id}
-                    className="flex items-center gap-1 px-2.5 py-1.5 bg-line hover:bg-line-strong border border-line-strong disabled:opacity-50 rounded-nb text-xs text-fg transition-colors"
-                  >
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => setWaiving(item)} disabled={actingItemId === item.id}>
                     <Ban size={12} /> Waive
-                  </button>
-                </div>
+                  </Button>
+                </Cluster>
               )}
-            </div>
-          </div>
+            </Cluster>
+          </Card>
         ))}
         {items.length === 0 && (
           <EmptyState
@@ -377,7 +348,7 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
             description="This onboarding was started from a template with no items."
           />
         )}
-      </div>
+      </Stack>
 
       <WaiveModal
         item={waiving}
@@ -392,7 +363,7 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
         onAttach={handleAttach}
         busy={!!attaching && actingItemId === attaching.id}
       />
-    </div>
+    </Stack>
   );
 };
 
@@ -414,35 +385,28 @@ const WaiveModal: React.FC<{
           e.preventDefault();
           if (item && note.trim()) onWaive(item, note.trim());
         }}
-        className="space-y-4"
       >
-        <p className="text-sm text-fg-muted">
-          Waive <span className="text-fg font-medium">{item?.title}</span>? A waived required
-          step counts as settled. A reason is required.
-        </p>
-        <div>
-          <label className="block text-xs text-fg-muted mb-1">Reason <span className="text-danger">*</span></label>
-          <textarea
+        <Stack>
+          <p className="text-nb-body text-fg-muted">
+            Waive <span className="text-fg">{item?.title}</span>? A waived required
+            step counts as settled. A reason is required.
+          </p>
+          <Textarea
+            label="Reason *"
+            name="waive-reason"
             required
             value={note}
             onChange={e => setNote(e.target.value)}
             rows={3}
             placeholder="Why this step doesn't apply"
-            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
-        </div>
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} disabled={busy} className="px-3 py-1.5 text-sm text-fg-muted hover:text-fg disabled:opacity-50">
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={busy || !note.trim()}
-            className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb"
-          >
-            {busy ? 'Waiving…' : 'Waive Item'}
-          </button>
-        </div>
+          <Cluster justify="end">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+            <Button type="submit" disabled={busy || !note.trim()}>
+              {busy ? 'Waiving…' : 'Waive Item'}
+            </Button>
+          </Cluster>
+        </Stack>
       </form>
     </Modal>
   );
@@ -475,44 +439,35 @@ const AttachDocumentModal: React.FC<{
           e.preventDefault();
           if (item && fileName.trim()) onAttach(item, fileName.trim(), fileUrl.trim());
         }}
-        className="space-y-4"
       >
-        <p className="text-sm text-fg-muted">
-          Attach the collected document for{' '}
-          <span className="text-fg font-medium">{item?.title}</span>. It is filed into the
-          person's documents and the step is marked done.
-        </p>
-        <div>
-          <label className="block text-xs text-fg-muted mb-1">File name <span className="text-danger">*</span></label>
-          <input
+        <Stack>
+          <p className="text-nb-body text-fg-muted">
+            Attach the collected document for{' '}
+            <span className="text-fg">{item?.title}</span>. It is filed into the
+            person's documents and the step is marked done.
+          </p>
+          <TextField
+            label="File name *"
+            name="attach-file-name"
             required
             value={fileName}
             onChange={e => setFileName(e.target.value)}
             placeholder="e.g. passport.pdf"
-            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
-        </div>
-        <div>
-          <label className="block text-xs text-fg-muted mb-1">Link to the file (optional)</label>
-          <input
+          <TextField
+            label="Link to the file (optional)"
+            name="attach-file-url"
             value={fileUrl}
             onChange={e => setFileUrl(e.target.value)}
             placeholder="https://…"
-            className="w-full px-3 py-2 bg-surface-raised border border-line-strong rounded-nb text-sm text-fg placeholder-slate-500 focus:outline-none focus:border-primary"
           />
-        </div>
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} disabled={busy} className="px-3 py-1.5 text-sm text-fg-muted hover:text-fg disabled:opacity-50">
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={busy || !fileName.trim()}
-            className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-primary-fg text-sm font-medium rounded-nb"
-          >
-            {busy ? 'Attaching…' : 'Attach & Mark Done'}
-          </button>
-        </div>
+          <Cluster justify="end">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+            <Button type="submit" disabled={busy || !fileName.trim()}>
+              {busy ? 'Attaching…' : 'Attach & Mark Done'}
+            </Button>
+          </Cluster>
+        </Stack>
       </form>
     </Modal>
   );

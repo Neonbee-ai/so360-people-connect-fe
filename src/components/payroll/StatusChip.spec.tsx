@@ -13,7 +13,12 @@ describe('GIVEN the payroll status chip', () => {
   it('WHEN an unknown status renders THEN it falls back to the neutral style without crashing', () => {
     render(<StatusChip status="some_future_status" />);
     const chip = screen.getByText('Some Future Status');
-    expect(chip.className).toContain('bg-fg-subtle/10');
+    expect(chip).toHaveAttribute('data-tone', 'neutral');
+  });
+
+  it('WHEN a status maps to a semantic tone THEN the Comb Badge carries that tone', () => {
+    render(<StatusChip status="paid" />);
+    expect(screen.getByText('Paid')).toHaveAttribute('data-tone', 'success');
   });
 
   it('WHEN an explicit label is given THEN it overrides the derived text', () => {

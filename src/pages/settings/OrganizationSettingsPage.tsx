@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, toast, Select } from '@so360/design-system';
-import { Building2, Save, Globe2 } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Banner, Button, Checkbox, Cluster, FieldGrid, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, TextField, toast } from '@so360/design-system';
+import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
@@ -39,8 +38,6 @@ export const DEFAULT_ORGANIZATION_SETTINGS: OrganizationSettingsValue = {
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const INPUT_CLASS =
-  'w-full px-3 py-2 bg-bg border border-line rounded-nb text-sm text-fg focus:outline-none focus:border-primary';
 
 const OrganizationSettingsPage: React.FC = () => {
   const shell = useShellBridge();
@@ -79,190 +76,164 @@ const OrganizationSettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div className="p-6 text-fg-muted animate-pulse">Loading organization settings...</div>;
-  }
+  const saveAction = canManage ? (
+    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
+      <Save className="w-4 h-4" />
+      {saving ? 'Saving...' : 'Save Changes'}
+    </Button>
+  ) : undefined;
+
+  const dayOptions = DAYS.map((d) => ({ value: d, label: d }));
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Organization Settings"
-        subtitle="Working hours, calendar defaults, and organization-wide identifiers"
-        actions={
-          canManage && (
-            <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )
-        }
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest flex items-center gap-2">
-            <Building2 className="w-4 h-4" /> Working Hours
-          </h3>
-
-          <Field label="Default Working Hours (per day)">
-            <input
-              type="number"
-              className={INPUT_CLASS}
-              value={value.default_working_hours}
-              onChange={(e) => set('default_working_hours', parseFloat(e.target.value) || 0)}
-            />
-          </Field>
-
-          <Field label="Shift Duration (hours)">
-            <input
-              type="number"
-              className={INPUT_CLASS}
-              value={value.shift_duration_hours}
-              onChange={(e) => set('shift_duration_hours', parseFloat(e.target.value) || 0)}
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Office Start Time">
-              <input
+    <SettingsPageTemplate
+      title="Organization Settings"
+      description="Working hours, calendar defaults, and organization-wide identifiers"
+      primaryAction={saveAction}
+    >
+      {loading ? (
+        <Spinner aria-label="Loading organization settings..." />
+      ) : (
+        <Grid columns={2} gap="lg">
+          <SettingsCard title="Working Hours">
+            <Stack gap="default">
+              <NumberInput
+                name="default_working_hours"
+                label="Default Working Hours (per day)"
+                value={value.default_working_hours}
+                onChange={(n) => set('default_working_hours', n || 0)}
+              />
+              <NumberInput
+                name="shift_duration_hours"
+                label="Shift Duration (hours)"
+                value={value.shift_duration_hours}
+                onChange={(n) => set('shift_duration_hours', n || 0)}
+              />
+              <FieldGrid columns={2}>
+                <TextField
+                  name="office_start_time"
+                  type="time"
+                  label="Office Start Time"
+                  value={value.office_start_time}
+                  onChange={(e) => set('office_start_time', e.target.value)}
+                />
+                <TextField
+                  name="office_end_time"
+                  type="time"
+                  label="Office End Time"
+                  value={value.office_end_time}
+                  onChange={(e) => set('office_end_time', e.target.value)}
+                />
+              </FieldGrid>
+              <TextField
+                name="attendance_cutoff_time"
                 type="time"
-                className={INPUT_CLASS}
-                value={value.office_start_time}
-                onChange={(e) => set('office_start_time', e.target.value)}
+                label="Attendance Cut-off Time"
+                value={value.attendance_cutoff_time}
+                onChange={(e) => set('attendance_cutoff_time', e.target.value)}
               />
-            </Field>
-            <Field label="Office End Time">
-              <input
-                type="time"
-                className={INPUT_CLASS}
-                value={value.office_end_time}
-                onChange={(e) => set('office_end_time', e.target.value)}
+            </Stack>
+          </SettingsCard>
+
+          <SettingsCard title="Work Week">
+            <Stack gap="default">
+              <FieldGrid columns={2}>
+                <Select
+                  name="work_week_start_day"
+                  label="Work Week Start Day"
+                  value={value.work_week_start_day}
+                  onChange={(e) => set('work_week_start_day', e.target.value)}
+                  options={dayOptions}
+                />
+                <Select
+                  name="work_week_end_day"
+                  label="Work Week End Day"
+                  value={value.work_week_end_day}
+                  onChange={(e) => set('work_week_end_day', e.target.value)}
+                  options={dayOptions}
+                />
+              </FieldGrid>
+              <Stack gap="tight">
+                <span className="text-sm font-medium text-fg">Weekend Days</span>
+                <Cluster gap="default">
+                  {DAYS.map((d) => {
+                    const selected = value.weekend_days.includes(d);
+                    return (
+                      <Checkbox
+                        key={d}
+                        name={`weekend_day_${d}`}
+                        label={d}
+                        checked={selected}
+                        onChange={() =>
+                          set(
+                            'weekend_days',
+                            selected ? value.weekend_days.filter((x) => x !== d) : [...value.weekend_days, d],
+                          )
+                        }
+                      />
+                    );
+                  })}
+                </Cluster>
+              </Stack>
+            </Stack>
+          </SettingsCard>
+
+          <SettingsCard title="Locale & Formats">
+            <Stack gap="default">
+              <Banner variant="info">
+                Timezone (<span className="text-fg">{shell?.businessSettings?.timezone || 'not set'}</span>) and date
+                format (<span className="text-fg">{shell?.businessSettings?.date_format || 'not set'}</span>) are
+                organization-wide and managed once for every module in{' '}
+                <Link to="/settings/organization" className="text-primary underline">
+                  Business Settings
+                </Link>
+                , not here.
+              </Banner>
+              <Select
+                name="time_format"
+                label="Time Format"
+                value={value.time_format}
+                onChange={(e) => set('time_format', e.target.value as '12h' | '24h')}
+                options={[{ value: '12h', label: '12-hour' }, { value: '24h', label: '24-hour' }]}
               />
-            </Field>
-          </div>
-
-          <Field label="Attendance Cut-off Time">
-            <input
-              type="time"
-              className={INPUT_CLASS}
-              value={value.attendance_cutoff_time}
-              onChange={(e) => set('attendance_cutoff_time', e.target.value)}
-            />
-          </Field>
-        </div>
-
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Work Week</h3>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Work Week Start Day">
-              <Select name="organizationsettings-select-98" value={value.work_week_start_day} onChange={(e) => set('work_week_start_day', e.target.value)} options={[...DAYS.map((d) => ({ value: d, label: d }))]} />
-            </Field>
-            <Field label="Work Week End Day">
-              <Select name="organizationsettings-select-99" value={value.work_week_end_day} onChange={(e) => set('work_week_end_day', e.target.value)} options={[...DAYS.map((d) => ({ value: d, label: d }))]} />
-            </Field>
-          </div>
-
-          <Field label="Weekend Days">
-            <div className="flex flex-wrap gap-2">
-              {DAYS.map((d) => {
-                const selected = value.weekend_days.includes(d);
-                return (
-                  <button
-                    type="button"
-                    key={d}
-                    onClick={() =>
-                      set(
-                        'weekend_days',
-                        selected ? value.weekend_days.filter((x) => x !== d) : [...value.weekend_days, d],
-                      )
-                    }
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                      selected
-                        ? 'bg-primary/10 text-primary border-primary/40'
-                        : 'bg-bg text-fg-muted border-line hover:text-fg'
-                    }`}
-                  >
-                    {d}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-        </div>
-
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Locale &amp; Formats</h3>
-
-          <div className="flex items-start gap-2.5 rounded-nb border border-line bg-bg px-3 py-2.5 text-xs text-fg-muted">
-            <Globe2 className="w-3.5 h-3.5 mt-0.5 shrink-0 text-fg-subtle" />
-            <span>
-              Timezone (<span className="text-fg">{shell?.businessSettings?.timezone || 'not set'}</span>) and date
-              format (<span className="text-fg">{shell?.businessSettings?.date_format || 'not set'}</span>) are
-              organization-wide and managed once for every module in{' '}
-              <Link to="/settings/organization" className="text-primary hover:text-primary underline">
-                Business Settings
-              </Link>
-              , not here.
-            </span>
-          </div>
-
-          <Field label="Time Format">
-            <Select name="organizationsettings-select-100" value={value.time_format} onChange={(e) => set('time_format', e.target.value as '12h' | '24h')} options={[{ value: "12h", label: "12-hour" }, { value: "24h", label: "24-hour" }]} />
-          </Field>
-
-          <Field label="Employee ID Format">
-            <input
-              type="text"
-              className={INPUT_CLASS}
-              value={value.employee_id_format}
-              onChange={(e) => set('employee_id_format', e.target.value)}
-              placeholder="e.g. EMP-{seq}"
-            />
-          </Field>
-        </div>
-
-        <div className="bg-surface/50 border border-line rounded-nb p-6 space-y-4">
-          <h3 className="text-sm font-bold text-fg-subtle uppercase tracking-widest">Joining &amp; Exit</h3>
-
-          <Field label="Default Joining Status">
-            <input
-              type="text"
-              className={INPUT_CLASS}
-              value={value.default_joining_status}
-              onChange={(e) => set('default_joining_status', e.target.value)}
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Probation Period (days)">
-              <input
-                type="number"
-                className={INPUT_CLASS}
-                value={value.probation_period_days}
-                onChange={(e) => set('probation_period_days', parseInt(e.target.value, 10) || 0)}
+              <TextField
+                name="employee_id_format"
+                label="Employee ID Format"
+                value={value.employee_id_format}
+                onChange={(e) => set('employee_id_format', e.target.value)}
+                placeholder="e.g. EMP-{seq}"
               />
-            </Field>
-            <Field label="Notice Period (days)">
-              <input
-                type="number"
-                className={INPUT_CLASS}
-                value={value.notice_period_days}
-                onChange={(e) => set('notice_period_days', parseInt(e.target.value, 10) || 0)}
+            </Stack>
+          </SettingsCard>
+
+          <SettingsCard title="Joining & Exit">
+            <Stack gap="default">
+              <TextField
+                name="default_joining_status"
+                label="Default Joining Status"
+                value={value.default_joining_status}
+                onChange={(e) => set('default_joining_status', e.target.value)}
               />
-            </Field>
-          </div>
-        </div>
-      </div>
-    </div>
+              <FieldGrid columns={2}>
+                <NumberInput
+                  name="probation_period_days"
+                  label="Probation Period (days)"
+                  value={value.probation_period_days}
+                  onChange={(n) => set('probation_period_days', Math.trunc(n ?? 0))}
+                />
+                <NumberInput
+                  name="notice_period_days"
+                  label="Notice Period (days)"
+                  value={value.notice_period_days}
+                  onChange={(n) => set('notice_period_days', Math.trunc(n ?? 0))}
+                />
+              </FieldGrid>
+            </Stack>
+          </SettingsCard>
+        </Grid>
+      )}
+    </SettingsPageTemplate>
   );
 };
-
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs text-fg-muted">{label}</label>
-    {children}
-  </div>
-);
 
 export default OrganizationSettingsPage;

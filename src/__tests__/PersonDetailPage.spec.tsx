@@ -166,7 +166,7 @@ describe('PersonDetailPage', () => {
       await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
       // The shell mounts People Connect at /people/*; the list is at /people/people
       // not /people — otherwise the router strips the MFE prefix and shows the dashboard.
-      fireEvent.click(screen.getByText('Back to People'));
+      fireEvent.click(screen.getByRole('button', { name: 'Back to People' }));
       expect(mockNavigate).toHaveBeenCalledWith('/people/people');
     });
   });
