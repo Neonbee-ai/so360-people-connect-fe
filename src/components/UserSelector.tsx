@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Combobox } from '@so360/design-system';
 import { apiContext } from '../services/apiClient';
 
 type User = {
@@ -20,10 +21,6 @@ type Props = {
 export default function UserSelector({ value, onChange, placeholder = 'Select user...' }: Props) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,111 +61,32 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
     return () => { cancelled = true; };
   }, []);
 
-  const selectedUser = users.find((u) => u.id === value);
-
-  const filtered = useMemo(() => {
-    if (!search) return users;
-    const lower = search.toLowerCase();
-    return users.filter(
-      (u) =>
-        (u.full_name || '').toLowerCase().includes(lower) ||
-        u.email.toLowerCase().includes(lower)
-    );
-  }, [users, search]);
-
-  // Close on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setSearch('');
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const handleSelect = (id: string) => {
-    onChange(id);
-    setOpen(false);
-    setSearch('');
-  };
+  // comb-exception: Comb Combobox options are text-only (label + description), so the
+  // member avatar thumbnail is dropped; the email is shown as the option description.
+  const options = useMemo(
+    () =>
+      users.map((u) => ({
+        value: u.id,
+        label: u.full_name || u.email,
+        description: u.full_name ? u.email : undefined,
+      })),
+    [users],
+  );
 
   return (
-    <div ref={containerRef} className="relative">
-      <div
-        className="flex items-center w-full px-nb-3 py-nb-2 bg-surface border border-line-strong rounded-nb text-nb-sm text-fg cursor-pointer focus-within:border-primary"
-        onClick={() => {
-          setOpen(!open);
-          if (!open) setTimeout(() => inputRef.current?.focus(), 0);
-        }}
-      >
-        {open ? (
-          <input
-            ref={inputRef}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={selectedUser ? (selectedUser.full_name || selectedUser.email) : placeholder}
-            className="flex-1 bg-transparent outline-none text-nb-sm text-fg placeholder:text-fg-subtle"
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <span className={`flex-1 truncate ${selectedUser ? 'text-fg' : 'text-fg-muted'}`}>
-            {selectedUser ? (selectedUser.full_name || selectedUser.email) : placeholder}
-          </span>
-        )}
-        {value && !open ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange(null);
-            }}
-            className="ml-2 text-fg-muted hover:text-fg"
-          >
-            &times;
-          </button>
-        ) : (
-          <svg className="ml-2 w-4 h-4 text-fg-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
-          </svg>
-        )}
-      </div>
-
-      {open && (
-        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-surface border border-line-strong rounded-nb shadow-lg">
-          {loading ? (
-            <div className="px-nb-3 py-nb-2 text-nb-sm text-fg-muted">Loading users...</div>
-          ) : filtered.length === 0 ? (
-            <div className="px-nb-3 py-nb-2 text-nb-sm text-fg-muted">No users found</div>
-          ) : (
-            filtered.map((user) => (
-              <button
-                key={user.id}
-                type="button"
-                onClick={() => handleSelect(user.id)}
-                className={`w-full text-left px-nb-3 py-nb-2 text-nb-sm hover:bg-line flex items-center gap-2 ${
-                  user.id === value ? 'bg-line/50 text-primary' : 'text-fg'
-                }`}
-              >
-                <div className="w-6 h-6 rounded-full bg-line-strong flex items-center justify-center text-nb-caption shrink-0 overflow-hidden">
-                  {user.avatar_url ? (
-                    <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    (user.full_name || user.email || '?')[0].toUpperCase()
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="truncate">{user.full_name || user.email}</div>
-                  {user.full_name && (
-                    <div className="text-nb-caption text-fg-muted truncate">{user.email}</div>
-                  )}
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
+    <Combobox
+      name="user"
+      aria-label="User"
+      options={options}
+      value={value || null}
+      placeholder={placeholder}
+      clearable
+      emptyText={loading ? 'Loading users...' : 'No users found'}
+      filter={(o: { label: string; description?: string }, q: string) => {
+        const lower = q.trim().toLowerCase();
+        return o.label.toLowerCase().includes(lower) || !!o.description?.toLowerCase().includes(lower);
+      }}
+      onChange={(id: string | null) => onChange(id)}
+    />
   );
 }

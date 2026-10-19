@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
+import { Combobox } from '@so360/design-system';
 
 /**
  * Minimal shape a pickable option must satisfy. Deliberately structural rather
@@ -24,21 +25,20 @@ export interface PersonPickerProps<T extends PickablePerson = PickablePerson> {
     disabled?: boolean;
     disabledMessage?: string;
     loading?: boolean;
-    /** Max rows rendered at once; the list scrolls beyond this. */
+    /**
+     * Retained for API compatibility. Comb Combobox owns list sizing and scrolls
+     * internally, so this no longer truncates the rendered rows.
+     */
     maxVisible?: number;
     inputId?: string;
     'data-testid'?: string;
 }
 
 /**
- * Searchable person selector used across People Connect forms.
- *
- * Replaces the copy-pasted "type a character before anything appears" inputs
- * that previously lived inline in the Reviews and Feedback modals: the list now
- * opens on focus/click showing every available person, typing filters it, and
- * clearing the text restores the full list. Selection is confirmed with an
- * explicit Clear control — the field itself never edits the underlying person
- * record.
+ * Searchable person selector used across People Connect forms, built on Comb
+ * Combobox. The list opens on focus/click showing every available person,
+ * typing filters it by name, and the clear control empties the selection. The
+ * field never edits the underlying person record.
  */
 function PersonPicker<T extends PickablePerson = PickablePerson>({
     options,
@@ -49,99 +49,39 @@ function PersonPicker<T extends PickablePerson = PickablePerson>({
     disabled = false,
     disabledMessage,
     loading = false,
-    maxVisible = 10,
     inputId,
     'data-testid': testId,
 }: PersonPickerProps<T>) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [search, setSearch] = useState('');
-    const containerRef = useRef<HTMLDivElement>(null);
+    const comboOptions = useMemo(
+        () => options.map(p => ({ value: p.id, label: p.full_name, description: p.job_title })),
+        [options],
+    );
 
-    const selected = options.find(p => p.id === value);
-
-    // Close on outside click so the list never strands over the rest of the form.
-    useEffect(() => {
-        if (!isOpen) return;
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen]);
-
-    // A selection made elsewhere (or cleared upstream) must not leave a stale
-    // search term behind that would filter the list on next open.
-    useEffect(() => {
-        if (value) {
-            setSearch('');
-            setIsOpen(false);
-        }
-    }, [value]);
-
-    const filtered = useMemo(() => {
-        const term = search.trim().toLowerCase();
-        if (!term) return options;
-        return options.filter(p => p.full_name?.toLowerCase().includes(term));
-    }, [options, search]);
-
-    if (selected) {
-        return (
-            <div className="flex items-center justify-between px-nb-3 py-nb-2 bg-surface-raised border border-line-strong rounded-nb" data-testid={testId}>
-                <span className="text-nb-sm text-fg">{selected.full_name}</span>
-                <button
-                    type="button"
-                    onClick={() => onChange('')}
-                    className="text-nb-caption text-fg-muted hover:text-danger"
-                >
-                    Clear
-                </button>
-            </div>
-        );
-    }
+    const emptyText = loading ? 'Loading…' : options.length === 0 ? emptyMessage : 'No matches found';
 
     return (
-        <div ref={containerRef} className="relative" data-testid={testId}>
-            <input
+        <div data-testid={testId}>
+            <Combobox
+                name={inputId ?? 'person-picker'}
                 id={inputId}
-                type="text"
-                autoComplete="off"
+                aria-label="Person"
+                options={comboOptions}
+                value={value || null}
                 placeholder={placeholder}
-                value={search}
                 disabled={disabled}
-                onFocus={() => !disabled && setIsOpen(true)}
-                onClick={() => !disabled && setIsOpen(true)}
-                onChange={(e) => { setSearch(e.target.value); setIsOpen(true); }}
-                onKeyDown={(e) => { if (e.key === 'Escape') setIsOpen(false); }}
-                className="w-full px-nb-3 py-nb-2 bg-surface-raised border border-line-strong rounded-nb text-nb-sm text-fg focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                clearable
+                emptyText={emptyText}
+                filter={(o: { label: string }, q: string) => o.label.toLowerCase().includes(q.trim().toLowerCase())}
+                onChange={(id: string | null) => {
+                    if (!id) {
+                        onChange('');
+                        return;
+                    }
+                    onChange(id, options.find(p => p.id === id));
+                }}
             />
-
             {disabled && disabledMessage && (
                 <p className="mt-1 text-nb-caption text-fg-subtle">{disabledMessage}</p>
-            )}
-
-            {isOpen && !disabled && (
-                <div className="mt-1 max-h-40 overflow-y-auto bg-surface-raised border border-line-strong rounded-nb">
-                    {loading ? (
-                        <p className="px-nb-3 py-nb-2 text-nb-caption text-fg-subtle">Loading…</p>
-                    ) : filtered.length === 0 ? (
-                        <p className="px-nb-3 py-nb-2 text-nb-caption text-fg-subtle">
-                            {options.length === 0 ? emptyMessage : 'No matches found'}
-                        </p>
-                    ) : (
-                        filtered.slice(0, maxVisible).map(p => (
-                            <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => { onChange(p.id, p); setSearch(''); setIsOpen(false); }}
-                                className="w-full text-left px-nb-3 py-nb-2 text-nb-sm text-fg hover:bg-line hover:text-fg"
-                            >
-                                {p.full_name} {p.job_title ? `(${p.job_title})` : ''}
-                            </button>
-                        ))
-                    )}
-                </div>
             )}
         </div>
     );

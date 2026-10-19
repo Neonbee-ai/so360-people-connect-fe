@@ -8,7 +8,7 @@ import UserSelector from '../../components/UserSelector';
 import { usePeopleContext } from '../../hooks/useShellContext';
 import { useCanViewCompensation } from '../../hooks/useCanViewCompensation';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { toast, Drawer, Select, TextField, NumberInput, DateInput, Checkbox, RadioGroup, Button, Stack, FieldGrid, FieldGridItem, FormSection, Cluster } from '@so360/design-system';
+import { toast, Alert, Drawer, Select, TextField, NumberInput, DateInput, Checkbox, RadioGroup, Button, Stack, FieldGrid, FieldGridItem, FormSection, Cluster } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../../services/workLocationsService';
 import { mastersApi, MasterRow } from '../../services/mastersService';
 import {
@@ -571,9 +571,9 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
 
                 {/* Validation summary — visible wherever the user has scrolled to. */}
                 {errorCount > 1 && (
-                    <div role="alert" className="px-nb-3 py-nb-2 bg-danger/10 border border-danger/30 rounded-nb text-nb-body text-danger">
+                    <Alert name="create-person-validation-summary" variant="error">
                         {errorCount} fields need attention before this person can be added.
-                    </div>
+                    </Alert>
                 )}
               </Stack>
             </form>

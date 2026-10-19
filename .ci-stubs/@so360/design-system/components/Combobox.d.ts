@@ -24,6 +24,14 @@ export interface ComboboxProps {
     /** Show a clear (x) button when a value is selected. */
     clearable?: boolean;
     emptyText?: string;
+    filter?: (option: ComboboxOption, query: string) => boolean;
+    loadOptions?: (query: string) => Promise<ComboboxOption[]>;
+    debounceMs?: number;
+    onCreate?: (text: string) => ComboboxOption | void | Promise<ComboboxOption | void>;
+    createLabel?: (text: string) => string;
+    id?: string;
+    onBlur?: () => void;
+    autoFocus?: boolean;
     'aria-label'?: string;
     'data-testid'?: string;
 }

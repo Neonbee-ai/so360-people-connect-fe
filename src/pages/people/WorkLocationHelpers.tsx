@@ -1,32 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, useLocation, useHref } from 'react-router-dom';
-import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown, ChevronRight, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle, X } from 'lucide-react';
-import { peopleApi } from '../../services/peopleService';
-import type { Person, CreatePersonPayload, PersonStatus, AccessStatus, InvitationStatus, LaborCategoryOption } from '../../types/people';
-import DepartmentSelector from '../../components/DepartmentSelector';
-import UserSelector from '../../components/UserSelector';
-import { usePeopleContext } from '../../hooks/useShellContext';
-import { useCanViewCompensation } from '../../hooks/useCanViewCompensation';
-import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { toast, Drawer, Select, Button, TextField, Stack } from '@so360/design-system';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
+import { toast, Select, Button, TextField, Stack } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../../services/workLocationsService';
-import { mastersApi, MasterRow } from '../../services/mastersService';
-import {
-    customFieldDefsApi,
-    personCustomFieldsApi,
-    CustomFieldDef,
-    PersonCustomFieldValue,
-    CHOICE_FIELD_TYPES,
-} from '../../services/customFieldsService';
-import { usePeopleFormatters } from '../../utils/formatters';
-import { leaveConfigApi } from '../../services/leaveConfigService';
-import PersonLeaveConfigSection, { type PendingLeaveOverride } from '../../components/leave/PersonLeaveConfigSection';
-import { fetchOrgBaseCurrency } from '../../services/settingsService';
-import { validatePersonName, validateEmail, validatePhone, sanitizePhoneInput, focusFirstInvalid } from '../../utils/validation';
-import { useRefreshOnReturn } from '../../hooks/useRefreshOnReturn';
-import { personTypeForEmploymentType, personTypeLabel, typeToSendOnEdit } from '../../utils/personType';
-import { DEFAULT_CURRENCIES } from './shared';
 
+/**
  * The "Manage Work Locations" link leaves this form for a different page, which
  * silently discards anything already typed. Rather than stack a confirm modal
  * on top of the person modal, the warning replaces this line in place: one tap

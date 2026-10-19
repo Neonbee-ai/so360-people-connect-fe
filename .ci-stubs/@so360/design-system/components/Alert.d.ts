@@ -21,5 +21,6 @@ export interface AlertProps {
     onDismiss?: () => void;
     className?: string;
     id?: string;
+    name?: string;
 }
 export declare const Alert: React.FC<AlertProps>;

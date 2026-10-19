@@ -32,13 +32,13 @@ describe('Given UserSelector with no users loaded', () => {
   it('When rendered without value / Then default placeholder is shown', async () => {
     render(<UserSelector value={null} onChange={() => {}} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    expect(screen.getByText('Select user...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Select user...')).toBeInTheDocument();
   });
 
   it('When rendered with custom placeholder / Then it is shown', async () => {
     render(<UserSelector value={null} onChange={() => {}} placeholder="Choose a user" />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    expect(screen.getByText('Choose a user')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Choose a user')).toBeInTheDocument();
   });
 });
 
@@ -52,7 +52,7 @@ describe('Given UserSelector with users', () => {
   it('When opened / Then all users are shown in dropdown', async () => {
     render(<UserSelector value={null} onChange={() => {}} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select user...'));
+    fireEvent.click(screen.getByPlaceholderText('Select user...'));
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     expect(screen.getByText('Bob Jones')).toBeInTheDocument();
   });
@@ -61,7 +61,7 @@ describe('Given UserSelector with users', () => {
     const onChange = vi.fn();
     render(<UserSelector value={null} onChange={onChange} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select user...'));
+    fireEvent.click(screen.getByPlaceholderText('Select user...'));
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Alice Smith'));
     expect(onChange).toHaveBeenCalledWith('u1');
@@ -69,14 +69,24 @@ describe('Given UserSelector with users', () => {
 
   it('When value is set / Then the selected user name is shown', async () => {
     render(<UserSelector value="u1" onChange={() => {}} />);
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Alice Smith'));
+  });
+
+  it('When searching by email / Then only the matching user remains', async () => {
+    render(<UserSelector value={null} onChange={() => {}} />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    fireEvent.click(screen.getByPlaceholderText('Select user...'));
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'bob@' } });
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
+    expect(screen.getByText('Bob Jones')).toBeInTheDocument();
   });
 
   it('When clear button is clicked / Then onChange is called with null', async () => {
     const onChange = vi.fn();
     render(<UserSelector value="u1" onChange={onChange} />);
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('×'));
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Alice Smith'));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
     expect(onChange).toHaveBeenCalledWith(null);
   });
 });
@@ -86,7 +96,7 @@ describe('Given UserSelector with fetch failure', () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => { throw new Error('Failed'); }));
     render(<UserSelector value={null} onChange={() => {}} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select user...'));
+    fireEvent.click(screen.getByPlaceholderText('Select user...'));
     await waitFor(() => expect(screen.getByText('No users found')).toBeInTheDocument());
   });
 });

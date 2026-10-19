@@ -482,7 +482,7 @@ describe('Given the Department field in the create modal', () => {
     // The old free-text input used placeholder "Engineering" — it must be gone.
     expect(screen.queryByPlaceholderText('Engineering')).not.toBeInTheDocument();
     // The DepartmentSelector dropdown placeholder is present instead.
-    expect(screen.getByText('Select department...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Select department...')).toBeInTheDocument();
   });
 
   it('When a department is searched and selected / Then the create payload stores department_id (relational ref, no free text)', async () => {
@@ -494,7 +494,7 @@ describe('Given the Department field in the create modal', () => {
     await waitFor(() => expect(nameInput).toHaveValue('New Hire'));
 
     // Open the dropdown and load active departments.
-    fireEvent.click(screen.getByText('Select department...'));
+    fireEvent.click(screen.getByPlaceholderText('Select department...'));
     await waitFor(() => expect(screen.getAllByText('Engineering').length).toBeGreaterThan(0));
 
     // Search narrows the list.
@@ -505,8 +505,8 @@ describe('Given the Department field in the create modal', () => {
     // Click the dropdown option (last 'Engineering' in DOM is the dropdown span)
     const engItems = screen.getAllByText('Engineering');
     fireEvent.click(engItems[engItems.length - 1]);
-    // Wait for dropdown to close — ensures department_id state is committed in same React batch
-    await waitFor(() => expect(screen.queryByPlaceholderText('Select department...')).not.toBeInTheDocument());
+    // Wait for the field to show the chosen department — ensures department_id state is committed
+    await waitFor(() => expect(screen.getByPlaceholderText('Select department...')).toHaveValue('Engineering'));
 
     selectNoSystemAccess();
 
