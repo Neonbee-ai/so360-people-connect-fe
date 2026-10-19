@@ -19,6 +19,22 @@ const REPORTS: { key: string; label: string; description: string }[] = [
     { key: 'history', label: 'Payroll History', description: 'Every closed run with totals over time.' },
 ];
 
+/**
+ * Older backends return `{ key, rows }` with no `columns`; rendering
+ * `result.columns.map` then crashed the page ("a.columns is undefined").
+ * Always hand the table arrays: derive columns from row keys when absent.
+ */
+export function normalizeReport(report: Partial<ReportResult> | null | undefined): ReportResult {
+    const rows = Array.isArray(report?.rows) ? report!.rows : [];
+    const columns = Array.isArray(report?.columns) && report!.columns.length
+        ? report!.columns
+        : [...new Set(rows.flatMap(r => Object.keys(r ?? {})))].map(key => ({
+            key,
+            label: key.split('_').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+        }));
+    return { ...report, columns, rows } as ReportResult;
+}
+
 const PayrollReportsPage: React.FC = () => {
     const [selectedReport, setSelectedReport] = useState<string>('');
     const [result, setResult] = useState<ReportResult | null>(null);
@@ -43,7 +59,7 @@ const PayrollReportsPage: React.FC = () => {
                 group_id: filters.group_id || undefined,
                 department_id: filters.department_id || undefined,
             });
-            setResult(report);
+            setResult(normalizeReport(report));
         } catch {
             toast.error('Failed to run report');
             setResult(null);

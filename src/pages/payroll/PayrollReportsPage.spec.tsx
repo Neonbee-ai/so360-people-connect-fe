@@ -13,7 +13,7 @@ vi.mock('../../services/departmentsService', () => ({
   departmentsApi: { getAll: vi.fn() },
 }));
 
-import PayrollReportsPage from './PayrollReportsPage';
+import PayrollReportsPage, { normalizeReport } from './PayrollReportsPage';
 import { payrollApi } from '../../services/payrollApi';
 import { departmentsApi } from '../../services/departmentsService';
 
@@ -130,5 +130,25 @@ describe('GIVEN the payroll reports page', () => {
     fireEvent.click(screen.getByText('Payroll Summary'));
     await waitFor(() => expect(screen.getByText('#5')).toBeInTheDocument());
     expect(document.querySelector('tfoot')).toBeNull();
+  });
+});
+
+describe('GIVEN a backend report response without columns (regression: "a.columns is undefined" crash)', () => {
+  it('WHEN the report runs THEN the page renders a table with columns derived from row keys instead of crashing', async () => {
+    mockApi.reports.run.mockResolvedValue({ key: 'summary', rows: [{ run_number: 7, net_total: 1234 }] });
+    render(<PayrollReportsPage />);
+    fireEvent.click(screen.getByText('Payroll Summary'));
+    await waitFor(() => expect(screen.getByText('1234')).toBeInTheDocument());
+    expect(screen.getByText('Run Number')).toBeInTheDocument();
+    expect(screen.getByText('Net Total')).toBeInTheDocument();
+  });
+
+  it('WHEN normalizeReport gets columns THEN they are kept as-is', () => {
+    expect(normalizeReport(reportResult).columns).toEqual(reportResult.columns);
+  });
+
+  it('WHEN normalizeReport gets null or missing rows THEN columns and rows are empty arrays', () => {
+    expect(normalizeReport(null)).toMatchObject({ columns: [], rows: [] });
+    expect(normalizeReport({ columns: undefined as any })).toMatchObject({ columns: [], rows: [] });
   });
 });
