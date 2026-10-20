@@ -89,7 +89,7 @@ const PayrollProfileTab: React.FC<PayrollProfileTabProps> = ({ person }) => {
                     <Button
                         name={`payroll-section-toggle-${key}`}
                         variant="ghost"
-                        className="w-full justify-between"
+                        className="w-full !justify-between"
                         onClick={() => toggle(key)}
                         aria-expanded={openSection === key}
                     >
@@ -391,7 +391,7 @@ const SalaryAdjustmentModal: React.FC<{
                         {structuresLoaded && structures.length === 0 ? (
                             <FormField label="Salary Structure" name="payroll-salary-structure" required>
                                 {canConfigureStructures ? (
-                                    <Button variant="secondary" size="sm" className="w-full justify-start" onClick={goConfigureStructures}>
+                                    <Button variant="secondary" size="sm" className="w-full !justify-start" onClick={goConfigureStructures}>
                                         No salary structures configured — Configure Salary Structure →
                                     </Button>
                                 ) : (
