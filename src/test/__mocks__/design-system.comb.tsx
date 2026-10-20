@@ -247,8 +247,8 @@ export const DescriptionList = ({ items = [], title, emptyValue = '—', 'data-t
 // ---- layout primitives -------------------------------------------------
 const Pass = ({ children, 'data-testid': testId }: any) => <div data-testid={testId}>{children}</div>;
 export const PageContainer = Pass;
-export const Grid = Pass;
 export const GridItem = Pass;
+export const Grid: any = Object.assign((p: any) => Pass(p), { Item: GridItem });
 export const Stack = Pass;
 export const Cluster = Pass;
 export const Region = Pass;
@@ -278,6 +278,9 @@ export const FormActions = ({ submitLabel = 'Save', onSubmit, submitting, submit
 const Header = ({ title, description, count, status, meta, onBack, backLabel, trail, primaryAction, secondaryActions, headerSecondaryActions, overflowActions, collapsibleActions, metaItems, breadcrumbs, actions }: any) => (
   <header data-slot="header">
     {onBack ? <button type="button" aria-label={backLabel ?? 'Back'} onClick={onBack} /> : null}
+    {Array.isArray(trail) && trail.length > 0 ? (
+      <button type="button" aria-label={`Back to ${trail[trail.length - 1].label}`} onClick={trail[trail.length - 1].onClick} />
+    ) : null}
     {Array.isArray(trail) ? trail.map((t: any) => <span key={t.label}>{t.label}</span>) : null}
     <h1>{title}</h1>
     {count != null ? <span>{count}</span> : null}
@@ -310,6 +313,15 @@ const filterControl = (f: any, cfg: any) => {
           {(f.options ?? []).map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </label>
+    );
+  }
+  if (f.type === 'daterange') {
+    const r = (v as any) ?? { start: '', end: '' };
+    return (
+      <React.Fragment key={f.key}>
+        <input aria-label={`${f.label} from`} value={r.start ?? ''} onChange={(e: any) => { const n = { ...r, start: e.target.value }; set(n.start || n.end ? n : undefined); }} />
+        <input aria-label={`${f.label} to`} value={r.end ?? ''} onChange={(e: any) => { const n = { ...r, end: e.target.value }; set(n.start || n.end ? n : undefined); }} />
+      </React.Fragment>
     );
   }
   if (f.type === 'custom' && f.render) return <React.Fragment key={f.key}>{f.render(v, set)}</React.Fragment>;

@@ -52,14 +52,14 @@ describe('GIVEN the Comb Payslips list', () => {
     expect(screen.getAllByRole('table').length).toBeGreaterThan(0);
   });
 
-  it('WHEN View is clicked THEN a dialog opens with the payslip lines', async () => {
+  it('WHEN a row is clicked THEN a dialog opens with the payslip lines', async () => {
     mockApi.payslips.get.mockResolvedValue({
       ...mockPayslip,
       lines: [{ id: 'l1', run_employee_id: 're1', component_code: 'BASIC', component_name: 'Basic Salary', kind: 'earning', amount: 50000 }],
     });
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
+    fireEvent.click(screen.getByText('PS-202608-0042'));
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
     expect(within(screen.getByRole('dialog')).getByText('Basic Salary')).toBeInTheDocument();
   });

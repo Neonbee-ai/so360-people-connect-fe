@@ -26,12 +26,29 @@ const ReadOnlyRow: React.FC<{ label: string; value?: string | null }> = ({ label
     </Cluster>
 );
 
+interface EmergencyContact { name: string; phone: string; relationship: string }
+const EMPTY_CONTACT: EmergencyContact = { name: '', phone: '', relationship: '' };
+
+/**
+ * `people.emergency_contact` is JSONB ({ name, phone, relationship }). Older
+ * rows may hold a plain string (treated as the name) or `{}` / null.
+ */
+const toContact = (ec: unknown): EmergencyContact => {
+    if (typeof ec === 'string') return { ...EMPTY_CONTACT, name: ec };
+    if (ec && typeof ec === 'object') {
+        const o = ec as Record<string, unknown>;
+        const str = (v: unknown) => (typeof v === 'string' ? v : '');
+        return { name: str(o.name), phone: str(o.phone), relationship: str(o.relationship ?? o.relation) };
+    }
+    return { ...EMPTY_CONTACT };
+};
+
 const MyProfilePage: React.FC = () => {
     const [person, setPerson] = useState<Person | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [phone, setPhone] = useState('');
-    const [emergency, setEmergency] = useState('');
+    const [emergency, setEmergency] = useState<EmergencyContact>({ ...EMPTY_CONTACT });
 
     useEffect(() => {
         peopleApi
@@ -39,8 +56,7 @@ const MyProfilePage: React.FC = () => {
             .then(p => {
                 setPerson(p);
                 setPhone(p.phone ?? '');
-                const ec = (p as unknown as { emergency_contact?: unknown }).emergency_contact;
-                setEmergency(typeof ec === 'string' ? ec : ec ? JSON.stringify(ec) : '');
+                setEmergency(toContact((p as unknown as { emergency_contact?: unknown }).emergency_contact));
             })
             .catch((err: unknown) => {
                 toast.error(
@@ -53,7 +69,12 @@ const MyProfilePage: React.FC = () => {
     const save = async () => {
         setSaving(true);
         try {
-            await meService.updateMyProfile({ phone, emergency_contact: emergency });
+            const emergency_contact = {
+                name: emergency.name.trim(),
+                phone: emergency.phone.trim(),
+                relationship: emergency.relationship.trim(),
+            };
+            await meService.updateMyProfile({ phone, emergency_contact });
             toast.success('Profile updated');
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Could not save your changes');
@@ -92,11 +113,22 @@ const MyProfilePage: React.FC = () => {
                                     onChange={e => setPhone(e.target.value)}
                                 />
                                 <TextField
-                                    name="emergency_contact"
-                                    label="Emergency contact"
-                                    value={emergency}
-                                    onChange={e => setEmergency(e.target.value)}
-                                    placeholder="Name and number"
+                                    name="emergency_contact_name"
+                                    label="Emergency contact name"
+                                    value={emergency.name}
+                                    onChange={e => setEmergency(c => ({ ...c, name: e.target.value }))}
+                                />
+                                <TextField
+                                    name="emergency_contact_phone"
+                                    label="Emergency contact phone"
+                                    value={emergency.phone}
+                                    onChange={e => setEmergency(c => ({ ...c, phone: e.target.value }))}
+                                />
+                                <TextField
+                                    name="emergency_contact_relationship"
+                                    label="Relationship"
+                                    value={emergency.relationship}
+                                    onChange={e => setEmergency(c => ({ ...c, relationship: e.target.value }))}
                                 />
                                 <Cluster>
                                     <Button onClick={save} disabled={saving}>

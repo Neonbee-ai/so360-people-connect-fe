@@ -83,14 +83,14 @@ describe('GIVEN the admin payslips page', () => {
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
   });
 
-  it('WHEN View is clicked THEN the full payslip is fetched and its lines render in the modal', async () => {
+  it('WHEN a row is clicked THEN the full payslip is fetched and its lines render in the modal', async () => {
     mockApi.payslips.get.mockResolvedValue({
       ...mockPayslip,
       lines: [{ id: 'l1', run_employee_id: 're1', component_code: 'BASIC', component_name: 'Basic Salary', kind: 'earning', amount: 50000 }],
     });
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
+    fireEvent.click(screen.getByText('PS-202608-0042'));
     await waitFor(() => expect(screen.getByText('Basic Salary')).toBeInTheDocument());
     expect(mockApi.payslips.get).toHaveBeenCalledWith('ps1');
     expect(screen.getByText('Payslip PS-202608-0042')).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe('GIVEN the admin payslips page', () => {
     mockApi.payslips.get.mockRejectedValue(new Error('nope'));
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
+    fireEvent.click(screen.getByText('PS-202608-0042'));
     await waitFor(() => expect(mockApi.payslips.get).toHaveBeenCalled());
     expect(screen.queryByText('Payslip PS-202608-0042')).not.toBeInTheDocument();
   });

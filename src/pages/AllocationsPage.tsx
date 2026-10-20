@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    Target, Plus, Calendar, ArrowRight, Edit2, XCircle,
-} from 'lucide-react';
+import { Target, Plus, Edit2, XCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import { toast, useConfirm, Select, Button, IconButton, ListPageTemplate, Modal, DateInput, TextField, Textarea, Banner, Stack, Cluster } from '@so360/design-system';
+import { toast, useConfirm, Select, Button, ListPageTemplate, DataTable, Avatar, Progress, Modal, DateInput, TextField, Textarea, Banner, Stack, Cluster } from '@so360/design-system';
+import type { DataTableColumn, FilterValues, ListFilterConfig } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
@@ -123,12 +122,94 @@ const AllocationsPage: React.FC = () => {
         })),
     ];
 
+    const filterValues: FilterValues = {
+        status: statusFilter || null,
+        entity_type: entityTypeFilter || null,
+        department_id: departmentFilter || null,
+    };
+    const filterConfig: ListFilterConfig = {
+        fields: [
+            { key: 'status', label: 'Status', type: 'select', options: [{ value: 'planned', label: 'Planned' }, { value: 'active', label: 'Active' }, { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' }] },
+            { key: 'entity_type', label: 'Entity type', type: 'select', options: [{ value: 'project', label: 'Project' }, { value: 'task', label: 'Task' }, { value: 'lead', label: 'Lead' }, { value: 'customer', label: 'Customer' }, { value: 'opportunity', label: 'Opportunity' }, { value: 'department', label: 'Department' }] },
+            { key: 'department_id', label: 'Department', type: 'select', options: deptOptions.filter(o => o.value) },
+        ],
+        values: filterValues,
+        onChange: (v) => {
+            setStatusFilter(typeof v.status === 'string' ? v.status : '');
+            setEntityTypeFilter(typeof v.entity_type === 'string' ? v.entity_type : '');
+            setDepartmentFilter(typeof v.department_id === 'string' ? v.department_id : '');
+        },
+        onClear: () => { setStatusFilter(''); setEntityTypeFilter(''); setDepartmentFilter(''); },
+    };
+
+    const columns: DataTableColumn<Allocation>[] = [
+        {
+            key: 'person',
+            header: 'Person',
+            sortable: true,
+            sortValue: (a) => a.person?.full_name ?? '',
+            render: (a) => (
+                <Cluster gap="tight" className="flex-nowrap">
+                    <Avatar name={a.person?.full_name || 'Unknown Person'} size="sm" />
+                    <span className="min-w-0 truncate text-nb-sm font-medium text-fg">{a.person?.full_name || 'Unknown Person'}</span>
+                </Cluster>
+            ),
+        },
+        {
+            key: 'entity',
+            header: 'Project / entity',
+            sortable: true,
+            sortValue: (a) => a.entity_name || a.entity_id,
+            render: (a) => (
+                <Stack gap="none">
+                    <span className="truncate text-nb-sm text-fg">{a.entity_name || a.entity_id}</span>
+                    <span className="truncate text-nb-xs capitalize text-fg-muted">{a.entity_type}</span>
+                </Stack>
+            ),
+        },
+        {
+            key: 'allocation_value',
+            header: 'Allocation',
+            align: 'right',
+            sortable: true,
+            sortValue: (a) => a.allocation_value ?? 0,
+            render: (a) => {
+                const personData = allocationsByPerson[a.person_id];
+                const over = a.status === 'active' && !!personData && personData.totalPct > 100;
+                return (
+                    <Stack gap="none">
+                        <span className="tabular-nums text-nb-sm font-medium text-fg">{a.allocation_value}%</span>
+                        {over && <span className="tabular-nums text-nb-xs text-warning">Total: {personData.totalPct}%</span>}
+                    </Stack>
+                );
+            },
+        },
+        { key: 'status', header: 'Status', sortable: true, sortValue: (a) => a.status, render: (a) => <StatusBadge status={a.status} /> },
+        {
+            key: 'period',
+            header: 'Period',
+            sortable: true,
+            sortValue: (a) => a.start_date,
+            render: (a) => <span className="whitespace-nowrap text-nb-sm text-fg-muted">{a.start_date} to {a.end_date}</span>,
+        },
+        {
+            key: 'progress',
+            header: 'Capacity',
+            hideBelow: 'medium',
+            widthClassName: 'w-40',
+            render: (a) => a.status === 'active'
+                ? <Progress value={Math.min(a.allocation_value ?? 0, 100)} size="sm" tone={(a.allocation_value ?? 0) > 80 ? 'warning' : 'brand'} label={`Capacity ${a.allocation_value ?? 0}%`} />
+                : <span className="text-fg-muted">—</span>,
+        },
+    ];
+
     return (
         <>
             {confirmDialog}
             <ListPageTemplate
                 title="Allocations"
                 description="Assign people to execution entities with capacity control"
+                count={allocations.length}
                 primaryAction={canCreateAllocation ? (
                     <Button variant="primary" onClick={() => setShowCreateModal(true)}>
                         <Plus size={16} />
@@ -136,7 +217,9 @@ const AllocationsPage: React.FC = () => {
                     </Button>
                 ) : undefined}
                 loading={loading}
-                isEmpty={allocations.length === 0}
+                isEmpty={allocations.length === 0 && !statusFilter && !entityTypeFilter && !departmentFilter}
+                isFilteredEmpty={allocations.length === 0 && !!(statusFilter || entityTypeFilter || departmentFilter)}
+                onClearFilters={filterConfig.onClear}
                 empty={(
                     <EmptyState
                         icon={Target}
@@ -145,123 +228,19 @@ const AllocationsPage: React.FC = () => {
                         action={{ label: 'Create Allocation', onClick: () => setShowCreateModal(true) }}
                     />
                 )}
-                filters={(
-                    <div className="flex flex-wrap items-center justify-between gap-nb-3 w-full">
-                        <div className="flex flex-wrap items-center gap-nb-3">
-                            <Select name="allocations-select-25" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Statuses" }, { value: "planned", label: "Planned" }, { value: "active", label: "Active" }, { value: "completed", label: "Completed" }, { value: "cancelled", label: "Cancelled" }]} />
-                            <Select name="allocations-select-26" value={entityTypeFilter} onChange={(e) => setEntityTypeFilter(e.target.value)} options={[{ value: "", label: "All Entity Types" }, { value: "project", label: "Project" }, { value: "task", label: "Task" }, { value: "lead", label: "Lead" }, { value: "customer", label: "Customer" }, { value: "opportunity", label: "Opportunity" }, { value: "department", label: "Department" }]} />
-                            <Select name="allocations-department-filter" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} options={deptOptions} />
-                        </div>
-                        <div className="flex items-center gap-nb-4 text-nb-xs text-fg-muted">
-                            <span>{allocations.length} allocation{allocations.length !== 1 ? 's' : ''}</span>
-                            <span>{allocations.filter(a => a.status === 'active').length} active</span>
-                            <span className="text-warning">
-                                {Object.values(allocationsByPerson).filter(p => p.totalPct > 100).length} overallocated
-                            </span>
-                        </div>
-                    </div>
-                )}
+                filterConfig={filterConfig}
             >
-                <div className="flex flex-col gap-nb-2">
-                    {allocations.map((alloc) => {
-                        const personData = allocationsByPerson[alloc.person_id];
-                        const isOverallocated = personData && personData.totalPct > 100;
-
-                        return (
-                            <div
-                                key={alloc.id}
-                                className={`bg-surface border rounded-nb p-nb-4 transition-all ${
-                                    isOverallocated && alloc.status === 'active'
-                                        ? 'border-warning/30'
-                                        : 'border-line hover:border-line-strong'
-                                }`}
-                            >
-                                {/* Fixed column track so every row lines up: avatar |
-                                    info (flexes) | % | status | actions. The trailing
-                                    columns are sized, not content-driven, so a long
-                                    entity name can never push them out of alignment. */}
-                                <div className="grid items-center gap-nb-4 grid-cols-[2.5rem_minmax(0,1fr)_5.5rem_6rem_4.5rem]">
-                                    {/* Person Avatar */}
-                                    <div className="w-10 h-10 rounded-full bg-surface-raised border border-line-strong flex items-center justify-center flex-shrink-0">
-                                        <span className="text-nb-xs font-medium text-primary">
-                                            {(alloc.person?.full_name || 'U').split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                        </span>
-                                    </div>
-
-                                    {/* Info */}
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-nb-2 min-w-0">
-                                            <span
-                                                onClick={() => navigate(`/people/people/${alloc.person_id}`)}
-                                                className="text-nb-sm font-medium text-fg hover:text-primary cursor-pointer truncate"
-                                            >
-                                                {alloc.person?.full_name || 'Unknown Person'}
-                                            </span>
-                                            <ArrowRight size={12} className="text-fg-subtle flex-shrink-0" />
-                                            <span className="text-nb-sm text-fg truncate">
-                                                {alloc.entity_name || alloc.entity_id}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-nb-3 text-nb-xs text-fg-subtle min-w-0">
-                                            <span className="flex items-center gap-nb-1 flex-shrink-0">
-                                                <Calendar size={11} />
-                                                {alloc.start_date} to {alloc.end_date}
-                                            </span>
-                                            <span className="text-fg-subtle flex-shrink-0 capitalize">{alloc.entity_type}</span>
-                                            {alloc.notes && <span className="truncate">{alloc.notes}</span>}
-                                        </div>
-                                    </div>
-
-                                    {/* Allocation Value */}
-                                    <div className="text-right">
-                                        <div className="text-nb-lg font-bold text-fg leading-tight">
-                                            {alloc.allocation_value}
-                                            <span className="text-nb-sm text-fg-muted ml-0.5">%</span>
-                                        </div>
-                                        {isOverallocated && alloc.status === 'active' && (
-                                            <div className="text-nb-xs text-warning leading-tight">
-                                                Total: {personData.totalPct}%
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Status */}
-                                    <div className="flex justify-start">
-                                        <StatusBadge status={alloc.status} />
-                                    </div>
-
-                                    {/* Actions — always occupies its column so rows without
-                                        actions keep the same track widths. */}
-                                    <div className="flex items-center justify-end gap-nb-1">
-                                        {alloc.status !== 'cancelled' && alloc.status !== 'completed' && (
-                                            <>
-                                                <IconButton label="Edit allocation" title="Edit" variant="ghost" size="sm" icon={<Edit2 size={14} />} onClick={() => setEditingAllocation(alloc)} />
-                                                <IconButton label="Cancel allocation" title="Cancel" variant="danger" size="sm" icon={<XCircle size={14} />} onClick={() => handleCancel(alloc.id)} />
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Capacity bar — rendered on every card (empty track for
-                                    non-active allocations) so each row is the same height
-                                    and the bar always sits the same distance from the
-                                    card edge. */}
-                                <div className="mt-nb-3 pt-nb-3 border-t border-line">
-                                    <div className="w-full bg-surface-raised rounded-full h-1.5" role="presentation">
-                                        {alloc.status === 'active' && (
-                                            <div
-                                                className={`h-1.5 rounded-full transition-all ${
-                                                    (alloc.allocation_value ?? 0) > 80 ? 'bg-warning' : 'bg-primary'
-                                                }`}
-                                                style={{ width: `${Math.min(alloc.allocation_value ?? 0, 100)}%` }}
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                <DataTable
+                    name="allocations"
+                    columns={columns}
+                    rows={allocations}
+                    rowKey={(a) => a.id}
+                    onRowClick={(a) => navigate(`/people/people/${a.person_id}`)}
+                    rowActions={(a) => (a.status === 'cancelled' || a.status === 'completed' ? [] : [
+                        { label: 'Edit', icon: <Edit2 size={14} />, onSelect: () => setEditingAllocation(a) },
+                        { label: 'Cancel allocation', icon: <XCircle size={14} />, danger: true, onSelect: () => handleCancel(a.id) },
+                    ])}
+                />
             </ListPageTemplate>
 
             <CreateAllocationModal

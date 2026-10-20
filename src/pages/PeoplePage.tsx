@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Users, UserPlus, Briefcase, Mail, Upload, Download, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle, X } from 'lucide-react';
+import { Users, UserPlus, Briefcase, Mail, Upload, Download, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
 import { peopleApi } from '../services/peopleService';
 import type { Person, CreatePersonPayload, PersonStatus } from '../types/people';
-import DepartmentSelector from '../components/DepartmentSelector';
+import { departmentsApi, type Department } from '../services/departmentsService';
 import { usePeopleContext } from '../hooks/useShellContext';
 import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import {
-    QuotaBar, QuotaGate, toast, Select, ListPageTemplate, DataTable, SearchInput, DateInput, Button, IconButton,
+    QuotaBar, QuotaGate, toast, ListPageTemplate, DataTable, SearchInput, Button, IconButton,
     Menu, ConfirmDialog, Modal, TextField, Badge, StatusBadge, Avatar, EmptyState, Banner, Cluster, Stack,
 } from '@so360/design-system';
 import { mastersApi, MasterRow } from '../services/mastersService';
@@ -69,7 +69,7 @@ const CONFIRM_COPY = (a: ConfirmAction) => {
 const PeoplePage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { orgId, tenantId } = usePeopleContext();
+    const { orgId } = usePeopleContext();
     // Compensation privacy tier — rate columns hidden without compensation.read.
     const canViewCompensation = useCanViewCompensation();
     const { recordActivity } = useActivity();
@@ -103,6 +103,20 @@ const PeoplePage: React.FC = () => {
     const [employmentTypeOptions, setEmploymentTypeOptions] = useState<MasterRow[]>([]);
     const [joiningFromFilter, setJoiningFromFilter] = useState<string>('');
     const [joiningToFilter, setJoiningToFilter] = useState<string>('');
+    const [departmentOptions, setDepartmentOptions] = useState<{ value: string; label: string }[]>([]);
+    useEffect(() => {
+        let cancelled = false;
+        departmentsApi.getTree()
+            .then((res) => {
+                const tree: Department[] = Array.isArray(res) ? res : (res as any)?.data || [];
+                const out: { value: string; label: string }[] = [];
+                const walk = (nodes: Department[]) => nodes.forEach((n) => { out.push({ value: n.id, label: n.name }); if (n.children?.length) walk(n.children); });
+                walk(tree);
+                if (!cancelled) setDepartmentOptions(out);
+            })
+            .catch(() => { if (!cancelled) setDepartmentOptions([]); });
+        return () => { cancelled = true; };
+    }, []);
     // From > To is invalid input, not "zero matches" — surfaced inline instead
     // of silently querying and showing a misleading "No people found".
     const joinedRangeInvalid = !!(joiningFromFilter && joiningToFilter && joiningFromFilter > joiningToFilter);
@@ -628,56 +642,34 @@ const PeoplePage: React.FC = () => {
                         onClear={() => setSearch('')}
                     />
                 }
-                filters={
-                    <Cluster gap="default">
-                        <Select name="people-status-filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: '', label: 'All Statuses' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }, { value: 'on_leave', label: 'On Leave' }, { value: 'terminated', label: 'Terminated' }, { value: 'archived', label: 'Archived' }]} />
-                        <Select name="people-type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} options={[{ value: '', label: 'All Types' }, { value: 'employee', label: 'Employee' }, { value: 'contractor', label: 'Contractor' }]} />
-                        <DepartmentSelector
-                            value={departmentFilter}
-                            onChange={(id: string | null) => setDepartmentFilter(id || '')}
-                            orgId={orgId}
-                            tenantId={tenantId}
-                            placeholder="All Departments"
-                            className="w-48"
-                            allowClear
-                        />
-                        <Select name="people-employment-type-filter" value={employmentTypeFilter} onChange={(e) => setEmploymentTypeFilter(e.target.value)} options={[{ value: '', label: 'All Employment Types' }, ...employmentTypeOptions.map((t) => ({ value: t.code, label: t.name }))]} />
-                        <Cluster gap="tight">
-                            <span className="text-nb-caption text-fg-muted">Joined:</span>
-                            <DateInput
-                                name="joined-from"
-                                aria-label="Joined from"
-                                max={joiningToFilter || undefined}
-                                value={joiningFromFilter}
-                                onChange={setJoiningFromFilter}
-                            />
-                            <span className="text-fg-muted">-</span>
-                            <DateInput
-                                name="joined-to"
-                                aria-label="Joined to"
-                                min={joiningFromFilter || undefined}
-                                value={joiningToFilter}
-                                onChange={setJoiningToFilter}
-                                error={joinedRangeInvalid ? 'From Date cannot be later than To Date.' : undefined}
-                            />
-                            {(joiningFromFilter || joiningToFilter) && (
-                                <IconButton
-                                    label="Clear joined date range"
-                                    icon={<X size={14} />}
-                                    variant="ghost"
-                                    onClick={() => { setJoiningFromFilter(''); setJoiningToFilter(''); }}
-                                />
-                            )}
-                        </Cluster>
-                        {/* Reset everything at once. */}
-                        {hasActiveFilters && (
-                            <Button variant="secondary" onClick={handleClearFilters}>
-                                <X size={14} />
-                                Clear Filters
-                            </Button>
-                        )}
-                    </Cluster>
-                }
+                filterConfig={{
+                    fields: [
+                        { key: 'status', label: 'Status', type: 'select', options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }, { value: 'on_leave', label: 'On Leave' }, { value: 'terminated', label: 'Terminated' }, { value: 'archived', label: 'Archived' }] },
+                        { key: 'type', label: 'Type', type: 'select', options: [{ value: 'employee', label: 'Employee' }, { value: 'contractor', label: 'Contractor' }] },
+                        { key: 'department', label: 'Department', type: 'select', options: departmentOptions },
+                        { key: 'employmentType', label: 'Employment Type', type: 'select', options: employmentTypeOptions.map((t) => ({ value: t.code, label: t.name })) },
+                        { key: 'joined', label: 'Joined', type: 'daterange' },
+                    ],
+                    values: {
+                        status: statusFilter || undefined,
+                        type: typeFilter || undefined,
+                        department: departmentFilter || undefined,
+                        employmentType: employmentTypeFilter || undefined,
+                        joined: joiningFromFilter || joiningToFilter ? { start: joiningFromFilter, end: joiningToFilter } : undefined,
+                    },
+                    onChange: (v) => {
+                        setStatusFilter((v.status as string) || '');
+                        setTypeFilter((v.type as string) || '');
+                        setDepartmentFilter((v.department as string) || '');
+                        setEmploymentTypeFilter((v.employmentType as string) || '');
+                        const joined = v.joined as { start?: string; end?: string } | undefined;
+                        setJoiningFromFilter(joined?.start || '');
+                        setJoiningToFilter(joined?.end || '');
+                    },
+                    onClear: handleClearFilters,
+                }}
+                isFilteredEmpty={hasActiveFilters && people.length === 0}
+                onClearFilters={handleClearFilters}
                 kpis={
                     <>
                 {quotaData && (
@@ -687,6 +679,10 @@ const PeoplePage: React.FC = () => {
                         limit={quotaData.limit}
                         isUnlimited={quotaData.is_unlimited}
                     />
+                )}
+
+                {joinedRangeInvalid && (
+                    <Banner variant="danger">From Date cannot be later than To Date.</Banner>
                 )}
 
                 {isSandboxMode && isLimited(people.length) && (

@@ -309,22 +309,24 @@ describe('Given the "Invite as New User" section', () => {
 });
 
 describe('Given the People Registry filter bar', () => {
-  it('When no filter is applied / Then no Clear Filters action is offered', async () => {
+  it('When no filter is applied / Then the list is requested without any filter params', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /clear filters/i })).not.toBeInTheDocument();
+    const call = mockApi.getAll.mock.calls[0][0];
+    expect(call.status).toBeUndefined();
+    expect(call.date_of_joining_from).toBeUndefined();
   });
 
-  it('When a filter is applied / Then a Clear Filters action appears', async () => {
+  it('When a status filter is chosen in the filter config / Then the list is requested with it', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
 
-    fireEvent.change(screen.getByPlaceholderText('Search by name, email, or title...'), { target: { value: 'ali' } });
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'active' } });
 
-    expect(await screen.findByRole('button', { name: /clear filters/i })).toBeInTheDocument();
+    await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ status: 'active' })));
   });
 
-  it('When Clear Filters is used / Then every control returns to its default and the full list reloads', async () => {
+  it('When Clear all is used / Then every control returns to its default and the full list reloads', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
 
@@ -332,11 +334,10 @@ describe('Given the People Registry filter bar', () => {
     fireEvent.change(searchBox, { target: { value: 'ali' } });
     fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '2026-01-01' } });
 
-    fireEvent.click(await screen.findByRole('button', { name: /clear filters/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /clear all/i }));
 
     await waitFor(() => expect(searchBox.value).toBe(''));
     expect((screen.getByLabelText('Joined from') as HTMLInputElement).value).toBe('');
-    await waitFor(() => expect(screen.queryByRole('button', { name: /clear filters/i })).not.toBeInTheDocument());
     // The list query re-runs off the reset state — no extra user action needed.
     // Waited for, not sampled once: the search box is debounced, so the fetch
     // scheduled by typing "ali" can still land after the clear on a loaded
@@ -361,17 +362,20 @@ describe('Given the People Registry filter bar', () => {
     await waitFor(() => expect(searchBox.value).toBe(''));
   });
 
-  it('When a joined date is set / Then a dedicated clear control resets the range', async () => {
+  it('When both joined dates are emptied / Then the range filter is removed', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
 
     fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '2026-01-01' } });
     fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '2026-06-01' } });
+    fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '' } });
 
-    fireEvent.click(await screen.findByLabelText('Clear joined date range'));
-
-    await waitFor(() => expect((screen.getByLabelText('Joined from') as HTMLInputElement).value).toBe(''));
-    expect((screen.getByLabelText('Joined to') as HTMLInputElement).value).toBe('');
+    await waitFor(() => {
+      const lastCall = mockApi.getAll.mock.calls[mockApi.getAll.mock.calls.length - 1][0];
+      expect(lastCall.date_of_joining_from).toBeUndefined();
+      expect(lastCall.date_of_joining_to).toBeUndefined();
+    });
   });
 
   it('When From Date is earlier than To Date / Then the filter executes normally', async () => {
@@ -413,8 +417,6 @@ describe('Given the People Registry filter bar', () => {
     fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '2026-01-01' } });
 
     expect(await screen.findByRole('alert')).toHaveTextContent('From Date cannot be later than To Date.');
-    expect(screen.getByLabelText('Joined from')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByLabelText('Joined to')).toHaveAttribute('aria-invalid', 'true');
     expect(mockApi.getAll).not.toHaveBeenCalled();
   });
 
@@ -435,7 +437,7 @@ describe('Given the People Registry filter bar', () => {
     ));
   });
 
-  it('When clearing the joined date range after an invalid selection / Then validation resets', async () => {
+  it('When clearing all filters after an invalid selection / Then validation resets', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
 
@@ -443,18 +445,9 @@ describe('Given the People Registry filter bar', () => {
     fireEvent.change(screen.getByLabelText('Joined to'), { target: { value: '2026-01-01' } });
     expect(await screen.findByRole('alert')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText('Clear joined date range'));
+    fireEvent.click(screen.getByRole('button', { name: /clear all/i }));
 
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
-  });
-
-  it('When a From Date is selected / Then the To Date picker is constrained to not precede it', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    fireEvent.change(screen.getByLabelText('Joined from'), { target: { value: '2026-06-01' } });
-
-    expect(screen.getByLabelText('Joined to')).toHaveAttribute('min', '2026-06-01');
   });
 });
 

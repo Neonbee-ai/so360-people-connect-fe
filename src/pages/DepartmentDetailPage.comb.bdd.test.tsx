@@ -89,9 +89,9 @@ describe('Given DepartmentDetailPage on Comb', () => {
         expect(await screen.findByText(/No employees in this department/)).toBeInTheDocument();
     });
 
-    it('When View Profile is clicked / Then it navigates to the person', async () => {
+    it('When an employee row is clicked / Then it navigates to the person', async () => {
         renderPage();
-        fireEvent.click(await screen.findByText('View Profile'));
+        fireEvent.click(await screen.findByText('Praveen VR'));
         expect(mockNavigate).toHaveBeenCalledWith('/people/people/e1');
     });
 

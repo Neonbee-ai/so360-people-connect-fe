@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Receipt, FileDown } from 'lucide-react';
-import { toast, Button, IconButton, ListPageTemplate, DataTable, DateInput, Modal, Stack, Cluster, Card } from '@so360/design-system';
+import { toast, IconButton, ListPageTemplate, DataTable, DateInput, Modal, Stack, Cluster, Card } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
@@ -82,13 +82,15 @@ const PayslipsPage: React.FC = () => {
         { key: 'visibility', header: 'Visibility', align: 'center', render: p => <StatusChip status={p.visibility || 'published'} /> },
         {
             key: 'actions',
-            header: 'Actions',
+            header: '',
             align: 'right',
             render: p => (
-                <Cluster gap="tight" align="center" justify="end">
-                    <Button variant="ghost" size="sm" onClick={() => openPayslip(p)}>View</Button>
-                    <IconButton icon={<FileDown size={14} />} label={`Download ${p.payslip_number}`} onClick={() => download(p)} />
-                </Cluster>
+                <IconButton
+                    icon={<FileDown size={14} />}
+                    label={`Download ${p.payslip_number}`}
+                    variant="ghost"
+                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); download(p); }}
+                />
             ),
         },
     ];
@@ -118,7 +120,7 @@ const PayslipsPage: React.FC = () => {
                     />
                 }
             >
-                <DataTable name="payslips" columns={columns} rows={payslips} rowKey={p => p.id} />
+                <DataTable name="payslips" columns={columns} rows={payslips} rowKey={p => p.id} onRowClick={openPayslip} />
             </ListPageTemplate>
 
             <PayslipViewModal payslip={viewing} onClose={() => setViewing(null)} formatCurrency={formatters.formatCurrency} formatDate={formatters.formatDate} />

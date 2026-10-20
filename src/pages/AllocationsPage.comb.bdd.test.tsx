@@ -112,7 +112,7 @@ describe('Given the Allocations list page', () => {
     mockAllocApi.getAll.mockResolvedValue({ data: [alloc] });
     renderPage();
     await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
-    fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'planned' } });
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'planned' } });
     await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'planned' })));
   });
 
@@ -121,7 +121,7 @@ describe('Given the Allocations list page', () => {
     mockAllocApi.update.mockResolvedValue({});
     renderPage();
     await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
-    fireEvent.click(screen.getByLabelText('Edit allocation'));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByDisplayValue('80'), { target: { value: '60' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));

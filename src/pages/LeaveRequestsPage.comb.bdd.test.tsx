@@ -68,14 +68,14 @@ describe('LeaveRequestsPage (Comb)', () => {
   it('Given a status filter / When Approved is chosen / Then getAll is called with that status', async () => {
     renderPage();
     await screen.findByText('Alice Johnson');
-    fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'approved' } });
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'approved' } });
     await waitFor(() => expect(api.getAll).toHaveBeenLastCalledWith({ status: 'approved' }));
   });
 
-  it('Given a row / When View is clicked / Then the details modal opens and fetches the request', async () => {
+  it('Given a row / When the row is clicked / Then the details modal opens and fetches the request', async () => {
     renderPage();
     await screen.findByText('Alice Johnson');
-    fireEvent.click(screen.getByRole('button', { name: 'View' }));
+    fireEvent.click(screen.getByText('Alice Johnson'));
     expect(await screen.findByText('Leave Request Details')).toBeInTheDocument();
     await waitFor(() => expect(api.getById).toHaveBeenCalledWith('lr1'));
   });

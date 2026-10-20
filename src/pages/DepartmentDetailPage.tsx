@@ -485,46 +485,20 @@ const DepartmentDetailPage: React.FC = () => {
         },
         { key: 'status', header: 'Status', render: (emp) => <StatusBadge status={emp.status || 'inactive'} /> },
         { key: 'type', header: 'Type', render: (emp) => <span className="text-nb-caption capitalize text-fg-muted">{emp.type || '—'}</span> },
-        {
-            key: 'actions',
-            header: 'Actions',
-            interactive: true,
-            render: (emp) => (
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/people/people/${emp.id}`)}>
-                    View Profile
-                </Button>
-            ),
-        },
     ];
 
     return (
         <>
             <DetailPageTemplate
                 title={department.name}
+                trail={[{ label: 'Departments', onClick: goBack }]}
                 status={<StatusBadge status={department.is_active ? 'active' : 'inactive'} />}
-                meta={
-                    <Stack gap="tight">
-                        <Cluster gap="default">
-                            <span className="text-nb-caption text-fg-muted font-mono">{department.code}</span>
-                            {department.description && (
-                                <span className="text-nb-body text-fg-muted">{department.description}</span>
-                            )}
-                        </Cluster>
-                        <Cluster gap="default">
-                            {department.head_person && (
-                                <span className="text-nb-caption text-fg-muted">
-                                    <User size={11} /> Head: {department.head_person.full_name}
-                                </span>
-                            )}
-                            <span className="text-nb-caption text-fg-muted">
-                                <Calendar size={11} /> Created {new Date(department.created_at).toLocaleDateString()}
-                            </span>
-                            <span className="text-nb-caption text-fg-muted">
-                                <Users size={11} /> {employeeTotal} employees
-                            </span>
-                        </Cluster>
-                    </Stack>
-                }
+                description={[department.code, department.description].filter(Boolean).join(' · ') || undefined}
+                meta={[
+                    department.head_person ? `Head: ${department.head_person.full_name}` : null,
+                    `Created ${new Date(department.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`,
+                    `${employeeTotal} employees`,
+                ].filter(Boolean).join(' · ')}
                 secondaryActions={
                     canEdit
                         ? [
@@ -547,9 +521,7 @@ const DepartmentDetailPage: React.FC = () => {
                 onTabChange={(tab: string) => setActiveTab(tab as 'overview' | 'analytics' | 'access')}
             >
                 <Stack gap="region">
-                    {backButton}
-
-                    <Grid columns={3} gap="md">
+                    <Grid columns={5} gap="md">
                         <KpiCard label="Total Employees" value={employeeTotal} icon={Users} />
                         <KpiCard label="Active Employees" value={activeEmployees} icon={UserCheck} />
                         <KpiCard label="Inactive Employees" value={inactiveEmployees} icon={User} />
@@ -572,6 +544,7 @@ const DepartmentDetailPage: React.FC = () => {
                                     columns={employeeColumns}
                                     rows={employees}
                                     rowKey={(emp) => emp.id}
+                                    onRowClick={(emp) => navigate(`/people/people/${emp.id}`)}
                                     emptyState={
                                         <EmptyState
                                             icon={Users}

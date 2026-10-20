@@ -84,21 +84,13 @@ const MyTeamPage: React.FC = () => {
 
     const muted = 'text-nb-sm text-fg-subtle';
 
-    return (
-        <DashboardPageTemplate
-            title="My Team"
-            description="Who's away, and who to contact"
-            kpis={
-                /* Team Leave — rendered ONLY for department heads with pending
-                   requests. The backend returns [] for everyone else, so absence
-                   of the card is the normal employee experience. */
-                !loading && teamLeave.length > 0 ? (
+    const approvalsCard = !loading && teamLeave.length > 0 ? (
                     <MyCard title="Team leave approvals" icon={<Calendar size={14} />}>
                         <Stack gap="default">
                             {teamLeave.map(r => (
                                 <Stack key={r.id} gap="tight">
-                                    <Cluster justify="between">
-                                        <Cluster>
+                                    <Cluster justify="between" className="flex-nowrap">
+                                        <Cluster className="min-w-0 flex-nowrap">
                                             <Avatar name={r.person?.full_name} />
                                             <Stack gap="tight">
                                                 <p className="truncate text-nb-sm text-fg">
@@ -115,7 +107,7 @@ const MyTeamPage: React.FC = () => {
                                                 )}
                                             </Stack>
                                         </Cluster>
-                                        <Cluster>
+                                        <Cluster className="flex-nowrap shrink-0">
                                             <StatusPill status={r.status} />
                                             <Button
                                                 size="sm"
@@ -167,9 +159,14 @@ const MyTeamPage: React.FC = () => {
                             ))}
                         </Stack>
                     </MyCard>
-                ) : undefined
-            }
-            toolbarEnd={
+    ) : null;
+
+
+    return (
+        <DashboardPageTemplate
+            title="My Team"
+            description="Who's away, and who to contact"
+            filters={
                 <SegmentedControl
                     aria-label="Team view"
                     value={tab}
@@ -181,6 +178,9 @@ const MyTeamPage: React.FC = () => {
                 />
             }
             primary={
+                <Stack gap="default">
+                    {approvalsCard}
+                    {
                 loading ? (
                     <Skeleton rows={3} />
                 ) : tab === 'out' ? (
@@ -247,6 +247,8 @@ const MyTeamPage: React.FC = () => {
                         )}
                     </Stack>
                 )
+                    }
+                </Stack>
             }
         />
     );

@@ -127,14 +127,15 @@ const MyLeavePage: React.FC = () => {
                 }
                 kpis={
                     balances.length > 0 ? (
-                        <Grid columns={4}>
+                        <Grid columns="auto" gap="md">
                             {balances.map(b => (
-                                <StatTile
-                                    key={b.id}
-                                    label={b.leave_type?.name ?? 'Leave'}
-                                    value={b.available}
-                                    hint={`days available · ${b.used} used`}
-                                />
+                                <Grid.Item key={b.id} span={3}>
+                                    <StatTile
+                                        label={b.leave_type?.name ?? 'Leave'}
+                                        value={b.available}
+                                        hint={`days available · ${b.used} used`}
+                                    />
+                                </Grid.Item>
                             ))}
                         </Grid>
                     ) : undefined

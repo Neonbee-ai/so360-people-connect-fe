@@ -112,12 +112,6 @@ const LeaveRequestsPage: React.FC = () => {
         },
         { key: 'total_days', header: 'Total Days', align: 'center', render: (r) => <span className="font-medium text-fg">{r.total_days}</span> },
         { key: 'status', header: 'Status', align: 'center', render: (r) => <LeaveStatusBadge status={r.status} /> },
-        {
-            key: 'actions',
-            header: 'Actions',
-            align: 'right',
-            render: (r) => <Button variant="ghost" size="sm" onClick={() => setViewingRequest(r)}>View</Button>,
-        },
     ];
 
     return (
@@ -126,16 +120,19 @@ const LeaveRequestsPage: React.FC = () => {
                 title="Leave Requests"
                 description="View and manage leave applications"
                 loading={loading}
-                isEmpty={requests.length === 0}
+                isEmpty={requests.length === 0 && !statusFilter}
                 primaryAction={canCreate ? <Button onClick={() => setShowCreateModal(true)}>Request Leave</Button> : undefined}
-                toolbarEnd={
-                    <Select
-                        name="leaverequests-select-55"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        options={[{ value: '', label: 'All Statuses' }, { value: 'draft', label: 'Draft' }, { value: 'pending', label: 'Pending' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: 'cancelled', label: 'Cancelled' }]}
-                    />
-                }
+                filterConfig={{
+                    fields: [{
+                        key: 'status', label: 'Status', type: 'select',
+                        options: [{ value: 'draft', label: 'Draft' }, { value: 'pending', label: 'Pending' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: 'cancelled', label: 'Cancelled' }],
+                    }],
+                    values: { status: statusFilter },
+                    onChange: (v: Record<string, any>) => setStatusFilter(v.status ?? ''),
+                    onClear: () => setStatusFilter(''),
+                }}
+                isFilteredEmpty={requests.length === 0 && !!statusFilter}
+                onClearFilters={() => setStatusFilter('')}
                 empty={
                     <EmptyState
                         icon={Calendar}
@@ -145,7 +142,7 @@ const LeaveRequestsPage: React.FC = () => {
                     />
                 }
             >
-                <DataTable name="leave-requests" columns={columns} rows={requests} rowKey={(r) => r.id} />
+                <DataTable name="leave-requests" columns={columns} rows={requests} rowKey={(r) => r.id} onRowClick={(r) => setViewingRequest(r)} />
             </ListPageTemplate>
 
             <CreateLeaveRequestModal

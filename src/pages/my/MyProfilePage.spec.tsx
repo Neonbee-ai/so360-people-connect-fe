@@ -141,40 +141,55 @@ describe('Given the profile cannot be loaded', () => {
 });
 
 describe('Given an emergency contact stored as structured data', () => {
-    it('When it is an object / Then it is rendered as text rather than [object Object]', async () => {
+    it('When it is an object / Then name, phone and relationship fill separate fields (not {} or JSON)', async () => {
         (peopleApi.getMe as any).mockResolvedValue({
             ...ME,
-            emergency_contact: { name: 'Kin', phone: '999' },
+            emergency_contact: { name: 'Kin', phone: '999', relationship: 'Sibling' },
         });
 
         render(<MyProfilePage />);
 
-        await waitFor(() =>
-            expect(screen.getByDisplayValue(/"name":"Kin"/)).toBeInTheDocument(),
-        );
+        await waitFor(() => expect(screen.getByLabelText('Emergency contact name')).toHaveValue('Kin'));
+        expect(screen.getByLabelText('Emergency contact phone')).toHaveValue('999');
+        expect(screen.getByLabelText('Relationship')).toHaveValue('Sibling');
     });
 
-    it('When it is absent / Then the field is empty rather than showing null', async () => {
+    it('When it is an empty object / Then the fields are empty rather than showing {}', async () => {
+        (peopleApi.getMe as any).mockResolvedValue({ ...ME, emergency_contact: {} });
+
+        render(<MyProfilePage />);
+        await waitFor(() => expect(screen.getByDisplayValue('+100')).toBeInTheDocument());
+
+        expect(screen.getByLabelText('Emergency contact name')).toHaveValue('');
+        expect(screen.queryByDisplayValue('{}')).not.toBeInTheDocument();
+    });
+
+    it('When it is absent / Then the fields are empty rather than showing null', async () => {
         (peopleApi.getMe as any).mockResolvedValue({ ...ME, emergency_contact: null });
 
         render(<MyProfilePage />);
         await waitFor(() => expect(screen.getByDisplayValue('+100')).toBeInTheDocument());
 
-        expect(screen.getByPlaceholderText(/name and number/i)).toHaveValue('');
+        expect(screen.getByLabelText('Emergency contact name')).toHaveValue('');
     });
 
-    it('When it is edited / Then the new value is submitted', async () => {
+    it('When a legacy string is stored / Then it is shown as the contact name', async () => {
+        render(<MyProfilePage />);
+        await waitFor(() => expect(screen.getByLabelText('Emergency contact name')).toHaveValue('Kin 999'));
+    });
+
+    it('When it is edited / Then the object shape is submitted', async () => {
         render(<MyProfilePage />);
         await waitFor(() => expect(screen.getByDisplayValue('Kin 999')).toBeInTheDocument());
 
-        fireEvent.change(screen.getByDisplayValue('Kin 999'), {
-            target: { value: 'Next of Kin 111' },
-        });
+        fireEvent.change(screen.getByLabelText('Emergency contact name'), { target: { value: 'Next of Kin' } });
+        fireEvent.change(screen.getByLabelText('Emergency contact phone'), { target: { value: '111' } });
+        fireEvent.change(screen.getByLabelText('Relationship'), { target: { value: 'Parent' } });
         fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
         await waitFor(() => expect(meService.updateMyProfile).toHaveBeenCalled());
         expect((meService.updateMyProfile as any).mock.calls[0][0].emergency_contact)
-            .toBe('Next of Kin 111');
+            .toEqual({ name: 'Next of Kin', phone: '111', relationship: 'Parent' });
     });
 
     it('When the phone is absent / Then the input starts empty', async () => {

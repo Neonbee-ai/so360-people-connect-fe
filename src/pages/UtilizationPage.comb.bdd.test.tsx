@@ -66,12 +66,9 @@ describe('Given the Utilization page on the Comb template', () => {
     expect(api.getSummary).toHaveBeenCalledTimes(2);
   });
 
-  it('When Table View is chosen / Then the table with totals replaces the cards', async () => {
+  it('When it loads / Then the totals line is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Table View')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Table View'));
     await waitFor(() => expect(screen.getByText(/TOTALS \(1 people\)/)).toBeInTheDocument());
-    expect(screen.getByText('Card View')).toBeInTheDocument();
   });
 
   it('When someone is idle / Then the idle cost signal banner appears', async () => {
