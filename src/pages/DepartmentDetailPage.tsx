@@ -493,8 +493,9 @@ const DepartmentDetailPage: React.FC = () => {
                 title={department.name}
                 trail={[{ label: 'Departments', onClick: goBack }]}
                 status={<StatusBadge status={department.is_active ? 'active' : 'inactive'} />}
-                description={[department.code, department.description].filter(Boolean).join(' · ') || undefined}
                 meta={[
+                    department.code,
+                    department.description,
                     department.head_person ? `Head: ${department.head_person.full_name}` : null,
                     `Created ${new Date(department.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`,
                     `${employeeTotal} employees`,
