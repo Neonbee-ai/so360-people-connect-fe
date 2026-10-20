@@ -235,43 +235,40 @@ const UtilizationPage: React.FC = () => {
                 />
             )}
             kpis={(
-                <Grid columns="auto" gap="md">
-                    <Grid.Item span={3}><KpiCard label="Avg Utilization" value={`${summary?.avg_utilization_pct || 0}%`} icon={Target} /></Grid.Item>
-                    <Grid.Item span={3}><KpiCard label="Weekly Burn" value={formatCurrency(summary?.total_cost_this_week || 0)} icon={DollarSign} /></Grid.Item>
-                    <Grid.Item span={3}><KpiCard label="Total Hours" value={summary?.total_hours_this_week || 0} icon={Clock} /></Grid.Item>
-                    <Grid.Item span={3}><KpiCard label="Active Resources" value={summary?.total_people || 0} icon={Users} /></Grid.Item>
+                <Grid columns={4} gap="md">
+                    <KpiCard label="Avg utilization" value={`${summary?.avg_utilization_pct || 0}%`} icon={Target} />
+                    <KpiCard label="Weekly burn" value={formatCurrency(summary?.total_cost_this_week || 0)} icon={DollarSign} />
+                    <KpiCard label="Total hours" value={summary?.total_hours_this_week || 0} icon={Clock} />
+                    <KpiCard label="Active resources" value={summary?.total_people || 0} icon={Users} />
+                    <KpiCard
+                        label="Idle resources"
+                        value={idlePeople.length}
+                        icon={TrendingDown}
+                        hint={idlePeople.length > 0 ? idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ') : undefined}
+                    />
+                    <KpiCard
+                        label="Overallocated"
+                        value={overallocated.length}
+                        icon={TrendingUp}
+                        hint={overallocated.length > 0 ? overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ') : undefined}
+                    />
+                    <KpiCard label="Healthy" value={healthyCount} icon={BarChart3} hint="Within normal range" />
+                    <KpiCard
+                        label="Daily burn"
+                        value={formatCurrency(summary?.burn_rate_daily || 0)}
+                        icon={DollarSign}
+                        hint={`${formatCurrency((summary?.burn_rate_daily || 0) * 5)}/week from approved time`}
+                    />
                 </Grid>
             )}
             filters={weekNavigator}
             toolbarEnd={sortControl}
         >
             <Stack gap="default">
-                <Grid columns="auto" gap="md">
-                    <Grid.Item span={4}>
-                        <KpiCard
-                            label="Idle Resources"
-                            value={idlePeople.length}
-                            icon={TrendingDown}
-                            hint={idlePeople.length > 0 ? idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ') : undefined}
-                        />
-                    </Grid.Item>
-                    <Grid.Item span={4}>
-                        <KpiCard
-                            label="Overallocated"
-                            value={overallocated.length}
-                            icon={TrendingUp}
-                            hint={overallocated.length > 0 ? overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ') : undefined}
-                        />
-                    </Grid.Item>
-                    <Grid.Item span={4}>
-                        <KpiCard label="Healthy" value={healthyCount} icon={BarChart3} hint="Within normal range" />
-                    </Grid.Item>
-                </Grid>
-
                 <DataTable name="utilization-table" rowKey={(row: Row) => row.key} rows={rows} columns={columns} />
 
                 <p className="text-nb-xs text-fg-muted">
-                    <span className="font-medium">TOTALS ({rows.length} people)</span>
+                    <span className="font-medium">Totals ({rows.length} people)</span>
                     {' · '}Capacity {sum(r => r.availableHours)}h · Planned {sum(r => r.plannedHours)}h · Actual {sum(r => r.actualHours)}h
                     {' · '}Utilization {avg(r => r.utilizationPct)}% · Allocation {avg(r => r.allocationPct)}% · Variance {sum(r => r.varianceHours)}h
                     {' · '}Cost {formatCurrency(sum(r => r.actualCost))}
@@ -280,22 +277,12 @@ const UtilizationPage: React.FC = () => {
                 {/* Idle Cost Signal */}
                 {idlePeople.length > 0 && (
                     <Banner variant="danger">
-                        <div className="text-nb-sm font-medium">Idle Cost Signal</div>
+                        <div className="text-nb-sm font-medium">Idle cost signal</div>
                         <div className="text-nb-xs mt-nb-1">
                             {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
                             Estimated idle cost: {formatCurrency(idleCost)} this period.
                         </div>
                     </Banner>
-                )}
-
-                {/* Burn Rate Signal */}
-                {summary && summary.burn_rate_daily > 0 && (
-                    <KpiCard
-                        label="Burn Rate Signal"
-                        value={`${formatCurrency(summary.burn_rate_daily)}/day`}
-                        icon={DollarSign}
-                        hint={`${formatCurrency(summary.burn_rate_daily * 5)}/week · based on approved time entries for the current period`}
-                    />
                 )}
             </Stack>
         </ListPageTemplate>

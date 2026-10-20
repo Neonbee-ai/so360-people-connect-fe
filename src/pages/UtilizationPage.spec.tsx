@@ -77,7 +77,7 @@ describe('Given UtilizationPage loads with data', () => {
 
   it('When summary loads / Then stat cards are shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Active Resources')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Active resources')).toBeInTheDocument());
   });
 
   it('When utilization data loads / Then person name is shown', async () => {
@@ -155,7 +155,7 @@ describe('Given UtilizationPage receives incomplete/malformed utilization record
 
   it('When an incomplete record is present / Then totals render as finite numbers, not NaN%', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText(/TOTALS/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Totals/)).toBeInTheDocument());
     expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 });

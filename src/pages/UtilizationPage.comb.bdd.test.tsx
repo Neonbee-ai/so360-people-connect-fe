@@ -41,7 +41,7 @@ describe('Given the Utilization page on the Comb template', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     expect(screen.getByText('Utilization Intelligence')).toBeInTheDocument();
-    expect(screen.getByText('Active Resources')).toBeInTheDocument();
+    expect(screen.getByText('Active resources')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 
@@ -68,13 +68,13 @@ describe('Given the Utilization page on the Comb template', () => {
 
   it('When it loads / Then the totals line is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText(/TOTALS \(1 people\)/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Totals \(1 people\)/)).toBeInTheDocument());
   });
 
   it('When someone is idle / Then the idle cost signal banner appears', async () => {
     api.getAll.mockResolvedValue({ data: [row('p2', 'Idle Ian', { is_idle: true, utilization_pct: 10 })], period });
     renderPage();
-    await waitFor(() => expect(screen.getByText('Idle Cost Signal')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Idle cost signal')).toBeInTheDocument());
   });
 
   it('When the previous-week arrow is clicked / Then data is requested for the earlier week', async () => {

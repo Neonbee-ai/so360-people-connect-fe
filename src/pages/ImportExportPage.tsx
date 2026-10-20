@@ -165,7 +165,7 @@ const ImportExportPage: React.FC = () => {
                             Download Template
                         </Button>
                     </Cluster>
-                    <div className="border border-dashed border-line rounded-nb px-nb-4 py-nb-5 text-center">
+                    <div className="border border-line rounded-nb px-nb-4 py-nb-5 text-center">
                         <input
                             type="file"
                             name="import-file"

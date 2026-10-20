@@ -48,7 +48,7 @@ const TaxDeclarationsPage: React.FC = () => {
     const columns: DataTableColumn<TaxDeclaration>[] = [
         { key: 'person', header: 'Employee', render: d => d.person_name || d.person_id },
         { key: 'fiscal_year', header: 'Fiscal Year', render: d => d.fiscal_year },
-        { key: 'regime', header: 'Regime', align: 'center', render: d => <span className="uppercase">{d.regime}</span> },
+        { key: 'regime', header: 'Regime', align: 'center', render: d => <span className="capitalize">{d.regime}</span> },
         { key: 'declared', header: 'Declared', align: 'right', render: d => formatters.formatCurrency(d.total_declared || 0) },
         { key: 'status', header: 'Status', align: 'center', render: d => <StatusChip status={d.status} /> },
         { key: 'actions', header: 'Actions', align: 'right', render: d => <Button variant="ghost" size="sm" onClick={() => openDetail(d)}>Review</Button> },
@@ -154,7 +154,7 @@ const DeclarationReviewDrawer: React.FC<{
         >
             <Stack gap="default">
                 <Cluster gap="tight" align="center">
-                    <span className="text-nb-caption text-fg-muted uppercase">{declaration.regime} regime</span>
+                    <span className="text-nb-caption text-fg-muted capitalize">{declaration.regime} regime</span>
                     <StatusChip status={declaration.status} />
                 </Cluster>
 

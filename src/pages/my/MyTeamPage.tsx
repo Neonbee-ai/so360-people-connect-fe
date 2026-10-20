@@ -167,15 +167,25 @@ const MyTeamPage: React.FC = () => {
             title="My Team"
             description="Who's away, and who to contact"
             filters={
-                <SegmentedControl
-                    aria-label="Team view"
-                    value={tab}
-                    onChange={v => setTab(v as 'out' | 'directory')}
-                    options={[
-                        { value: 'out', label: "Who's out" },
-                        { value: 'directory', label: 'Directory' },
-                    ]}
-                />
+                <Cluster gap="default" className="flex-nowrap">
+                    <SegmentedControl
+                        aria-label="Team view"
+                        value={tab}
+                        onChange={v => setTab(v as 'out' | 'directory')}
+                        options={[
+                            { value: 'out', label: "Who's out" },
+                            { value: 'directory', label: 'Directory' },
+                        ]}
+                    />
+                    {tab === 'directory' && (
+                        <SearchInput
+                            name="colleague-search"
+                            value={search}
+                            onChange={setSearch}
+                            placeholder="Search colleagues"
+                        />
+                    )}
+                </Cluster>
             }
             primary={
                 <Stack gap="default">
@@ -212,13 +222,6 @@ const MyTeamPage: React.FC = () => {
                     )
                 ) : (
                     <Stack gap="default">
-                        <SearchInput
-                            name="colleague-search"
-                            value={search}
-                            onChange={setSearch}
-                            placeholder="Search colleagues"
-                        />
-
                         {filtered.length === 0 ? (
                             <p className={muted}>No colleagues found.</p>
                         ) : (
