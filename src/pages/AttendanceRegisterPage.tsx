@@ -188,7 +188,7 @@ const AttendanceRegisterPage: React.FC = () => {
 
     return (
         <>
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="Attendance Register"
                 description="Daily attendance for your organization"
                 loading={isRegister && loading}

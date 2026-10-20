@@ -84,7 +84,7 @@ const MyProfilePage: React.FC = () => {
     };
 
     return (
-        <DashboardPageTemplate
+        <DashboardPageTemplate trail={[]}
             title="My Profile"
             description="Your details"
             primary={

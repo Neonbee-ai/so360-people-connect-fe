@@ -113,7 +113,7 @@ const LeaveBalancesPage: React.FC = () => {
     ];
 
     return (
-        <ListPageTemplate
+        <ListPageTemplate trail={[]}
             title="Leave Balances"
             description="Initialize and adjust employee leave allocations"
             loading={!!personId && loading}

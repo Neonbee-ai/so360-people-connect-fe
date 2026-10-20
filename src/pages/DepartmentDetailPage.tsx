@@ -414,7 +414,7 @@ const DepartmentDetailPage: React.FC = () => {
 
     // ---------- Loading ----------
     if (loading) {
-        return <DetailPageTemplate title="Department" loading>{null}</DetailPageTemplate>;
+        return <DetailPageTemplate trail={[{ label: 'Departments', to: '/people/departments' }]} title="Department" loading>{null}</DetailPageTemplate>;
     }
 
     // ---------- Load failed ----------

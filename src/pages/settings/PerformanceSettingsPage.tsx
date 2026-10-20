@@ -124,7 +124,7 @@ const PerformanceSettingsPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Performance Settings"
       description="Review cycles, KPI categories, and competency library"
       primaryAction={saveAction}

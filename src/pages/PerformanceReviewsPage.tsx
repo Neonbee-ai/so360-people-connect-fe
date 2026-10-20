@@ -78,7 +78,7 @@ const PerformanceReviewsPage: React.FC = () => {
     const openReview = (id: string) => navigate(`/people/reviews/${id}`);
 
     return (
-        <ListPageTemplate
+        <ListPageTemplate trail={[]}
             title="Performance Reviews"
             description="Track employee performance evaluations"
             loading={loading}

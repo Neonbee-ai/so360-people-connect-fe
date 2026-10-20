@@ -206,7 +206,7 @@ const AllocationsPage: React.FC = () => {
     return (
         <>
             {confirmDialog}
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="Allocations"
                 description="Assign people to execution entities with capacity control"
                 count={allocations.length}

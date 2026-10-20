@@ -67,7 +67,7 @@ const TimesheetSettingsPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Timesheet Settings"
       description="Submission requirements, reminders, and lock/edit windows for the Timesheet module"
       primaryAction={saveAction}

@@ -87,7 +87,7 @@ const LeaveTypesPage: React.FC = () => {
 
     return (
         <>
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="Leave Types"
                 description="Configure leave policies and accrual rules"
                 loading={loading}

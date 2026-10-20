@@ -195,7 +195,7 @@ const LaborCategoriesPage: React.FC = () => {
 
   return (
     <>
-      <ListPageTemplate
+      <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title="Labor Categories"
         description="Labor classifications and the standard rates used to cost time entries"
         primaryAction={

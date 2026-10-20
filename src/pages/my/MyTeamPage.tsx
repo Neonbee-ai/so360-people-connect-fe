@@ -163,7 +163,7 @@ const MyTeamPage: React.FC = () => {
 
 
     return (
-        <DashboardPageTemplate
+        <DashboardPageTemplate trail={[]}
             title="My Team"
             description="Who's away, and who to contact"
             filters={

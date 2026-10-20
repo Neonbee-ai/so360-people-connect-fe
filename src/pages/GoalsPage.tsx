@@ -126,7 +126,7 @@ const GoalsPage: React.FC = () => {
     return (
         <>
         {confirmDialog}
-        <ListPageTemplate
+        <ListPageTemplate trail={[]}
             title="Goals"
             description="Track objectives and key results"
             loading={loading}

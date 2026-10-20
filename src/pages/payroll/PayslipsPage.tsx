@@ -97,7 +97,7 @@ const PayslipsPage: React.FC = () => {
 
     return (
         <>
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="Payslips"
                 description="All generated payslips across pay runs"
                 loading={loading}

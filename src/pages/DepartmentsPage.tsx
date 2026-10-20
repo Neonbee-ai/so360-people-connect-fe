@@ -182,7 +182,7 @@ const DepartmentsPage: React.FC = () => {
 
     return (
         <>
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="Departments"
                 description="Manage organizational structure"
                 primaryAction={

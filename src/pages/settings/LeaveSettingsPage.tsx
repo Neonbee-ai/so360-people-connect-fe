@@ -81,7 +81,7 @@ const LeaveSettingsPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Leave Policy"
       description="Leave year and calendar rules applied across every leave type"
       primaryAction={saveAction}

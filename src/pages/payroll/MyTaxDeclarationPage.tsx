@@ -102,7 +102,7 @@ const MyTaxDeclarationPage: React.FC = () => {
 
     return (
         <>
-            <FormPageTemplate
+            <FormPageTemplate trail={[{ label: 'My Work', to: '/people/my' }]}
                 title="My Tax Declaration"
                 description={`Fiscal year ${fiscalYear}`}
                 status={declaration ? <StatusChip status={declaration.status} /> : undefined}

@@ -94,7 +94,7 @@ const LeaveRequestDetailPage: React.FC = () => {
 
     if (loading) {
         return (
-            <DetailPageTemplate title="Leave Request">
+            <DetailPageTemplate trail={[{ label: 'Leave Requests', to: '/people/leaves/requests' }]} title="Leave Request">
                 <div data-testid="leave-detail-loading"><Skeleton /></div>
             </DetailPageTemplate>
         );
@@ -102,7 +102,7 @@ const LeaveRequestDetailPage: React.FC = () => {
 
     if (notFound || !request) {
         return (
-            <DetailPageTemplate title="Leave Request">
+            <DetailPageTemplate trail={[{ label: 'Leave Requests', to: '/people/leaves/requests' }]} title="Leave Request">
                 <Stack gap="default">
                     <EmptyState icon={CalendarDays} title="Leave request not found" description="It may have been deleted, or you may not have access to it." />
                     <Link to="/people/leaves/requests" className="text-nb-body text-primary hover:underline">Back to leave requests</Link>
@@ -116,7 +116,7 @@ const LeaveRequestDetailPage: React.FC = () => {
     const statusTone = request.status === 'approved' ? 'success' : request.status === 'pending' ? 'warning' : request.status === 'rejected' ? 'danger' : 'neutral';
 
     return (
-        <DetailPageTemplate
+        <DetailPageTemplate trail={[{ label: 'Leave Requests', to: '/people/leaves/requests' }]}
             title="Leave Request"
             meta={<span>{request.person?.full_name ?? ''}</span>}
             status={<span data-testid="leave-status"><Badge tone={statusTone}>{request.status}</Badge></span>}

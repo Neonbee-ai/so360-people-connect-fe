@@ -116,7 +116,7 @@ const LeaveRequestsPage: React.FC = () => {
 
     return (
         <>
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="Leave Requests"
                 description="View and manage leave applications"
                 loading={loading}

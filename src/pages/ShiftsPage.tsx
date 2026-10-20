@@ -115,7 +115,7 @@ const ShiftsPage: React.FC = () => {
 
   return (
     <>
-      <ListPageTemplate
+      <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title="Shift Management"
         description="Define work shifts, grace periods, and weekly offs"
         primaryAction={

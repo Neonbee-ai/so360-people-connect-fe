@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useShellBridge } from '@so360/shell-context';
-import { FeatureRoute as FeatureRouteBase } from '@so360/design-system';
+import { CombScope, FeatureRoute as FeatureRouteBase } from '@so360/design-system';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FeatureRoute = FeatureRouteBase as any;
 import { peopleService } from './services/peopleService';
@@ -203,7 +203,9 @@ const MyTaxDeclarationPage = lazy(() => import('./pages/payroll/MyTaxDeclaration
 const PayrollReportsPage = lazy(() => import('./pages/payroll/PayrollReportsPage'));
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
+    const navigate = useNavigate();
     return (
+        <CombScope module="people" root={{ label: 'People', to: '/people' }} navigate={(to) => navigate(to)}>
         <div className="flex h-full bg-bg text-fg">
             <main className="flex-1 overflow-auto">
                 <Suspense
@@ -217,6 +219,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 </Suspense>
             </main>
         </div>
+        </CombScope>
     );
 };
 

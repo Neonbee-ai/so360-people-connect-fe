@@ -110,7 +110,7 @@ const NotificationSenderPage: React.FC = () => {
   ];
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Notification Sender"
       description="Choose which connected email account sends People Connect's system notification emails"
     >

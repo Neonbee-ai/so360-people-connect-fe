@@ -252,7 +252,7 @@ const ApprovalChainsPage: React.FC = () => {
   return (
     <>
       {confirmDialog}
-      <ListPageTemplate
+      <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title="Approval Chains"
         description="Define reporting lines for automated submission routing across Timesheet, Leave, and Expenses."
         count={filtered.length}

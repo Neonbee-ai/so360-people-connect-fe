@@ -155,7 +155,7 @@ const LeaveCalendarPage: React.FC = () => {
         .format(new Date(Date.UTC(year, month, 1)));
 
     return (
-        <DashboardPageTemplate
+        <DashboardPageTemplate trail={[]}
             title="Leave Calendar"
             description="Visual overview of team availability"
             filters={

@@ -593,7 +593,7 @@ const PeoplePage: React.FC = () => {
 
     return (
         <>
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="People Registry"
                 description="Manage people as costed, allocatable resources"
                 headerSecondaryActions={[

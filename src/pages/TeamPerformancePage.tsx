@@ -65,7 +65,7 @@ const TeamPerformancePage: React.FC = () => {
     ].filter(x => x.count > 0);
 
     return (
-        <DashboardPageTemplate
+        <DashboardPageTemplate trail={[]}
             title="Team Performance"
             description="Analytics and insights across reviews and goals"
             kpis={[

@@ -59,7 +59,7 @@ const MyPayslipsPage: React.FC = () => {
 
     return (
         <>
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="My Payslips"
                 description="View and download your payslips"
                 loading={loading}

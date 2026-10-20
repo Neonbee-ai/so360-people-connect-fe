@@ -82,7 +82,7 @@ const PayrollReportsPage: React.FC = () => {
         : [];
 
     return (
-        <DashboardPageTemplate
+        <DashboardPageTemplate trail={[]}
             title="Payroll Reports"
             description="Registers, cost splits and statutory summaries"
             filters={

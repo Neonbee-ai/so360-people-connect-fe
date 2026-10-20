@@ -181,7 +181,7 @@ const CustomFieldsPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Employee Custom Fields"
       description="Define additional fields to capture on the Person record — they appear on the Add/Edit Person form"
       primaryAction={addAction}

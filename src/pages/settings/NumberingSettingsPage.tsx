@@ -96,7 +96,7 @@ const NumberingSettingsPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Numbering & Prefixes"
       description="Auto-generated ID formats used across People Connect"
       primaryAction={saveAction}

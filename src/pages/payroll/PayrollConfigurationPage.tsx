@@ -24,7 +24,7 @@ const PayrollConfigurationPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabKey>('settings');
 
     return (
-        <SettingsPageTemplate
+        <SettingsPageTemplate trail={[{ label: 'Payroll', to: '/people/payroll' }]}
             title="Payroll Configuration"
             description="Pay policies, salary components, structures and the statutory pack"
             sections={TABS.map(({ key, label }) => ({ id: key, label }))}

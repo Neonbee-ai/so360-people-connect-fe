@@ -204,7 +204,7 @@ const HolidaysPage: React.FC = () => {
   return (
     <>
       {confirmDialog}
-      <ListPageTemplate
+      <ListPageTemplate trail={[]}
         title="Holiday Calendar"
         description="Manage the organization's holiday list by year"
         loading={loading}

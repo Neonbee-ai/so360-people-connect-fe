@@ -65,7 +65,7 @@ const PayrollRunsPage: React.FC = () => {
 
     return (
         <>
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="Payroll Runs"
                 description="Process, review and close pay runs"
                 loading={loading}

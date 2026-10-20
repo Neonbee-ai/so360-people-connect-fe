@@ -245,7 +245,7 @@ const ImportExportPage: React.FC = () => {
     );
 
     return (
-        <SettingsPageTemplate
+        <SettingsPageTemplate trail={[]}
             title="Data Management"
             description="Bulk import and export for people data"
         >

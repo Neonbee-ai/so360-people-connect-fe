@@ -56,7 +56,7 @@ const TaxDeclarationsPage: React.FC = () => {
 
     return (
         <>
-            <ListPageTemplate
+            <ListPageTemplate trail={[]}
                 title="Tax Declarations"
                 description="Review employee investment declarations"
                 filters={

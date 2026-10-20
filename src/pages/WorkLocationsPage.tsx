@@ -138,7 +138,7 @@ const WorkLocationsPage: React.FC = () => {
 
   return (
     <>
-      <ListPageTemplate
+      <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title="Work Locations"
         description="Define where your people work"
         primaryAction={

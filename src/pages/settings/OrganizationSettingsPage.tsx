@@ -86,7 +86,7 @@ const OrganizationSettingsPage: React.FC = () => {
   const dayOptions = DAYS.map((d) => ({ value: d, label: d }));
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Organization Settings"
       description="Working hours, calendar defaults, and organization-wide identifiers"
       primaryAction={saveAction}

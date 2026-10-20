@@ -173,7 +173,7 @@ const MyTimePage: React.FC = () => {
     );
 
     return (
-        <DashboardPageTemplate
+        <DashboardPageTemplate trail={[]}
             title="My Time"
             description="Clock in, take breaks, clock out"
             primary={

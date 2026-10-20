@@ -177,7 +177,7 @@ const LeaveApprovalsPage: React.FC = () => {
     };
 
     return (
-        <ListPageTemplate
+        <ListPageTemplate trail={[]}
             title="Pending Approvals"
             description="Review and approve leave requests"
             loading={loading}

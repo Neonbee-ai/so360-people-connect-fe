@@ -184,7 +184,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
 
   return (
     <>
-      <ListPageTemplate
+      <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title={plural}
         description={description || `Manage the ${plural.toLowerCase()} available across People Connect`}
         primaryAction={

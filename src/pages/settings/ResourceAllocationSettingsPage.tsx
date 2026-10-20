@@ -68,7 +68,7 @@ const ResourceAllocationSettingsPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Resource Allocation Defaults"
       description="Default allocation percentages and warning thresholds used across Allocations"
       primaryAction={saveAction}

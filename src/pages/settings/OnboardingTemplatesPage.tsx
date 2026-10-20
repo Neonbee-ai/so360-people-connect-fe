@@ -167,7 +167,7 @@ const OnboardingTemplatesPage: React.FC = () => {
   ];
 
   return (
-    <ListPageTemplate
+    <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Onboarding Templates"
       description="Checklists that guide every new hire's first weeks"
       headerSecondaryActions={

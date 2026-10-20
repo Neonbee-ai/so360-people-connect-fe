@@ -9,7 +9,7 @@ import { settingsNavItems } from '../config/settingsNav';
 // restructuring any settings route another group already owns.
 const SettingsHubPage: React.FC = () => {
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[]}
       title="Settings"
       description="Configure People Connect for your organization."
     >

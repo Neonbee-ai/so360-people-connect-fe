@@ -73,7 +73,7 @@ const ReviewTemplatesPage: React.FC = () => {
     };
 
     return (
-        <ListPageTemplate
+        <ListPageTemplate trail={[]}
             title="Review Templates"
             description="Configure performance review structures"
             loading={loading}

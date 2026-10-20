@@ -55,7 +55,7 @@ const PayrollDashboardPage: React.FC = () => {
 
     return (
         <>
-            <DashboardPageTemplate
+            <DashboardPageTemplate trail={[]}
                 title="Payroll Dashboard"
                 description="Current pay run at a glance, with anything blocking it"
                 primaryAction={run ? (

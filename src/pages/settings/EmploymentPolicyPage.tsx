@@ -65,7 +65,7 @@ const EmploymentPolicyPage: React.FC = () => {
 
   if (loadError) {
     return (
-      <SettingsPageTemplate {...pageProps}>
+      <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps}>
         <Banner variant="warning" title="Unable to load employment policy">{loadError}</Banner>
       </SettingsPageTemplate>
     );
@@ -73,7 +73,7 @@ const EmploymentPolicyPage: React.FC = () => {
 
   if (!isLoadCompleted) {
     return (
-      <SettingsPageTemplate {...pageProps}>
+      <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps}>
         <Spinner aria-label="Loading employment policy..." />
       </SettingsPageTemplate>
     );
@@ -81,7 +81,7 @@ const EmploymentPolicyPage: React.FC = () => {
 
   if (!policy) {
     return (
-      <SettingsPageTemplate {...pageProps}>
+      <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps}>
         <EmptyState
           title="No employment policy configured"
           description="Contact your administrator to configure overtime thresholds."
@@ -98,7 +98,7 @@ const EmploymentPolicyPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <SettingsPageTemplate {...pageProps} primaryAction={primaryAction}>
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps} primaryAction={primaryAction}>
       <Stack gap="region">
         <Grid columns={2} gap="lg">
           <Stack gap="default">

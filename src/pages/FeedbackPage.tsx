@@ -72,7 +72,7 @@ const FeedbackPage: React.FC = () => {
     };
 
     return (
-        <ListPageTemplate
+        <ListPageTemplate trail={[]}
             title="Feedback"
             description="Give and receive feedback across the team"
             loading={loading}

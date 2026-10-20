@@ -150,7 +150,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
     ];
 
     return (
-        <ListPageTemplate
+        <ListPageTemplate trail={[]}
             title="Employee Timesheets"
             description="Read-only view of time logged in the Timesheets module"
             primaryAction={

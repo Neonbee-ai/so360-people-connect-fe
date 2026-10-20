@@ -35,7 +35,7 @@ const MyGoalsPage: React.FC = () => {
     useEffect(() => { void load(); }, [load]);
 
     return (
-        <DashboardPageTemplate
+        <DashboardPageTemplate trail={[]}
             title="My Goals"
             description="What you're working towards"
             primary={

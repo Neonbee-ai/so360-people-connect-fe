@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
     toast, DetailPageTemplate, Card, Stack, Cluster, Grid, Button, Badge, Rating,
     TextField, Textarea, NumberInput, Checkbox,
@@ -123,7 +123,6 @@ const ReviewForm: React.FC<{
 
 const ReviewDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const { recordActivity } = useActivity();
     const formatters = usePeopleFormatters();
     const [review, setReview] = useState<PerformanceReview | null>(null);
@@ -255,12 +254,12 @@ const ReviewDetailPage: React.FC = () => {
     };
 
     if (loading) {
-        return <DetailPageTemplate title="Review" loading>{null}</DetailPageTemplate>;
+        return <DetailPageTemplate trail={[{ label: 'Reviews', to: '/people/reviews' }]} title="Review" loading>{null}</DetailPageTemplate>;
     }
 
     if (!review) {
         return (
-            <DetailPageTemplate title="Review" onBack={() => navigate('/people/reviews')} backLabel="Back">
+            <DetailPageTemplate title="Review" trail={[{ label: 'Reviews', to: '/people/reviews' }]}>
                 <p className="text-nb-sm text-fg-muted">Review not found</p>
             </DetailPageTemplate>
         );
@@ -296,8 +295,7 @@ const ReviewDetailPage: React.FC = () => {
         <DetailPageTemplate
             title={`${review.person?.full_name || 'Unknown'} - ${review.template?.name || 'Review'}`}
             meta={<span className="text-nb-sm text-fg-muted">{`Review Period: ${formatters.formatDate(review.review_period_start)} - ${formatters.formatDate(review.review_period_end)}`}</span>}
-            onBack={() => navigate('/people/reviews')}
-            backLabel="Back"
+            trail={[{ label: 'Reviews', to: '/people/reviews' }]}
             primaryAction={primaryAction}
             tabs={[
                 { id: 'self', label: `Self Review${selfSubmitted ? ' \u2713' : ''}` },

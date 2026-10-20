@@ -137,7 +137,7 @@ const NotificationSettingsPage: React.FC = () => {
   ];
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Notification Settings"
       description="Channel and trigger preferences for People Connect notifications"
       primaryAction={saveAction}

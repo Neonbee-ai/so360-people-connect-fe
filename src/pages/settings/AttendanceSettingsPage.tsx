@@ -69,7 +69,7 @@ const AttendanceSettingsPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Attendance Settings"
       description="Grace periods, punch rules, and location validation"
       primaryAction={saveAction}

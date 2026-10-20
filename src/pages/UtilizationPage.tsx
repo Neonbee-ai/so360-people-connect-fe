@@ -221,7 +221,7 @@ const UtilizationPage: React.FC = () => {
     );
 
     return (
-        <ListPageTemplate
+        <ListPageTemplate trail={[]}
             title="Utilization Intelligence"
             description="Planned vs Actual | Idle detection | Burn rate signals"
             primaryAction={<IconButton label="Refresh" variant="ghost" icon={<RefreshCw size={14} />} onClick={loadData} />}

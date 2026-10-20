@@ -67,7 +67,7 @@ const UtilizationSettingsPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <SettingsPageTemplate
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Utilization Settings"
       description="Capacity, working hours, and threshold defaults used by the Utilization dashboard"
       primaryAction={saveAction}
