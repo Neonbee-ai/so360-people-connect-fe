@@ -180,7 +180,7 @@ const ModuleNav: React.FC = () => {
                     if (visibleItems.length === 0) return null;
                     return (
                     <div key={section.section}>
-                        <h3 className="px-4 text-xs font-semibold text-fg-subtle uppercase tracking-wider mb-3">
+                        <h3 className="px-4 text-xs font-semibold text-fg-subtle mb-3">
                             {section.section}
                         </h3>
                         <div className="space-y-1">

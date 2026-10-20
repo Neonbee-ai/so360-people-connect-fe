@@ -20,6 +20,7 @@ import {
     Skeleton,
     Stack,
     Cluster,
+    Grid,
 } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import {
@@ -207,14 +208,14 @@ const AttendanceRegisterPage: React.FC = () => {
                 }
                 kpis={
                     isRegister ? (
-                        <div className="grid grid-cols-2 wc-medium:grid-cols-3 wc-expanded:grid-cols-6 gap-nb-4">
+                        <Grid columns={3} gap="md">
                             <KpiCard label="Total Employees" value={summary?.total_employees ?? 0} icon={Users} />
                             <KpiCard label="Present" value={summary?.present ?? 0} icon={UserCheck} />
                             <KpiCard label="Absent" value={summary?.absent ?? 0} icon={UserMinus} />
                             <KpiCard label="On Leave" value={summary?.on_leave ?? 0} icon={CalendarDays} />
                             <KpiCard label="Half Day" value={summary?.half_day ?? 0} icon={Clock} />
                             <KpiCard label="Remote" value={summary?.remote ?? 0} icon={Home} />
-                        </div>
+                        </Grid>
                     ) : undefined
                 }
             >

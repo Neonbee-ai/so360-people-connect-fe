@@ -347,6 +347,13 @@ const PersonDetailPage: React.FC = () => {
                     <Button key="edit" variant="secondary" onClick={() => { setEditing(true); setEditData(person); }}>
                         <Edit2 size={13} /> Edit
                     </Button>,
+                    ...(activeTab === 'rate-history' && canViewCompensation
+                        ? [
+                            <Button key="add-rate" variant="secondary" onClick={() => setShowUpdateRateModal(true)}>
+                                <DollarSign size={13} /> Add new rate
+                            </Button>,
+                        ]
+                        : []),
                 ]
                 : [
                     <Button key="cancel" variant="secondary" onClick={() => setEditing(false)}>
@@ -499,7 +506,7 @@ const PersonDetailPage: React.FC = () => {
 
                     {/* Allocations Tab */}
                     {activeTab === 'allocations' && (
-                        <Stack>
+                        <div className="divide-y divide-line">
                             {allocations.length === 0 ? (
                                 <EmptyState
                                     icon={Target}
@@ -508,7 +515,7 @@ const PersonDetailPage: React.FC = () => {
                                 />
                             ) : (
                                 allocations.map(alloc => (
-                                    <Card key={alloc.id}>
+                                    <div key={alloc.id} className="py-nb-3 first:pt-0 last:pb-0">
                                         <Cluster justify="between">
                                             <Stack gap="none">
                                                 <span className="text-nb-body text-fg">{alloc.entity_name || alloc.entity_id}</span>
@@ -521,15 +528,15 @@ const PersonDetailPage: React.FC = () => {
                                                 <StatusBadge status={alloc.status} />
                                             </Cluster>
                                         </Cluster>
-                                    </Card>
+                                    </div>
                                 ))
                             )}
-                        </Stack>
+                        </div>
                     )}
 
                     {/* Time Entries Tab */}
                     {activeTab === 'time' && (
-                        <Stack>
+                        <div className="divide-y divide-line">
                             {timeEntriesStatus === 'loading' ? (
                                 <div data-testid="time-entries-loading" role="status" aria-busy="true">
                                     <span className="sr-only">Loading time entries…</span>
@@ -554,7 +561,7 @@ const PersonDetailPage: React.FC = () => {
                                 />
                             ) : (
                                 timeEntries.map(entry => (
-                                    <Card key={entry.id}>
+                                    <div key={entry.id} className="py-nb-3 first:pt-0 last:pb-0">
                                         <Cluster justify="between">
                                             <Stack gap="none">
                                                 <span className="text-nb-body text-fg">{entry.entity_name || entry.entity_type || 'Time entry'}</span>
@@ -568,17 +575,17 @@ const PersonDetailPage: React.FC = () => {
                                                 <StatusBadge status={entry.status} />
                                             </Cluster>
                                         </Cluster>
-                                    </Card>
+                                    </div>
                                 ))
                             )}
-                        </Stack>
+                        </div>
                     )}
 
                     {/* Employment History Tab */}
                     {activeTab === 'employment-history' && (
-                        <Stack>
+                        <div className="divide-y divide-line">
                             {employmentHistory.map((event) => (
-                                <Card key={event.id}>
+                                <div key={event.id} className="py-nb-3 first:pt-0 last:pb-0">
                                     <Cluster justify="between" align="start">
                                         <Stack gap="tight">
                                             <Cluster>
@@ -606,7 +613,7 @@ const PersonDetailPage: React.FC = () => {
                                             {formatters.formatDateTime(event.created_at)}
                                         </span>
                                     </Cluster>
-                                </Card>
+                                </div>
                             ))}
                             {employmentHistory.length === 0 && (
                                 <EmptyState
@@ -615,14 +622,14 @@ const PersonDetailPage: React.FC = () => {
                                     description="Employment changes will appear here"
                                 />
                             )}
-                        </Stack>
+                        </div>
                     )}
 
                     {/* Rate History Tab — compensation-gated */}
                     {activeTab === 'rate-history' && canViewCompensation && (
-                        <Stack>
+                        <div className="divide-y divide-line">
                             {rateHistory.map((event) => (
-                                <Card key={event.id}>
+                                <div key={event.id} className="py-nb-3 first:pt-0 last:pb-0">
                                     <Stack gap="tight">
                                         <Cluster gap="default" align="start">
                                             <Stack gap="none">
@@ -647,7 +654,7 @@ const PersonDetailPage: React.FC = () => {
                                             <span className="text-nb-body text-fg-muted">{event.reason}</span>
                                         )}
                                     </Stack>
-                                </Card>
+                                </div>
                             ))}
                             {rateHistory.length === 0 && (
                                 <EmptyState
@@ -656,16 +663,10 @@ const PersonDetailPage: React.FC = () => {
                                     description="Rate changes will appear here"
                                 />
                             )}
-                            <Stack gap="tight">
-                                <Button variant="secondary" onClick={() => setShowUpdateRateModal(true)}>
-                                    <DollarSign size={16} />
-                                    Add New Rate
-                                </Button>
-                                <p className="text-nb-caption text-fg-subtle">
-                                    This records a new effective-dated rate. Records above are read-only history and are never edited.
-                                </p>
-                            </Stack>
-                        </Stack>
+                            <p className="pt-nb-3 text-nb-caption text-fg-subtle">
+                                Use Add new rate in the page header to record a new effective-dated rate. Records above are read-only history and are never edited.
+                            </p>
+                        </div>
                     )}
 
                     {/* Onboarding Tab */}
@@ -687,9 +688,9 @@ const PersonDetailPage: React.FC = () => {
 
                     {/* Goals Tab */}
                     {activeTab === 'goals' && (
-                        <Stack>
+                        <div className="divide-y divide-line">
                             {goals.map((goal) => (
-                                <Card key={goal.id}>
+                                <div key={goal.id} className="py-nb-3 first:pt-0 last:pb-0">
                                     <Stack gap="tight">
                                         <Cluster justify="between" align="start">
                                             <Stack gap="tight">
@@ -709,7 +710,7 @@ const PersonDetailPage: React.FC = () => {
                                         <Progress value={goal.progress_percentage} label={`${goal.title} progress`} />
                                         <span className="text-nb-caption text-fg-subtle">{goal.progress_percentage}% complete</span>
                                     </Stack>
-                                </Card>
+                                </div>
                             ))}
                             {goals.length === 0 && (
                                 <EmptyState
@@ -718,7 +719,7 @@ const PersonDetailPage: React.FC = () => {
                                     description="Goals assigned to this person will appear here"
                                 />
                             )}
-                        </Stack>
+                        </div>
                     )}
                 </Card>
             </Stack>

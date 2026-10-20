@@ -522,7 +522,7 @@ const DepartmentDetailPage: React.FC = () => {
                 onTabChange={(tab: string) => setActiveTab(tab as 'overview' | 'analytics' | 'access')}
             >
                 <Stack gap="region">
-                    <Grid columns={5} gap="md">
+                    <Grid columns={4} gap="md">
                         <KpiCard label="Total Employees" value={employeeTotal} icon={Users} />
                         <KpiCard label="Active Employees" value={activeEmployees} icon={UserCheck} />
                         <KpiCard label="Inactive Employees" value={inactiveEmployees} icon={User} />
@@ -532,8 +532,6 @@ const DepartmentDetailPage: React.FC = () => {
                             icon={UserCheck}
                             hint={department.head_person ? 'Assigned' : 'Not assigned'}
                         />
-                        <KpiCard label="Status" value={department.is_active ? 'Active' : 'Archived'} icon={Building2} />
-                        <KpiCard label="Allocated Employees" value="—" icon={BarChart2} hint="Connect allocations module" />
                     </Grid>
 
                     {/* Overview Tab */}

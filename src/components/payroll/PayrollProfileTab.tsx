@@ -83,9 +83,9 @@ const PayrollProfileTab: React.FC<PayrollProfileTabProps> = ({ person }) => {
     }
 
     return (
-        <Stack gap="tight">
+        <Stack gap="none">
             {sections.map(({ key, label, icon: Icon }) => (
-                <Card key={key} name={`payroll-section-${key}`} padding="none">
+                <div key={key} data-testid={`payroll-section-${key}`} className="border-b border-line last:border-b-0">
                     <Button
                         name={`payroll-section-toggle-${key}`}
                         variant="secondary"
@@ -116,7 +116,7 @@ const PayrollProfileTab: React.FC<PayrollProfileTabProps> = ({ person }) => {
                             {key === 'history' && <HistorySection personId={person.id} />}
                         </div>
                     )}
-                </Card>
+                </div>
             ))}
         </Stack>
     );
