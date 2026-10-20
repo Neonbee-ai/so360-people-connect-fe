@@ -136,7 +136,8 @@ describe('GIVEN a draft run (prepare step)', () => {
     mockApi.runs.cancel.mockResolvedValue({});
     renderPage();
     await waitFor(() => expect(screen.getByText('Payroll Run #9')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Cancel'));
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Cancel run' }));
     await waitFor(() => expect(screen.getByText('Cancel Payroll Run')).toBeInTheDocument());
     expect(mockApi.runs.cancel).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('Cancel Run'));

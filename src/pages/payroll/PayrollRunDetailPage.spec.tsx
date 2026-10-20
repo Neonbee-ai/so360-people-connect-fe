@@ -96,12 +96,8 @@ describe('GIVEN a draft payroll run', () => {
     mockApi.runs.calculate.mockResolvedValue({ ...baseRun, status: 'calculating' });
     renderPage();
     await waitFor(() => expect(screen.getByText('Payroll Run #3')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Calculate'));
-    // Two elements carry the accessible name "Calculate": the stepper step and
-    // the action button. The action button is rendered after the stepper.
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Calculate' }).length).toBeGreaterThan(1));
-    const calculateButtons = screen.getAllByRole('button', { name: 'Calculate' });
-    fireEvent.click(calculateButtons[calculateButtons.length - 1]);
+    // The next workflow step is the header primary action.
+    fireEvent.click(await screen.findByRole('button', { name: 'Calculate salaries' }));
     await waitFor(() => expect(mockApi.runs.calculate).toHaveBeenCalledWith('run-1'));
   });
 

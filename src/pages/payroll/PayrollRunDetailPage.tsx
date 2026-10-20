@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-    ArrowLeft, CheckCircle, Circle, Ban, AlertTriangle, RefreshCw,
+    CheckCircle, Circle, Ban, AlertTriangle, RefreshCw,
     UserMinus, UserPlus, ChevronDown, ChevronUp, Play, RotateCcw,
 } from 'lucide-react';
 import { toast, Button, IconButton, Card, Modal, ConfirmDialog, Stack, Cluster, Skeleton, Textarea, DetailPageTemplate, DataTable } from '@so360/design-system';
@@ -186,15 +186,94 @@ const PayrollRunDetailPage: React.FC = () => {
         } },
     ];
 
-    const secondaryActions = [
-        <Button key="all-runs" variant="ghost" onClick={() => navigate('/people/payroll/runs')}>
-            <ArrowLeft size={14} /> All Runs
-        </Button>,
+    // Next workflow step = the single header primary; everything else is secondary / overflow.
+    const askConfirm = (title: string, message: string, confirmLabel: string, run_: () => Promise<unknown> | void, success: string) =>
+        setConfirm({ title, message, confirmLabel, onConfirm: () => act(run_ as () => Promise<unknown>, success) });
+    const employeeCount = run.employee_count || included.length;
+
+    let primaryAction: React.ReactNode = undefined;
+    if (canSubmitReview) {
+        primaryAction = (
+            <Button
+                key="submit-review"
+                onClick={() => askConfirm(
+                    'Submit for Approval',
+                    `Send run #${run.run_number} (${included.length} employees, net ${formatters.formatCurrency(run.net_total || 0)}) for approval?`,
+                    'Submit for Approval',
+                    () => payrollApi.runs.submitReview(id),
+                    'Submitted for approval',
+                )}
+                disabled={acting}
+            >
+                Submit for Approval
+            </Button>
+        );
+    } else if (canApprove) {
+        primaryAction = (
+            <Button
+                key="approve"
+                onClick={() => askConfirm(
+                    'Approve Payroll Run',
+                    `Approve run #${run.run_number}: ${employeeCount} employees, net payout ${formatters.formatCurrency(run.net_total || 0)}. After approval, amounts can no longer be changed.`,
+                    'Approve Run',
+                    () => payrollApi.runs.approve(id),
+                    'Run approved',
+                )}
+                disabled={acting}
+            >
+                Approve Run
+            </Button>
+        );
+    } else if (canMarkPaid) {
+        primaryAction = (
+            <Button
+                key="mark-paid"
+                onClick={() => askConfirm(
+                    'Mark Run as Paid',
+                    `Confirm that ${formatters.formatCurrency(run.net_total || 0)} has been paid out to ${employeeCount} employees for run #${run.run_number}.`,
+                    'Mark as Paid',
+                    () => payrollApi.runs.markPaid(id),
+                    'Run marked as paid',
+                )}
+                disabled={acting}
+            >
+                Mark as Paid
+            </Button>
+        );
+    } else if (canClose) {
+        primaryAction = (
+            <Button
+                key="close-run"
+                onClick={() => askConfirm(
+                    'Close Payroll Run',
+                    `This will close run #${run.run_number} and generate ${employeeCount} payslips. A closed run can never be modified again.`,
+                    'Close Run',
+                    () => payrollApi.runs.close(id),
+                    'Run closed',
+                )}
+                disabled={acting}
+            >
+                Close Run
+            </Button>
+        );
+    } else if (canCalculate && run.status === 'draft') {
+        primaryAction = (
+            <Button key="calculate" onClick={() => act(() => payrollApi.runs.calculate(id), 'Calculation started')} disabled={acting}>
+                <Play size={14} /> Calculate salaries
+            </Button>
+        );
+    }
+
+    const secondaryActions: React.ReactNode[] = [
+        ...(canCalculate && run.status !== 'draft' ? [
+            <Button key="recalculate" variant="secondary" onClick={() => act(() => payrollApi.runs.calculate(id), 'Calculation started')} disabled={acting}>
+                <Play size={14} /> Recalculate
+            </Button>,
+        ] : []),
         ...(canReopen ? [
             <Button
                 key="reopen"
                 variant="secondary"
-                size="sm"
                 onClick={() => setReasonPrompt({
                     title: 'Reopen Run',
                     label: 'Why is this run being reopened?',
@@ -204,22 +283,19 @@ const PayrollRunDetailPage: React.FC = () => {
                 <RotateCcw size={12} /> Reopen
             </Button>,
         ] : []),
-        ...(canCancel ? [
-            <Button
-                key="cancel"
-                variant="danger"
-                size="sm"
-                onClick={() => setConfirm({
-                    title: 'Cancel Payroll Run',
-                    message: `This will cancel run #${run.run_number}. Nothing will be paid and the period reopens for a new run.`,
-                    confirmLabel: 'Cancel Run',
-                    onConfirm: () => act(() => payrollApi.runs.cancel(id), 'Run cancelled'),
-                })}
-            >
-                <Ban size={12} /> Cancel
-            </Button>,
-        ] : []),
     ];
+
+    const overflowActions = canCancel ? [{
+        label: 'Cancel run',
+        danger: true,
+        disabled: acting,
+        onSelect: () => setConfirm({
+            title: 'Cancel Payroll Run',
+            message: `This will cancel run #${run.run_number}. Nothing will be paid and the period reopens for a new run.`,
+            confirmLabel: 'Cancel Run',
+            onConfirm: () => act(() => payrollApi.runs.cancel(id), 'Run cancelled'),
+        }),
+    }] : undefined;
 
     return (
         <>
@@ -227,7 +303,10 @@ const PayrollRunDetailPage: React.FC = () => {
                 title={`Payroll Run #${run.run_number}`}
                 meta={`${run.period_start ? formatters.formatDate(run.period_start) : ''} – ${run.period_end ? formatters.formatDate(run.period_end) : ''} · Pay date ${formatters.formatDate(run.pay_date)}`}
                 status={<StatusChip status={run.status} />}
+                trail={[{ label: 'All Runs', to: '/people/payroll/runs', onClick: () => navigate('/people/payroll/runs') }]}
+                primaryAction={primaryAction}
                 secondaryActions={secondaryActions}
+                overflowActions={overflowActions}
             >
                 <Stack gap="default">
                     {isCancelled && (
@@ -364,14 +443,6 @@ const PayrollRunDetailPage: React.FC = () => {
                                                         ? `Last calculated ${formatters.formatDateTime(run.calculated_at)}.`
                                                         : 'Salaries have not been calculated yet.'}
                                                 </p>
-                                                {canCalculate && (
-                                                    <Button
-                                                        onClick={() => act(() => payrollApi.runs.calculate(id), 'Calculation started')}
-                                                        disabled={acting}
-                                                    >
-                                                        <Play size={14} /> {run.calculated_at ? 'Recalculate' : 'Calculate'}
-                                                    </Button>
-                                                )}
                                             </Cluster>
                                         )}
                                         {errorRows.length > 0 && (
@@ -391,21 +462,7 @@ const PayrollRunDetailPage: React.FC = () => {
                                 {/* REVIEW */}
                                 {shownStep === 'review' && (
                                     <Stack gap="default">
-                                        <Cluster gap="default" justify="between" align="center">
-                                            <h3 className="text-nb-title text-fg">Employee Pay Review</h3>
-                                            {canSubmitReview && (
-                                                <Button
-                                                    onClick={() => setConfirm({
-                                                        title: 'Submit for Approval',
-                                                        message: `Send run #${run.run_number} (${included.length} employees, net ${formatters.formatCurrency(run.net_total || 0)}) for approval?`,
-                                                        confirmLabel: 'Submit for Approval',
-                                                        onConfirm: () => act(() => payrollApi.runs.submitReview(id), 'Submitted for approval'),
-                                                    })}
-                                                >
-                                                    Submit for Approval
-                                                </Button>
-                                            )}
-                                        </Cluster>
+                                        <h3 className="text-nb-title text-fg">Employee Pay Review</h3>
                                         <DataTable name="payroll-run-review" rows={included} columns={reviewColumns} rowKey={e => e.id} />
                                     </Stack>
                                 )}
@@ -416,17 +473,7 @@ const PayrollRunDetailPage: React.FC = () => {
                                         <h3 className="text-nb-title text-fg">Approval</h3>
                                         <TotalsCard run={run} formatCurrency={formatters.formatCurrency} />
                                         {canApprove ? (
-                                            <Button
-                                                onClick={() => setConfirm({
-                                                    title: 'Approve Payroll Run',
-                                                    message: `Approve run #${run.run_number}: ${run.employee_count || included.length} employees, net payout ${formatters.formatCurrency(run.net_total || 0)}. After approval, amounts can no longer be changed.`,
-                                                    confirmLabel: 'Approve Run',
-                                                    onConfirm: () => act(() => payrollApi.runs.approve(id), 'Run approved'),
-                                                })}
-                                                disabled={acting}
-                                            >
-                                                Approve Run
-                                            </Button>
+                                            <p className="text-nb-body text-fg-muted">Use “Approve Run” at the top of the page to approve this payroll run.</p>
                                         ) : (
                                             <p className="text-nb-body text-fg-muted">
                                                 {currentIndex > 4 ? 'This run has been approved.' : 'Approval becomes available once the run is submitted for approval.'}
@@ -441,17 +488,7 @@ const PayrollRunDetailPage: React.FC = () => {
                                         <h3 className="text-nb-title text-fg">Payment</h3>
                                         <TotalsCard run={run} formatCurrency={formatters.formatCurrency} />
                                         {canMarkPaid ? (
-                                            <Button
-                                                onClick={() => setConfirm({
-                                                    title: 'Mark Run as Paid',
-                                                    message: `Confirm that ${formatters.formatCurrency(run.net_total || 0)} has been paid out to ${run.employee_count || included.length} employees for run #${run.run_number}.`,
-                                                    confirmLabel: 'Mark as Paid',
-                                                    onConfirm: () => act(() => payrollApi.runs.markPaid(id), 'Run marked as paid'),
-                                                })}
-                                                disabled={acting}
-                                            >
-                                                Mark as Paid
-                                            </Button>
+                                            <p className="text-nb-body text-fg-muted">Use “Mark as Paid” at the top of the page once the payout is complete.</p>
                                         ) : (
                                             <p className="text-nb-body text-fg-muted">
                                                 {currentIndex > 5 ? `Paid ${run.paid_at ? formatters.formatDateTime(run.paid_at) : ''}.` : 'Payment becomes available once the run is approved.'}
@@ -465,17 +502,7 @@ const PayrollRunDetailPage: React.FC = () => {
                                     <Stack gap="default">
                                         <h3 className="text-nb-title text-fg">Close Run</h3>
                                         {canClose && (
-                                            <Button
-                                                onClick={() => setConfirm({
-                                                    title: 'Close Payroll Run',
-                                                    message: `This will close run #${run.run_number} and generate ${run.employee_count || included.length} payslips. A closed run can never be modified again.`,
-                                                    confirmLabel: 'Close Run',
-                                                    onConfirm: () => act(() => payrollApi.runs.close(id), 'Run closed'),
-                                                })}
-                                                disabled={acting}
-                                            >
-                                                Close Run
-                                            </Button>
+                                            <p className="text-nb-body text-fg-muted">Use “Close Run” at the top of the page to close this run and generate payslips.</p>
                                         )}
                                         {isClosed && (
                                             <Stack gap="tight">

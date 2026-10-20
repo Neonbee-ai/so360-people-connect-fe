@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, Star, Target, Award } from 'lucide-react';
 import {
-    toast, DashboardPageTemplate, KpiCard, Card, Grid, Stack, Cluster, Badge, Avatar, Progress, Rating,
+    toast, DashboardPageTemplate, KpiCard, Card, Stack, Cluster, Badge, Avatar, Progress, Rating, EmptyState,
 } from '@so360/design-system';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
 import { goalsApi, Goal } from '../services/goalsService';
@@ -72,12 +72,12 @@ const TeamPerformancePage: React.FC = () => {
                 <KpiCard key="avg" name="avg-rating" label="Avg Rating" value={avgRating > 0 ? avgRating.toFixed(1) : '-'} icon={Star} loading={loading} />,
                 <KpiCard key="completed" name="completed-reviews" label="Completed Reviews" value={completedReviews.length} icon={Award} loading={loading} />,
                 <KpiCard key="pending" name="pending-reviews" label="Pending Reviews" value={pendingReviews.length} icon={TrendingUp} loading={loading} />,
-                <KpiCard key="goal" name="avg-goal-progress" label="Avg Goal Progress" value={`${Math.round(avgGoalProgress)}%`} icon={Target} loading={loading} />,
+                <KpiCard key="goal" name="avg-goal-progress" label="Avg Goal Progress" value={`${Math.round(avgGoalProgress)}%`} hint={`${activeGoals.length} active · ${completedGoals.length} completed`} icon={Target} loading={loading} />,
             ]}
             primary={(
                 <Card title="Rating Distribution">
                     {completedReviews.length === 0 ? (
-                        <p className="text-nb-sm text-fg-muted text-center">No completed reviews yet</p>
+                        <EmptyState icon={Star} title="No completed reviews yet" />
                     ) : (
                         <Stack gap="default">
                             {ratingDistribution.map(({ rating, count }) => (
@@ -96,7 +96,7 @@ const TeamPerformancePage: React.FC = () => {
             secondary={(
                 <Card title="Top Performers">
                     {topPerformers.length === 0 ? (
-                        <p className="text-nb-sm text-fg-muted text-center">No top performers yet</p>
+                        <EmptyState icon={Award} title="No top performers yet" />
                     ) : (
                         <Stack gap="default">
                             {topPerformers.map((review, i) => (
@@ -120,16 +120,15 @@ const TeamPerformancePage: React.FC = () => {
             bottom={(
                 <Stack gap="region">
                     <Card title="Goals Summary">
-                        <Grid columns={4} gap="lg">
-                            <KpiCard name="total-goals" label="Total Goals" value={goals.length} />
-                            <KpiCard name="in-progress-goals" label="In Progress" value={activeGoals.length} />
-                            <KpiCard name="completed-goals" label="Completed" value={completedGoals.length} />
-                            <KpiCard name="avg-progress" label="Avg Progress" value={`${Math.round(avgGoalProgress)}%`} />
-                        </Grid>
+                        <Cluster gap="default">
+                            <Badge tone="neutral">{`Total (${goals.length})`}</Badge>
+                            <Badge tone="primary">{`In Progress (${activeGoals.length})`}</Badge>
+                            <Badge tone="success">{`Completed (${completedGoals.length})`}</Badge>
+                        </Cluster>
                     </Card>
                     <Card title="Review Pipeline">
                         {reviews.length === 0 ? (
-                            <p className="text-nb-sm text-fg-muted">No reviews in pipeline</p>
+                            <EmptyState icon={TrendingUp} title="No reviews in pipeline" />
                         ) : (
                             <Cluster gap="default">
                                 {pipeline.map(({ label, tone, count }) => (

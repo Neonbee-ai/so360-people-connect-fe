@@ -208,13 +208,16 @@ const AttendanceRegisterPage: React.FC = () => {
                 }
                 kpis={
                     isRegister ? (
-                        <Grid columns={3} gap="md">
+                        <Grid columns={4} gap="md">
                             <KpiCard label="Total Employees" value={summary?.total_employees ?? 0} icon={Users} />
-                            <KpiCard label="Present" value={summary?.present ?? 0} icon={UserCheck} />
+                            <KpiCard
+                                label="Present"
+                                value={summary?.present ?? 0}
+                                icon={UserCheck}
+                                hint={`${summary?.remote ?? 0} remote · ${summary?.half_day ?? 0} half day`}
+                            />
                             <KpiCard label="Absent" value={summary?.absent ?? 0} icon={UserMinus} />
                             <KpiCard label="On Leave" value={summary?.on_leave ?? 0} icon={CalendarDays} />
-                            <KpiCard label="Half Day" value={summary?.half_day ?? 0} icon={Clock} />
-                            <KpiCard label="Remote" value={summary?.remote ?? 0} icon={Home} />
                         </Grid>
                     ) : undefined
                 }

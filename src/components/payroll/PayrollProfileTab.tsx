@@ -5,7 +5,7 @@ import {
     CreditCard, FileText, History, Plus, Eye, Trash2, TrendingUp,
 } from 'lucide-react';
 import {
-    toast, Alert, Button, IconButton, Card, Checkbox, Cluster, DateInput, FieldGrid, FormActions, FormField,
+    toast, Alert, SegmentedControl, Button, IconButton, Card, Checkbox, Cluster, DateInput, FieldGrid, FormActions, FormField,
     NumberInput, Select, Skeleton, Stack, TextField,
 } from '@so360/design-system';
 import { useShellBridge, useBusinessSettings } from '@so360/shell-context';
@@ -88,7 +88,7 @@ const PayrollProfileTab: React.FC<PayrollProfileTabProps> = ({ person }) => {
                 <div key={key} data-testid={`payroll-section-${key}`} className="border-b border-line last:border-b-0">
                     <Button
                         name={`payroll-section-toggle-${key}`}
-                        variant="secondary"
+                        variant="ghost"
                         className="w-full justify-between"
                         onClick={() => toggle(key)}
                         aria-expanded={openSection === key}
@@ -774,19 +774,14 @@ const TaxStatutorySection: React.FC<{
                     <span className="text-nb-body text-fg">Tax Regime</span>
                     <FieldTooltip text="The regime used for this employee's TDS. The new regime has lower rates without deductions; the old regime honours approved declarations." />
                 </Cluster>
-                <Cluster gap="tight" align="center">
-                    {(['new', 'old'] as const).map(r => (
-                        <Button
-                            key={r}
-                            size="sm"
-                            variant={regime === r ? 'primary' : 'secondary'}
-                            aria-pressed={regime === r}
-                            onClick={() => setRegime(r)}
-                        >
-                            {r === 'new' ? 'New Regime' : 'Old Regime'}
-                        </Button>
-                    ))}
-                </Cluster>
+                <SegmentedControl
+                    name="payroll-tax-regime"
+                    aria-label="Tax regime"
+                    size="sm"
+                    value={regime}
+                    onChange={v => setRegime(v as 'new' | 'old')}
+                    options={[{ value: 'new', label: 'New Regime' }, { value: 'old', label: 'Old Regime' }]}
+                />
             </Cluster>
 
             <FieldGrid columns={2}>

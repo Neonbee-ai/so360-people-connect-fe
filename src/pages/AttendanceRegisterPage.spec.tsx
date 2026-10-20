@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 
-// The KPI row permanently renders labels "Present" / "Absent" / "Half Day" —
+// The KPI row permanently renders labels "Present" / "Absent" —
 // the same display text a matching per-row status badge would show. Every
 // assertion on those strings below is scoped to a specific table row via
 // `within(...)` so it can't accidentally match the KPI card instead.
@@ -118,12 +118,12 @@ describe('Given AttendanceRegisterPage KPI cards', () => {
     await waitFor(() => expect(screen.getByText('Total Employees')).toBeInTheDocument());
     expect(screen.getByText('2')).toBeInTheDocument(); // Total Employees
     expect(screen.getByText('1')).toBeInTheDocument(); // Present
-    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(3); // Absent, On Leave, Half Day, Remote
+    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(3); // Absent, On Leave
     expect(screen.getByText('Present')).toBeInTheDocument();
     expect(screen.getByText('Absent')).toBeInTheDocument();
     expect(screen.getByText('On Leave')).toBeInTheDocument();
-    expect(screen.getByText('Half Day')).toBeInTheDocument();
-    expect(screen.getByText('Remote')).toBeInTheDocument();
+    // Half Day / Remote are folded into the Present card's hint (max 4 KPIs per row).
+    expect(screen.getByText('0 remote · 0 half day')).toBeInTheDocument();
   });
 });
 
