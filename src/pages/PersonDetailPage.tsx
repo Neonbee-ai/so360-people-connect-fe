@@ -11,7 +11,7 @@ import PersonLeaveConfigTab from '../components/leave/PersonLeaveConfigTab';
 import PersonOnboardingTab from '../components/PersonOnboardingTab';
 import Modal from '../components/Modal';
 import {
-    toast, Select, DetailPageTemplate, Tabs, Button, IconButton, TextField, NumberInput, DateInput, Checkbox,
+    toast, Select, DetailPageTemplate, Button, IconButton, TextField, NumberInput, DateInput, Checkbox,
     FormField, Card, SectionCard, KpiCard, Badge, Avatar, Progress, DescriptionList, Skeleton, Grid, Stack, Cluster,
 } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
@@ -338,6 +338,10 @@ const PersonDetailPage: React.FC = () => {
                 </Cluster>
             )}
             metaItems={metaItems}
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            maxVisible={5}
             secondaryActions={!editing
                 ? [
                     <Button key="edit" variant="secondary" onClick={() => { setEditing(true); setEditData(person); }}>
@@ -356,7 +360,6 @@ const PersonDetailPage: React.FC = () => {
             ) : undefined}
         >
             <Stack gap="region">
-                <Tabs items={tabs} value={activeTab} onChange={setActiveTab} name="Sections" maxVisible={5} />
                 {/* Inline Edit Fields */}
                 {editing && (
                     <Card>
