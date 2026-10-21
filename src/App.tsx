@@ -347,10 +347,16 @@ const App = () => {
                         to match the backend, which admits onboarding.read OR
                         onboarding.manage on the templates routes. */}
                     <Route path="settings/onboarding" element={<PermissionGuard permission={['onboarding.read', 'onboarding.manage']}><FeatureGate flagKey="submodule:people:onboarding"><OnboardingTemplatesPage /></FeatureGate></PermissionGuard>} />
-                    {/* <Route path="settings/notification-sender" element={<PermissionGuard permission="org_policy.read"><NotificationSenderPage /></PermissionGuard>} /> */}
+                    {/* Retired (0438d01): email-account designation lives in Connect.
+                        Old links and bookmarks go to the Settings hub instead of
+                        an unmatched route that rendered an empty main. */}
+                    <Route path="settings/notification-sender" element={<Navigate to="/settings" replace />} />
 
                     {/* Import/Export */}
                     <Route path="import-export" element={<PermissionGuard permission="employees.import"><ImportExportPage /></PermissionGuard>} />
+
+                    {/* Unknown path: fall back to the module landing rather than an empty main. */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
 
 
                 </Routes>
