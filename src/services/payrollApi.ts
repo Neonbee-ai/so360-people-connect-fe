@@ -544,6 +544,13 @@ function toQuery(params?: Record<string, unknown>): string {
 // API surface
 // =============================================================================
 
+/** Own declaration for a fiscal year, tolerating array or `{ data }` list bodies. */
+async function findMyDeclaration(fy: string): Promise<TaxDeclaration | null> {
+  const res: any = await api.get<PaginatedList<TaxDeclaration>>('/payroll/my/tax-declarations', { fiscal_year: fy });
+  const rows: TaxDeclaration[] = Array.isArray(res) ? res : res?.data ?? res?.items ?? [];
+  return rows.find((r: any) => r.fiscal_year === fy) ?? null;
+}
+
 export const payrollApi = {
   // ---- Settings -------------------------------------------------------------
   settings: {
@@ -746,12 +753,39 @@ export const payrollApi = {
     downloadPayslipPdf: (id: string, filename = 'payslip.pdf') =>
       downloadFile(`/payroll/my/payslips/${id}/pdf`, filename),
     bankAccounts: () => api.get<PaginatedList<BankAccount>>('/payroll/my/bank-accounts'),
+    // Backend exposes declarations by id (GET ?fiscal_year= / POST / PUT :id / POST :id/submit);
+    // there is no by-fiscal-year route, so resolve the id from the list first.
     taxDeclarations: {
-      list: () => api.get<PaginatedList<TaxDeclaration>>('/payroll/my/tax-declarations'),
-      get: (fy: string) => api.get<TaxDeclaration>(`/payroll/my/tax-declarations/${fy}`),
-      save: (fy: string, data: { regime?: 'new' | 'old'; items: TaxDeclarationItem[] }) =>
-        api.put<TaxDeclaration>(`/payroll/my/tax-declarations/${fy}`, data),
-      submit: (fy: string) => api.post<TaxDeclaration>(`/payroll/my/tax-declarations/${fy}/submit`, {}),
+      list: (params?: { fiscal_year?: string }) =>
+        api.get<PaginatedList<TaxDeclaration>>('/payroll/my/tax-declarations', params),
+      get: async (fy: string): Promise<TaxDeclaration> => {
+        const found = await findMyDeclaration(fy);
+        if (!found) throw new Error(`No tax declaration for ${fy}`);
+        return found;
+      },
+      save: async (fy: string, data: { regime?: 'new' | 'old'; items: TaxDeclarationItem[] }) => {
+        const body = {
+          ...(data.regime ? { regime: data.regime } : {}),
+          items: (data.items ?? []).map((i) => ({
+            category: i.category,
+            ...(i.description ? { description: i.description } : {}),
+            declared_amount: i.declared_amount,
+            ...(i.proof_document_id ? { proof_document_id: i.proof_document_id } : {}),
+          })),
+        };
+        const existing = await findMyDeclaration(fy);
+        if (existing) return api.put<TaxDeclaration>(`/payroll/my/tax-declarations/${existing.id}`, body);
+        const created = await api.post<TaxDeclaration>('/payroll/my/tax-declarations', {
+          fiscal_year: fy,
+          ...(data.regime ? { regime: data.regime } : {}),
+        });
+        return api.put<TaxDeclaration>(`/payroll/my/tax-declarations/${created.id}`, body);
+      },
+      submit: async (fy: string) => {
+        const existing = await findMyDeclaration(fy);
+        if (!existing) throw new Error(`No tax declaration for ${fy}`);
+        return api.post<TaxDeclaration>(`/payroll/my/tax-declarations/${existing.id}/submit`, {});
+      },
     },
   },
 };

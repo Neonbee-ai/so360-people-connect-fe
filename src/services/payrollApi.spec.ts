@@ -153,9 +153,6 @@ const rows: Row[] = [
   ['my.payslip', () => payrollApi.my.payslip(ID), 'get', `/payroll/my/payslips/${ID}`],
   ['my.bankAccounts', () => payrollApi.my.bankAccounts(), 'get', '/payroll/my/bank-accounts'],
   ['my.taxDeclarations.list', () => payrollApi.my.taxDeclarations.list(), 'get', '/payroll/my/tax-declarations'],
-  ['my.taxDeclarations.get', () => payrollApi.my.taxDeclarations.get('2026-27'), 'get', '/payroll/my/tax-declarations/2026-27'],
-  ['my.taxDeclarations.save', () => payrollApi.my.taxDeclarations.save('2026-27', { regime: 'old', items: [] }), 'put', '/payroll/my/tax-declarations/2026-27', { regime: 'old', items: [] }],
-  ['my.taxDeclarations.submit', () => payrollApi.my.taxDeclarations.submit('2026-27'), 'post', '/payroll/my/tax-declarations/2026-27/submit', {}],
 ];
 
 describe('GIVEN every payroll API wrapper', () => {
@@ -270,5 +267,27 @@ describe('GIVEN toFromMonth narrowing a picked date to the API month', () => {
       const result = toFromMonth(`2026-${String(month).padStart(2, '0')}-${day}`);
       expect(result).toMatch(dtoPattern);
     }
+  });
+});
+
+describe('GIVEN my tax declarations are addressed by fiscal year in the UI', () => {
+  const FY = '2026-27';
+  it('WHEN get THEN it lists with fiscal_year and returns the matching row', async () => {
+    mockClient.get.mockResolvedValueOnce([{ id: 'd1', fiscal_year: FY }]);
+    const r = await payrollApi.my.taxDeclarations.get(FY);
+    expect(mockClient.get).toHaveBeenCalledWith('/payroll/my/tax-declarations', { fiscal_year: FY });
+    expect(r.id).toBe('d1');
+  });
+  it('WHEN save and none exists THEN it creates a draft then PUTs items by id', async () => {
+    mockClient.get.mockResolvedValueOnce([]);
+    mockClient.post.mockResolvedValueOnce({ id: 'd9' });
+    await payrollApi.my.taxDeclarations.save(FY, { regime: 'old', items: [{ category: '80C', declared_amount: 5, id: 'x' } as any] });
+    expect(mockClient.post).toHaveBeenCalledWith('/payroll/my/tax-declarations', { fiscal_year: FY, regime: 'old' });
+    expect(mockClient.put).toHaveBeenCalledWith('/payroll/my/tax-declarations/d9', { regime: 'old', items: [{ category: '80C', declared_amount: 5 }] });
+  });
+  it('WHEN submit THEN it posts to the declaration id route', async () => {
+    mockClient.get.mockResolvedValueOnce({ data: [{ id: 'd1', fiscal_year: FY }] });
+    await payrollApi.my.taxDeclarations.submit(FY);
+    expect(mockClient.post).toHaveBeenCalledWith('/payroll/my/tax-declarations/d1/submit', {});
   });
 });
