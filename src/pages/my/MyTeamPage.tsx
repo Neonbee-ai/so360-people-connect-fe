@@ -24,6 +24,9 @@ const inDays = (n: number) => {
     return d.toISOString().slice(0, 10);
 };
 
+const asList = <T,>(x: unknown): T[] =>
+    Array.isArray(x) ? (x as T[]) : Array.isArray((x as { data?: unknown } | null)?.data) ? ((x as { data: T[] }).data) : [];
+
 const MyTeamPage: React.FC = () => {
     const [tab, setTab] = useState<'out' | 'directory'>('out');
     const [whosOut, setWhosOut] = useState<WhosOutEntry[]>([]);
@@ -46,9 +49,11 @@ const MyTeamPage: React.FC = () => {
             meService.directory(),
             meService.myTeamLeaveRequests({ status: 'pending' }),
         ]);
-        if (w.status === 'fulfilled') setWhosOut(w.value.data);
-        if (d.status === 'fulfilled') setDirectory(d.value.data);
-        if (t.status === 'fulfilled') setTeamLeave(t.value.data);
+        // The API may answer with an array, a { data } envelope, or nothing
+        // (no employee record) — always normalise to an array.
+        if (w.status === 'fulfilled') setWhosOut(asList<WhosOutEntry>(w.value?.data));
+        if (d.status === 'fulfilled') setDirectory(asList<DirectoryEntry>(d.value?.data));
+        if (t.status === 'fulfilled') setTeamLeave(asList<TeamLeaveRequest>(t.value?.data));
         setLoading(false);
     }, []);
 
