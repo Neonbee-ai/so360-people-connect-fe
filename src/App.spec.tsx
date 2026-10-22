@@ -10,6 +10,7 @@ vi.mock('@so360/shell-context', () => ({
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: async () => {} }),}));
 
 vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('./test/__mocks__/design-system')), 
+  CombScope: ({ children }: any) => children,
   FeatureRoute: ({ state, children, hiddenFallback, lockedFallback, disabledFallback }: any) => {
     if (state === 'locked') return lockedFallback;
     if (state === 'disabled') return disabledFallback;
