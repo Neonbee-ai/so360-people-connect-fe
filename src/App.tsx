@@ -5,6 +5,7 @@ import { CombScope, FeatureRoute as FeatureRouteBase } from '@so360/design-syste
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FeatureRoute = FeatureRouteBase as any;
 import { peopleService } from './services/peopleService';
+import { ResolvingNotice } from './components/ResolvingNotice';
 
 /** Shown when a submodule is `locked` — a higher plan unlocks it. */
 const UpgradeLocked = () => {
@@ -64,7 +65,7 @@ const FeatureGate = ({ flagKey, children }: { flagKey: string; children: React.R
 // wildcard-aware via the shell bridge, matching the backend resolver exactly.
 const PermissionGuard = ({ permission, children }: { permission: string | string[]; children: React.ReactNode }) => {
     const shell = useShellBridge();
-    if (!shell || !shell.permissionsLoaded) return null;
+    if (!shell || !shell.permissionsLoaded) return <ResolvingNotice />;
     const codes = Array.isArray(permission) ? permission : [permission];
     const allowed = shell.hasAnyPermission
         ? shell.hasAnyPermission(...codes)
@@ -125,12 +126,7 @@ const PeopleShellInitializer =({ children }: { children: React.ReactNode }) => {
     }, [shell?.currentTenant?.id, shell?.currentOrg?.id, shell?.accessToken, shell?.user]);
 
     if (!isSynced) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] text-fg-muted gap-4">
-                <div className="w-8 h-8 border-2 border-primary/20 border-t-teal-500 rounded-full animate-spin" />
-                <p className="text-sm font-medium animate-pulse">Connecting to shell context...</p>
-            </div>
-        );
+        return <ResolvingNotice label="Connecting to shell context..." />;
     }
 
     return <>{children}</>;
@@ -237,7 +233,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 const ModuleLanding: React.FC = () => {
     const shell = useShellBridge() as any;
 
-    if (shell && shell.permissionsLoaded === false) return null;
+    if (shell && shell.permissionsLoaded === false) return <ResolvingNotice />;
 
     const isAdminViewer = shell?.hasPermission?.('employees.read')
         || shell?.hasPermission?.('departments.read')
