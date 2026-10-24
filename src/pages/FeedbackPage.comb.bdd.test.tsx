@@ -48,6 +48,24 @@ describe('FeedbackPage (Comb)', () => {
     await waitFor(() => expect(screen.getByText('No feedback yet')).toBeInTheDocument());
   });
 
+  it('Given the list is empty / When Give Feedback is clicked / Then the dialog opens', async () => {
+    api.getAll.mockResolvedValue({ data: [] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('No feedback yet')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Give Feedback/ }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('Given the load fails / When Give Feedback is clicked / Then an error toast shows and the dialog still opens', async () => {
+    const errSpy = vi.spyOn(toast, 'error').mockImplementation(() => undefined as any);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    api.getAll.mockRejectedValue(new Error('400'));
+    renderPage();
+    await waitFor(() => expect(errSpy).toHaveBeenCalledWith('Failed to load feedback'));
+    fireEvent.click(screen.getByRole('button', { name: /Give Feedback/ }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
   it('Given the create flag is off / When loaded / Then Give Feedback is hidden', async () => {
     flagEnabled = false;
     renderPage();

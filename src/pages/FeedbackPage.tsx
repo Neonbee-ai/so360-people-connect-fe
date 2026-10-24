@@ -33,6 +33,7 @@ const FeedbackPage: React.FC = () => {
             setFeedbacks(result.data || []);
         } catch (error) {
             console.error('Failed to load feedback:', error);
+            toast.error('Failed to load feedback');
         } finally {
             setLoading(false);
         }
@@ -72,6 +73,7 @@ const FeedbackPage: React.FC = () => {
     };
 
     return (
+        <>
         <ListPageTemplate trail={[]}
             title="Feedback"
             description="Give and receive feedback across the team"
@@ -179,13 +181,15 @@ const FeedbackPage: React.FC = () => {
                     },
                 ]}
             />
-
-            <CreateFeedbackModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onCreate={handleCreate}
-            />
         </ListPageTemplate>
+        {/* Sibling, not a template child: ListPageTemplate swaps children for the
+            loading/empty state, which unmounted the dialog (and blocked first-ever feedback). */}
+        <CreateFeedbackModal
+            isOpen={showCreateModal}
+            onClose={() => setShowCreateModal(false)}
+            onCreate={handleCreate}
+        />
+        </>
     );
 };
 
