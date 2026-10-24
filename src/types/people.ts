@@ -17,7 +17,7 @@ export interface Person {
   avatar_url?: string;
 
   // Classification
-  type: 'employee' | 'contractor';
+  type: 'employee' | 'contractor' | 'consultant';
   /** @deprecated free-text department; use department_id + department_info */
   department?: string;
   department_id?: string | null;
@@ -116,7 +116,7 @@ export interface CreatePersonPayload {
   email?: string;
   phone?: string;
   avatar_url?: string;
-  type: 'employee' | 'contractor';
+  type: 'employee' | 'contractor' | 'consultant';
   /** @deprecated free-text department; use department_id */
   department?: string;
   department_id?: string | null;

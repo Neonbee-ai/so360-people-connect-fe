@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('../../../services/payrollApi', () => ({
@@ -34,6 +34,9 @@ const openBuilder = async () => {
   await waitFor(() => expect(screen.getByText('Standard India')).toBeInTheDocument());
   fireEvent.click(screen.getByText('Open'));
   await waitFor(() => expect(screen.getByLabelText('Back to structures')).toBeInTheDocument());
+  // Let the builder's components.list fetch settle so its re-render can't reset edited lines.
+  await waitFor(() => expect(mockApi.components.list).toHaveBeenCalled());
+  await act(async () => {});
 };
 
 beforeEach(() => {

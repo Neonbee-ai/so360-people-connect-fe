@@ -47,7 +47,7 @@ describe('Given NumberingSettingsPage wiring', () => {
     renderPage();
     await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByText('Save Changes'));
+    fireEvent.click(await screen.findByText('Save Changes'));
 
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('numbering', DEFAULT_NUMBERING_SETTINGS));
     await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Numbering settings saved'));

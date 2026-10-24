@@ -145,8 +145,7 @@ describe('GIVEN the group create/edit modal', () => {
     await waitFor(() => expect(screen.getByText('Monthly Staff')).toBeInTheDocument());
     fireEvent.click(screen.getAllByText('Edit')[0]);
     await waitFor(() => expect(screen.getByText('Edit Payroll Group')).toBeInTheDocument());
-    expect(screen.getByDisplayValue('Monthly Staff')).toBeInTheDocument();
-    fireEvent.change(screen.getByDisplayValue('Monthly Staff'), { target: { value: 'Monthly Team' } });
+    fireEvent.change(await screen.findByDisplayValue('Monthly Staff'), { target: { value: 'Monthly Team' } });
     // Toggle the default checkbox branch too
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Update' }));
@@ -161,7 +160,7 @@ describe('GIVEN the group create/edit modal', () => {
     await waitFor(() => expect(screen.getByText('Monthly Staff')).toBeInTheDocument());
     fireEvent.keyDown(screen.getAllByText('Edit')[1], { key: 'Enter' });
     await waitFor(() => expect(screen.getByText('Edit Payroll Group')).toBeInTheDocument());
-    expect(screen.getByDisplayValue('Contractors')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('Contractors')).toBeInTheDocument();
   });
 
   it('WHEN saving the group fails THEN the modal stays open', async () => {

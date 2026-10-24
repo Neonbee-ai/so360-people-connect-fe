@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useHref } from 'react-router-dom';
 import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown, ChevronRight, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle, X } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
@@ -27,6 +27,8 @@ import { leaveConfigApi } from '../services/leaveConfigService';
 import PersonLeaveConfigSection, { type PendingLeaveOverride } from '../components/leave/PersonLeaveConfigSection';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
 import { validatePersonName, validateEmail, validatePhone, sanitizePhoneInput, focusFirstInvalid } from '../utils/validation';
+import { useRefreshOnReturn } from '../hooks/useRefreshOnReturn';
+import { personTypeForEmploymentType, personTypeLabel, typeToSendOnEdit } from '../utils/personType';
 
 const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
 
@@ -1318,6 +1320,14 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const [designationsError, setDesignationsError] = useState(false);
     const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
     const [employmentTypesError, setEmploymentTypesError] = useState(false);
+    // "Create Employment Type" opens in a new tab so a half-filled form is kept;
+    // the list is re-read once, when the user comes back from that tab.
+    const employmentTypesHref = useHref('/people/settings/employment-types');
+    const markEmploymentTypesPending = useRefreshOnReturn(isOpen, () => {
+        mastersApi.getAll('employment_type')
+            .then(r => { setEmploymentTypes(r.data ?? []); setEmploymentTypesError(false); })
+            .catch(() => {});
+    });
     const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
     const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
     const [customFieldsError, setCustomFieldsError] = useState(false);
@@ -1332,6 +1342,13 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const canManageLeave = !shell?.permissionsLoaded
         ? true
         : (shell?.hasPermission?.('leave.update') ?? true);
+    // Creating org-wide leave types from inside the form. Mirrors the Leave
+    // Types page guard (leave.configure) and the create endpoint's own guard
+    // (leave.create). Fails closed: offering a create that then 403s is worse
+    // than not offering it until permissions resolve.
+    const canCreateLeaveTypes = !!shell?.permissionsLoaded
+        && !!shell?.hasPermission?.('leave.configure')
+        && !!shell?.hasPermission?.('leave.create');
     // Holds the resolved org currency. Initialized from the shell prop when available;
     // falls back to a direct Core BE fetch to avoid the shell's async race condition.
     const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || 'USD');
@@ -1466,6 +1483,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         // triggered by an empty string.
         const payload: any = { ...formData, full_name: formData.full_name.trim() };
         payload.department_id = payload.department_id || undefined;
+        payload.type = personTypeForEmploymentType(payload.employment_type);
         // The invitation always goes to the Identity email — never carry a separate value.
         payload.inviteEmail = payload.email;
         if (Object.keys(customFieldValues).length > 0) {
@@ -1631,16 +1649,40 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                 <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Classification</h4>
                     <div className="grid grid-cols-3 gap-4">
+                        {/* The single classification input. Employee vs Contractor is
+                            derived from it (see utils/personType) — there is no separate
+                            Type field that could contradict it. */}
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Type *</label>
+                            <label htmlFor="create-employment-type" className="block text-xs text-slate-400 mb-1">Employment Type</label>
                             <select
-                                value={formData.type}
-                                onChange={(e) => updateField('type', e.target.value)}
+                                id="create-employment-type"
+                                value={(formData as any).employment_type || ''}
+                                onChange={(e) => updateField('employment_type', e.target.value || undefined)}
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                             >
-                                <option value="employee">Employee</option>
-                                <option value="contractor">Contractor</option>
+                                <option value="">Select Employment Type</option>
+                                {employmentTypes.map(et => (
+                                    <option key={et.id} value={et.code}>{et.name}</option>
+                                ))}
                             </select>
+                            {employmentTypesError ? (
+                                <p className="text-xs text-rose-400 mt-1">Couldn't load employment types. Try reopening this form.</p>
+                            ) : employmentTypes.length === 0 ? (
+                                <p className="text-xs text-slate-500 mt-1">
+                                    No employment types configured.{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => { markEmploymentTypesPending(); window.open(employmentTypesHref, '_blank', 'noopener'); }}
+                                        className="text-teal-400 hover:text-teal-300 underline"
+                                    >
+                                        Create Employment Type
+                                    </button>
+                                </p>
+                            ) : (
+                                <p className="text-xs text-slate-500 mt-1" data-testid="derived-person-type">
+                                    Recorded as {personTypeLabel(personTypeForEmploymentType((formData as any).employment_type))}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Department</label>
@@ -1707,33 +1749,6 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 </p>
                             ) : null}
                         </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Employment Type</label>
-                            <select
-                                value={(formData as any).employment_type || ''}
-                                onChange={(e) => updateField('employment_type', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Employment Type</option>
-                                {employmentTypes.map(et => (
-                                    <option key={et.id} value={et.code}>{et.name}</option>
-                                ))}
-                            </select>
-                            {employmentTypesError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load employment types. Try reopening this form.</p>
-                            ) : employmentTypes.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
-                                    No employment types configured.{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/people/settings/employment-types')}
-                                        className="text-teal-400 hover:text-teal-300 underline"
-                                    >
-                                        Create Employment Type
-                                    </button>
-                                </p>
-                            ) : null}
-                        </div>
                     </div>
                 </Section>
 
@@ -1746,7 +1761,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                         overrides={leaveOverrides}
                         onOverridesChange={setLeaveOverrides}
                         canManageLeave={canManageLeave}
-                        onConfigureEmploymentTypes={() => navigate('/people/settings/employment-types')}
+                        canCreateLeaveTypes={canCreateLeaveTypes}
                     />
                 </Section>
 
@@ -2031,6 +2046,14 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
     const [designationsError, setDesignationsError] = useState(false);
     const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
     const [employmentTypesError, setEmploymentTypesError] = useState(false);
+    // "Create Employment Type" opens in a new tab so a half-filled form is kept;
+    // the list is re-read once, when the user comes back from that tab.
+    const employmentTypesHref = useHref('/people/settings/employment-types');
+    const markEmploymentTypesPending = useRefreshOnReturn(isOpen, () => {
+        mastersApi.getAll('employment_type')
+            .then(r => { setEmploymentTypes(r.data ?? []); setEmploymentTypesError(false); })
+            .catch(() => {});
+    });
     const [formData, setFormData] = useState<Partial<Person>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const formRef = useRef<HTMLFormElement>(null);
@@ -2132,6 +2155,13 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
             return;
         }
         const payload: any = { ...formData, full_name: (formData.full_name || '').trim() };
+        // `type` is only sent when the user changed the Employment Type and it
+        // implies a different type. An unrelated edit (e.g. the phone) must not
+        // rewrite a stored type — it drives the party:contractor/party:employee
+        // role — and a consultant must not be converted to a contractor.
+        const nextType = typeToSendOnEdit(person.employment_type, payload.employment_type, person.type);
+        if (nextType) payload.type = nextType;
+        else delete payload.type;
         // Empty select value means "clear it". Send null rather than '' so the
         // backend @IsUUID / @IsEnum validators are not tripped by an empty string.
         payload.default_labor_category_id = payload.default_labor_category_id || null;
@@ -2283,19 +2313,9 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Classification</h4>
                     <div className="grid grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Type</label>
+                            <label htmlFor="edit-employment-type" className="block text-xs text-slate-400 mb-1">Employment Type</label>
                             <select
-                                value={formData.type || 'employee'}
-                                onChange={(e) => updateField('type', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="employee">Employee</option>
-                                <option value="contractor">Contractor</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Employment Type</label>
-                            <select
+                                id="edit-employment-type"
                                 value={formData.employment_type || ''}
                                 onChange={(e) => updateField('employment_type', e.target.value || undefined)}
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
@@ -2312,13 +2332,22 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                     No employment types configured.{' '}
                                     <button
                                         type="button"
-                                        onClick={() => navigate('/people/settings/employment-types')}
+                                        onClick={() => { markEmploymentTypesPending(); window.open(employmentTypesHref, '_blank', 'noopener'); }}
                                         className="text-teal-400 hover:text-teal-300 underline"
                                     >
                                         Create Employment Type
                                     </button>
                                 </p>
-                            ) : null}
+                            ) : (
+                                <p className="text-xs text-slate-500 mt-1" data-testid="derived-person-type">
+                                    Recorded as {personTypeLabel(person ? (typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) ?? person.type) : personTypeForEmploymentType(formData.employment_type))}
+                                </p>
+                            )}
+                            {person && typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) && (
+                                <p role="status" className="text-xs text-amber-400 mt-1" data-testid="person-type-change-notice">
+                                    Saving will change this person's type from {personTypeLabel(person.type)} to {personTypeLabel(typeToSendOnEdit(person.employment_type, formData.employment_type, person.type)!)}.
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Department</label>
