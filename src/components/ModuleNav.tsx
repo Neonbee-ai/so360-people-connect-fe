@@ -102,7 +102,7 @@ const navigationItems: NavSection[] = [
             // org-wide surface and hides entirely without workforce grants.
             { path: '/leaves/requests', label: 'Leave Requests', icon: CalendarDays, permKey: ['leave.read', 'leave.request'] },
             { path: '/leaves/calendar', label: 'Leave Calendar', icon: CalendarRange, permKey: 'leave.read' },
-            { path: '/leaves/approvals', label: 'Pending Approvals', icon: CheckCircle, permKey: 'leave.approve' },
+            { path: '/leaves/approvals', label: 'Pending Approvals', icon: CheckCircle, permKey: ['leave.approve', 'leave.read'] },
             { path: '/leaves/types', label: 'Leave Types', icon: Settings, permKey: 'leave.configure' },
             { path: '/leaves/balances', label: 'Leave Balances', icon: DollarSign, adminOnly: true, permKey: 'leave.read' },
             // Same page as Settings > Holiday Calendar (/settings/holidays) — surfaced

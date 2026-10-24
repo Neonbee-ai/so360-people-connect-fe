@@ -172,6 +172,25 @@ describe('Given a page gated on role permissions', () => {
     await waitFor(() => expect(screen.getByText('LeaveRequestsPage')).toBeInTheDocument());
   });
 
+  it('When a user holds leave.read but not leave.approve / Then the approvals queue still opens (mirrors the BE pending-approvals gate)', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['leave.read']));
+    renderApp('/leaves/approvals');
+    await waitFor(() => expect(screen.getByText('LeaveApprovalsPage')).toBeInTheDocument());
+    expect(screen.queryByText(/don't have access/i)).not.toBeInTheDocument();
+  });
+
+  it('When a user holds only leave.approve / Then the approvals queue opens', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['leave.approve']));
+    renderApp('/leaves/approvals');
+    await waitFor(() => expect(screen.getByText('LeaveApprovalsPage')).toBeInTheDocument());
+  });
+
+  it('When a user holds neither leave code / Then the approvals queue is withheld', async () => {
+    mockUseShellBridge.mockReturnValue(bridgeWith(['goals.read']));
+    renderApp('/leaves/approvals');
+    await waitFor(() => expect(screen.getByText(/don't have access to this page/i)).toBeInTheDocument());
+  });
+
   it('When entitlements have not resolved / Then no denial flashes', async () => {
     mockUseShellBridge.mockReturnValue(bridgeWith([], false));
     renderApp('/people');
