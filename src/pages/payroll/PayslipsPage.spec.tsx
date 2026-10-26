@@ -56,7 +56,7 @@ describe('GIVEN the admin payslips page', () => {
   it('WHEN date filters change THEN the list reloads with from/to', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    const [fromInput, toInput] = Array.from(document.querySelectorAll('input[type="date"]'));
+    const fromInput = screen.getByLabelText('Period from'); const toInput = screen.getByLabelText('Period to');
     fireEvent.change(fromInput, { target: { value: '2026-08-01' } });
     await waitFor(() =>
       expect(mockApi.payslips.list).toHaveBeenCalledWith({ person_id: undefined, from: '2026-08-01', to: undefined }));
@@ -68,11 +68,7 @@ describe('GIVEN the admin payslips page', () => {
   it('WHEN an employee is picked in the person filter THEN the list reloads scoped to that person', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    const pickerInput = screen.getByPlaceholderText('All employees');
-    fireEvent.focus(pickerInput);
-    // The dropdown option is a button; the table cell is not.
-    const option = await screen.findByRole('button', { name: /Asha Nair/ });
-    fireEvent.click(option);
+    fireEvent.change(screen.getByLabelText('Employee'), { target: { value: 'p1' } });
     await waitFor(() =>
       expect(mockApi.payslips.list).toHaveBeenCalledWith({ person_id: 'p1', from: undefined, to: undefined }));
   });

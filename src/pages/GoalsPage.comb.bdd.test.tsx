@@ -59,7 +59,7 @@ describe('GoalsPage (Comb)', () => {
   it('Given the status filter / When changed / Then the API is called with that status', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText('Status filter'), { target: { value: 'completed' } });
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'completed' } });
     await waitFor(() => expect(api.getAll).toHaveBeenLastCalledWith({ status: 'completed' }));
   });
 

@@ -51,10 +51,10 @@ describe('GIVEN the tax declarations review queue', () => {
   it('WHEN filters change THEN the list reloads with fiscal year and status params', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Asha Nair')).toBeInTheDocument());
-    fireEvent.change(screen.getByPlaceholderText('2026-27'), { target: { value: '2025-26' } });
+    fireEvent.change(screen.getByLabelText('Fiscal Year'), { target: { value: '2025-26' } });
     await waitFor(() =>
       expect(mockApi.taxDeclarations.list).toHaveBeenCalledWith({ fiscal_year: '2025-26', status: undefined }));
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'approved' } });
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'approved' } });
     await waitFor(() =>
       expect(mockApi.taxDeclarations.list).toHaveBeenCalledWith({ fiscal_year: '2025-26', status: 'approved' }));
   });

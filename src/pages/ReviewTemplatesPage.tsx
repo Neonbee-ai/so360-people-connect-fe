@@ -17,6 +17,8 @@ const ReviewTemplatesPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<ReviewTemplate | null>(null);
+    const [typeFilter, setTypeFilter] = useState('');
+    const visibleTemplates = typeFilter ? templates.filter(t => t.review_type === typeFilter) : templates;
 
     const loadTemplates = useCallback(async () => {
         try {
@@ -78,6 +80,20 @@ const ReviewTemplatesPage: React.FC = () => {
             description="Configure performance review structures"
             loading={loading}
             isEmpty={templates.length === 0}
+            isFilteredEmpty={templates.length > 0 && visibleTemplates.length === 0}
+            onClearFilters={() => setTypeFilter('')}
+            filterConfig={{
+                fields: [{ key: 'review_type', label: 'Review Type', type: 'select', options: [
+                    { value: 'annual', label: 'Annual' },
+                    { value: 'quarterly', label: 'Quarterly' },
+                    { value: 'probation', label: 'Probation' },
+                    { value: 'project_end', label: 'Project End' },
+                    { value: 'custom', label: 'Custom' },
+                ] }],
+                values: { review_type: typeFilter || undefined },
+                onChange: (v) => setTypeFilter((v.review_type as string) || ''),
+                onClear: () => setTypeFilter(''),
+            }}
             primaryAction={canCreate ? (
                 <Button type="button" onClick={() => setShowCreateModal(true)}>
                     <FileText className="w-4 h-4" /> Create Template
@@ -94,7 +110,7 @@ const ReviewTemplatesPage: React.FC = () => {
         >
             <DataTable<ReviewTemplate>
                 name="review-templates"
-                rows={templates}
+                rows={visibleTemplates}
                 rowKey={(t) => t.id}
                 onRowClick={(t) => setEditingTemplate(t)}
                 columns={[

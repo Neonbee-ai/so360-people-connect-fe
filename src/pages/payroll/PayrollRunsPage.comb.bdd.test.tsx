@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
 
@@ -73,7 +73,7 @@ describe('GIVEN the Comb payroll runs list', () => {
     await waitFor(() => expect(screen.getByText('#5')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /New payroll run/ }));
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'per-1' } });
+    fireEvent.change(within(screen.getByRole('dialog')).getByRole('combobox'), { target: { value: 'per-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create Run' }));
     await waitFor(() => expect(mockApi.runs.create).toHaveBeenCalledWith({ payroll_period_id: 'per-1' }));
   });

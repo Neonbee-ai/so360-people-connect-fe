@@ -59,12 +59,18 @@ const TaxDeclarationsPage: React.FC = () => {
             <ListPageTemplate trail={[]}
                 title="Tax Declarations"
                 description="Review employee investment declarations"
-                filters={
-                    <Cluster gap="default" align="end">
-                        <TextField name="fiscal_year" label="Fiscal Year" value={fiscalYear} onChange={e => setFiscalYear(e.target.value)} placeholder="2026-27" />
-                        <Select name="taxdeclarations-select-91" label="Status" value={status} onChange={e => setStatus(e.target.value)} options={[{ value: "", label: "All statuses" }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))]} />
-                    </Cluster>
-                }
+                filterConfig={{
+                    fields: [
+                        { key: 'fiscal_year', label: 'Fiscal Year', type: 'text' },
+                        { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace(/_/g, ' ') })) },
+                    ],
+                    values: { fiscal_year: fiscalYear || undefined, status: status || undefined },
+                    onChange: (v) => {
+                        setFiscalYear((v.fiscal_year as string) || '');
+                        setStatus((v.status as string) || '');
+                    },
+                    onClear: () => { setFiscalYear(''); setStatus(''); },
+                }}
                 loading={loading}
                 isEmpty={!loading && declarations.length === 0}
                 empty={

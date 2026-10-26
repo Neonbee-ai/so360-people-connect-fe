@@ -328,6 +328,9 @@ const App = () => {
                     <Route path="settings/work-locations" element={<PermissionGuard permission="employees.read"><WorkLocationsPage /></PermissionGuard>} />
                     <Route path="settings/holidays" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings/shifts" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:shifts"><ShiftsPage /></FeatureGate></PermissionGuard>} />
+                    {/* Industry-standard top-level URLs resolve to the real pages (otherwise the catch-all bounces to the landing page). */}
+                    <Route path="approvals" element={<Navigate to="/people/leaves/approvals" replace />} />
+                    <Route path="approval-chains" element={<Navigate to="/people/settings/approval-chains" replace />} />
                     <Route path="settings/approval-chains" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:approval_chains"><ApprovalChainsPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings/employment-policy" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:employment_policy"><EmploymentPolicyPage /></FeatureGate></PermissionGuard>} />
 

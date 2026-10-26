@@ -84,21 +84,17 @@ const FeedbackPage: React.FC = () => {
                     <Plus className="w-4 h-4" /> Give Feedback
                 </Button>
             ) : undefined}
-            filters={(
-                <Select
-                    name="feedback-type-filter"
-                    aria-label="Type filter"
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    options={[
-                        { value: '', label: 'All Types' },
-                        { value: 'positive', label: 'Positive' },
-                        { value: 'constructive', label: 'Constructive' },
-                        { value: 'general', label: 'General' },
-                        { value: '360_degree', label: '360 Degree' },
-                    ]}
-                />
-            )}
+            filterConfig={{
+                fields: [{ key: 'type', label: 'Type', type: 'select', options: [
+                    { value: 'positive', label: 'Positive' },
+                    { value: 'constructive', label: 'Constructive' },
+                    { value: 'general', label: 'General' },
+                    { value: '360_degree', label: '360 Degree' },
+                ] }],
+                values: { type: typeFilter || undefined },
+                onChange: (v) => setTypeFilter((v.type as string) || ''),
+                onClear: () => setTypeFilter(''),
+            }}
             empty={(
                 <EmptyState
                     icon={MessageSquare}

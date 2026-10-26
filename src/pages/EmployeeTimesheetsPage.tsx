@@ -180,6 +180,13 @@ const EmployeeTimesheetsPage: React.FC = () => {
                         Time entries are created, submitted, and approved in the Timesheets module.
                         This page is a consolidated read-only view for people managers.
                     </Banner>
+                    {dateRangeError && <Banner variant="danger">{dateRangeError}</Banner>}
+                    {totals.cost > 0 && (
+                        <span className="flex items-center gap-nb-1 text-nb-xs text-fg-muted">
+                            <DollarSign size={12} />
+                            Approved cost: {formatCurrency(totals.cost)}
+                        </span>
+                    )}
                     <div className="grid grid-cols-1 wc-medium:grid-cols-2 wc-expanded:grid-cols-4 gap-nb-4">
                         <KpiCard label="Total Hours" value={`${totals.total.toFixed(1)}h`} icon={Clock} />
                         <KpiCard label="Approved Hours" value={`${totals.approved.toFixed(1)}h`} icon={CheckCircle} />
@@ -188,36 +195,26 @@ const EmployeeTimesheetsPage: React.FC = () => {
                     </div>
                 </Stack>
             )}
-            filters={(
-                <Stack gap="tight">
-                    <Cluster gap="default" align="center">
-                        <Select name="employeetimesheets-select-36" aria-label="Person filter" value={personFilter} onChange={(e) => setPersonFilter(e.target.value)} options={[{ value: "", label: "All People" }, ...people.map((p) => ({ value: p.id, label: p.full_name }))]} />
-                        <Select name="employeetimesheets-select-37" aria-label="Status filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Statuses" }, { value: "draft", label: "Draft" }, { value: "submitted", label: "Submitted" }, { value: "approved", label: "Approved" }, { value: "rejected", label: "Rejected" }]} />
-                        <DateInput
-                            name="timesheets-from-date"
-                            aria-label="From date"
-                            value={fromDate}
-                            max={toDate || undefined}
-                            onChange={(v: string) => setFromDate(v)}
-                        />
-                        <span className="text-nb-xs text-fg-subtle">to</span>
-                        <DateInput
-                            name="timesheets-to-date"
-                            aria-label="To date"
-                            value={toDate}
-                            min={fromDate || undefined}
-                            onChange={(v: string) => setToDate(v)}
-                        />
-                        {totals.cost > 0 && (
-                            <span className="flex items-center gap-nb-1 text-nb-xs text-fg-muted">
-                                <DollarSign size={12} />
-                                Approved cost: {formatCurrency(totals.cost)}
-                            </span>
-                        )}
-                    </Cluster>
-                    {dateRangeError && <Banner variant="danger">{dateRangeError}</Banner>}
-                </Stack>
-            )}
+            filterConfig={{
+                fields: [
+                    { key: 'person', label: 'Person', type: 'select', options: people.map((p) => ({ value: p.id, label: p.full_name })) },
+                    { key: 'status', label: 'Status', type: 'select', options: [{ value: 'draft', label: 'Draft' }, { value: 'submitted', label: 'Submitted' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }] },
+                    { key: 'dates', label: 'Dates', type: 'daterange' },
+                ],
+                values: {
+                    person: personFilter || undefined,
+                    status: statusFilter || undefined,
+                    dates: fromDate || toDate ? { start: fromDate, end: toDate } : undefined,
+                },
+                onChange: (v) => {
+                    setPersonFilter((v.person as string) || '');
+                    setStatusFilter((v.status as string) || '');
+                    const d = v.dates as { start?: string; end?: string } | undefined;
+                    setFromDate(d?.start || '');
+                    setToDate(d?.end || '');
+                },
+                onClear: () => { setPersonFilter(''); setStatusFilter(''); setFromDate(''); setToDate(''); },
+            }}
         >
             <DataTable name="employee-timesheets" columns={columns} rows={entries} rowKey={(entry) => entry.id} />
         </ListPageTemplate>

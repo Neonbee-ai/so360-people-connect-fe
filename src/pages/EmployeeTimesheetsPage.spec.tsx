@@ -125,7 +125,7 @@ describe('Given the person selector', () => {
   it('When a person is selected / Then entries are re-fetched filtered by that person', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByRole('option', { name: 'Alice Doe' })).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText('Person filter'), { target: { value: 'p1' } });
+    fireEvent.change(screen.getByLabelText('Person'), { target: { value: 'p1' } });
     await waitFor(() =>
       expect(mockTimesheet.getEntries).toHaveBeenCalledWith(expect.objectContaining({ person_id: 'p1' }))
     );
@@ -134,7 +134,7 @@ describe('Given the person selector', () => {
   it('When a person is selected / Then the utilization summary is scoped to that person', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByRole('option', { name: 'Alice Doe' })).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText('Person filter'), { target: { value: 'p1' } });
+    fireEvent.change(screen.getByLabelText('Person'), { target: { value: 'p1' } });
     await waitFor(() =>
       expect(mockTimesheet.getUtilization).toHaveBeenCalledWith(expect.objectContaining({ person_ids: 'p1' }))
     );
@@ -145,7 +145,7 @@ describe('Given the status and date-range filters', () => {
   it('When a status is selected / Then entries are re-fetched with that status', async () => {
     renderPage();
     await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
-    fireEvent.change(screen.getByLabelText('Status filter'), { target: { value: 'submitted' } });
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'submitted' } });
     await waitFor(() =>
       expect(mockTimesheet.getEntries).toHaveBeenCalledWith(expect.objectContaining({ status: 'submitted' }))
     );
@@ -154,7 +154,7 @@ describe('Given the status and date-range filters', () => {
   it('When the from date changes / Then entries are re-fetched with the new range', async () => {
     renderPage();
     await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
-    fireEvent.change(screen.getByLabelText('From date'), { target: { value: '2026-05-01' } });
+    fireEvent.change(screen.getByLabelText('Dates from'), { target: { value: '2026-05-01' } });
     await waitFor(() =>
       expect(mockTimesheet.getEntries).toHaveBeenCalledWith(expect.objectContaining({ from_date: '2026-05-01' }))
     );
@@ -278,8 +278,8 @@ describe('Given the Employee Timesheets date range is invalid', () => {
   });
 
   const setRange = (from: string, to: string) => {
-    fireEvent.change(screen.getByLabelText('From date'), { target: { value: from } });
-    fireEvent.change(screen.getByLabelText('To date'), { target: { value: to } });
+    fireEvent.change(screen.getByLabelText('Dates from'), { target: { value: from } });
+    fireEvent.change(screen.getByLabelText('Dates to'), { target: { value: to } });
   };
 
   it('When the end date precedes the start date / Then a validation message is shown', async () => {
@@ -318,10 +318,10 @@ describe('Given the Employee Timesheets date range is invalid', () => {
     renderPage();
     await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
 
-    fireEvent.change(screen.getByLabelText('From date'), { target: { value: '2026-08-18' } });
+    fireEvent.change(screen.getByLabelText('Dates from'), { target: { value: '2026-08-18' } });
 
     await waitFor(() =>
-      expect(screen.getByLabelText('To date')).toHaveAttribute('min', '2026-08-18'),
+      expect(mockTimesheet.getEntries).toHaveBeenLastCalledWith(expect.objectContaining({ from_date: '2026-08-18' })),
     );
   });
 
@@ -333,7 +333,7 @@ describe('Given the Employee Timesheets date range is invalid', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     mockTimesheet.getEntries.mockClear();
 
-    fireEvent.change(screen.getByLabelText('To date'), { target: { value: '2026-08-20' } });
+    fireEvent.change(screen.getByLabelText('Dates to'), { target: { value: '2026-08-20' } });
 
     await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

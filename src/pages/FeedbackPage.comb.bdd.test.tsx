@@ -76,7 +76,7 @@ describe('FeedbackPage (Comb)', () => {
   it('Given the type filter / When changed / Then the API is called with that type', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Excellent work')).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText('Type filter'), { target: { value: 'general' } });
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'general' } });
     await waitFor(() => expect(api.getAll).toHaveBeenLastCalledWith(expect.objectContaining({ feedback_type: 'general' })));
   });
 

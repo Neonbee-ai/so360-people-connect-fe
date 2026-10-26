@@ -84,15 +84,15 @@ describe('Given the Employee Timesheets Comb list page', () => {
   it('When the person filter changes / Then entries are re-fetched for that person', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByRole('option', { name: 'Alice Doe' })).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText('Person filter'), { target: { value: 'p1' } });
+    fireEvent.change(screen.getByLabelText('Person'), { target: { value: 'p1' } });
     await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenLastCalledWith(expect.objectContaining({ person_id: 'p1' })));
   });
 
   it('When the end date precedes the start date / Then an alert and the invalid-range empty state show', async () => {
     renderPage();
     await screen.findByText('Website Redesign');
-    fireEvent.change(screen.getByLabelText('From date'), { target: { value: '2026-06-20' } });
-    fireEvent.change(screen.getByLabelText('To date'), { target: { value: '2026-06-10' } });
+    fireEvent.change(screen.getByLabelText('Dates from'), { target: { value: '2026-06-20' } });
+    fireEvent.change(screen.getByLabelText('Dates to'), { target: { value: '2026-06-10' } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('End Date cannot be earlier than Start Date.'));
     expect(screen.getByText('Invalid date range')).toBeInTheDocument();
   });

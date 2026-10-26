@@ -197,6 +197,7 @@ const ApprovalChainsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [scopeFilter, setScopeFilter] = useState('');
   const shell = useShellBridge();
   const flagsLoaded = shell?.effectiveFlagsLoaded ?? false;
   const canManage = (flagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:approval_chains:manage') ?? true);
@@ -235,8 +236,9 @@ const ApprovalChainsPage: React.FC = () => {
   };
 
   const filtered = chains.filter(c =>
-    c.person_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.approver_name.toLowerCase().includes(searchQuery.toLowerCase())
+    (!scopeFilter || c.module_scope === scopeFilter) &&
+    (c.person_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.approver_name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const columns = [
@@ -271,6 +273,12 @@ const ApprovalChainsPage: React.FC = () => {
             onChange={(v: string) => setSearchQuery(v)}
           />
         }
+        filterConfig={{
+          fields: [{ key: 'scope', label: 'Scope', type: 'select', options: Array.from(new Set(chains.map(c => c.module_scope))).filter(Boolean).map(s => ({ value: s, label: s })) }],
+          values: { scope: scopeFilter || undefined },
+          onChange: (v) => setScopeFilter((v.scope as string) || ''),
+          onClear: () => setScopeFilter(''),
+        }}
         loading={isLoading}
       >
         <Stack gap="default">

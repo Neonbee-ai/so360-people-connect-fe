@@ -137,21 +137,17 @@ const GoalsPage: React.FC = () => {
                     Create Goal
                 </Button>
             ) : undefined}
-            filters={(
-                <Select
-                    name="goals-status-filter"
-                    aria-label="Status filter"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    options={[
-                        { value: '', label: 'All Statuses' },
-                        { value: 'draft', label: 'Draft' },
-                        { value: 'in_progress', label: 'In Progress' },
-                        { value: 'completed', label: 'Completed' },
-                        { value: 'cancelled', label: 'Cancelled' },
-                    ]}
-                />
-            )}
+            filterConfig={{
+                fields: [{ key: 'status', label: 'Status', type: 'select', options: [
+                    { value: 'draft', label: 'Draft' },
+                    { value: 'in_progress', label: 'In Progress' },
+                    { value: 'completed', label: 'Completed' },
+                    { value: 'cancelled', label: 'Cancelled' },
+                ] }],
+                values: { status: statusFilter || undefined },
+                onChange: (v) => setStatusFilter((v.status as string) || ''),
+                onClear: () => setStatusFilter(''),
+            }}
             empty={(
                 <EmptyState
                     icon={Target}

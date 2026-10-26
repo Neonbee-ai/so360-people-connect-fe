@@ -86,6 +86,7 @@ const PeoplePage: React.FC = () => {
     const { isSandboxMode, sandboxEntryLimit, limitItems, isLimited } = useSandboxLimit();
     const [people, setPeople] = useState<Person[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
     const [search, setSearch] = useState('');
     // Debounced copy of `search` that actually drives the list query. The input
     // stays bound to raw `search` (instant typing); only the fetch waits for a
@@ -589,6 +590,35 @@ const PeoplePage: React.FC = () => {
         }] : []),
     ];
 
+    // Direct CSV download of the current (filtered) registry, like HubSpot/BambooHR list exports.
+    const handleExportCsv = async () => {
+        setIsExporting(true);
+        try {
+            const blob = await peopleApi.export('csv', {
+                search: debouncedSearch || undefined,
+                status: statusFilter || undefined,
+                type: typeFilter || undefined,
+                department_id: departmentFilter || undefined,
+                employment_type: employmentTypeFilter || undefined,
+                date_of_joining_from: joiningFromFilter || undefined,
+                date_of_joining_to: joiningToFilter || undefined,
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'people-export.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            toast.success('Exported successfully as CSV');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export people');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const confirmCopy = confirmAction ? CONFIRM_COPY(confirmAction) : null;
 
     return (
@@ -606,8 +636,8 @@ const PeoplePage: React.FC = () => {
                         </Button>,
                     ] : []),
                     ...(canExportEmployees ? [
-                        // Mirrors Import: land directly on the Export tab.
-                        <Button key="export" variant="secondary" onClick={() => navigate('/people/import-export?tab=export')}>
+                        // Downloads the filtered registry as CSV directly (Excel/format choice lives on Data Management).
+                        <Button key="export" variant="secondary" onClick={handleExportCsv} disabled={isExporting}>
                             <Download size={16} />
                             Export
                         </Button>,

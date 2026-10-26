@@ -463,13 +463,20 @@ describe('Given the People Registry Import action', () => {
 });
 
 describe('Given the People Registry Export action', () => {
-  it('When Export is clicked / Then it navigates straight to the Export workflow, matching Import', async () => {
+  it('When Export is clicked / Then it downloads a CSV via the export API instead of navigating', async () => {
+    (peopleApi.export as any).mockResolvedValue(new Blob(['a,b'], { type: 'text/csv' }));
+    (window.URL as any).createObjectURL = vi.fn(() => 'blob:x');
+    (window.URL as any).revokeObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole('button', { name: /^export$/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/people/import-export?tab=export');
+    await waitFor(() => expect(peopleApi.export).toHaveBeenCalledWith('csv', expect.any(Object)));
+    await waitFor(() => expect(click).toHaveBeenCalled());
+    expect(mockNavigate).not.toHaveBeenCalledWith('/people/import-export?tab=export');
+    click.mockRestore();
   });
 
   it('When rendered / Then it is a single button with no dropdown menu', async () => {

@@ -102,16 +102,23 @@ const PayslipsPage: React.FC = () => {
                 description="All generated payslips across pay runs"
                 loading={loading}
                 isEmpty={payslips.length === 0}
-                filters={
-                    <Cluster gap="default" align="end">
-                        <Stack gap="tight">
-                            <span className="text-nb-caption text-fg-muted">Employee</span>
-                            <PersonPicker options={people} value={personId} onChange={id => setPersonId(id)} placeholder="All employees" emptyMessage="No people available" />
-                        </Stack>
-                        <DateInput name="from" label="From" value={from} onChange={setFrom} />
-                        <DateInput name="to" label="To" value={to} onChange={setTo} />
-                    </Cluster>
-                }
+                filterConfig={{
+                    fields: [
+                        { key: 'person', label: 'Employee', type: 'select', options: people.map(p => ({ value: p.id, label: p.full_name })) },
+                        { key: 'period', label: 'Period', type: 'daterange' },
+                    ],
+                    values: {
+                        person: personId || undefined,
+                        period: from || to ? { start: from, end: to } : undefined,
+                    },
+                    onChange: (v) => {
+                        setPersonId((v.person as string) || '');
+                        const r = v.period as { start?: string; end?: string } | undefined;
+                        setFrom(r?.start || '');
+                        setTo(r?.end || '');
+                    },
+                    onClear: () => { setPersonId(''); setFrom(''); setTo(''); },
+                }}
                 empty={
                     <EmptyState
                         icon={Receipt}

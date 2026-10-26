@@ -15,6 +15,7 @@ const LeaveApprovalsPage: React.FC = () => {
     const canApproveLeave = (shell?.effectiveFlagsLoaded !== false) && (shell?.isFeatureEnabled?.('action:people:leaves:approve') ?? true);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
+    const [leaveTypeFilter, setLeaveTypeFilter] = useState('');
     const [rejectingRequest, setRejectingRequest] = useState<LeaveRequest | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
     // Disables both actions on the row being decided, so a double-click can't
@@ -87,6 +88,8 @@ const LeaveApprovalsPage: React.FC = () => {
             setActingId(null);
         }
     };
+
+    const visibleRequests = leaveTypeFilter ? requests.filter(r => r.leave_type?.name === leaveTypeFilter) : requests;
 
     const columns: DataTableColumn<LeaveRequest>[] = [
         {
@@ -182,6 +185,14 @@ const LeaveApprovalsPage: React.FC = () => {
             description="Review and approve leave requests"
             loading={loading}
             isEmpty={requests.length === 0}
+            isFilteredEmpty={requests.length > 0 && visibleRequests.length === 0}
+            onClearFilters={() => setLeaveTypeFilter('')}
+            filterConfig={{
+                fields: [{ key: 'leave_type', label: 'Leave Type', type: 'select', options: Array.from(new Set(requests.map(r => r.leave_type?.name).filter(Boolean) as string[])).map(n => ({ value: n, label: n })) }],
+                values: { leave_type: leaveTypeFilter || undefined },
+                onChange: (v) => setLeaveTypeFilter((v.leave_type as string) || ''),
+                onClear: () => setLeaveTypeFilter(''),
+            }}
             empty={
                 <EmptyState
                     icon={Clock}
@@ -194,7 +205,7 @@ const LeaveApprovalsPage: React.FC = () => {
             <DataTable
                 name="leave-approvals"
                 columns={columns}
-                rows={requests}
+                rows={visibleRequests}
                 rowKey={(r) => r.id}
             />
 

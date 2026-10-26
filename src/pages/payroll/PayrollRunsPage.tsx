@@ -20,6 +20,8 @@ const PayrollRunsPage: React.FC = () => {
     const [runs, setRuns] = useState<PayrollRun[]>([]);
     const [loading, setLoading] = useState(true);
     const [showNewRunDialog, setShowNewRunDialog] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('');
+    const visibleRuns = statusFilter ? runs.filter(r => r.status === statusFilter) : runs;
 
     const loadRuns = useCallback(async () => {
         try {
@@ -70,6 +72,14 @@ const PayrollRunsPage: React.FC = () => {
                 description="Process, review and close pay runs"
                 loading={loading}
                 isEmpty={runs.length === 0}
+                isFilteredEmpty={runs.length > 0 && visibleRuns.length === 0}
+                onClearFilters={() => setStatusFilter('')}
+                filterConfig={{
+                    fields: [{ key: 'status', label: 'Status', type: 'select', options: Array.from(new Set(runs.map(r => r.status))).filter(Boolean).map(s => ({ value: s, label: s.replace(/_/g, ' ') })) }],
+                    values: { status: statusFilter || undefined },
+                    onChange: (v) => setStatusFilter((v.status as string) || ''),
+                    onClear: () => setStatusFilter(''),
+                }}
                 primaryAction={
                     <Button onClick={() => setShowNewRunDialog(true)}>
                         <Plus size={16} /> New payroll run
@@ -84,7 +94,7 @@ const PayrollRunsPage: React.FC = () => {
                     />
                 }
             >
-                <DataTable name="payroll-runs" columns={columns} rows={runs} rowKey={run => run.id} />
+                <DataTable name="payroll-runs" columns={columns} rows={visibleRuns} rowKey={run => run.id} />
             </ListPageTemplate>
 
             <NewRunDialog
