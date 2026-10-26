@@ -5,7 +5,7 @@ import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import { toast, Select, Button, Banner, KpiCard, ListPageTemplate, DataTable, DateInput, Stack, Cluster } from '@so360/design-system';
+import { toast, Button, Banner, KpiCard, ListPageTemplate, DataTable, DateInput, Stack, Cluster } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';

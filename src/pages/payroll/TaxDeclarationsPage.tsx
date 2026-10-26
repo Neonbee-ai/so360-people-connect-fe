@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ClipboardCheck, X, Check, RotateCcw } from 'lucide-react';
-import { toast, Select, Button, IconButton, Card, Drawer, Stack, Cluster, TextField, Textarea, DataTable, ListPageTemplate } from '@so360/design-system';
+import { toast, Button, IconButton, Card, Drawer, Stack, Cluster, TextField, Textarea, DataTable, ListPageTemplate } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
