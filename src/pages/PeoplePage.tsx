@@ -367,7 +367,7 @@ const PeoplePage: React.FC = () => {
         }
     }, [shell?.businessSettings]);
 
-    const handleCreate = async (data: CreatePersonPayload) => {
+    const handleCreate = async (data: CreatePersonPayload): Promise<boolean> => {
         try {
             // One atomic request: the person, custom fields and leave overrides
             // are saved together or not at all (the backend rolls back and names
@@ -394,10 +394,12 @@ const PeoplePage: React.FC = () => {
             }
             loadPeople();
             refreshQuota().catch(() => {});
+            return true;
         } catch (error) {
             // Nothing was saved (the backend rolled back), so the modal stays open
             // with the admin's input for a retry.
             toast.error(error instanceof Error && error.message ? error.message : 'Failed to create person');
+            return false;
         }
     };
 
@@ -1267,7 +1269,7 @@ const QuickAddLocationPanel: React.FC<{
 interface CreatePersonModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreate: (data: CreatePersonPayload) => void;
+    onCreate: (data: CreatePersonPayload) => Promise<boolean>;
     currencies?: string[];
     // Org's configured base currency; pre-selected as the default. Falls back to
     // 'USD' only when no org currency is configured.
@@ -1437,7 +1439,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     // anchored to a field the user may have scrolled past.
     const isFormValid = Object.keys(validate(formData)).length === 0;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const validationErrors = validate(formData);
         if (Object.keys(validationErrors).length > 0) {
@@ -1461,7 +1463,10 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         if (leaveOverrides.length > 0) {
             payload.leaveOverrides = leaveOverrides;
         }
-        onCreate(payload);
+        // Keep the admin's input when creation fails (nothing was saved) so
+        // they can retry; reset only after a successful create.
+        const created = await onCreate(payload);
+        if (!created) return;
         setCustomFieldValues({});
         setLeaveOverrides([]);
         // Reset form
