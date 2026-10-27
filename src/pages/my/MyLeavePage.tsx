@@ -86,6 +86,12 @@ const MyLeavePage: React.FC = () => {
             return;
         }
 
+        const reason = form.reason.trim();
+        if (!reason) {
+            toast.error('Enter a reason for your leave');
+            return;
+        }
+
         setSubmitting(true);
         try {
             // No person_id: the backend resolves it from the session. Created as
@@ -95,7 +101,7 @@ const MyLeavePage: React.FC = () => {
                 leave_type_id: form.leave_type_id,
                 start_date: form.start_date,
                 end_date: form.end_date,
-                reason: form.reason || undefined,
+                reason,
             });
             await leaveRequestsApi.submit(created.id, form.approver_ids);
             toast.success('Leave requested');
@@ -212,7 +218,8 @@ const MyLeavePage: React.FC = () => {
 
                     <Textarea
                         name="reason"
-                        label="Reason (optional)"
+                        label="Reason *"
+                        required
                         value={form.reason}
                         onChange={e => setForm({ ...form, reason: e.target.value })}
                         rows={3}
