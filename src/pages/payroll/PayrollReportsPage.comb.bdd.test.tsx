@@ -43,7 +43,9 @@ describe('GIVEN the Comb Payroll Reports page', () => {
   it('WHEN rendered THEN the report picker buttons and filter actions show', async () => {
     render(<PayrollReportsPage />);
     expect(screen.getByText('Payroll Summary')).toBeInTheDocument();
-    expect(screen.getByText('Apply Filters')).toBeInTheDocument();
+    // Filter actions only appear once a report is selected.
+    fireEvent.click(screen.getByText('Payroll Summary'));
+    expect(await screen.findByText('Apply Filters')).toBeInTheDocument();
     expect(screen.getByText('Export CSV')).toBeInTheDocument();
   });
 

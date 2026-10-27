@@ -59,8 +59,9 @@ describe('LeaveTypesPage (Comb)', () => {
   });
 
   it('Given loading fails / When the page loads / Then an error toast shows', async () => {
+    const errSpy = vi.spyOn(toast, 'error');
     mockGetAll.mockRejectedValue(new Error('boom'));
     render(<LeaveTypesPage />);
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to load leave types'));
+    await waitFor(() => expect(errSpy).toHaveBeenCalledWith('Failed to load leave types'));
   });
 });

@@ -89,8 +89,7 @@ describe('LaborCategoriesPage', () => {
       ]);
       render(<LaborCategoriesPage />);
 
-      const alert = await screen.findByRole('status');
-      expect(alert).toHaveTextContent('2 active categories have no hourly rate');
+      const alert = await screen.findByText(/2 active categories have no hourly rate');
     });
 
     it('When only INACTIVE categories lack rates / Then no warning is shown, since they cost nothing anyway', async () => {

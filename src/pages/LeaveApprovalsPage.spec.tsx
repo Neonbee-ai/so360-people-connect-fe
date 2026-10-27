@@ -79,7 +79,7 @@ describe('Given LeaveApprovalsPage loads with pending requests', () => {
 
   it('When pending requests are fetched / Then leave type is shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Annual Leave', { selector: 'span' })).toBeInTheDocument());
   });
 
   it('When pending requests are fetched / Then Approve button is visible', async () => {

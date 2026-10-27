@@ -43,7 +43,7 @@ describe('GIVEN the Comb Payslips list', () => {
   it('WHEN rendered THEN the list template shows the payslip row', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    expect(screen.getByText('Asha Nair')).toBeInTheDocument();
+    expect(screen.getByText('Asha Nair', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('WHEN rendered THEN the table and the date filters are present', async () => {

@@ -177,14 +177,14 @@ describe('Given the ReviewDetailPage back button', () => {
   it('When back is clicked / Then it navigates to the shell-prefixed reviews list', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByRole('heading', { name: /Alice - Annual 2024/i })).toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole('button')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Reviews' }));
     expect(mockNavigate).toHaveBeenCalledWith('/people/reviews');
   });
 
   it('When back is clicked / Then it does NOT navigate to the bare /reviews path (regression guard)', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByRole('heading', { name: /Alice - Annual 2024/i })).toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole('button')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Reviews' }));
     expect(mockNavigate).not.toHaveBeenCalledWith('/reviews');
   });
 });

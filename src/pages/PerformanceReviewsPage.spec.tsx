@@ -134,7 +134,7 @@ describe('Given PerformanceReviewsPage status filter', () => {
   it('When status filter changes / Then API is called with new status', async () => {
     renderPage();
     await waitFor(() => expect(mockReviewsApi.getAll).toHaveBeenCalled());
-    fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'completed' } });
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'completed' } });
     await waitFor(() =>
       expect(mockReviewsApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }))
     );

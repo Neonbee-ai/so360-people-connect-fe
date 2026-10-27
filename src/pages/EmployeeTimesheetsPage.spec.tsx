@@ -318,10 +318,11 @@ describe('Given the Employee Timesheets date range is invalid', () => {
     renderPage();
     await waitFor(() => expect(mockTimesheet.getEntries).toHaveBeenCalled());
 
-    fireEvent.change(screen.getByLabelText('Dates from'), { target: { value: '2026-08-18' } });
+    // Default week ends before 2026-08-18, so a start after it needs a later end to be a valid range.
+    setRange('2026-08-18', '2026-08-20');
 
     await waitFor(() =>
-      expect(mockTimesheet.getEntries).toHaveBeenLastCalledWith(expect.objectContaining({ from_date: '2026-08-18' })),
+      expect(mockTimesheet.getEntries).toHaveBeenLastCalledWith(expect.objectContaining({ from_date: '2026-08-18', to_date: '2026-08-20' })),
     );
   });
 

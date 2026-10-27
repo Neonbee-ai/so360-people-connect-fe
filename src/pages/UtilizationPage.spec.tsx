@@ -87,7 +87,7 @@ describe('Given UtilizationPage loads with data', () => {
 
   it('When utilization data loads / Then utilization percentage is displayed', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText(/75%/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('75%')).toBeInTheDocument());
   });
 });
 

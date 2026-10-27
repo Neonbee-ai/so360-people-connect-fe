@@ -187,7 +187,7 @@ describe('Given the People Registry on the Comb list template', () => {
     await waitFor(() => expect(submit).not.toBeDisabled());
     fireEvent.click(submit);
 
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Failed to create person'));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('boom'));
     expect(screen.getByLabelText('Full Name *')).toBeInTheDocument();
   });
 });

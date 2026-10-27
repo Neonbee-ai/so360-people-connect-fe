@@ -84,14 +84,16 @@ describe('AllocationsPage', () => {
     it('When the status filter is changed / Then allocations are re-fetched', async () => {
       renderPage();
       await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
-      fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'active' } });
+      fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'active' } });
       await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ status: 'active' })));
     });
 
     it('When the summary stats are displayed / Then they count correctly', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('2 allocations')).toBeInTheDocument());
-      expect(screen.getByText('2 active')).toBeInTheDocument();
+      // The old stat strip is gone: the header carries the total count and the table one row per allocation.
+      await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(3));
+      expect(screen.getByRole('heading', { name: 'Allocations' }).parentElement).toHaveTextContent('2');
+      expect(screen.getAllByText('Active').length).toBe(2);
     });
   });
 
@@ -107,7 +109,7 @@ describe('AllocationsPage', () => {
     it('When entity type filter is changed / Then allocations are re-fetched', async () => {
       renderPage();
       await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
-      fireEvent.change(screen.getByDisplayValue('All Entity Types'), { target: { value: 'project' } });
+      fireEvent.change(screen.getByLabelText('Entity type'), { target: { value: 'project' } });
       await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ entity_type: 'project' })));
     });
 

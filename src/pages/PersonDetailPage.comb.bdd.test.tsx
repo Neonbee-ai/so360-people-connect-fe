@@ -180,7 +180,7 @@ describe('Given the Comb PersonDetailPage', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('tab', { name: /Rate History/ }));
-    fireEvent.click(await screen.findByRole('button', { name: /Add New Rate/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Add new rate/ }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add Rate' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Enter a valid cost rate.');
   });
