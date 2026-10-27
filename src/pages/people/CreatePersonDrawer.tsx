@@ -81,6 +81,10 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
     // Types page guard (leave.configure) and the create endpoint's own guard
     // (leave.create). Fails closed: offering a create that then 403s is worse
     // than not offering it until permissions resolve.
+    // The Employment Types page is guarded by org_policy.read — don't open a
+    // new tab onto an access-denied screen. Fails closed while loading.
+    const canManageEmploymentTypes = !!shell?.permissionsLoaded
+        && !!shell?.hasPermission?.('org_policy.read');
     const canCreateLeaveTypes = !!shell?.permissionsLoaded
         && !!shell?.hasPermission?.('leave.configure')
         && !!shell?.hasPermission?.('leave.create');
@@ -367,6 +371,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
                         ) : employmentTypes.length === 0 ? (
                             <p className="text-nb-caption text-fg-subtle">
                                 No employment types configured.{' '}
+                                {!canManageEmploymentTypes ? 'Ask an administrator to add them.' : (
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -374,6 +379,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
                                 >
                                     Create Employment Type
                                 </Button>
+                                )}
                             </p>
                         ) : (
                             <p className="text-nb-caption text-fg-subtle" data-testid="derived-person-type">

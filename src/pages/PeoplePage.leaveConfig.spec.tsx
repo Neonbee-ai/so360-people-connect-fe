@@ -18,6 +18,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
+import { toast } from '@so360/design-system';
 
 const mockNavigate = vi.fn();
 
@@ -290,6 +291,25 @@ describe('Given the person is created successfully but the leave override write 
     await waitFor(() => expect(mockLeaveConfigApi.setPersonOverride).toHaveBeenCalled());
     // The create modal closes regardless — creation itself succeeded.
     await waitFor(() => expect(screen.queryByText('Add New Person')).not.toBeInTheDocument());
+  });
+
+  it('When setPersonOverride rejects / Then ONE partial-failure error names leave configuration and no contradictory success toast fires', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const successSpy = vi.spyOn(toast, 'success');
+    mockPeopleApi.create.mockResolvedValue({ id: 'new-person-3b' });
+    mockLeaveConfigApi.setPersonOverride.mockRejectedValue(new Error('network error'));
+
+    await openCreateModal();
+    const nameInput = await fillMinimalPersonAndSelectEmploymentType();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('checkbox', { name: /Sick Leave/ }));
+    fireEvent.submit(nameInput.closest('form')!);
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1));
+    expect(errorSpy.mock.calls[0][0]).toMatch(/was added, but these could not be saved: leave configuration/);
+    expect(successSpy).not.toHaveBeenCalledWith(expect.stringMatching(/has been added/));
+    errorSpy.mockRestore();
+    successSpy.mockRestore();
   });
 });
 

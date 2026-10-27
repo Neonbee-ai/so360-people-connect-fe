@@ -44,11 +44,12 @@ vi.mock('../services/departmentsService', () => ({
 }));
 
 const { mockRefreshQuota } = vi.hoisted(() => ({ mockRefreshQuota: vi.fn(async () => {}) }));
+const permState = vi.hoisted(() => ({ orgPolicyRead: true }));
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
 
-  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => (c === 'org_policy.read' ? permState.orgPolicyRead : true), hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: mockRefreshQuota }),
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
 
@@ -429,6 +430,19 @@ describe('Given the Employment Type field in the create modal', () => {
     expect(open).toHaveBeenCalledWith('/people/settings/employment-types', '_blank', 'noopener');
     expect(mockNavigate).not.toHaveBeenCalledWith('/people/settings/employment-types');
     open.mockRestore();
+  });
+
+  it('When no employment types exist and the user lacks org_policy.read / Then no Create Employment Type button opens a denied page', async () => {
+    permState.orgPolicyRead = false;
+    mockMastersApi.getAll.mockResolvedValue({ data: [] });
+    try {
+      await openModal();
+      await waitFor(() => expect(screen.getByText(/No employment types configured/i)).toBeInTheDocument());
+      expect(screen.queryByText('Create Employment Type')).not.toBeInTheDocument();
+      expect(screen.getByText(/Ask an administrator/i)).toBeInTheDocument();
+    } finally {
+      permState.orgPolicyRead = true;
+    }
   });
 
   it('When the user returns from the Create Employment Type tab / Then the list is refetched once; plain focus changes never refetch', async () => {

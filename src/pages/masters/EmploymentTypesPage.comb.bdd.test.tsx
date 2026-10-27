@@ -4,8 +4,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
+let canUpdateLeave = true;
 vi.mock('@so360/shell-context', () => ({
-  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, isFeatureEnabled: () => true }),
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => (c === 'leave.update' ? canUpdateLeave : true), isFeatureEnabled: () => true }),
 }));
 vi.mock('../../services/mastersService', () => ({
   mastersApi: { getAll: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
@@ -26,6 +27,7 @@ const cfg = leaveConfigApi as any;
 
 beforeEach(() => {
   vi.resetAllMocks();
+  canUpdateLeave = true;
   masters.getAll.mockResolvedValue({ data: [{ id: 'e1', name: 'Contract', is_active: true }] });
   types.getAll.mockResolvedValue({ data: [
     { id: 'l1', name: 'Annual', is_paid: true, max_days_per_year: 20 },
@@ -81,5 +83,14 @@ describe('EmploymentTypesPage leave-types modal (Comb)', () => {
     types.getAll.mockRejectedValue(new Error('x'));
     await open();
     expect(await screen.findByText('Could not load leave types.')).toBeInTheDocument();
+  });
+});
+
+describe('EmploymentTypesPage leave entry point permission', () => {
+  it('Given the user lacks leave.update / When the list loads / Then no Configure leave types action is offered', async () => {
+    canUpdateLeave = false;
+    render(<EmploymentTypesPage />);
+    await screen.findByText('Contract');
+    expect(screen.queryByLabelText('Configure leave types for Contract')).not.toBeInTheDocument();
   });
 });

@@ -245,11 +245,18 @@ const PeoplePage: React.FC = () => {
             setShowCreateModal(false);
             recordActivity({ eventType: 'people.person.created', eventCategory: 'identity', description: `Person ${data.full_name} was created`, resourceType: 'person', resourceId: created?.id }).catch(() => {});
 
+            // Follow-up writes run after the person exists, so a failure is a
+            // PARTIAL success. Collect them and report once, instead of an error
+            // toast immediately followed by a contradictory "has been added".
+            const partialFailures: string[] = [];
+
             if (created?.id && customFieldValues && Object.keys(customFieldValues).length > 0) {
                 const entries = Object.entries(customFieldValues).map(([field_def_id, value]) => ({ field_def_id, value }));
-                personCustomFieldsApi.setForPerson(created.id, entries).catch(() => {
-                    toast.error('Person created, but saving custom field values failed');
-                });
+                try {
+                    await personCustomFieldsApi.setForPerson(created.id, entries);
+                } catch {
+                    partialFailures.push('custom field values (re-enter them from the Custom Fields tab)');
+                }
             }
 
             // Leave overrides are applied AFTER creation because they are keyed
@@ -265,9 +272,7 @@ const PeoplePage: React.FC = () => {
                         await leaveConfigApi.setPersonOverride(created.id, o.leave_type_id, o.mode);
                     }
                 } catch {
-                    toast.error(
-                        `${data.full_name} was created, but their leave configuration could not be saved. Set it from the employee's Leave tab.`,
-                    );
+                    partialFailures.push("leave configuration (set it from the employee's Leave tab)");
                 }
             }
 
@@ -290,10 +295,14 @@ const PeoplePage: React.FC = () => {
                         toast.success(`${data.full_name} has been invited`);
                     }
                 } catch {
-                    toast.error(`${data.full_name} added, but sending the invite failed`);
+                    partialFailures.push('the invite (resend it from the employee profile)');
                 }
-            } else {
+            } else if (partialFailures.length === 0) {
                 toast.success(`${data.full_name} has been added`);
+            }
+
+            if (partialFailures.length > 0) {
+                toast.error(`${data.full_name} was added, but these could not be saved: ${partialFailures.join('; ')}.`);
             }
             loadPeople();
             refreshQuota().catch(() => {});
