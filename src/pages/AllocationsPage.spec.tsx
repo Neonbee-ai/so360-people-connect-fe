@@ -170,9 +170,13 @@ describe('AllocationsPage', () => {
     it('When a department is selected / Then allocations are re-fetched with department_id', async () => {
       renderPage();
       await waitFor(() => expect(mockAllocApi.getAll).toHaveBeenCalled());
-      const select = screen.getAllByRole('combobox').find(el =>
-        Array.from(el.querySelectorAll('option')).some(o => o.textContent?.includes('Engineering')),
-      ) as HTMLSelectElement;
+      const select = (await waitFor(() => {
+        const el = screen.getAllByRole('combobox').find(c =>
+          Array.from(c.querySelectorAll('option')).some(o => o.textContent?.includes('Engineering')),
+        );
+        expect(el).toBeTruthy();
+        return el;
+      })) as HTMLSelectElement;
       fireEvent.change(select, { target: { value: 'd1' } });
       await waitFor(() =>
         expect(mockAllocApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ department_id: 'd1' })),

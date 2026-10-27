@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -115,8 +115,13 @@ describe('GIVEN the Employment & Contract section', () => {
     renderTab();
     await waitFor(() => expect(screen.getByText('Employment & Contract')).toBeInTheDocument());
     expect(screen.queryByText('Contract End')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByDisplayValue('Permanent'), { target: { value: 'fixed_term' } });
-    await waitFor(() => expect(screen.getByText('Contract End')).toBeInTheDocument());
+    // Let the tab's parallel loads settle so a late re-render can't reset the contract form.
+    await waitFor(() => expect(mockApi.employees.getProfile).toHaveBeenCalled());
+    await act(async () => {});
+    await waitFor(() => {
+      fireEvent.change(screen.getByDisplayValue(/Permanent|Fixed/), { target: { value: 'fixed_term' } });
+      expect(screen.getByText('Contract End')).toBeInTheDocument();
+    });
     const dateInputs = Array.from(document.querySelectorAll('input[type="date"]'));
     fireEvent.change(dateInputs[dateInputs.length - 1], { target: { value: '2027-01-14' } });
     fireEvent.change(dateInputs[0], { target: { value: '2024-02-01' } });
