@@ -10,6 +10,13 @@ type User = {
   avatar_url?: string;
 };
 
+const _win = typeof window !== 'undefined' ? (window as any) : undefined;
+// Same Core base as departmentScopeService — a relative '/v1/...' hits the MFE host, not Core.
+const CORE_API_BASE =
+  (_win && _win.VITE_SO360_CORE_API) ||
+  (import.meta as any).env?.VITE_SO360_CORE_API ||
+  '/core-api';
+
 type Props = {
   value?: string | null;
   onChange: (userId: string | null) => void;
@@ -21,16 +28,18 @@ type Props = {
 export default function UserSelector({ value, onChange, placeholder = 'Select user...' }: Props) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
 
     const orgId = apiContext.getOrgId();
     const tenantId = apiContext.getTenantId();
     const token = apiContext.getAccessToken();
 
-    fetch(`/v1/tenancy/members?org_id=${orgId}`, {
+    fetch(`${CORE_API_BASE}/v1/tenancy/members?org_id=${encodeURIComponent(orgId)}`, {
       headers: {
         'Content-Type': 'application/json',
         'X-Tenant-Id': tenantId,
@@ -38,7 +47,10 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Could not load users (${res.status})`);
+        return res.json();
+      })
       .then((data) => {
         if (cancelled) return;
         // Core API returns { members: [...], invites: [...] } or array directly
@@ -51,8 +63,10 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
         }));
         setUsers(mapped);
       })
-      .catch(() => {
-        if (!cancelled) setUsers([]);
+      .catch((err) => {
+        if (cancelled) return;
+        setUsers([]);
+        setError(err instanceof Error ? err.message : 'Could not load users');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -81,7 +95,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
       value={value || null}
       placeholder={placeholder}
       clearable
-      emptyText={loading ? 'Loading users...' : 'No users found'}
+      emptyText={loading ? 'Loading users...' : error ?? 'No users found'}
       filter={(o: { label: string; description?: string }, q: string) => {
         const lower = q.trim().toLowerCase();
         return o.label.toLowerCase().includes(lower) || !!o.description?.toLowerCase().includes(lower);

@@ -25,6 +25,7 @@ beforeEach(() => {
 describe('Given UserSelector with no users loaded', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
       json: () => Promise.resolve({ members: [] }),
     }));
   });
@@ -45,6 +46,7 @@ describe('Given UserSelector with no users loaded', () => {
 describe('Given UserSelector with users', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
       json: () => Promise.resolve({ members: mockUsers }),
     }));
   });
@@ -97,6 +99,26 @@ describe('Given UserSelector with fetch failure', () => {
     render(<UserSelector value={null} onChange={() => {}} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     fireEvent.click(screen.getByPlaceholderText('Select user...'));
-    await waitFor(() => expect(screen.getByText('No users found')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Failed')).toBeInTheDocument());
+    expect(screen.queryByText('No users found')).not.toBeInTheDocument();
+  });
+
+  it('Given a 403 from Core / When opened / Then the error is shown instead of "No users found" (Pulse 15be04c2)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403, json: () => Promise.resolve({}) }));
+    render(<UserSelector value={null} onChange={() => {}} />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    fireEvent.click(screen.getByPlaceholderText('Select user...'));
+    await waitFor(() => expect(screen.getByText('Could not load users (403)')).toBeInTheDocument());
+  });
+});
+
+describe('Given UserSelector request target (Pulse 15be04c2)', () => {
+  it('When it fetches members / Then it calls the Core base URL, not a relative MFE path', async () => {
+    const f = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ members: [] }) });
+    vi.stubGlobal('fetch', f);
+    render(<UserSelector value={null} onChange={() => {}} />);
+    await waitFor(() => expect(f).toHaveBeenCalled());
+    expect(String(f.mock.calls[0][0])).toMatch(/^\/core-api\/v1\/tenancy\/members\?org_id=o1$|\/v1\/tenancy\/members\?org_id=o1$/);
+    expect(String(f.mock.calls[0][0]).startsWith('/v1/')).toBe(false);
   });
 });
