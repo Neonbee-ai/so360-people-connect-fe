@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -59,7 +59,7 @@ describe('GIVEN self-service payslip failure paths', () => {
     await waitFor(() => expect(screen.getByText('View')).toBeInTheDocument());
     fireEvent.click(screen.getByText('View'));
     await waitFor(() => expect(screen.getByText('Payslip PS-202608-0042')).toBeInTheDocument());
-    fireEvent.click(document.querySelector('div.fixed.inset-0.bg-black\\/60') as Element);
+    fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]);
     await waitFor(() => expect(screen.queryByText('Payslip PS-202608-0042')).not.toBeInTheDocument());
   });
 

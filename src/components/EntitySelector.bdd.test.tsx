@@ -6,7 +6,7 @@
  * emits the chosen option (real UUID + display name) so the user never types a
  * UUID. For `task` it cascades project → task.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 
@@ -39,25 +39,30 @@ describe('EntitySelector', () => {
             const onChange = vi.fn();
             render(<EntitySelector entityType="project" value="" onChange={onChange} />);
 
-            fireEvent.click(screen.getByText('Select project...'));
-            await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
-            fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+            fireEvent.click(screen.getByPlaceholderText('Select project...'));
+            await waitFor(() => expect(screen.getByRole('option', { name: 'Website Redesign' })).toBeInTheDocument());
+            fireEvent.click(screen.getByRole('option', { name: 'Website Redesign' }));
 
             expect(onChange).toHaveBeenCalledWith({ id: 'p-uuid', name: 'Website Redesign' });
         });
 
-        it('When a search term is typed / Then the option list is filtered', async () => {
-            mockList.mockResolvedValue({
-                data: [{ id: 'p1', name: 'Website Redesign' }, { id: 'p2', name: 'Mobile App' }],
-            });
+        it('When a search term is typed / Then it is forwarded to the backend and the list shows the results', async () => {
+            mockList.mockImplementation(({ search }: { search?: string }) =>
+                Promise.resolve({
+                    data: search
+                        ? [{ id: 'p2', name: 'Mobile App' }]
+                        : [{ id: 'p1', name: 'Website Redesign' }, { id: 'p2', name: 'Mobile App' }],
+                }),
+            );
             render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
 
-            fireEvent.click(screen.getByText('Select project...'));
-            await waitFor(() => expect(screen.getByRole('button', { name: 'Mobile App' })).toBeInTheDocument());
-            fireEvent.change(screen.getByPlaceholderText('Select project...'), { target: { value: 'mobile' } });
+            fireEvent.click(screen.getByPlaceholderText('Select project...'));
+            await waitFor(() => expect(screen.getByRole('option', { name: 'Website Redesign' })).toBeInTheDocument());
+            fireEvent.change(screen.getByRole('combobox'), { target: { value: 'mobile' } });
 
-            expect(screen.queryByRole('button', { name: 'Website Redesign' })).not.toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Mobile App' })).toBeInTheDocument();
+            await waitFor(() => expect(screen.queryByRole('option', { name: 'Website Redesign' })).not.toBeInTheDocument());
+            expect(mockList).toHaveBeenCalledWith({ type: 'project', project_id: undefined, search: 'mobile' });
+            expect(screen.getByRole('option', { name: 'Mobile App' })).toBeInTheDocument();
         });
     });
 
@@ -82,7 +87,7 @@ describe('EntitySelector', () => {
         it('When opened / Then it shows a correctly pluralised empty state', async () => {
             render(<EntitySelector entityType="opportunity" value="" onChange={() => {}} />);
 
-            fireEvent.click(screen.getByText('Select opportunity...'));
+            fireEvent.click(screen.getByPlaceholderText('Select opportunity...'));
 
             await waitFor(() => expect(screen.getByText('No opportunities found')).toBeInTheDocument());
         });
@@ -104,8 +109,8 @@ describe('EntitySelector', () => {
             // project-type options (stale data) during the transition.
             await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: 'lead', project_id: undefined }));
 
-            fireEvent.click(screen.getByText('Select lead...'));
-            await waitFor(() => expect(screen.getByRole('button', { name: 'Orange Inc' })).toBeInTheDocument());
+            fireEvent.click(screen.getByPlaceholderText('Select lead...'));
+            await waitFor(() => expect(screen.getByRole('option', { name: 'Orange Inc' })).toBeInTheDocument());
         });
 
         it('When the stale response resolves AFTER the fresh one / Then only fresh data is shown (race condition fix)', async () => {
@@ -118,7 +123,7 @@ describe('EntitySelector', () => {
 
             mockList
                 .mockImplementationOnce(() => projectPromise)                               // first call: project (slow)
-                .mockResolvedValueOnce({ data: [{ id: 'l1', name: 'Orange Inc' }] });       // second call: lead (fast)
+                .mockResolvedValue({ data: [{ id: 'l1', name: 'Orange Inc' }] });           // every later call: lead (fast)
 
             const { rerender } = render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
 
@@ -133,9 +138,9 @@ describe('EntitySelector', () => {
             });
 
             // The dropdown must show lead data, NOT the stale project data.
-            fireEvent.click(screen.getByText('Select lead...'));
-            await waitFor(() => expect(screen.getByRole('button', { name: 'Orange Inc' })).toBeInTheDocument());
-            expect(screen.queryByRole('button', { name: 'Website Redesign' })).not.toBeInTheDocument();
+            fireEvent.click(screen.getByPlaceholderText('Select lead...'));
+            await waitFor(() => expect(screen.getByRole('option', { name: 'Orange Inc' })).toBeInTheDocument());
+            expect(screen.queryByRole('option', { name: 'Website Redesign' })).not.toBeInTheDocument();
         });
     });
 
@@ -147,8 +152,7 @@ describe('EntitySelector', () => {
             expect(mockList).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'task' }));
 
             // The task row is gated until a project is selected.
-            const taskRow = screen.getByText('Select task...').closest('div')!;
-            expect(taskRow.className).toContain('cursor-not-allowed');
+            expect(screen.getByPlaceholderText('Select task...')).toBeDisabled();
         });
     });
 
@@ -163,18 +167,18 @@ describe('EntitySelector', () => {
             render(<EntitySelector entityType="task" value="" onChange={onChange} />);
 
             // Pick the project in the first (cascading) dropdown.
-            fireEvent.click(screen.getByText('Select project...'));
-            await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
-            fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+            fireEvent.click(screen.getByPlaceholderText('Select project...'));
+            await waitFor(() => expect(screen.getByRole('option', { name: 'Website Redesign' })).toBeInTheDocument());
+            fireEvent.click(screen.getByRole('option', { name: 'Website Redesign' }));
 
             // Picking a project clears any prior task selection.
             expect(onChange).toHaveBeenCalledWith(null);
 
             // The task dropdown now loads tasks for that project.
             await waitFor(() => expect(mockList).toHaveBeenCalledWith({ type: 'task', project_id: 'proj-uuid' }));
-            fireEvent.click(screen.getByText('Select task...'));
-            await waitFor(() => expect(screen.getByRole('button', { name: 'Design header' })).toBeInTheDocument());
-            fireEvent.click(screen.getByRole('button', { name: 'Design header' }));
+            fireEvent.click(screen.getByPlaceholderText('Select task...'));
+            await waitFor(() => expect(screen.getByRole('option', { name: 'Design header' })).toBeInTheDocument());
+            fireEvent.click(screen.getByRole('option', { name: 'Design header' }));
 
             expect(onChange).toHaveBeenLastCalledWith({ id: 'task-uuid', name: 'Design header' });
         });
@@ -185,24 +189,26 @@ describe('EntitySelector', () => {
             mockList.mockImplementation(async () => { throw new Error('network'); });
             render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
 
-            fireEvent.click(screen.getByText('Select project...'));
+            fireEvent.click(screen.getByPlaceholderText('Select project...'));
             await waitFor(() => expect(screen.getByText(/Unable to load records\. Please try again\./i)).toBeInTheDocument());
         });
 
-        it('When the retry affordance is clicked / Then the list is re-fetched and options appear', async () => {
+        it('When the field is re-opened / Then the list is re-fetched and options appear', async () => {
             mockList
+                .mockRejectedValueOnce(new Error('network'))
                 .mockRejectedValueOnce(new Error('network'))
                 .mockResolvedValue({ data: [{ id: 'p1', name: 'Website Redesign' }] });
 
             render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
 
-            fireEvent.click(screen.getByText('Select project...'));
+            fireEvent.click(screen.getByPlaceholderText('Select project...'));
             await waitFor(() => expect(screen.getByText(/Unable to load records/i)).toBeInTheDocument());
 
-            // Clicking the error message triggers load() again.
-            fireEvent.click(screen.getByText(/Unable to load records/i));
+            // Close and re-open: the combobox re-queries the backend.
+            fireEvent.blur(screen.getByRole('combobox'));
+            fireEvent.focus(screen.getByRole('combobox'));
 
-            await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
+            await waitFor(() => expect(screen.getByRole('option', { name: 'Website Redesign' })).toBeInTheDocument());
         });
     });
 
@@ -211,34 +217,24 @@ describe('EntitySelector', () => {
             mockList.mockResolvedValue({ data: null });
             render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
 
-            fireEvent.click(screen.getByText('Select project...'));
+            fireEvent.click(screen.getByPlaceholderText('Select project...'));
 
             await waitFor(() => expect(screen.getByText('No projects found')).toBeInTheDocument());
         });
     });
 
-    describe('Given a search term is typed into an open selector', () => {
-        afterEach(() => { vi.useRealTimers(); });
+    describe('Given a selection already exists', () => {
+        it('When rendered with a stored display name / Then the field shows that name', async () => {
+            render(<EntitySelector entityType="project" value="p9" displayName="Legacy Project" onChange={() => {}} />);
 
-        it('When 300 ms elapses / Then the search term is forwarded to the backend', async () => {
-            vi.useFakeTimers();
+            await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Legacy Project'));
+        });
+
+        it('When the matching option is loaded / Then the field shows the loaded name', async () => {
             mockList.mockResolvedValue({ data: [{ id: 'p1', name: 'Website Redesign' }] });
-            render(<EntitySelector entityType="project" value="" onChange={() => {}} />);
+            render(<EntitySelector entityType="project" value="p1" onChange={() => {}} />);
 
-            // Flush the initial mount load (search is empty → no search key in call).
-            await act(async () => { await vi.runAllTimersAsync(); });
-            expect(mockList).toHaveBeenCalledWith({ type: 'project', project_id: undefined });
-            mockList.mockClear();
-
-            // Open the dropdown (trigger shows placeholder when nothing is selected).
-            fireEvent.click(screen.getByText('Select project...'));
-            // Type a search term; the placeholder switches to 'Select project...' on the input.
-            fireEvent.change(screen.getByPlaceholderText('Select project...'), { target: { value: 'web' } });
-
-            // Advance past the 300 ms debounce; the load re-fires with search='web'.
-            await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-
-            expect(mockList).toHaveBeenCalledWith({ type: 'project', project_id: undefined, search: 'web' });
+            await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Website Redesign'));
         });
     });
 });

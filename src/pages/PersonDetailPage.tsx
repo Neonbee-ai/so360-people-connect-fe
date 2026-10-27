@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-    ArrowLeft, Mail, Phone, Calendar, DollarSign, Clock, Target,
-    Tag, Plus, Trash2, Edit2, Save, X, History, User, UserCheck, UserPlus,
-    Briefcase, Shield, Wallet, ClipboardCheck, CalendarDays,
+    Mail, Phone, Calendar, DollarSign, Clock, Target, MapPin,
+    Plus, Trash2, Edit2, Save, X, History, User, UserCheck, UserPlus,
+    Wallet, ClipboardCheck, CalendarDays,
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import PayrollProfileTab from '../components/payroll/PayrollProfileTab';
 import PersonLeaveConfigTab from '../components/leave/PersonLeaveConfigTab';
 import PersonOnboardingTab from '../components/PersonOnboardingTab';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import {
+    toast, Select, DetailPageTemplate, Button, IconButton, TextField, NumberInput, DateInput, Checkbox,
+    FormField, Card, SectionCard, KpiCard, Badge, Avatar, Progress, DescriptionList, Skeleton, Grid, Stack, Cluster,
+} from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -264,25 +267,22 @@ const PersonDetailPage: React.FC = () => {
         }
     }, [activeTab, person]);
 
+    const goBack = () => navigate('/people/people');
+
     if (loading) {
-        return (
-            <div className="p-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-6 w-32 bg-slate-800 rounded" />
-                    <div className="h-48 bg-slate-800 rounded-xl" />
-                </div>
-            </div>
-        );
+        return <DetailPageTemplate title="Employee" onBack={goBack} backLabel="Back to People" loading />;
     }
 
     if (!person) {
         return (
-            <div className="p-6 text-center text-slate-400">
-                {loadError === 'load_failed' ? 'Unable to load employee details.' : 'Person not found.'}
-                <button onClick={() => navigate('/people/people')} className="ml-2 text-teal-400 hover:text-teal-300">
-                    Back to list
-                </button>
-            </div>
+            <DetailPageTemplate title="Person" onBack={goBack} backLabel="Back to People">
+                <EmptyState
+                    icon={User}
+                    title={loadError === 'load_failed' ? 'Unable to load employee details.' : 'Person not found.'}
+                    description="Return to the people list to pick another record."
+                    action={{ label: 'Back to list', onClick: goBack }}
+                />
+            </DetailPageTemplate>
         );
     }
 
@@ -292,394 +292,221 @@ const PersonDetailPage: React.FC = () => {
 
     const totalHoursLogged = timeEntries.reduce((sum, te) => sum + te.hours, 0);
 
+    const departmentName = person.department_info?.name || person.department;
+
+    const tabs = [
+        { id: 'overview', label: 'Overview', icon: <User size={14} /> },
+        { id: 'allocations', label: 'Allocations', icon: <Target size={14} /> },
+        { id: 'time', label: 'Time Entries', icon: <Clock size={14} /> },
+        { id: 'employment-history', label: 'Employment History', icon: <History size={14} /> },
+        ...(canViewCompensation ? [{ id: 'rate-history', label: 'Rate History', icon: <DollarSign size={14} /> }] : []),
+        { id: 'goals', label: 'Goals', icon: <Target size={14} /> },
+        { id: 'onboarding', label: 'Onboarding', icon: <ClipboardCheck size={14} /> },
+        { id: 'leave', label: 'Leave', icon: <CalendarDays size={14} /> },
+        { id: 'payroll', label: 'Payroll', icon: <Wallet size={14} /> },
+    ];
+
+    const metaItems = [
+        ...(person.job_title ? [{ id: 'job-title', content: person.job_title }] : []),
+        ...(departmentName ? [{ id: 'department', content: departmentName }] : []),
+        ...(person.work_location ? [{ id: 'work-location', icon: <MapPin size={12} />, content: person.work_location.name }] : []),
+        ...(person.email ? [{ id: 'email', icon: <Mail size={12} />, content: person.email }] : []),
+        ...(person.phone ? [{ id: 'phone', icon: <Phone size={12} />, content: person.phone }] : []),
+        ...(person.start_date ? [{ id: 'start-date', icon: <Calendar size={12} />, content: `Since ${person.start_date}` }] : []),
+    ];
+
     return (
-        <div className="p-6 space-y-6">
-            {/* Back Navigation */}
-            <button onClick={() => navigate('/people/people')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
-                <ArrowLeft size={16} />
-                Back to People
-            </button>
-
-            {/* Header */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
-                        <span className="text-lg font-bold text-teal-400">
-                            {(person.full_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
-                        </span>
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                            <h2 className="text-xl font-bold text-slate-50">{person.full_name || 'Unknown'}</h2>
-                            <StatusBadge status={person.type} />
-                            <StatusBadge status={person.status} />
-                            {person.user_id && (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-teal-500/10 border border-teal-500/30 rounded-md text-xs text-teal-400">
-                                    <UserCheck size={12} />
-                                    Linked to user account
-                                </span>
-                            )}
-                            {!person.user_id && (
-                                <button
-                                    onClick={() => setShowLinkUserModal(true)}
-                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md text-xs text-slate-400 hover:text-slate-50 transition-colors"
-                                >
-                                    <UserPlus size={12} />
-                                    Link User
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-400">
-                            {person.job_title && <span>{person.job_title}</span>}
-                            {(person.department_info?.name || person.department) && <span className="text-slate-600">|</span>}
-                            {(person.department_info?.name || person.department) && <span>{person.department_info?.name || person.department}</span>}
-                            {person.work_location && (
-                                <>
-                                    <span className="text-slate-600">|</span>
-                                    <span className="flex items-center gap-1">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                        {person.work_location.name}
-                                    </span>
-                                </>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
-                            {person.email && <span className="flex items-center gap-1"><Mail size={12} />{person.email}</span>}
-                            {person.phone && <span className="flex items-center gap-1"><Phone size={12} />{person.phone}</span>}
-                            {person.start_date && <span className="flex items-center gap-1"><Calendar size={12} />Since {person.start_date}</span>}
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {!editing ? (
-                            <button
-                                onClick={() => { setEditing(true); setEditData(person); }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
-                            >
-                                <Edit2 size={13} /> Edit
-                            </button>
-                        ) : (
-                            <>
-                                <button onClick={handleSave} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 rounded-lg text-xs text-white hover:bg-teal-500 transition-colors">
-                                    <Save size={13} /> Save
-                                </button>
-                                <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 transition-colors">
-                                    <X size={13} /> Cancel
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
-
+        <DetailPageTemplate
+            title={person.full_name || 'Unknown'}
+            trail={[{ label: 'People', onClick: goBack }]}
+            status={(
+                <Cluster>
+                    <Avatar name={person.full_name || undefined} size="md" />
+                    <StatusBadge status={person.type} />
+                    <StatusBadge status={person.status} />
+                    {person.user_id ? (
+                        <Badge tone="primary">
+                            <UserCheck size={12} />
+                            Linked to user account
+                        </Badge>
+                    ) : (
+                        <Button variant="secondary" size="sm" onClick={() => setShowLinkUserModal(true)}>
+                            <UserPlus size={12} />
+                            Link User
+                        </Button>
+                    )}
+                </Cluster>
+            )}
+            metaItems={metaItems}
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            maxVisible={5}
+            secondaryActions={!editing
+                ? [
+                    <Button key="edit" variant="secondary" onClick={() => { setEditing(true); setEditData(person); }}>
+                        <Edit2 size={13} /> Edit
+                    </Button>,
+                    ...(activeTab === 'rate-history' && canViewCompensation
+                        ? [
+                            <Button key="add-rate" variant="secondary" onClick={() => setShowUpdateRateModal(true)}>
+                                <DollarSign size={13} /> Add new rate
+                            </Button>,
+                        ]
+                        : []),
+                ]
+                : [
+                    <Button key="cancel" variant="secondary" onClick={() => setEditing(false)}>
+                        <X size={13} /> Cancel
+                    </Button>,
+                ]}
+            primaryAction={editing ? (
+                <Button onClick={handleSave}>
+                    <Save size={13} /> Save
+                </Button>
+            ) : undefined}
+        >
+            <Stack gap="region">
                 {/* Inline Edit Fields */}
                 {editing && (
-                    <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">Department</label>
-                            <DepartmentSelector
-                                value={editData.department_id || ''}
-                                onChange={(id) => setEditData(d => ({ ...d, department_id: id }))}
-                                placeholder="Select department..."
-                                allowClear
-                            />
-                        </div>
-                        {canViewCompensation && (
-                            <div>
-                                <label className="block text-xs text-slate-500 mb-1">Cost Rate</label>
-                                <input
-                                    type="number" value={editData.cost_rate || 0}
-                                    onChange={e => setEditData(d => ({ ...d, cost_rate: parseFloat(e.target.value) }))}
-                                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                    <Card>
+                        <Grid columns={4} gap="md">
+                            <FormField label="Department" name="person-department">
+                                <DepartmentSelector
+                                    value={editData.department_id || ''}
+                                    onChange={(id) => setEditData(d => ({ ...d, department_id: id }))}
+                                    placeholder="Select department..."
+                                    allowClear
                                 />
-                            </div>
-                        )}
-                        {canViewCompensation && (
-                            <div>
-                                <label className="block text-xs text-slate-500 mb-1">Billing Rate</label>
-                                <input
-                                    type="number" value={editData.billing_rate || 0}
-                                    onChange={e => setEditData(d => ({ ...d, billing_rate: parseFloat(e.target.value) }))}
-                                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            </FormField>
+                            {canViewCompensation && (
+                                <NumberInput
+                                    label="Cost Rate"
+                                    name="person-cost-rate"
+                                    value={editData.cost_rate || 0}
+                                    onChange={(v) => setEditData(d => ({ ...d, cost_rate: v ?? 0 }))}
                                 />
-                            </div>
-                        )}
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">Status</label>
-                            <select
+                            )}
+                            {canViewCompensation && (
+                                <NumberInput
+                                    label="Billing Rate"
+                                    name="person-billing-rate"
+                                    value={editData.billing_rate || 0}
+                                    onChange={(v) => setEditData(d => ({ ...d, billing_rate: v ?? 0 }))}
+                                />
+                            )}
+                            <Select
+                                label="Status"
+                                name="persondetail-select-78"
                                 value={editData.status || 'active'}
                                 onChange={e => setEditData(d => ({ ...d, status: e.target.value as Person['status'] }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="on_leave">On Leave</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">Hours/Day</label>
-                            <input
-                                type="number" value={editData.available_hours_per_day || 8}
-                                onChange={e => setEditData(d => ({ ...d, available_hours_per_day: parseFloat(e.target.value) }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }, { value: "on_leave", label: "On Leave" }]}
                             />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1">Work Location</label>
-                            <select
+                            <NumberInput
+                                label="Hours/Day"
+                                name="person-hours-per-day"
+                                value={editData.available_hours_per_day || 8}
+                                onChange={(v) => setEditData(d => ({ ...d, available_hours_per_day: v ?? 0 }))}
+                            />
+                            <Select
+                                label="Work Location"
+                                name="persondetail-select-79"
                                 value={editData.work_location_id || ''}
                                 onChange={e => setEditData(d => ({ ...d, work_location_id: e.target.value || undefined }))}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">None</option>
-                                {workLocations.map(loc => (
-                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
+                                options={[{ value: "", label: "None" }, ...workLocations.map((loc) => ({ value: loc.id, label: loc.name }))]}
+                            />
+                        </Grid>
+                    </Card>
                 )}
-            </div>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-4 gap-4">
-                {canViewCompensation && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                            <DollarSign size={14} className="text-emerald-400" />
-                            <span className="text-xs text-slate-400">Cost Rate</span>
-                        </div>
-                        <div className="text-lg font-bold text-slate-50">{formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}</div>
-                    </div>
-                )}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Target size={14} className="text-blue-400" />
-                        <span className="text-xs text-slate-400">Total Allocated</span>
-                    </div>
-                    <div className="text-lg font-bold text-slate-50">{totalAllocated}%</div>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Clock size={14} className="text-amber-400" />
-                        <span className="text-xs text-slate-400">Hours Logged</span>
-                    </div>
+                {/* Stats Row */}
+                <Grid columns={4} gap="md">
+                    {canViewCompensation && (
+                        <KpiCard
+                            label="Cost Rate"
+                            icon={DollarSign}
+                            value={`${formatters.formatCurrency(person.cost_rate)}/${person.cost_rate_unit}`}
+                        />
+                    )}
+                    <KpiCard label="Total Allocated" icon={Target} value={`${totalAllocated}%`} />
                     {/* Never report a confident "0h" when the timesheet source failed. */}
-                    <div className="text-lg font-bold text-slate-50">
-                        {timeEntriesStatus === 'error' ? '—' : `${totalHoursLogged}h`}
-                    </div>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Clock size={14} className="text-teal-400" />
-                        <span className="text-xs text-slate-400">Availability</span>
-                    </div>
-                    <div className="text-lg font-bold text-slate-50">{person.available_hours_per_day}h/day</div>
-                </div>
-            </div>
+                    <KpiCard
+                        label="Hours Logged"
+                        icon={Clock}
+                        value={timeEntriesStatus === 'error' ? '—' : `${totalHoursLogged}h`}
+                    />
+                    <KpiCard label="Availability" icon={Clock} value={`${person.available_hours_per_day}h/day`} />
+                </Grid>
 
-            {/* Employment Information — single source of truth, populated from the
-                employee record + Core IAM membership captured at registration. The
-                System Role here IS the access role (no separate role structure). */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-slate-50 flex items-center gap-2">
-                        <Briefcase size={14} /> Employment Information
-                    </h3>
-                    <button
-                        onClick={() => setShowSystemRoleModal(true)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
-                    >
-                        <Edit2 size={12} /> Edit Role
-                    </button>
-                </div>
-                <div className="p-5 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
-                    <div>
-                        <div className="text-xs text-slate-500 mb-1">Job Title</div>
-                        <div className="text-sm text-slate-50">{person.job_title || '—'}</div>
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Shield size={11} /> System Role</div>
-                        <div className="text-sm text-slate-50">
-                            {person.system_role || <span className="text-slate-500">No system access</span>}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-500 mb-1">Department</div>
-                        <div className="text-sm text-slate-50">{person.department_info?.name || person.department || '—'}</div>
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-500 mb-1">Employment Type</div>
-                        <div className="text-sm text-slate-50 capitalize">{person.type || '—'}</div>
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-500 mb-1">Access Status</div>
-                        <div><StatusBadge status={person.access_status || 'no_access'} /></div>
-                    </div>
-                    {person.invitation_status && (
-                        <div>
-                            <div className="text-xs text-slate-500 mb-1">Invitation</div>
-                            <div><StatusBadge status={person.invitation_status} /></div>
-                        </div>
+                {/* Employment Information — single source of truth, populated from the
+                    employee record + Core IAM membership captured at registration. The
+                    System Role here IS the access role (no separate role structure). */}
+                <SectionCard
+                    title="Employment Information"
+                    actions={(
+                        <Button variant="secondary" size="sm" onClick={() => setShowSystemRoleModal(true)}>
+                            <Edit2 size={12} /> Edit Role
+                        </Button>
                     )}
-                </div>
-            </div>
+                >
+                    <DescriptionList
+                        columns={3}
+                        items={[
+                            { label: 'Job Title', value: person.job_title || '—' },
+                            { label: 'System Role', value: person.system_role || 'No system access' },
+                            { label: 'Department', value: departmentName || '—' },
+                            { label: 'Employment Type', value: <span className="capitalize">{person.type || '—'}</span> },
+                            { label: 'Access Status', value: <StatusBadge status={person.access_status || 'no_access'} /> },
+                            { label: 'Invitation', value: person.invitation_status ? <StatusBadge status={person.invitation_status} /> : null, hidden: !person.invitation_status },
+                        ]}
+                    />
+                </SectionCard>
 
-            {/* Skills & Competencies — capability tracker only; NOT an access role.
-                Intentionally distinct from the System Role above. */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-slate-50 flex items-center gap-2">
-                        <Tag size={14} /> Skills &amp; Competencies
-                    </h3>
-                    <button
-                        onClick={() => setShowRoleModal(true)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
-                    >
-                        <Plus size={12} /> Add Skill
-                    </button>
-                </div>
-                <div className="p-5">
+                {/* Skills & Competencies — capability tracker only; NOT an access role.
+                    Intentionally distinct from the System Role above. */}
+                <SectionCard
+                    title="Skills & Competencies"
+                    actions={(
+                        <Button variant="secondary" size="sm" onClick={() => setShowRoleModal(true)}>
+                            <Plus size={12} /> Add Skill
+                        </Button>
+                    )}
+                >
                     {!person.people_roles || person.people_roles.length === 0 ? (
-                        <p className="text-sm text-slate-500">No skills added yet</p>
+                        <p className="text-nb-body text-fg-subtle">No skills added yet</p>
                     ) : (
-                        <div className="flex flex-wrap gap-2">
+                        <Cluster>
                             {person.people_roles.map(skill => (
-                                <div key={skill.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
-                                    <span className="text-sm text-slate-50">{skill.role_name}</span>
-                                    {skill.skill_category && <span className="text-xs text-slate-500">{skill.skill_category}</span>}
+                                <Badge key={skill.id} tone="neutral" size="md">
+                                    <span className="text-nb-body text-fg">{skill.role_name}</span>
+                                    {skill.skill_category && <span className="text-nb-caption text-fg-subtle">{skill.skill_category}</span>}
                                     <StatusBadge status={skill.proficiency} />
-                                    {skill.is_primary && <span className="text-xs text-teal-400 font-medium">Primary</span>}
-                                    <button onClick={() => handleRemoveSkill(skill.id)} className="ml-1 text-slate-500 hover:text-rose-400">
-                                        <Trash2 size={12} />
-                                    </button>
-                                </div>
+                                    {skill.is_primary && <span className="text-nb-caption text-primary">Primary</span>}
+                                    <IconButton
+                                        label={`Remove ${skill.role_name}`}
+                                        variant="danger"
+                                        size="sm"
+                                        icon={<Trash2 size={12} />}
+                                        onClick={() => handleRemoveSkill(skill.id)}
+                                    />
+                                </Badge>
                             ))}
-                        </div>
+                        </Cluster>
                     )}
-                </div>
-            </div>
+                </SectionCard>
 
-            {/* Tabs */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="border-b border-slate-800">
-                    <div className="flex items-center gap-1 px-5 py-3">
-                        <button
-                            onClick={() => setActiveTab('overview')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'overview'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                            }`}
-                        >
-                            <User size={14} className="inline mr-1.5" />
-                            Overview
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('allocations')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'allocations'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                            }`}
-                        >
-                            <Target size={14} className="inline mr-1.5" />
-                            Allocations
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('time')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'time'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                            }`}
-                        >
-                            <Clock size={14} className="inline mr-1.5" />
-                            Time Entries
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('employment-history')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'employment-history'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                            }`}
-                        >
-                            <History size={14} className="inline mr-1.5" />
-                            Employment History
-                        </button>
-                        {canViewCompensation && (
-                            <button
-                                onClick={() => setActiveTab('rate-history')}
-                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                    activeTab === 'rate-history'
-                                        ? 'bg-teal-500/10 text-teal-400'
-                                        : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                                }`}
-                            >
-                                <DollarSign size={14} className="inline mr-1.5" />
-                                Rate History
-                            </button>
-                        )}
-                        <button
-                            onClick={() => setActiveTab('goals')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'goals'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                            }`}
-                        >
-                            <Target size={14} className="inline mr-1.5" />
-                            Goals
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('onboarding')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'onboarding'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                            }`}
-                        >
-                            <ClipboardCheck size={14} className="inline mr-1.5" />
-                            Onboarding
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('leave')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'leave'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                            }`}
-                        >
-                            <CalendarDays size={14} className="inline mr-1.5" />
-                            Leave
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('payroll')}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                                activeTab === 'payroll'
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                            }`}
-                        >
-                            <Wallet size={14} className="inline mr-1.5" />
-                            Payroll
-                        </button>
-                    </div>
-                </div>
-
-                <div className="p-5">
+                <Card>
                     {/* Overview Tab */}
                     {activeTab === 'overview' && (
-                        <div className="space-y-4">
-                            <div className="text-sm text-slate-400">
-                                <p className="mb-2">This is the overview of {person.full_name || 'this person'}'s profile.</p>
-                                <p>Use the tabs above to view allocations, time entries, employment history, rate changes, and goals.</p>
-                            </div>
-                        </div>
+                        <Stack gap="tight">
+                            <p className="text-nb-body text-fg-muted">This is the overview of {person.full_name || 'this person'}'s profile.</p>
+                            <p className="text-nb-body text-fg-muted">Use the tabs above to view allocations, time entries, employment history, rate changes, and goals.</p>
+                        </Stack>
                     )}
 
                     {/* Allocations Tab */}
                     {activeTab === 'allocations' && (
-                        <div className="space-y-3">
+                        <div className="divide-y divide-line">
                             {allocations.length === 0 ? (
                                 <EmptyState
                                     icon={Target}
@@ -688,21 +515,19 @@ const PersonDetailPage: React.FC = () => {
                                 />
                             ) : (
                                 allocations.map(alloc => (
-                                    <div key={alloc.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className="text-sm text-slate-50">{alloc.entity_name || alloc.entity_id}</div>
-                                                <div className="text-xs text-slate-500">
+                                    <div key={alloc.id} className="py-nb-3 first:pt-0 last:pb-0">
+                                        <Cluster justify="between">
+                                            <Stack gap="none">
+                                                <span className="text-nb-body text-fg">{alloc.entity_name || alloc.entity_id}</span>
+                                                <span className="text-nb-caption text-fg-subtle">
                                                     {alloc.start_date} to {alloc.end_date} | {alloc.entity_type}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-sm font-medium text-slate-50">
-                                                    {alloc.allocation_value}%
                                                 </span>
+                                            </Stack>
+                                            <Cluster>
+                                                <span className="text-nb-body text-fg">{alloc.allocation_value}%</span>
                                                 <StatusBadge status={alloc.status} />
-                                            </div>
-                                        </div>
+                                            </Cluster>
+                                        </Cluster>
                                     </div>
                                 ))
                             )}
@@ -711,13 +536,15 @@ const PersonDetailPage: React.FC = () => {
 
                     {/* Time Entries Tab */}
                     {activeTab === 'time' && (
-                        <div className="space-y-3">
+                        <div className="divide-y divide-line">
                             {timeEntriesStatus === 'loading' ? (
-                                <div data-testid="time-entries-loading" role="status" aria-busy="true" className="animate-pulse space-y-3">
+                                <div data-testid="time-entries-loading" role="status" aria-busy="true">
                                     <span className="sr-only">Loading time entries…</span>
-                                    <div className="h-16 bg-slate-800 rounded-lg" />
-                                    <div className="h-16 bg-slate-800 rounded-lg" />
-                                    <div className="h-16 bg-slate-800 rounded-lg" />
+                                    <Stack>
+                                        <Skeleton variant="rect" className="h-nb-12 w-full" />
+                                        <Skeleton variant="rect" className="h-nb-12 w-full" />
+                                        <Skeleton variant="rect" className="h-nb-12 w-full" />
+                                    </Stack>
                                 </div>
                             ) : timeEntriesStatus === 'error' ? (
                                 <EmptyState
@@ -734,20 +561,20 @@ const PersonDetailPage: React.FC = () => {
                                 />
                             ) : (
                                 timeEntries.map(entry => (
-                                    <div key={entry.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className="text-sm text-slate-50">{entry.entity_name || entry.entity_type || 'Time entry'}</div>
-                                                <div className="text-xs text-slate-500">
+                                    <div key={entry.id} className="py-nb-3 first:pt-0 last:pb-0">
+                                        <Cluster justify="between">
+                                            <Stack gap="none">
+                                                <span className="text-nb-body text-fg">{entry.entity_name || entry.entity_type || 'Time entry'}</span>
+                                                <span className="text-nb-caption text-fg-subtle">
                                                     {entry.entry_date} | {entry.description || 'No description'}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-sm font-medium text-slate-50">{entry.hours}h</span>
-                                                <span className="text-xs text-slate-400">${entry.calculated_cost || 0}</span>
+                                                </span>
+                                            </Stack>
+                                            <Cluster>
+                                                <span className="text-nb-body text-fg">{entry.hours}h</span>
+                                                <span className="text-nb-caption text-fg-muted">${entry.calculated_cost || 0}</span>
                                                 <StatusBadge status={entry.status} />
-                                            </div>
-                                        </div>
+                                            </Cluster>
+                                        </Cluster>
                                     </div>
                                 ))
                             )}
@@ -756,36 +583,36 @@ const PersonDetailPage: React.FC = () => {
 
                     {/* Employment History Tab */}
                     {activeTab === 'employment-history' && (
-                        <div className="space-y-3">
+                        <div className="divide-y divide-line">
                             {employmentHistory.map((event) => (
-                                <div key={event.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-medium text-slate-50 capitalize">{event.event_type.replace('_', ' ')}</span>
+                                <div key={event.id} className="py-nb-3 first:pt-0 last:pb-0">
+                                    <Cluster justify="between" align="start">
+                                        <Stack gap="tight">
+                                            <Cluster>
+                                                <span className="text-nb-body capitalize text-fg">{event.event_type.replace('_', ' ')}</span>
                                                 <StatusBadge status={event.event_type} />
-                                            </div>
-                                            <div className="text-xs text-slate-500">
+                                            </Cluster>
+                                            <span className="text-nb-caption text-fg-subtle">
                                                 {formatters.formatDate(event.effective_date)}
-                                            </div>
+                                            </span>
                                             {event.notes && (
-                                                <div className="mt-2 text-sm text-slate-400">{event.notes}</div>
+                                                <span className="text-nb-body text-fg-muted">{event.notes}</span>
                                             )}
                                             {event.new_department_id && (
-                                                <div className="mt-1 text-xs text-slate-500">
+                                                <span className="text-nb-caption text-fg-subtle">
                                                     Department: {event.new_department_name || event.new_department_id}
-                                                </div>
+                                                </span>
                                             )}
                                             {event.new_job_title && (
-                                                <div className="mt-1 text-xs text-slate-500">
+                                                <span className="text-nb-caption text-fg-subtle">
                                                     Title: {event.new_job_title}
-                                                </div>
+                                                </span>
                                             )}
-                                        </div>
-                                        <div className="text-xs text-slate-600">
+                                        </Stack>
+                                        <span className="text-nb-caption text-fg-subtle">
                                             {formatters.formatDateTime(event.created_at)}
-                                        </div>
-                                    </div>
+                                        </span>
+                                    </Cluster>
                                 </div>
                             ))}
                             {employmentHistory.length === 0 && (
@@ -800,35 +627,33 @@ const PersonDetailPage: React.FC = () => {
 
                     {/* Rate History Tab — compensation-gated */}
                     {activeTab === 'rate-history' && canViewCompensation && (
-                        <div className="space-y-3">
+                        <div className="divide-y divide-line">
                             {rateHistory.map((event) => (
-                                <div key={event.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div>
-                                                    <div className="text-xs text-slate-500">Cost Rate</div>
-                                                    <div className="text-lg font-medium text-slate-50">
-                                                        {formatters.formatCurrency(event.new_cost_rate)}/{person.cost_rate_unit}
-                                                    </div>
-                                                </div>
-                                                {event.new_billing_rate && (
-                                                    <div>
-                                                        <div className="text-xs text-slate-500">Billing Rate</div>
-                                                        <div className="text-lg font-medium text-teal-400">
-                                                            {formatters.formatCurrency(event.new_billing_rate)}/{person.cost_rate_unit}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="text-xs text-slate-500">
-                                                Effective: {formatters.formatDate(event.effective_date)}
-                                            </div>
-                                            {event.reason && (
-                                                <div className="mt-2 text-sm text-slate-400">{event.reason}</div>
+                                <div key={event.id} className="py-nb-3 first:pt-0 last:pb-0">
+                                    <Stack gap="tight">
+                                        <Cluster gap="default" align="start">
+                                            <Stack gap="none">
+                                                <span className="text-nb-caption text-fg-subtle">Cost Rate</span>
+                                                <span className="text-nb-title text-fg">
+                                                    {formatters.formatCurrency(event.new_cost_rate)}/{person.cost_rate_unit}
+                                                </span>
+                                            </Stack>
+                                            {event.new_billing_rate && (
+                                                <Stack gap="none">
+                                                    <span className="text-nb-caption text-fg-subtle">Billing Rate</span>
+                                                    <span className="text-nb-title text-primary">
+                                                        {formatters.formatCurrency(event.new_billing_rate)}/{person.cost_rate_unit}
+                                                    </span>
+                                                </Stack>
                                             )}
-                                        </div>
-                                    </div>
+                                        </Cluster>
+                                        <span className="text-nb-caption text-fg-subtle">
+                                            Effective: {formatters.formatDate(event.effective_date)}
+                                        </span>
+                                        {event.reason && (
+                                            <span className="text-nb-body text-fg-muted">{event.reason}</span>
+                                        )}
+                                    </Stack>
                                 </div>
                             ))}
                             {rateHistory.length === 0 && (
@@ -838,18 +663,9 @@ const PersonDetailPage: React.FC = () => {
                                     description="Rate changes will appear here"
                                 />
                             )}
-                            <div className="border-t border-slate-800 pt-3">
-                                <button
-                                    onClick={() => setShowUpdateRateModal(true)}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm text-slate-50 transition-colors"
-                                >
-                                    <DollarSign size={16} />
-                                    Add New Rate
-                                </button>
-                                <p className="mt-2 text-xs text-slate-500">
-                                    This records a new effective-dated rate. Records above are read-only history and are never edited.
-                                </p>
-                            </div>
+                            <p className="pt-nb-3 text-nb-caption text-fg-subtle">
+                                Use Add new rate in the page header to record a new effective-dated rate. Records above are read-only history and are never edited.
+                            </p>
                         </div>
                     )}
 
@@ -872,31 +688,28 @@ const PersonDetailPage: React.FC = () => {
 
                     {/* Goals Tab */}
                     {activeTab === 'goals' && (
-                        <div className="space-y-3">
+                        <div className="divide-y divide-line">
                             {goals.map((goal) => (
-                                <div key={goal.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-medium text-slate-50">{goal.title}</span>
-                                                <StatusBadge status={goal.status} />
-                                                <StatusBadge status={goal.goal_type} />
-                                            </div>
-                                            {goal.description && (
-                                                <div className="text-xs text-slate-500 mt-1">{goal.description}</div>
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-slate-600">
-                                            Due: {formatters.formatDate(goal.target_date)}
-                                        </div>
-                                    </div>
-                                    <div className="w-full bg-slate-900 rounded-full h-2">
-                                        <div
-                                            className="bg-teal-500 h-2 rounded-full transition-all"
-                                            style={{ width: `${goal.progress_percentage}%` }}
-                                        />
-                                    </div>
-                                    <div className="text-xs text-slate-500 mt-1">{goal.progress_percentage}% complete</div>
+                                <div key={goal.id} className="py-nb-3 first:pt-0 last:pb-0">
+                                    <Stack gap="tight">
+                                        <Cluster justify="between" align="start">
+                                            <Stack gap="tight">
+                                                <Cluster>
+                                                    <span className="text-nb-body text-fg">{goal.title}</span>
+                                                    <StatusBadge status={goal.status} />
+                                                    <StatusBadge status={goal.goal_type} />
+                                                </Cluster>
+                                                {goal.description && (
+                                                    <span className="text-nb-caption text-fg-subtle">{goal.description}</span>
+                                                )}
+                                            </Stack>
+                                            <span className="text-nb-caption text-fg-subtle">
+                                                Due: {formatters.formatDate(goal.target_date)}
+                                            </span>
+                                        </Cluster>
+                                        <Progress value={goal.progress_percentage} label={`${goal.title} progress`} />
+                                        <span className="text-nb-caption text-fg-subtle">{goal.progress_percentage}% complete</span>
+                                    </Stack>
                                 </div>
                             ))}
                             {goals.length === 0 && (
@@ -908,8 +721,8 @@ const PersonDetailPage: React.FC = () => {
                             )}
                         </div>
                     )}
-                </div>
-            </div>
+                </Card>
+            </Stack>
 
             {/* Add Skill Modal */}
             <AddSkillModal isOpen={showRoleModal} onClose={() => setShowRoleModal(false)} onAdd={handleAddSkill} />
@@ -938,8 +751,7 @@ const PersonDetailPage: React.FC = () => {
                 personName={person.full_name || 'This person'}
                 onSave={handleAddNewRate}
             />
-
-        </div>
+        </DetailPageTemplate>
     );
 };
 
@@ -974,36 +786,31 @@ const LinkUserModal: React.FC<{
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Link User Account" size="md">
-            <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                <p className="text-sm text-slate-400">
-                    Link <span className="text-slate-200 font-medium">{personName}</span> to an existing
-                    platform user so they can sign in and see their own records.
-                </p>
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">User Account *</label>
-                    <UserSelector
-                        value={userId}
-                        onChange={(next) => { setUserId(next); setError(''); }}
-                        placeholder="Search users by name or email..."
-                    />
-                    {error && <p role="alert" className="mt-1 text-xs text-rose-400">{error}</p>}
-                </div>
-                <p className="text-xs text-slate-500">
-                    Don't see the person here? They don't have an account yet — use
-                    <span className="text-slate-300"> Invite</span> from the People Registry instead.
-                </p>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={saving || !userId}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {saving ? 'Linking…' : 'Link Account'}
-                    </button>
-                </div>
+            <form onSubmit={handleSubmit} noValidate>
+                <Stack>
+                    <p className="text-nb-body text-fg-muted">
+                        Link <span className="text-fg">{personName}</span> to an existing
+                        platform user so they can sign in and see their own records.
+                    </p>
+                    <FormField label="User Account *" name="link-user-account">
+                        <UserSelector
+                            value={userId}
+                            onChange={(next) => { setUserId(next); setError(''); }}
+                            placeholder="Search users by name or email..."
+                        />
+                    </FormField>
+                    {error && <p role="alert" className="text-nb-caption text-danger">{error}</p>}
+                    <p className="text-nb-caption text-fg-subtle">
+                        Don't see the person here? They don't have an account yet — use
+                        <span className="text-fg"> Invite</span> from the People Registry instead.
+                    </p>
+                    <Cluster justify="end">
+                        <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+                        <Button type="submit" disabled={saving || !userId}>
+                            {saving ? 'Linking…' : 'Link Account'}
+                        </Button>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );
@@ -1018,8 +825,8 @@ const AddNewRateModal: React.FC<{
     personName: string;
     onSave: (dto: { cost_rate: number; billing_rate?: number; effective_date?: string; reason?: string }) => Promise<void>;
 }> = ({ isOpen, onClose, personName, onSave }) => {
-    const [costRate, setCostRate] = useState('');
-    const [billingRate, setBillingRate] = useState('');
+    const [costRate, setCostRate] = useState<number | null>(null);
+    const [billingRate, setBillingRate] = useState<number | null>(null);
     const [effectiveDate, setEffectiveDate] = useState('');
     const [reason, setReason] = useState('');
     const [saving, setSaving] = useState(false);
@@ -1027,15 +834,14 @@ const AddNewRateModal: React.FC<{
 
     useEffect(() => {
         if (isOpen) {
-            setCostRate(''); setBillingRate(''); setEffectiveDate(''); setReason('');
+            setCostRate(null); setBillingRate(null); setEffectiveDate(''); setReason('');
             setError(''); setSaving(false);
         }
     }, [isOpen]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const parsedCostRate = Number(costRate);
-        if (!costRate || Number.isNaN(parsedCostRate) || parsedCostRate <= 0) {
+        if (costRate == null || Number.isNaN(costRate) || costRate <= 0) {
             setError('Enter a valid cost rate.');
             return;
         }
@@ -1043,8 +849,8 @@ const AddNewRateModal: React.FC<{
         setError('');
         try {
             await onSave({
-                cost_rate: parsedCostRate,
-                billing_rate: billingRate ? Number(billingRate) : undefined,
+                cost_rate: costRate,
+                billing_rate: billingRate != null ? billingRate : undefined,
                 effective_date: effectiveDate || undefined,
                 reason: reason || undefined,
             });
@@ -1057,49 +863,50 @@ const AddNewRateModal: React.FC<{
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Add New Rate" size="md">
-            <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                <p className="text-sm text-slate-400">
-                    Records a new effective-dated rate for <span className="text-slate-200 font-medium">{personName}</span>.
-                    Previous rate history is preserved and never edited.
-                </p>
-                <div>
-                    <label htmlFor="add-rate-cost" className="block text-xs text-slate-400 mb-1">Cost Rate *</label>
-                    <input id="add-rate-cost" type="number" min="0" step="0.01" required value={costRate}
-                        onChange={e => { setCostRate(e.target.value); setError(''); }}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
-                </div>
-                <div>
-                    <label htmlFor="add-rate-billing" className="block text-xs text-slate-400 mb-1">Billing Rate</label>
-                    <input id="add-rate-billing" type="number" min="0" step="0.01" value={billingRate}
-                        onChange={e => setBillingRate(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
-                </div>
-                <div>
-                    <label htmlFor="add-rate-effective-date" className="block text-xs text-slate-400 mb-1">Effective Date</label>
-                    <input id="add-rate-effective-date" type="date" value={effectiveDate}
-                        onChange={e => setEffectiveDate(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500" />
-                    <p className="mt-1 text-xs text-slate-500">Defaults to today if left blank.</p>
-                </div>
-                <div>
-                    <label htmlFor="add-rate-reason" className="block text-xs text-slate-400 mb-1">Reason</label>
-                    <input id="add-rate-reason" type="text" value={reason} onChange={e => setReason(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        placeholder="e.g., Annual review, Promotion" />
-                </div>
-                {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {saving ? 'Saving…' : 'Add Rate'}
-                    </button>
-                </div>
+            <form onSubmit={handleSubmit} noValidate>
+                <Stack>
+                    <p className="text-nb-body text-fg-muted">
+                        Records a new effective-dated rate for <span className="text-fg">{personName}</span>.
+                        Previous rate history is preserved and never edited.
+                    </p>
+                    <NumberInput
+                        label="Cost Rate *"
+                        name="add-rate-cost"
+                        min={0}
+                        step={0.01}
+                        value={costRate}
+                        onChange={(v) => { setCostRate(v); setError(''); }}
+                    />
+                    <NumberInput
+                        label="Billing Rate"
+                        name="add-rate-billing"
+                        min={0}
+                        step={0.01}
+                        value={billingRate}
+                        onChange={setBillingRate}
+                    />
+                    <DateInput
+                        label="Effective Date"
+                        name="add-rate-effective-date"
+                        value={effectiveDate}
+                        onChange={setEffectiveDate}
+                        hint="Defaults to today if left blank."
+                    />
+                    <TextField
+                        label="Reason"
+                        name="add-rate-reason"
+                        value={reason}
+                        onChange={e => setReason(e.target.value)}
+                        placeholder="e.g., Annual review, Promotion"
+                    />
+                    {error && <p role="alert" className="text-nb-caption text-danger">{error}</p>}
+                    <Cluster justify="end">
+                        <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+                        <Button type="submit" disabled={saving}>
+                            {saving ? 'Saving…' : 'Add Rate'}
+                        </Button>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );
@@ -1125,38 +932,40 @@ const AddSkillModal: React.FC<{
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Add Skill" size="sm">
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Skill Name *</label>
-                    <input type="text" required value={skillName} onChange={e => setSkillName(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        placeholder="e.g., React, Financial Modelling" />
-                </div>
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Skill Category</label>
-                    <input type="text" value={category} onChange={e => setCategory(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        placeholder="e.g., Engineering, Design" />
-                </div>
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Proficiency</label>
-                    <select value={proficiency} onChange={e => setProficiency(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500">
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                        <option value="expert">Expert</option>
-                    </select>
-                </div>
-                <label className="flex items-center gap-2 text-sm text-slate-300">
-                    <input type="checkbox" checked={isPrimary} onChange={e => setIsPrimary(e.target.checked)}
-                        className="rounded border-slate-600" />
-                    Primary skill
-                </label>
-                <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg">Add Skill</button>
-                </div>
+            <form onSubmit={handleSubmit}>
+                <Stack>
+                    <TextField
+                        label="Skill Name *"
+                        name="add-skill-name"
+                        value={skillName}
+                        onChange={e => setSkillName(e.target.value)}
+                        placeholder="e.g., React, Financial Modelling"
+                    />
+                    <TextField
+                        label="Skill Category"
+                        name="add-skill-category"
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                        placeholder="e.g., Engineering, Design"
+                    />
+                    <Select
+                        label="Proficiency"
+                        name="persondetail-select-80"
+                        value={proficiency}
+                        onChange={e => setProficiency(e.target.value)}
+                        options={[{ value: "beginner", label: "Beginner" }, { value: "intermediate", label: "Intermediate" }, { value: "advanced", label: "Advanced" }, { value: "expert", label: "Expert" }]}
+                    />
+                    <Checkbox
+                        label="Primary skill"
+                        name="add-skill-primary"
+                        checked={isPrimary}
+                        onChange={e => setIsPrimary(e.target.checked)}
+                    />
+                    <Cluster justify="end">
+                        <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+                        <Button type="submit">Add Skill</Button>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );
@@ -1196,38 +1005,36 @@ const EditSystemRoleModal: React.FC<{
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Edit System Role" size="sm">
             {!hasAccess ? (
-                <div className="space-y-4">
-                    <p className="text-sm text-slate-300">
+                <Stack>
+                    <p className="text-nb-body text-fg">
                         This person has no system access yet. Invite them to a user account from the
                         People list to assign a system role.
                     </p>
-                    <div className="flex justify-end pt-2">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50">Close</button>
-                    </div>
-                </div>
+                    <Cluster justify="end">
+                        <Button type="button" variant="ghost" onClick={onClose}>Close</Button>
+                    </Cluster>
+                </Stack>
             ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Current Role</label>
-                        <div className="text-sm text-slate-50">{currentRole || '—'}</div>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">New System Role *</label>
-                        <select required value={roleId} onChange={e => setRoleId(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500">
-                            <option value="">Select role...</option>
-                            {orgRoles.map(role => (
-                                <option key={role.id} value={role.id}>{role.name}</option>
-                            ))}
-                        </select>
-                        <p className="mt-1 text-xs text-slate-500">Updates access across the profile, Team Management, and permissions.</p>
-                    </div>
-                    <div className="flex justify-end gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
-                        <button type="submit" disabled={saving || !roleId} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg">
-                            {saving ? 'Saving…' : 'Save Role'}
-                        </button>
-                    </div>
+                <form onSubmit={handleSubmit}>
+                    <Stack>
+                        <FormField label="Current Role" name="current-system-role">
+                            <span className="text-nb-body text-fg">{currentRole || '—'}</span>
+                        </FormField>
+                        <Select
+                            label="New System Role *"
+                            name="persondetail-select-81"
+                            value={roleId}
+                            onChange={e => setRoleId(e.target.value)}
+                            options={[{ value: "", label: "Select role..." }, ...orgRoles.map((role) => ({ value: role.id, label: role.name }))]}
+                            hint="Updates access across the profile, Team Management, and permissions."
+                        />
+                        <Cluster justify="end">
+                            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+                            <Button type="submit" disabled={saving || !roleId}>
+                                {saving ? 'Saving…' : 'Save Role'}
+                            </Button>
+                        </Cluster>
+                    </Stack>
                 </form>
             )}
         </Modal>

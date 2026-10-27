@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, toast } from '@so360/design-system';
-import { Bell, Save } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Button, Checkbox, DataTable, Grid, SettingsCard, SettingsPageTemplate, Spinner, Stack, TextField, toast } from '@so360/design-system';
+import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
@@ -47,9 +46,6 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsValue = {
   slack_webhook_url: '',
   discord_teams_webhook_url: '',
 };
-
-const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
 
 const CHANNELS: { key: keyof NotificationChannelMatrix; label: string }[] = [
   { key: 'email', label: 'Email' },
@@ -114,87 +110,68 @@ const NotificationSettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading notification settings...</div>;
-  }
+  const saveAction = canManage ? (
+    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
+      <Save className="w-4 h-4" />
+      {saving ? 'Saving...' : 'Save Changes'}
+    </Button>
+  ) : undefined;
+
+  type TriggerRow = (typeof NOTIFICATION_TRIGGERS)[number];
+  const columns = [
+    { key: 'trigger', header: 'Trigger', render: (t: TriggerRow) => t.label },
+    ...CHANNELS.map((c) => ({
+      key: c.key,
+      header: c.label,
+      align: 'center' as const,
+      render: (t: TriggerRow) => (
+        <Checkbox
+          name={`${t.key}-${c.key}`}
+          label={`${t.label} via ${c.label}`}
+          hideLabel
+          checked={value.matrix[t.key]?.[c.key] ?? false}
+          onChange={() => toggleCell(t.key, c.key)}
+        />
+      ),
+    })),
+  ];
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Notification Settings"
-        subtitle="Channel and trigger preferences for People Connect notifications"
-        actions={
-          canManage && (
-            <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )
-        }
-      />
-
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-          <Bell className="w-4 h-4" /> Channels x Triggers
-        </h3>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[640px]">
-            <thead>
-              <tr className="border-b border-slate-800">
-                <th className="py-2 px-3 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Trigger</th>
-                {CHANNELS.map((c) => (
-                  <th key={c.key} className="py-2 px-3 text-[11px] text-slate-500 uppercase tracking-widest font-bold text-center">
-                    {c.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {NOTIFICATION_TRIGGERS.map((t) => (
-                <tr key={t.key}>
-                  <td className="py-2.5 px-3 text-sm text-slate-300">{t.label}</td>
-                  {CHANNELS.map((c) => (
-                    <td key={c.key} className="py-2.5 px-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={value.matrix[t.key]?.[c.key] ?? false}
-                        onChange={() => toggleCell(t.key, c.key)}
-                        aria-label={`${t.label} via ${c.label}`}
-                        className="w-4 h-4 accent-blue-600"
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <label className="text-xs text-slate-400">Slack Webhook URL</label>
-          <input
-            type="text"
-            className={INPUT_CLASS}
-            value={value.slack_webhook_url}
-            onChange={(e) => setValue((p) => ({ ...p, slack_webhook_url: e.target.value }))}
-            placeholder="https://hooks.slack.com/services/..."
-          />
-        </div>
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <label className="text-xs text-slate-400">Discord / Teams Webhook URL</label>
-          <input
-            type="text"
-            className={INPUT_CLASS}
-            value={value.discord_teams_webhook_url}
-            onChange={(e) => setValue((p) => ({ ...p, discord_teams_webhook_url: e.target.value }))}
-            placeholder="https://discord.com/api/webhooks/..."
-          />
-        </div>
-      </div>
-    </div>
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      title="Notification Settings"
+      description="Channel and trigger preferences for People Connect notifications"
+      primaryAction={saveAction}
+    >
+      {loading ? (
+        <Spinner aria-label="Loading notification settings..." />
+      ) : (
+        <Stack gap="region">
+          <SettingsCard title="Channels x Triggers">
+            <DataTable columns={columns} rows={[...NOTIFICATION_TRIGGERS]} rowKey={(t: TriggerRow) => t.key} />
+          </SettingsCard>
+          <Grid columns={2} gap="lg">
+            <SettingsCard title="Slack Webhook URL">
+              <TextField
+                name="slack_webhook_url"
+                label="Slack Webhook URL"
+                value={value.slack_webhook_url}
+                onChange={(e) => setValue((p) => ({ ...p, slack_webhook_url: e.target.value }))}
+                placeholder="https://hooks.slack.com/services/..."
+              />
+            </SettingsCard>
+            <SettingsCard title="Discord / Teams Webhook URL">
+              <TextField
+                name="discord_teams_webhook_url"
+                label="Discord / Teams Webhook URL"
+                value={value.discord_teams_webhook_url}
+                onChange={(e) => setValue((p) => ({ ...p, discord_teams_webhook_url: e.target.value }))}
+                placeholder="https://discord.com/api/webhooks/..."
+              />
+            </SettingsCard>
+          </Grid>
+        </Stack>
+      )}
+    </SettingsPageTemplate>
   );
 };
 

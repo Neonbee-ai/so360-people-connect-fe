@@ -177,7 +177,7 @@ describe('Given a person with an in-progress instance', () => {
     renderTab();
     await waitFor(() => expect(screen.getByText('Onboarding in progress')).toBeInTheDocument());
     expect(screen.getByText('1 of 2 steps settled')).toBeInTheDocument();
-    expect(screen.getByTestId('onboarding-progress')).toHaveStyle({ width: '50%' });
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
     expect(screen.getByText('Sign contract')).toBeInTheDocument();
     expect(screen.getByText('IT induction')).toBeInTheDocument();
     expect(mockApi.getInstance).toHaveBeenCalledWith('inst-1');

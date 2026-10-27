@@ -12,7 +12,7 @@ let canApprove = true;
 vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({ effectiveFlagsLoaded: true, isFeatureEnabled: () => true, hasPermission: () => canApprove }),
 }));
-vi.mock('@so360/design-system', () => ({
+vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../test/__mocks__/design-system')), 
   toast: { success: vi.fn(), error: vi.fn() },
   getErrorMessage: (_e: unknown, f: string) => f,
 }));

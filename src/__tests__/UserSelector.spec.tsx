@@ -32,7 +32,7 @@ describe('UserSelector', () => {
     it('When dropdown is opened / Then it shows the user list', async () => {
       render(<UserSelector value={null} onChange={() => {}} />);
       await waitFor(() => expect(fetch).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select user...'));
+      fireEvent.click(screen.getByPlaceholderText('Select user...'));
       await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
       expect(screen.getByText('Bob Jones')).toBeInTheDocument();
     });
@@ -41,7 +41,7 @@ describe('UserSelector', () => {
       const onChange = vi.fn();
       render(<UserSelector value={null} onChange={onChange} />);
       await waitFor(() => expect(fetch).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select user...'));
+      fireEvent.click(screen.getByPlaceholderText('Select user...'));
       await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
       fireEvent.click(screen.getByText('Alice Smith'));
       expect(onChange).toHaveBeenCalledWith('u1');
@@ -50,22 +50,22 @@ describe('UserSelector', () => {
     it('When a value is set / Then the selected user name is shown', async () => {
       render(<UserSelector value="u1" onChange={() => {}} />);
       await waitFor(() => expect(fetch).toHaveBeenCalled());
-      await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Alice Smith'));
     });
 
     it('When the clear button is clicked / Then onChange is called with null', async () => {
       const onChange = vi.fn();
       render(<UserSelector value="u1" onChange={onChange} />);
       await waitFor(() => expect(fetch).toHaveBeenCalled());
-      await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('×'));
+      await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Alice Smith'));
+      fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
       expect(onChange).toHaveBeenCalledWith(null);
     });
 
     it('When searching for a user / Then the list is filtered', async () => {
       render(<UserSelector value={null} onChange={() => {}} />);
       await waitFor(() => expect(fetch).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select user...'));
+      fireEvent.click(screen.getByPlaceholderText('Select user...'));
       await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
       fireEvent.change(screen.getByPlaceholderText('Select user...'), { target: { value: 'bob' } });
       expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('UserSelector', () => {
       (fetch as any).mockImplementation(async () => { throw new Error('fail'); });
       render(<UserSelector value={null} onChange={() => {}} />);
       await waitFor(() => expect(fetch).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select user...'));
+      fireEvent.click(screen.getByPlaceholderText('Select user...'));
       await waitFor(() => expect(screen.getByText('No users found')).toBeInTheDocument());
     });
   });
@@ -92,7 +92,7 @@ describe('UserSelector', () => {
       });
       render(<UserSelector value={null} onChange={() => {}} />);
       await waitFor(() => expect(fetch).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select user...'));
+      fireEvent.click(screen.getByPlaceholderText('Select user...'));
       await waitFor(() => expect(screen.getByText('Charlie')).toBeInTheDocument());
     });
   });

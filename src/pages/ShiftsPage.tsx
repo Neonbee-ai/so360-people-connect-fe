@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Clock, Plus, Edit2, Trash2 } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
-import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import {
+  toast, Drawer, DataTable, type DataTableColumn,
+  Badge, Button, Cluster, IconButton, ListPageTemplate, Stack, Switch, TextField, NumberInput, FieldGrid,
+} from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import { shiftsApi, Shift, CreateShiftPayload } from '../services/shiftsService';
 
@@ -66,105 +67,78 @@ const ShiftsPage: React.FC = () => {
     }
   };
 
+  const columns: DataTableColumn<Shift>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      render: (shift) => (
+        <Cluster gap="tight">
+          <span className="font-medium text-fg">{shift.name}</span>
+          {shift.is_night_shift && <Badge tone="primary">Night</Badge>}
+        </Cluster>
+      ),
+    },
+    { key: 'timing', header: 'Timing', render: (shift) => <span className="text-fg">{shift.start_time} – {shift.end_time}</span> },
+    { key: 'grace', header: 'Grace', render: (shift) => <span className="text-fg-muted">{shift.grace_period_minutes} min</span> },
+    { key: 'break', header: 'Break', render: (shift) => <span className="text-fg-muted">{shift.break_duration_minutes} min</span> },
+    {
+      key: 'is_active',
+      header: 'Active',
+      interactive: true,
+      render: (shift) =>
+        canManage ? (
+          <Switch
+            name={`shift-active-${shift.id}`}
+            checked={shift.is_active}
+            onCheckedChange={() => handleToggleActive(shift)}
+            label={shift.is_active ? 'Deactivate' : 'Activate'}
+            hideLabel
+          />
+        ) : (
+          <Badge tone={shift.is_active ? 'success' : 'neutral'}>{shift.is_active ? 'Active' : 'Inactive'}</Badge>
+        ),
+    },
+    ...(canManage
+      ? [{
+          key: 'actions',
+          header: 'Actions',
+          interactive: true,
+          render: (shift: Shift) => (
+            <Cluster gap="tight">
+              <IconButton label="Edit" icon={<Edit2 size={14} />} onClick={() => setEditing(shift)} />
+              <IconButton label="Delete" variant="danger" icon={<Trash2 size={14} />} onClick={() => handleDelete(shift.id)} />
+            </Cluster>
+          ),
+        } as DataTableColumn<Shift>]
+      : []),
+  ];
+
   return (
-    <div className="p-6 space-y-5">
-      <PageHeader
+    <>
+      <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title="Shift Management"
-        subtitle="Define work shifts, grace periods, and weekly offs"
-        actions={
-          canManage && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-            >
+        description="Define work shifts, grace periods, and weekly offs"
+        primaryAction={
+          canManage ? (
+            <Button onClick={() => setShowModal(true)}>
               <Plus size={16} />
               Add Shift
-            </button>
-          )
+            </Button>
+          ) : undefined
         }
-      />
-
-      {loading ? (
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
-          ))}
-        </div>
-      ) : shifts.length === 0 ? (
-        <EmptyState
-          icon={Clock}
-          title="No shifts"
-          description="Add shifts like Morning, Evening, or Night with grace periods and break durations."
-          action={canManage ? { label: 'Add Shift', onClick: () => setShowModal(true) } : undefined}
-        />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-800">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-800/50 text-left">
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Timing</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Grace</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Break</th>
-                <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Active</th>
-                {canManage && <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {shifts.map(shift => (
-                <tr key={shift.id} className="bg-slate-900 hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-50">
-                    {shift.name}
-                    {shift.is_night_shift && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                        Night
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-300">{shift.start_time} – {shift.end_time}</td>
-                  <td className="px-4 py-3 text-slate-400">{shift.grace_period_minutes} min</td>
-                  <td className="px-4 py-3 text-slate-400">{shift.break_duration_minutes} min</td>
-                  <td className="px-4 py-3">
-                    {canManage ? (
-                      <button
-                        onClick={() => handleToggleActive(shift)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${shift.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
-                        title={shift.is_active ? 'Deactivate' : 'Activate'}
-                      >
-                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${shift.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
-                    ) : (
-                      <span className={`text-xs ${shift.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
-                        {shift.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    )}
-                  </td>
-                  {canManage && (
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setEditing(shift)}
-                          className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(shift.id)}
-                          className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        loading={loading}
+        isEmpty={shifts.length === 0}
+        empty={
+          <EmptyState
+            icon={Clock}
+            title="No shifts"
+            description="Add shifts like Morning, Evening, or Night with grace periods and break durations."
+            action={canManage ? { label: 'Add Shift', onClick: () => setShowModal(true) } : undefined}
+          />
+        }
+      >
+        <DataTable columns={columns} rows={shifts} rowKey={(s) => s.id} />
+      </ListPageTemplate>
 
       <ShiftModal
         isOpen={showModal || !!editing}
@@ -173,7 +147,7 @@ const ShiftsPage: React.FC = () => {
         onUpdate={handleUpdate}
         shift={editing}
       />
-    </div>
+    </>
   );
 };
 
@@ -226,94 +200,86 @@ const ShiftModal: React.FC<ShiftModalProps> = ({ isOpen, onClose, onCreate, onUp
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={shift ? 'Edit Shift' : 'Add Shift'} size="sm">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">Name <span className="text-red-400">*</span></label>
-          <input
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={shift ? 'Edit Shift' : 'Add Shift'}
+      size="sm"
+      footer={
+        <Cluster justify="end" gap="tight">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="shift-form">
+            {shift ? 'Save Changes' : 'Add Shift'}
+          </Button>
+        </Cluster>
+      }
+    >
+      <form id="shift-form" onSubmit={handleSubmit}>
+        <Stack gap="default">
+          <TextField
+            name="shift-name"
+            id="shift-name"
+            label="Name *"
             required
             value={form.name}
             onChange={e => set('name', e.target.value)}
             placeholder="e.g. Morning Shift"
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
           />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Start Time <span className="text-red-400">*</span></label>
-            <input
-              required
+          <FieldGrid>
+            <TextField
+              name="shift-start-time"
+              id="shift-start-time"
+              label="Start Time *"
               type="time"
+              required
               value={form.start_time}
               onChange={e => set('start_time', e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
             />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">End Time <span className="text-red-400">*</span></label>
-            <input
-              required
+            <TextField
+              name="shift-end-time"
+              id="shift-end-time"
+              label="End Time *"
               type="time"
+              required
               value={form.end_time}
               onChange={e => set('end_time', e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
             />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Grace Period (min)</label>
-            <input
-              type="number"
+          </FieldGrid>
+          <FieldGrid>
+            <NumberInput
+              name="shift-grace"
+              label="Grace Period (min)"
               min={0}
               value={form.grace_period_minutes}
-              onChange={e => set('grace_period_minutes', Number(e.target.value))}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+              onChange={(v: number | null) => set('grace_period_minutes', v ?? 0)}
             />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Break Duration (min)</label>
-            <input
-              type="number"
+            <NumberInput
+              name="shift-break"
+              label="Break Duration (min)"
               min={0}
               value={form.break_duration_minutes}
-              onChange={e => set('break_duration_minutes', Number(e.target.value))}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+              onChange={(v: number | null) => set('break_duration_minutes', v ?? 0)}
             />
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <label className="text-xs text-slate-400">Night shift</label>
-          <button
-            type="button"
-            onClick={() => set('is_night_shift', !form.is_night_shift)}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_night_shift ? 'bg-teal-600' : 'bg-slate-700'}`}
-          >
-            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${form.is_night_shift ? 'translate-x-5' : 'translate-x-1'}`} />
-          </button>
-        </div>
-        {shift && (
-          <div className="flex items-center gap-3">
-            <label className="text-xs text-slate-400">Active</label>
-            <button
-              type="button"
-              onClick={() => set('is_active', !form.is_active)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
-            >
-              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${form.is_active ? 'translate-x-5' : 'translate-x-1'}`} />
-            </button>
-          </div>
-        )}
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
-            Cancel
-          </button>
-          <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">
-            {shift ? 'Save Changes' : 'Add Shift'}
-          </button>
-        </div>
+          </FieldGrid>
+          <Switch
+            name="shift-night"
+            label="Night shift"
+            checked={!!form.is_night_shift}
+            onCheckedChange={(v: boolean) => set('is_night_shift', v)}
+          />
+          {shift && (
+            <Switch
+              name="shift-form-active"
+              label="Active"
+              checked={!!form.is_active}
+              onCheckedChange={(v: boolean) => set('is_active', v)}
+            />
+          )}
+        </Stack>
       </form>
-    </Modal>
+    </Drawer>
   );
 };
 

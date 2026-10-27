@@ -1,16 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Wallet } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, Select, Button, ListPageTemplate, DataTable, Modal, Stack, Cluster } from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
-import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import Modal from '../../components/Modal';
 import StatusChip from '../../components/payroll/StatusChip';
 import { payrollApi, PayrollRun, PayrollPeriod } from '../../services/payrollApi';
-
-const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
 
 const PayrollRunsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -23,6 +20,8 @@ const PayrollRunsPage: React.FC = () => {
     const [runs, setRuns] = useState<PayrollRun[]>([]);
     const [loading, setLoading] = useState(true);
     const [showNewRunDialog, setShowNewRunDialog] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('');
+    const visibleRuns = statusFilter ? runs.filter(r => r.status === statusFilter) : runs;
 
     const loadRuns = useCallback(async () => {
         try {
@@ -38,77 +37,72 @@ const PayrollRunsPage: React.FC = () => {
 
     useEffect(() => { loadRuns(); }, [loadRuns]);
 
-    return (
-        <div className="p-6 space-y-5">
-            <PageHeader
-                title="Payroll Runs"
-                subtitle="Process, review and close pay runs"
-                actions={
-                    <button
-                        onClick={() => setShowNewRunDialog(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                        <Plus size={16} /> New payroll run
-                    </button>
-                }
-            />
+    const columns: DataTableColumn<PayrollRun>[] = [
+        { key: 'run_number', header: 'Run', render: run => <span className="text-fg">#{run.run_number}</span> },
+        {
+            key: 'period',
+            header: 'Period',
+            render: run => (
+                <span className="text-fg-muted">
+                    {run.period_start && run.period_end
+                        ? `${formatters.formatDate(run.period_start)} – ${formatters.formatDate(run.period_end)}`
+                        : '—'}
+                </span>
+            ),
+        },
+        { key: 'payroll_group_name', header: 'Group', render: run => <span className="text-fg-muted">{run.payroll_group_name || '—'}</span> },
+        { key: 'status', header: 'Status', align: 'center', render: run => <StatusChip status={run.status} /> },
+        { key: 'employee_count', header: 'Employees', align: 'center', render: run => <span className="text-fg-muted">{run.employee_count ?? '—'}</span> },
+        { key: 'net_total', header: 'Net Total', align: 'right', render: run => <span className="text-fg">{formatters.formatCurrency(run.net_total || 0)}</span> },
+        { key: 'pay_date', header: 'Pay Date', render: run => <span className="text-fg-muted">{formatters.formatDate(run.pay_date)}</span> },
+        {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: run => (
+                <Button variant="ghost" size="sm" onClick={() => navigate(`/people/payroll/runs/${run.id}`)}>Open</Button>
+            ),
+        },
+    ];
 
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />)}
-                </div>
-            ) : runs.length === 0 ? (
-                <EmptyState
-                    icon={Wallet}
-                    title="No payroll runs yet"
-                    description="Start your first payroll run to process salaries for an open pay period."
-                    action={{ label: 'New payroll run', onClick: () => setShowNewRunDialog(true) }}
-                />
-            ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Run</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Period</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Group</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Employees</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Net Total</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Pay Date</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800">
-                            {runs.map(run => (
-                                <tr key={run.id} className="hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-4 py-3 text-sm font-medium text-slate-50">#{run.run_number}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">
-                                        {run.period_start && run.period_end
-                                            ? `${formatters.formatDate(run.period_start)} – ${formatters.formatDate(run.period_end)}`
-                                            : '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">{run.payroll_group_name || '—'}</td>
-                                    <td className="px-4 py-3 text-center"><StatusChip status={run.status} /></td>
-                                    <td className="px-4 py-3 text-center text-sm text-slate-400">{run.employee_count ?? '—'}</td>
-                                    <td className="px-4 py-3 text-right text-sm text-slate-200">{formatters.formatCurrency(run.net_total || 0)}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">{formatters.formatDate(run.pay_date)}</td>
-                                    <td className="px-4 py-3 text-right">
-                                        <button onClick={() => navigate(`/people/payroll/runs/${run.id}`)} className="text-xs text-teal-400 hover:text-teal-300 transition-colors">Open</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+    return (
+        <>
+            <ListPageTemplate trail={[]}
+                title="Payroll Runs"
+                description="Process, review and close pay runs"
+                loading={loading}
+                isEmpty={runs.length === 0}
+                isFilteredEmpty={runs.length > 0 && visibleRuns.length === 0}
+                onClearFilters={() => setStatusFilter('')}
+                filterConfig={{
+                    fields: [{ key: 'status', label: 'Status', type: 'select', options: Array.from(new Set(runs.map(r => r.status))).filter(Boolean).map(s => ({ value: s, label: s.replace(/_/g, ' ') })) }],
+                    values: { status: statusFilter || undefined },
+                    onChange: (v) => setStatusFilter((v.status as string) || ''),
+                    onClear: () => setStatusFilter(''),
+                }}
+                primaryAction={
+                    <Button onClick={() => setShowNewRunDialog(true)}>
+                        <Plus size={16} /> New payroll run
+                    </Button>
+                }
+                empty={
+                    <EmptyState
+                        icon={Wallet}
+                        title="No payroll runs yet"
+                        description="Start your first payroll run to process salaries for an open pay period."
+                        action={{ label: 'New payroll run', onClick: () => setShowNewRunDialog(true) }}
+                    />
+                }
+            >
+                <DataTable name="payroll-runs" columns={columns} rows={visibleRuns} rowKey={run => run.id} />
+            </ListPageTemplate>
 
             <NewRunDialog
                 isOpen={showNewRunDialog}
                 onClose={() => setShowNewRunDialog(false)}
                 onCreated={run => { setShowNewRunDialog(false); navigate(`/people/payroll/runs/${run.id}`); }}
             />
-        </div>
+        </>
     );
 };
 
@@ -144,35 +138,37 @@ const NewRunDialog: React.FC<{
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="New Payroll Run" size="sm">
-            <form onSubmit={handleCreate} className="space-y-4">
-                {periods.length === 0 ? (
-                    <p className="text-sm text-slate-400">
-                        No open pay periods. Generate periods in Payroll Configuration → Groups &amp; Periods first.
-                    </p>
-                ) : (
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Pay Period *</label>
-                        <select required value={periodId} onChange={e => setPeriodId(e.target.value)} className={inputCls}>
-                            <option value="">Select an open period…</option>
-                            {periods.map(period => (
-                                <option key={period.id} value={period.id}>
-                                    {period.period_start} – {period.period_end}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                )}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button
-                        type="submit"
-                        disabled={creating || !periodId}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
+        <Modal
+            open={isOpen}
+            onClose={onClose}
+            title="New Payroll Run"
+            size="sm"
+            footer={
+                <Cluster gap="default" justify="end">
+                    <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button type="submit" form="new-payroll-run-form" disabled={creating || !periodId}>
                         {creating ? 'Creating…' : 'Create Run'}
-                    </button>
-                </div>
+                    </Button>
+                </Cluster>
+            }
+        >
+            <form id="new-payroll-run-form" onSubmit={handleCreate}>
+                <Stack gap="default">
+                    {periods.length === 0 ? (
+                        <p className="text-nb-body text-fg-muted">
+                            No open pay periods. Generate periods in Payroll Configuration → Groups &amp; Periods first.
+                        </p>
+                    ) : (
+                        <Select
+                            name="payroll_period_id"
+                            label="Pay Period"
+                            required
+                            value={periodId}
+                            onChange={e => setPeriodId(e.target.value)}
+                            options={[{ value: '', label: 'Select an open period…' }, ...periods.map(period => ({ value: period.id, label: `${period.period_start} – ${period.period_end}` }))]}
+                        />
+                    )}
+                </Stack>
             </form>
         </Modal>
     );

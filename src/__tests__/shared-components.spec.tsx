@@ -105,47 +105,6 @@ describe('Modal', () => {
       await user.click(screen.getByRole('button'));
       expect(onClose).toHaveBeenCalledOnce();
     });
-
-    it('When backdrop clicked / Then calls onClose', () => {
-      const onClose = vi.fn();
-      const { container } = render(
-        <Modal isOpen={true} onClose={onClose} title="Backdrop Test">
-          <span>content</span>
-        </Modal>
-      );
-      // The backdrop is a fixed inset div with bg-black/60 — find all fixed divs and click the backdrop one
-      const fixedDivs = container.querySelectorAll('div.fixed');
-      const backdrop = Array.from(fixedDivs).find(el => el.classList.contains('bg-black/60') || el.classList.contains('backdrop-blur-sm'));
-      if (backdrop) fireEvent.click(backdrop);
-      expect(onClose).toHaveBeenCalled();
-    });
-  });
-
-  describe('Given size prop', () => {
-    it('When size is sm / Then panel has max-w-md class', () => {
-      const { container } = render(
-        <Modal isOpen={true} onClose={vi.fn()} title="Small" size="sm">
-          <span>content</span>
-        </Modal>
-      );
-      // Find the panel div that holds the title and check its class includes max-w-md
-      const panel = Array.from(container.querySelectorAll('div.relative')).find(el =>
-        el.className.includes('max-w-md')
-      );
-      expect(panel).toBeTruthy();
-    });
-
-    it('When size is xl / Then panel has max-w-4xl class', () => {
-      const { container } = render(
-        <Modal isOpen={true} onClose={vi.fn()} title="XL" size="xl">
-          <span>content</span>
-        </Modal>
-      );
-      const panel = Array.from(container.querySelectorAll('div.relative')).find(el =>
-        el.className.includes('max-w-4xl')
-      );
-      expect(panel).toBeTruthy();
-    });
   });
 });
 
@@ -210,9 +169,9 @@ describe('StatusBadge', () => {
       expect(screen.getByText('Active')).toBeInTheDocument();
     });
 
-    it('When rendered / Then applies emerald styling', () => {
+    it('When rendered / Then applies success token styling', () => {
       render(<StatusBadge status="active" />);
-      expect(screen.getByText('Active').className).toContain('emerald');
+      expect(screen.getByText('Active').className).toContain('text-success');
     });
   });
 
@@ -224,21 +183,21 @@ describe('StatusBadge', () => {
   });
 
   describe('Given status: rejected', () => {
-    it('When rendered / Then applies rose styling', () => {
+    it('When rendered / Then applies danger token styling', () => {
       render(<StatusBadge status="rejected" />);
-      expect(screen.getByText('Rejected').className).toContain('rose');
+      expect(screen.getByText('Rejected').className).toContain('text-danger');
     });
   });
 
   describe('Given status: submitted', () => {
-    it('When rendered / Then applies blue styling', () => {
+    it('When rendered / Then applies primary token styling', () => {
       render(<StatusBadge status="submitted" />);
-      expect(screen.getByText('Submitted').className).toContain('blue');
+      expect(screen.getByText('Submitted').className).toContain('text-primary');
     });
   });
 
   describe('Given unknown status', () => {
-    it('When rendered / Then shows capitalized label with slate fallback', () => {
+    it('When rendered / Then shows capitalized label with neutral fallback', () => {
       render(<StatusBadge status="pending_review" />);
       expect(screen.getByText('Pending Review')).toBeInTheDocument();
     });

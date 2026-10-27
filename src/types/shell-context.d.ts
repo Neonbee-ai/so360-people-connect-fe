@@ -4,12 +4,6 @@
  * Do NOT redeclare @so360/shell-context here — it shadows the real package types.
  */
 
-declare module '@so360/design-system' {
-    export const Button: React.FC<Record<string, unknown>>;
-    export const Card: React.FC<Record<string, unknown>>;
-    export const Input: React.FC<Record<string, unknown>>;
-}
-
 declare module '@so360/event-bus' {
     // The real package exports a singleton with subscribe/publish/clear. The
     // stub previously declared only the free emit/on/off helpers, so any file

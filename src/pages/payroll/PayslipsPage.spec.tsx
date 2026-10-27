@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -56,7 +56,7 @@ describe('GIVEN the admin payslips page', () => {
   it('WHEN date filters change THEN the list reloads with from/to', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    const [fromInput, toInput] = Array.from(document.querySelectorAll('input[type="date"]'));
+    const fromInput = screen.getByLabelText('Period from'); const toInput = screen.getByLabelText('Period to');
     fireEvent.change(fromInput, { target: { value: '2026-08-01' } });
     await waitFor(() =>
       expect(mockApi.payslips.list).toHaveBeenCalledWith({ person_id: undefined, from: '2026-08-01', to: undefined }));
@@ -68,11 +68,7 @@ describe('GIVEN the admin payslips page', () => {
   it('WHEN an employee is picked in the person filter THEN the list reloads scoped to that person', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    const pickerInput = screen.getByPlaceholderText('All employees');
-    fireEvent.focus(pickerInput);
-    // The dropdown option is a button; the table cell is not.
-    const option = await screen.findByRole('button', { name: /Asha Nair/ });
-    fireEvent.click(option);
+    fireEvent.change(screen.getByLabelText('Employee'), { target: { value: 'p1' } });
     await waitFor(() =>
       expect(mockApi.payslips.list).toHaveBeenCalledWith({ person_id: 'p1', from: undefined, to: undefined }));
   });
@@ -83,14 +79,14 @@ describe('GIVEN the admin payslips page', () => {
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
   });
 
-  it('WHEN View is clicked THEN the full payslip is fetched and its lines render in the modal', async () => {
+  it('WHEN a row is clicked THEN the full payslip is fetched and its lines render in the modal', async () => {
     mockApi.payslips.get.mockResolvedValue({
       ...mockPayslip,
       lines: [{ id: 'l1', run_employee_id: 're1', component_code: 'BASIC', component_name: 'Basic Salary', kind: 'earning', amount: 50000 }],
     });
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
+    fireEvent.click(screen.getByText('PS-202608-0042'));
     await waitFor(() => expect(screen.getByText('Basic Salary')).toBeInTheDocument());
     expect(mockApi.payslips.get).toHaveBeenCalledWith('ps1');
     expect(screen.getByText('Payslip PS-202608-0042')).toBeInTheDocument();
@@ -98,7 +94,7 @@ describe('GIVEN the admin payslips page', () => {
     // "Net Pay" appears both as the table header and in the modal summary
     expect(screen.getAllByText('Net Pay').length).toBeGreaterThan(1);
     // Closing the modal via its backdrop clears the viewed payslip
-    fireEvent.click(document.querySelector('div.fixed.inset-0.bg-black\\/60') as Element);
+    fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]);
     await waitFor(() => expect(screen.queryByText('Payslip PS-202608-0042')).not.toBeInTheDocument());
   });
 
@@ -106,7 +102,7 @@ describe('GIVEN the admin payslips page', () => {
     mockApi.payslips.get.mockRejectedValue(new Error('nope'));
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
+    fireEvent.click(screen.getByText('PS-202608-0042'));
     await waitFor(() => expect(mockApi.payslips.get).toHaveBeenCalled());
     expect(screen.queryByText('Payslip PS-202608-0042')).not.toBeInTheDocument();
   });

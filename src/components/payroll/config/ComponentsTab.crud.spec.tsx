@@ -45,7 +45,7 @@ describe('GIVEN the components list states', () => {
     render(<ComponentsTab />);
     await waitFor(() => expect(screen.getByText('No salary components')).toBeInTheDocument());
     fireEvent.click(screen.getAllByText('New Component')[1]);
-    await waitFor(() => expect(screen.getByText('Code *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('Code')).toBeInTheDocument());
   });
 
   it('WHEN the list API fails THEN the tab falls back to the empty state', async () => {
@@ -60,7 +60,7 @@ describe('GIVEN the component create flow', () => {
     render(<ComponentsTab />);
     await waitFor(() => expect(screen.getByText('BASIC')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New Component'));
-    await waitFor(() => expect(screen.getByText('Code *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('Code')).toBeInTheDocument());
   };
 
   it('WHEN a fixed component is submitted THEN components.create receives it and the list reloads', async () => {
@@ -197,7 +197,7 @@ describe('GIVEN the component create flow', () => {
     fireEvent.change(screen.getByPlaceholderText('House Rent Allowance'), { target: { value: 'Dup' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     await waitFor(() => expect(mockApi.components.create).toHaveBeenCalled());
-    expect(screen.getByText('Code *')).toBeInTheDocument();
+    expect(screen.getByLabelText('Code')).toBeInTheDocument();
   });
 });
 
@@ -206,9 +206,9 @@ describe('GIVEN modal dismissal', () => {
     render(<ComponentsTab />);
     await waitFor(() => expect(screen.getByText('BASIC')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New Component'));
-    await waitFor(() => expect(screen.getByText('Code *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('Code')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Cancel'));
-    await waitFor(() => expect(screen.queryByText('Code *')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByLabelText('Code')).not.toBeInTheDocument());
     expect(mockApi.components.create).not.toHaveBeenCalled();
   });
 });

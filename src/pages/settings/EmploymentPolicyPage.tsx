@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-import { Button } from '@so360/design-system';
-import { Settings, Save, RefreshCw, AlertCircle } from 'lucide-react';
+import { Banner, Button, EmptyState, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Spinner, Stack } from '@so360/design-system';
+import { Save, RefreshCw } from 'lucide-react';
 import { orgPolicyApi, EmploymentPolicy } from '../../services/orgPolicyService';
 import { useShellBridge } from '@so360/shell-context';
 
@@ -58,130 +58,100 @@ const EmploymentPolicyPage: React.FC = () => {
     }
   };
 
+  const pageProps = {
+    title: 'Employment Policy',
+    description: 'Overtime thresholds and premium multiplier — shared across Timesheet, Accounting, and Payroll.',
+  };
+
   if (loadError) {
     return (
-      <div className="p-6 flex items-start gap-3 text-amber-400">
-        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-        <div>
-          <p className="font-medium">Unable to load employment policy</p>
-          <p className="text-sm text-slate-400 mt-1">{loadError}</p>
-        </div>
-      </div>
+      <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps}>
+        <Banner variant="warning" title="Unable to load employment policy">{loadError}</Banner>
+      </SettingsPageTemplate>
     );
   }
 
   if (!isLoadCompleted) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading employment policy...</div>;
+    return (
+      <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps}>
+        <Spinner aria-label="Loading employment policy..." />
+      </SettingsPageTemplate>
+    );
   }
 
   if (!policy) {
     return (
-      <div className="p-6 flex items-start gap-3 text-slate-400">
-        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-slate-500" />
-        <div>
-          <p className="font-medium text-slate-300">No employment policy configured</p>
-          <p className="text-sm mt-1">Contact your administrator to configure overtime thresholds.</p>
-        </div>
-      </div>
+      <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps}>
+        <EmptyState
+          title="No employment policy configured"
+          description="Contact your administrator to configure overtime thresholds."
+        />
+      </SettingsPageTemplate>
     );
   }
 
+  const primaryAction = canManage ? (
+    <Button variant="primary" onClick={handleSave} disabled={isSaving} className="gap-nb-2">
+      <Save className="w-4 h-4" />
+      {isSaving ? 'Saving...' : 'Save Policy'}
+    </Button>
+  ) : undefined;
+
   return (
-    <div className="p-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-50 tracking-tight flex items-center gap-2">
-          <Settings className="w-6 h-6 text-teal-500" />
-          Employment Policy
-        </h1>
-        <p className="text-slate-400">
-          Overtime thresholds and premium multiplier — shared across Timesheet, Accounting, and Payroll.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-6">
-          <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Daily Threshold</h3>
-            <div className="space-y-2">
-              <label className="text-xs text-slate-400">Hours per day before overtime kicks in</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-slate-50 font-medium"
-                  value={policy.daily_threshold}
-                  onChange={e => setPolicy({ ...policy, daily_threshold: parseFloat(e.target.value) })}
-                />
-                <span className="absolute right-4 top-2 text-slate-500">hrs</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Weekly Threshold</h3>
-            <div className="space-y-2">
-              <label className="text-xs text-slate-400">Hours per week before overtime kicks in</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-slate-50 font-medium"
-                  value={policy.weekly_threshold}
-                  onChange={e => setPolicy({ ...policy, weekly_threshold: parseFloat(e.target.value) })}
-                />
-                <span className="absolute right-4 top-2 text-slate-500">hrs</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Overtime Multiplier</h3>
-            <div className="space-y-2">
-              <label className="text-xs text-slate-400">Premium rate multiplier (e.g. 1.5x, 2.0x)</label>
-              <input
-                type="number"
-                step="0.1"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-emerald-400 font-bold"
-                value={policy.premium_multiplier}
-                onChange={e => setPolicy({ ...policy, premium_multiplier: parseFloat(e.target.value) })}
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps} primaryAction={primaryAction}>
+      <Stack gap="region">
+        <Grid columns={2} gap="lg">
+          <Stack gap="default">
+            <SettingsCard title="Daily Threshold">
+              <NumberInput
+                name="daily_threshold"
+                label="Hours per day before overtime kicks in"
+                value={policy.daily_threshold}
+                suffix="hrs"
+                onChange={(n) => setPolicy({ ...policy, daily_threshold: n ?? NaN })}
               />
-            </div>
-          </div>
-
-          <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl flex gap-3 italic">
-            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-            <p className="text-xs text-slate-400 leading-relaxed">
+            </SettingsCard>
+            <SettingsCard title="Weekly Threshold">
+              <NumberInput
+                name="weekly_threshold"
+                label="Hours per week before overtime kicks in"
+                value={policy.weekly_threshold}
+                suffix="hrs"
+                onChange={(n) => setPolicy({ ...policy, weekly_threshold: n ?? NaN })}
+              />
+            </SettingsCard>
+          </Stack>
+          <Stack gap="default">
+            <SettingsCard title="Overtime Multiplier">
+              <NumberInput
+                name="premium_multiplier"
+                label="Premium rate multiplier (e.g. 1.5x, 2.0x)"
+                step={0.1}
+                value={policy.premium_multiplier}
+                onChange={(n) => setPolicy({ ...policy, premium_multiplier: n ?? NaN })}
+              />
+            </SettingsCard>
+            <Banner variant="warning">
               Changes apply to <strong>new</strong> time entries only. Previously approved costs are immutable for accounting integrity.
-            </p>
-          </div>
-        </div>
-      </div>
+            </Banner>
+          </Stack>
+        </Grid>
 
-      {saveError && (
-        <div className="flex items-center gap-2 text-sm text-red-400">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{saveError}</span>
-        </div>
-      )}
+        {saveError && <Banner variant="danger">{saveError}</Banner>}
 
-      {canManage && (
-        <div className="flex justify-end gap-3 pt-6 border-t border-slate-800">
+        {canManage && (
           <Button
             variant="secondary"
-            className="gap-2"
+            className="gap-nb-2"
             type="button"
             onClick={() => setPolicy({ daily_threshold: 8, weekly_threshold: 40, premium_multiplier: 1.5 })}
           >
             <RefreshCw className="w-4 h-4" />
             Reset to Defaults
           </Button>
-          <Button variant="primary" onClick={handleSave} disabled={isSaving} className="gap-2 min-w-[140px]">
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save Policy'}
-          </Button>
-        </div>
-      )}
-    </div>
+        )}
+      </Stack>
+    </SettingsPageTemplate>
   );
 };
 

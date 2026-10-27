@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -113,5 +113,31 @@ describe('Given LeaveApprovalsPage API failure', () => {
     const toastErrorSpy = vi.spyOn(toast, 'error');
     renderPage();
     await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith('Failed to load pending approvals'));
+  });
+});
+
+describe('Given a pending leave request and the approve confirmation', () => {
+  beforeEach(() => {
+    mockApi.getPendingApprovals.mockResolvedValue({ data: [mockRequest], total: 1 });
+    mockApi.approve.mockResolvedValue({});
+  });
+
+  it('When Approve is clicked and confirmed / Then the request is approved', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Approve')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Approve'));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Approve' }));
+    await waitFor(() => expect(mockApi.approve).toHaveBeenCalledWith('lr1'));
+  });
+
+  it('When Approve is clicked and the dialog is cancelled / Then the request is not approved', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Approve')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Approve'));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(mockApi.approve).not.toHaveBeenCalled();
   });
 });

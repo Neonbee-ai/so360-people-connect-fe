@@ -129,7 +129,7 @@ describe('Given DepartmentDetailPage loads successfully', () => {
 
     it('When page loads / Then department code is displayed', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText('ENG')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText(/ENG/)).toBeInTheDocument());
     });
 
     it('When page loads / Then department head name is shown', async () => {
@@ -162,9 +162,9 @@ describe('Given DepartmentDetailPage loads successfully', () => {
         await waitFor(() => expect(screen.getByText('praveen@example.com')).toBeInTheDocument());
     });
 
-    it('When page loads / Then View Profile link is shown for employee', async () => {
+    it('When page loads / Then employee row is shown', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText('View Profile')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText('Praveen VR')).toBeInTheDocument());
     });
 
     it('When page loads / Then Overview tab is active by default', async () => {
@@ -174,7 +174,7 @@ describe('Given DepartmentDetailPage loads successfully', () => {
 
     it('When page loads / Then back navigation button is rendered', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText(/Back to Departments/i)).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByRole('button', { name: /Back to Departments/i })).toBeInTheDocument());
     });
 });
 
@@ -534,17 +534,17 @@ describe('Given DepartmentDetailPage employee View Profile action', () => {
         mockDeptApi.getEmployees.mockResolvedValue({ data: [mockEmployee], total: 1, page: 1, limit: 100, totalPages: 1 });
     });
 
-    it('When View Profile is clicked / Then it navigates to the shell-prefixed person route', async () => {
+    it('When an employee row is clicked / Then it navigates to the shell-prefixed person route', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText('View Profile')).toBeInTheDocument());
-        fireEvent.click(screen.getByText('View Profile'));
+        await waitFor(() => expect(screen.getByText('Praveen VR')).toBeInTheDocument());
+        fireEvent.click(screen.getByText('Praveen VR'));
         expect(mockNavigate).toHaveBeenCalledWith('/people/people/e1');
     });
 
-    it('When View Profile is clicked / Then it does NOT navigate to the bare /people/<id> path (regression guard: was hitting the shell 404)', async () => {
+    it('When an employee row is clicked / Then it does NOT navigate to the bare /people/<id> path (regression guard: was hitting the shell 404)', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText('View Profile')).toBeInTheDocument());
-        fireEvent.click(screen.getByText('View Profile'));
+        await waitFor(() => expect(screen.getByText('Praveen VR')).toBeInTheDocument());
+        fireEvent.click(screen.getByText('Praveen VR'));
         expect(mockNavigate).not.toHaveBeenCalledWith('/people/e1');
     });
 });
@@ -557,15 +557,15 @@ describe('Given DepartmentDetailPage back navigation', () => {
 
     it('When Back to Departments is clicked / Then it navigates to the shell-prefixed departments list', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText(/Back to Departments/i)).toBeInTheDocument());
-        fireEvent.click(screen.getByText(/Back to Departments/i));
+        await waitFor(() => expect(screen.getByRole('button', { name: /Back to Departments/i })).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /Back to Departments/i }));
         expect(mockNavigate).toHaveBeenCalledWith('/people/departments');
     });
 
     it('When Back to Departments is clicked / Then it does NOT navigate to the bare /departments path (regression guard)', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText(/Back to Departments/i)).toBeInTheDocument());
-        fireEvent.click(screen.getByText(/Back to Departments/i));
+        await waitFor(() => expect(screen.getByRole('button', { name: /Back to Departments/i })).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /Back to Departments/i }));
         expect(mockNavigate).not.toHaveBeenCalledWith('/departments');
     });
 });

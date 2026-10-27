@@ -27,7 +27,7 @@ vi.mock('@so360/shell-context', () => ({
   useShellBridge: () => ({ ...mockShellFlags }),
 }));
 
-vi.mock('@so360/design-system', () => ({
+vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../test/__mocks__/design-system')), 
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
@@ -152,28 +152,26 @@ describe('HolidaysPage', () => {
     });
 
     it('When Copy from Previous Year is clicked and confirmed / Then holidaysApi.copyPreviousYear is called and a summary is shown', async () => {
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
       mockApi.copyPreviousYear.mockResolvedValue({ created: 2, skipped: 1, created_holidays: [], skipped_holidays: [] });
       renderPage();
       await waitFor(() => expect(screen.getByText('Republic Day')).toBeInTheDocument());
 
       fireEvent.click(screen.getByText('Copy from Previous Year'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Copy' }));
 
       await waitFor(() => expect(mockApi.copyPreviousYear).toHaveBeenCalled());
       const [fromYear, toYear] = mockApi.copyPreviousYear.mock.calls[0];
       expect(toYear - fromYear).toBe(1);
-      confirmSpy.mockRestore();
     });
 
     it('Given the user cancels the confirm dialog / When Copy from Previous Year is clicked / Then copyPreviousYear is NOT called', async () => {
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
       renderPage();
       await waitFor(() => expect(screen.getByText('Republic Day')).toBeInTheDocument());
 
       fireEvent.click(screen.getByText('Copy from Previous Year'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 
       expect(mockApi.copyPreviousYear).not.toHaveBeenCalled();
-      confirmSpy.mockRestore();
     });
   });
 

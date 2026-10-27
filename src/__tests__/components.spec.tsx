@@ -97,7 +97,7 @@ describe('UserSelector', () => {
     }));
     const { default: UserSelector } = await import('../components/UserSelector');
     render(<UserSelector value={null} onChange={() => {}} placeholder="Pick user" />);
-    expect(screen.getByText('Pick user')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Pick user')).toBeInTheDocument();
   });
 
   it('Given users are loaded / When the dropdown is opened / Then it shows users', async () => {
@@ -110,7 +110,7 @@ describe('UserSelector', () => {
     const { default: UserSelector } = await import('../components/UserSelector');
     render(<UserSelector value={null} onChange={() => {}} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select user...'));
+    fireEvent.click(screen.getByPlaceholderText('Select user...'));
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     expect(screen.getByText('Bob Jones')).toBeInTheDocument();
   });
@@ -123,7 +123,7 @@ describe('UserSelector', () => {
     }));
     const { default: UserSelector } = await import('../components/UserSelector');
     render(<UserSelector value="u1" onChange={() => {}} />);
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Alice Smith'));
   });
 
   it('Given a user is selected / When clear is clicked / Then it calls onChange with null', async () => {
@@ -135,8 +135,8 @@ describe('UserSelector', () => {
     }));
     const { default: UserSelector } = await import('../components/UserSelector');
     render(<UserSelector value="u1" onChange={handleChange} />);
-    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('×'));
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Alice'));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
     expect(handleChange).toHaveBeenCalledWith(null);
   });
 
@@ -150,7 +150,7 @@ describe('UserSelector', () => {
     const { default: UserSelector } = await import('../components/UserSelector');
     render(<UserSelector value={null} onChange={handleChange} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select user...'));
+    fireEvent.click(screen.getByPlaceholderText('Select user...'));
     await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Alice'));
     expect(handleChange).toHaveBeenCalledWith('u1');
@@ -161,7 +161,7 @@ describe('UserSelector', () => {
     const { default: UserSelector } = await import('../components/UserSelector');
     render(<UserSelector value={null} onChange={() => {}} />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select user...'));
+    fireEvent.click(screen.getByPlaceholderText('Select user...'));
     await waitFor(() => expect(screen.getByText('No users found')).toBeInTheDocument());
   });
 });
@@ -178,7 +178,7 @@ describe('DepartmentSelector', () => {
     }));
     const { default: DepartmentSelector } = await import('../components/DepartmentSelector');
     render(<DepartmentSelector value="" onChange={() => {}} placeholder="Pick dept" />);
-    expect(screen.getByText('Pick dept')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Pick dept')).toBeInTheDocument();
   });
 
   it('Given departments are loaded / When opened / Then it shows departments', async () => {
@@ -192,7 +192,7 @@ describe('DepartmentSelector', () => {
     const { default: DepartmentSelector } = await import('../components/DepartmentSelector');
     render(<DepartmentSelector value="" onChange={() => {}} />);
     await waitFor(() => {
-      fireEvent.click(screen.getByText('Select department...'));
+      fireEvent.click(screen.getByPlaceholderText('Select department...'));
     });
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
     expect(screen.getByText('Sales')).toBeInTheDocument();
@@ -205,7 +205,7 @@ describe('DepartmentSelector', () => {
     });
     const { default: DepartmentSelector } = await import('../components/DepartmentSelector');
     render(<DepartmentSelector value="d1" onChange={() => {}} />);
-    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Engineering'));
   });
 
   it('Given departments are loaded / When one is clicked / Then it calls onChange', async () => {
@@ -217,7 +217,7 @@ describe('DepartmentSelector', () => {
     const { default: DepartmentSelector } = await import('../components/DepartmentSelector');
     render(<DepartmentSelector value="" onChange={handleChange} />);
     await waitFor(() => {
-      fireEvent.click(screen.getByText('Select department...'));
+      fireEvent.click(screen.getByPlaceholderText('Select department...'));
     });
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Engineering'));
@@ -232,8 +232,8 @@ describe('DepartmentSelector', () => {
     });
     const { default: DepartmentSelector } = await import('../components/DepartmentSelector');
     render(<DepartmentSelector value="d1" onChange={handleChange} allowClear />);
-    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('×'));
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Engineering'));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
     expect(handleChange).toHaveBeenCalledWith(null);
   });
 });

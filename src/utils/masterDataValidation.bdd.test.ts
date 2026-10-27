@@ -26,8 +26,17 @@ describe('Given the Full Name field on Add Person', () => {
     expect(validatePersonName('!!!@@@')).toBeTruthy();
   });
 
-  it('When a name contains embedded digits / Then it is rejected', () => {
-    expect(validatePersonName('John2 Doe')).toBeTruthy();
+  it('When a name contains digits after a letter / Then it is accepted (HubSpot/Zoho/Salesforce allow them)', () => {
+    expect(validatePersonName('John Smith 3rd')).toBeNull();
+    expect(validatePersonName('AQA SS Person 1a2b3c')).toBeNull();
+  });
+
+  it('When a name starts with a digit / Then it is rejected', () => {
+    expect(validatePersonName('2John Doe')).toBeTruthy();
+  });
+
+  it('When a name mixes digits with symbols / Then it is rejected', () => {
+    expect(validatePersonName('John+46 Doe')).toBeTruthy();
   });
 
   it('When the field is empty or whitespace / Then a required message is returned', () => {

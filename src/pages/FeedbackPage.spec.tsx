@@ -174,10 +174,8 @@ describe('Given the Give Feedback modal person selector', () => {
     fireEvent.focus(pickerInput());
     fireEvent.click(await screen.findByText(/Alice Anderson/));
 
-    await waitFor(() =>
-      expect(screen.getByTestId('feedback-person-picker').textContent).toContain('Alice Anderson'),
-    );
-    expect(screen.getByText('Clear')).toBeInTheDocument();
+    await waitFor(() => expect(pickerInput()).toHaveValue('Alice Anderson'));
+    expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
     expect(screen.getByTestId('feedback-person-picker').textContent).not.toContain('Edit');
   });
 });

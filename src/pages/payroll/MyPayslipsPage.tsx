@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Receipt, FileDown } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import { toast, Button, IconButton, ListPageTemplate, Card, Stack, Cluster } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
-import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { PayslipViewModal } from './PayslipsPage';
 import { payrollApi, Payslip } from '../../services/payrollApi';
@@ -59,49 +58,47 @@ const MyPayslipsPage: React.FC = () => {
     };
 
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader title="My Payslips" subtitle="View and download your payslips" />
-
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />)}
-                </div>
-            ) : payslips.length === 0 ? (
-                <EmptyState
-                    icon={Receipt}
-                    title="No payslips yet"
-                    description="Your payslips will appear here after your first payroll run is completed."
-                />
-            ) : (
-                <div className="space-y-3">
+        <>
+            <ListPageTemplate trail={[]}
+                title="My Payslips"
+                description="View and download your payslips"
+                loading={loading}
+                isEmpty={payslips.length === 0}
+                empty={
+                    <EmptyState
+                        icon={Receipt}
+                        title="No payslips yet"
+                        description="Your payslips will appear here after your first payroll run is completed."
+                    />
+                }
+            >
+                <Stack gap="default">
                     {payslips.map(payslip => (
-                        <div key={payslip.id} className="flex items-center justify-between px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center">
-                                    <Receipt size={16} className="text-teal-400" />
-                                </div>
-                                <div>
-                                    <div className="text-sm font-medium text-slate-50">
-                                        {payslipRowLabel(payslip.period_start, settings?.document_language || 'en-US')}
-                                    </div>
-                                    <div className="text-xs text-slate-400">
-                                        {payslip.payslip_number} · Net {formatters.formatCurrency(payslip.net_pay)}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <button onClick={() => openPayslip(payslip)} className="text-xs text-teal-400 hover:text-teal-300 transition-colors">View</button>
-                                <button onClick={() => download(payslip)} aria-label={`Download ${payslip.payslip_number}`} className="text-slate-400 hover:text-slate-50 transition-colors">
-                                    <FileDown size={15} />
-                                </button>
-                            </div>
-                        </div>
+                        <Card key={payslip.id} name={`payslip-${payslip.id}`} padding="md">
+                            <Cluster gap="default" justify="between" align="center">
+                                <Cluster gap="default" align="center">
+                                    <Receipt size={16} className="text-primary" />
+                                    <Stack gap="none">
+                                        <span className="text-nb-body text-fg">
+                                            {payslipRowLabel(payslip.period_start, settings?.document_language || 'en-US')}
+                                        </span>
+                                        <span className="text-nb-caption text-fg-muted">
+                                            {payslip.payslip_number} · Net {formatters.formatCurrency(payslip.net_pay)}
+                                        </span>
+                                    </Stack>
+                                </Cluster>
+                                <Cluster gap="tight" align="center">
+                                    <Button variant="ghost" size="sm" onClick={() => openPayslip(payslip)}>View</Button>
+                                    <IconButton icon={<FileDown size={14} />} label={`Download ${payslip.payslip_number}`} onClick={() => download(payslip)} />
+                                </Cluster>
+                            </Cluster>
+                        </Card>
                     ))}
-                </div>
-            )}
+                </Stack>
+            </ListPageTemplate>
 
             <PayslipViewModal payslip={viewing} onClose={() => setViewing(null)} formatCurrency={formatters.formatCurrency} formatDate={formatters.formatDate} />
-        </div>
+        </>
     );
 };
 

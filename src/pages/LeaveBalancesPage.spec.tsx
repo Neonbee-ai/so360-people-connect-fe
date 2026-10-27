@@ -127,7 +127,7 @@ describe('Given an employee has an existing leave balance', () => {
 
   it('When Adjust is clicked and submitted / Then it calls the adjust API with the entered amount and reason', async () => {
     mockBalancesApi.adjust.mockResolvedValue({});
-    const { container } = renderPage();
+    renderPage();
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
     fireEvent.change(screen.getByDisplayValue('Select an employee...'), { target: { value: 'person-1' } });
@@ -141,7 +141,7 @@ describe('Given an employee has an existing leave balance', () => {
 
     // Disambiguate from the table row's "Adjust" trigger button, which stays
     // mounted underneath the modal — target the modal's submit button directly.
-    const submitButton = container.querySelector('form button[type="submit"]') as HTMLButtonElement;
+    const submitButton = document.querySelector('button[form="adjust-balance-form"]') as HTMLButtonElement;
     fireEvent.click(submitButton);
 
     await waitFor(() => expect(mockBalancesApi.adjust).toHaveBeenCalledWith({

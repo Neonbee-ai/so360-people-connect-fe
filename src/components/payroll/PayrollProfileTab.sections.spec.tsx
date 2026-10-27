@@ -399,7 +399,7 @@ describe('GIVEN the Benefits section', () => {
     renderTab();
     fireEvent.click(await screen.findByText('Benefits'));
     fireEvent.click(await screen.findByText('Add Benefit'));
-    await waitFor(() => expect(screen.getByText('Benefit Type *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Benefit Type')).toBeInTheDocument());
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'bt1' } });
     const amount = document.querySelector('form input[type="number"]') as HTMLInputElement;
     fireEvent.change(amount, { target: { value: '2000' } });
@@ -416,7 +416,7 @@ describe('GIVEN the Benefits section', () => {
     renderTab();
     fireEvent.click(await screen.findByText('Benefits'));
     fireEvent.click(await screen.findByText('Add Benefit'));
-    await waitFor(() => expect(screen.getByText('Benefit Type *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Benefit Type')).toBeInTheDocument());
     const submitBn = screen.getAllByRole('button', { name: 'Add Benefit' }).pop() as HTMLElement;
     fireEvent.click(submitBn);
     expect(mockApi.employees.benefits.create).not.toHaveBeenCalled();
@@ -427,14 +427,14 @@ describe('GIVEN the Benefits section', () => {
     renderTab();
     fireEvent.click(await screen.findByText('Benefits'));
     fireEvent.click(await screen.findByText('Add Benefit'));
-    await waitFor(() => expect(screen.getByText('Benefit Type *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Benefit Type')).toBeInTheDocument());
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'bt1' } });
     const dateInput = document.querySelector('form input[type="date"]') as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: '2026-10-01' } });
     const submitBn = screen.getAllByRole('button', { name: 'Add Benefit' }).pop() as HTMLElement;
     fireEvent.click(submitBn);
     await waitFor(() => expect(mockApi.employees.benefits.create).toHaveBeenCalled());
-    expect(screen.getByText('Benefit Type *')).toBeInTheDocument();
+    expect(screen.getByText('Benefit Type')).toBeInTheDocument();
   });
 
   it('WHEN a benefit is removed THEN benefits.remove is called', async () => {
@@ -566,7 +566,7 @@ describe('GIVEN the Bank section add-account flow', () => {
     renderTab();
     fireEvent.click(await screen.findByText('Bank'));
     fireEvent.click(await screen.findByText('Add Bank Account'));
-    await waitFor(() => expect(screen.getByText('Bank Name *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Bank Name')).toBeInTheDocument());
     const textInputs = Array.from(document.querySelectorAll('form input[type="text"]'));
     fireEvent.change(textInputs[0], { target: { value: 'ICICI' } });
     fireEvent.change(textInputs[1], { target: { value: 'Asha Nair' } });
@@ -587,9 +587,9 @@ describe('GIVEN the Bank section add-account flow', () => {
     renderTab();
     fireEvent.click(await screen.findByText('Bank'));
     fireEvent.click(await screen.findByText('Add Bank Account'));
-    await waitFor(() => expect(screen.getByText('Bank Name *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Bank Name')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Cancel'));
-    await waitFor(() => expect(screen.queryByText('Bank Name *')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('Bank Name')).not.toBeInTheDocument());
     expect(mockApi.employees.bankAccounts.create).not.toHaveBeenCalled();
   });
 
@@ -597,7 +597,7 @@ describe('GIVEN the Bank section add-account flow', () => {
     renderTab();
     fireEvent.click(await screen.findByText('Bank'));
     fireEvent.click(await screen.findByText('Add Bank Account'));
-    await waitFor(() => expect(screen.getByText('Bank Name *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Bank Name')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Add Account' }));
     expect(mockApi.employees.bankAccounts.create).not.toHaveBeenCalled();
   });
@@ -607,14 +607,14 @@ describe('GIVEN the Bank section add-account flow', () => {
     renderTab();
     fireEvent.click(await screen.findByText('Bank'));
     fireEvent.click(await screen.findByText('Add Bank Account'));
-    await waitFor(() => expect(screen.getByText('Bank Name *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Bank Name')).toBeInTheDocument());
     const textInputs = Array.from(document.querySelectorAll('form input[type="text"]'));
     fireEvent.change(textInputs[0], { target: { value: 'ICICI' } });
     fireEvent.change(textInputs[1], { target: { value: 'Asha' } });
     fireEvent.change(textInputs[2], { target: { value: '1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add Account' }));
     await waitFor(() => expect(mockApi.employees.bankAccounts.create).toHaveBeenCalled());
-    expect(screen.getByText('Bank Name *')).toBeInTheDocument();
+    expect(screen.getByText('Bank Name')).toBeInTheDocument();
   });
 });
 

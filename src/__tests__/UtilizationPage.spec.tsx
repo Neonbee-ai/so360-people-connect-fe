@@ -56,13 +56,13 @@ describe('UtilizationPage', () => {
 
     it('When the page loads / Then it shows KPI cards', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Avg Utilization')).toBeInTheDocument());
-      expect(screen.getByText('Active Resources')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText('Avg utilization')).toBeInTheDocument());
+      expect(screen.getByText('Active resources')).toBeInTheDocument();
     });
 
     it('When the page loads / Then it shows idle resources', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Idle Resources')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Idle resources')).toBeInTheDocument());
     });
 
     it('When the page loads / Then it shows utilization cards', async () => {
@@ -75,12 +75,12 @@ describe('UtilizationPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Table View')).toBeInTheDocument());
       fireEvent.click(screen.getByText('Table View'));
-      await waitFor(() => expect(screen.getByText('TOTALS (2 people)')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Totals (2 people)')).toBeInTheDocument());
     });
 
     it('When there are idle people / Then it shows idle cost signal', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Idle Cost Signal')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Idle cost signal')).toBeInTheDocument());
     });
 
     it('When sort by name is clicked / Then it re-sorts', async () => {

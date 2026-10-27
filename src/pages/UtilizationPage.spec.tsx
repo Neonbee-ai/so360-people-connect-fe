@@ -77,7 +77,7 @@ describe('Given UtilizationPage loads with data', () => {
 
   it('When summary loads / Then stat cards are shown', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Active Resources')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Active resources')).toBeInTheDocument());
   });
 
   it('When utilization data loads / Then person name is shown', async () => {
@@ -141,7 +141,7 @@ describe('Given UtilizationPage receives incomplete/malformed utilization record
     await waitFor(() => expect(screen.getByText('Complete Carla')).toBeInTheDocument());
     // Toggling the sort direction re-runs the comparator against the same
     // (incomplete) data set — this is where the reported crash occurred.
-    fireEvent.click(screen.getByRole('button', { name: /Utilization/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Sort descending|Sort ascending/ }));
     expect(screen.getByText('Complete Carla')).toBeInTheDocument();
     expect(screen.getByText('No Util Nate')).toBeInTheDocument();
   });
@@ -149,15 +149,13 @@ describe('Given UtilizationPage receives incomplete/malformed utilization record
   it('When sorting by name with a record missing `.utilization` / Then it does not throw', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Complete Carla')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Name'));
+    fireEvent.change(screen.getByLabelText('Sort by'), { target: { value: 'name' } });
     expect(screen.getByText('Complete Carla')).toBeInTheDocument();
   });
 
-  it('When switching to Table View with an incomplete record / Then totals render as finite numbers, not NaN%', async () => {
+  it('When an incomplete record is present / Then totals render as finite numbers, not NaN%', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Table View')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Table View'));
-    await waitFor(() => expect(screen.getByText(/TOTALS/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Totals/)).toBeInTheDocument());
     expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 });
@@ -188,79 +186,47 @@ describe('Given UtilizationPage API failure', () => {
   });
 });
 
-/*
- * Layout consistency of the resource cards.
- *
- * Available/Actual/Cost previously sat in an auto-width column, so a longer
- * cost value pushed the whole metric block — and with it the progress bars —
- * out of line with the card above. Variance was also conditional, giving cards
- * two different footer baselines.
- */
-describe('Given resource cards are rendered on the Utilization page', () => {
+describe('Given resource rows are rendered in the Utilization table', () => {
   const person = (id: string, name: string, over: Record<string, unknown> = {}) => ({
     person: { ...mockUtilData.person, id, full_name: name },
     utilization: { ...mockUtilData.utilization, ...over },
   });
 
-  const cardFor = (name: string) =>
-    screen.getByText(name).closest('div.rounded-xl') as HTMLElement;
-
   beforeEach(() => {
     mockApi.getSummary.mockResolvedValue(mockSummary);
   });
 
-  it('When cost values differ in length / Then every card uses the same fixed metrics column width', async () => {
-    mockApi.getAll.mockResolvedValue({
-      data: [
-        person('p1', 'Short Cost', { actual_cost: 5 }),
-        person('p2', 'Very Long Cost', { actual_cost: 1234567 }),
-      ],
-      period: { start: '2024-06-10', end: '2024-06-14' },
-    });
-    renderPage();
-    await waitFor(() => expect(screen.getByText('Very Long Cost')).toBeInTheDocument());
-
-    const widths = ['Short Cost', 'Very Long Cost'].map(name => {
-      const metrics = cardFor(name).querySelector('.grid-cols-3') as HTMLElement;
-      return Array.from(metrics.classList).find(c => c.startsWith('w-['));
-    });
-    expect(widths[0]).toBeDefined();
-    expect(widths[0]).toBe(widths[1]);
-  });
-
-  it('When variance is zero / Then the footer row is still rendered so baselines match', async () => {
+  it('When variance is zero / Then the variance cell still renders', async () => {
     mockApi.getAll.mockResolvedValue({
       data: [person('p1', 'Zero Variance', { variance_hours: 0 })],
       period: { start: '2024-06-10', end: '2024-06-14' },
     });
     renderPage();
     await waitFor(() => expect(screen.getByText('Zero Variance')).toBeInTheDocument());
-
-    expect(screen.getByText('Variance:')).toBeInTheDocument();
-    expect(screen.getByText('0h vs planned')).toBeInTheDocument();
+    expect(screen.getByText('0h')).toBeInTheDocument();
   });
 
-  it('When a name is long / Then the status badge still sits in its own right-hand slot', async () => {
+  it('When a person is idle / Then an Idle badge sits next to the name in the person cell', async () => {
     mockApi.getAll.mockResolvedValue({
       data: [person('p1', 'Bartholomew Featherstonehaugh-Montgomery', { is_idle: true })],
       period: { start: '2024-06-10', end: '2024-06-14' },
     });
     renderPage();
-    await waitFor(() => expect(screen.getAllByText('Idle').length).toBeGreaterThan(0));
-
-    const badge = screen.getAllByText('Idle').find(el => el.className.includes('rounded'))!;
-    // ml-auto pins the badge group right, independent of the name's length.
-    expect((badge.parentElement as HTMLElement).className).toContain('ml-auto');
+    await waitFor(() => expect(screen.getByText('Bartholomew Featherstonehaugh-Montgomery')).toBeInTheDocument());
+    expect(screen.getAllByText('Idle').length).toBeGreaterThan(0);
   });
 
-  it('When the sort controls render / Then each option occupies the same fixed width', async () => {
+  it('When rows render / Then each row shows a utilization progress bar', async () => {
     mockApi.getAll.mockResolvedValue({ data: [person('p1', 'Alice Smith')], period: { start: '2024-06-10', end: '2024-06-14' } });
     renderPage();
-    await waitFor(() => expect(screen.getByText('Sort by:')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    expect(screen.getAllByRole('progressbar').length).toBeGreaterThan(0);
+  });
 
-    ['Utilization', 'Name', 'Cost'].forEach(label => {
-      const button = screen.getByRole('button', { name: new RegExp(`^${label}`) });
-      expect(button.className).toContain('min-w-[92px]');
-    });
+  it('When the sort control renders / Then it offers Utilization, Name and Cost', async () => {
+    mockApi.getAll.mockResolvedValue({ data: [person('p1', 'Alice Smith')], period: { start: '2024-06-10', end: '2024-06-14' } });
+    renderPage();
+    const select = await screen.findByLabelText('Sort by');
+    expect(Array.from((select as HTMLSelectElement).options).map(o => o.text)).toEqual(['Utilization', 'Name', 'Cost']);
   });
 });

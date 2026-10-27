@@ -63,27 +63,21 @@ const makeAlloc = (overrides: Record<string, unknown> = {}) => ({
 
 const renderPage = () => render(<MemoryRouter><AllocationsPage /></MemoryRouter>);
 
-/** Each allocation card is the element carrying the row grid. */
-const cards = () => Array.from(document.querySelectorAll('.grid.items-center'));
-
 beforeEach(() => {
   vi.resetAllMocks();
   (departmentsApi as any).getTree.mockResolvedValue({ data: [] });
   (peopleApi as any).getAll.mockResolvedValue({ data: [] });
 });
 
-describe('Given allocation rows with different content lengths and statuses', () => {
+describe('Given allocations rendered as a DataTable', () => {
   beforeEach(() => {
     mockAllocApi.getAll.mockResolvedValue({
       data: [
         makeAlloc(),
         makeAlloc({
-          id: 'a2',
-          person_id: 'p2',
+          id: 'a2', person_id: 'p2',
           person: { id: 'p2', full_name: 'Bartholomew Fitzgerald-Montgomery III' },
-          entity_name: 'A Very Long Programme Of Works That Would Previously Push Columns Around',
-          allocation_value: 100,
-          status: 'completed',
+          allocation_value: 100, status: 'completed',
         }),
         makeAlloc({ id: 'a3', person_id: 'p3', person: { id: 'p3', full_name: 'Cara Diaz' }, status: 'cancelled', allocation_value: 25 }),
       ],
@@ -91,78 +85,36 @@ describe('Given allocation rows with different content lengths and statuses', ()
     });
   });
 
-  it('When the list renders / Then every row uses the same column track definition', async () => {
+  it('When the list renders / Then each allocation is one table row with column headers', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    const rows = cards();
-    expect(rows).toHaveLength(3);
-    const trackDefinitions = new Set(rows.map(row => row.className));
-    // One shared class string means one shared grid — no per-row drift.
-    expect(trackDefinitions.size).toBe(1);
+    // header row + 3 data rows
+    expect(screen.getAllByRole('row')).toHaveLength(4);
+    expect(screen.getAllByRole('columnheader').length).toBeGreaterThanOrEqual(5);
   });
 
-  it('When an entity name is very long / Then it truncates instead of widening its column', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText(/A Very Long Programme Of Works/)).toBeInTheDocument());
-
-    expect(screen.getByText(/A Very Long Programme Of Works/).className).toContain('truncate');
-  });
-
-  it('When a row has no actions (cancelled/completed) / Then the actions cell is still rendered so columns stay aligned', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText('Cara Diaz')).toBeInTheDocument());
-
-    // 5 cells per row: avatar, info, %, status, actions.
-    for (const row of cards()) {
-      expect(row.children).toHaveLength(5);
-    }
-  });
-
-  it('When a row is not active / Then the capacity bar track is still present so rows share one height', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText('Cara Diaz')).toBeInTheDocument());
-
-    const bars = document.querySelectorAll('[role="presentation"]');
-    expect(bars).toHaveLength(3);
-  });
-
-  it('When a row is active / Then its capacity bar is filled to the allocation percentage', async () => {
+  it('When rows render / Then each row carries a compact progress bar', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    const activeTrack = document.querySelectorAll('[role="presentation"]')[0];
-    const fill = activeTrack.querySelector('div') as HTMLElement;
-    expect(fill).not.toBeNull();
-    expect(fill.style.width).toBe('50%');
+    expect(screen.getAllByRole('progressbar').length).toBeGreaterThanOrEqual(3);
   });
 
-  it('When a row is cancelled / Then its capacity bar track is empty', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText('Cara Diaz')).toBeInTheDocument());
-
-    const cancelledTrack = document.querySelectorAll('[role="presentation"]')[2];
-    expect(cancelledTrack.querySelector('div')).toBeNull();
-  });
-
-  it('When actions are available / Then edit and cancel have accessible names', async () => {
+  it('When a row is cancelled or completed / Then it offers no row actions', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    expect(screen.getAllByLabelText('Edit allocation').length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText('Cancel allocation').length).toBeGreaterThan(0);
+    // only the active row (Alice) exposes Edit / Cancel allocation
+    expect(screen.getAllByRole('button', { name: 'Edit' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Cancel allocation' })).toHaveLength(1);
   });
 });
 
-describe('Given the allocations filter bar', () => {
-  it('When the page renders / Then the summary stats sit in the same row as the filters', async () => {
+describe('Given the allocations filters', () => {
+  it('When the page renders / Then Status, Entity type and Department live in the filter config', async () => {
     mockAllocApi.getAll.mockResolvedValue({ data: [makeAlloc()], total: 1 });
     renderPage();
-    await waitFor(() => expect(screen.getByText('1 allocation')).toBeInTheDocument());
-
-    const stats = screen.getByText('1 allocation').parentElement!;
-    const filterRow = stats.parentElement!;
-    expect(filterRow.className).toContain('justify-between');
-    expect(filterRow.className).toContain('items-center');
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    expect(screen.getByLabelText('Status')).toBeInTheDocument();
+    expect(screen.getByLabelText('Entity type')).toBeInTheDocument();
+    expect(screen.getByLabelText('Department')).toBeInTheDocument();
   });
 });

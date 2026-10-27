@@ -17,12 +17,7 @@ const { toastMock } = vi.hoisted(() => ({
   toastMock: { success: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock('@so360/design-system', () => ({
-  Button: ({ children, onClick, disabled, type }: any) => (
-    <button onClick={onClick} disabled={disabled} type={type}>{children}</button>
-  ),
-  toast: toastMock,
-}));
+vi.mock('@so360/design-system', async () => ({ ...(await import('../test/__mocks__/design-system')), toast: toastMock }));
 
 import { settingsApi } from '../services/orgSettingsService';
 import PerformanceSettingsPage, { DEFAULT_PERFORMANCE_SETTINGS } from '../pages/settings/PerformanceSettingsPage';
@@ -49,8 +44,8 @@ describe('Given PerformanceSettingsPage wiring', () => {
 
     const kpiInput = screen.getByPlaceholderText('e.g. Quality of Work');
     fireEvent.change(kpiInput, { target: { value: 'Customer Satisfaction' } });
-    const kpiFieldContainer = kpiInput.closest('div') as HTMLElement;
-    fireEvent.click(within(kpiFieldContainer).getByText('Add'));
+    // KPI Categories is the first TagListField, so its Add button is the first one.
+    fireEvent.click(screen.getAllByText('Add')[0]);
 
     expect(screen.getByText('Customer Satisfaction')).toBeTruthy();
 

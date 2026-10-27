@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within, act } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('../../../services/payrollApi', () => ({
@@ -99,10 +99,10 @@ describe('GIVEN the structures list', () => {
     await waitFor(() => expect(screen.getByText('New Salary Structure')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Cancel'));
     await waitFor(() => expect(screen.queryByText('New Salary Structure')).not.toBeInTheDocument());
-    // Reopen and dismiss via the backdrop (Modal onClose path)
+    // Reopen and dismiss via the close control (Modal onClose path)
     fireEvent.click(screen.getByText('New Structure'));
     await waitFor(() => expect(screen.getByText('New Salary Structure')).toBeInTheDocument());
-    fireEvent.click(document.querySelector('div.fixed.inset-0.bg-black\\/60') as Element);
+    fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]);
     await waitFor(() => expect(screen.queryByText('New Salary Structure')).not.toBeInTheDocument());
     expect(mockApi.structures.create).not.toHaveBeenCalled();
   });

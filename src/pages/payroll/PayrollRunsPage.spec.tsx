@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
 
@@ -100,7 +100,7 @@ describe('GIVEN the new-run dialog', () => {
     await waitFor(() => expect(screen.getByText('#5')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New payroll run'));
     await waitFor(() => expect(screen.getByText('2026-09-01 – 2026-09-30')).toBeInTheDocument());
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'per-1' } });
+    fireEvent.change(within(screen.getByRole('dialog')).getByRole('combobox'), { target: { value: 'per-1' } });
     fireEvent.click(screen.getByText('Create Run'));
     await waitFor(() => expect(mockApi.runs.create).toHaveBeenCalledWith({ payroll_period_id: 'per-1' }));
     await waitFor(() => expect(screen.getByText('Run detail page')).toBeInTheDocument());
@@ -122,7 +122,7 @@ describe('GIVEN the new-run dialog', () => {
     await waitFor(() => expect(screen.getByText('#5')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New payroll run'));
     await waitFor(() => expect(screen.getByText('2026-09-01 – 2026-09-30')).toBeInTheDocument());
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'per-1' } });
+    fireEvent.change(within(screen.getByRole('dialog')).getByRole('combobox'), { target: { value: 'per-1' } });
     fireEvent.click(screen.getByText('Create Run'));
     await waitFor(() => expect(mockApi.runs.create).toHaveBeenCalled());
     expect(screen.getByText('New Payroll Run')).toBeInTheDocument();
