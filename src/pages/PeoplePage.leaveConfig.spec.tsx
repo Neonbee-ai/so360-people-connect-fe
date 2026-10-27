@@ -236,6 +236,7 @@ describe('Given an employment type with configured default leave types', () => {
     await waitFor(() => expect(mockPeopleApi.create).toHaveBeenCalled());
     // leaveOverrides must not leak into the person create payload itself.
     expect(mockPeopleApi.create.mock.calls[0][0]).not.toHaveProperty('leaveOverrides');
+    expect(mockPeopleApi.create.mock.calls[0][0]).not.toHaveProperty('leave_override');
     expect(mockLeaveConfigApi.setPersonOverride).not.toHaveBeenCalled();
   });
 });
@@ -262,9 +263,13 @@ describe('Given an HR admin customizes leave for this employee during creation',
     await waitFor(() => expect(mockPeopleApi.create).toHaveBeenCalled());
     expect(mockPeopleApi.create.mock.calls[0][0]).not.toHaveProperty('leaveOverrides');
 
-    await waitFor(() => expect(mockLeaveConfigApi.setPersonOverride).toHaveBeenCalledWith('new-person-2', 'lt-sick', 'exclude'));
-    expect(mockLeaveConfigApi.setPersonOverride).toHaveBeenCalledWith('new-person-2', 'lt-bereavement', 'include');
-    expect(mockLeaveConfigApi.setPersonOverride).toHaveBeenCalledTimes(2);
+    expect(mockPeopleApi.create.mock.calls[0][0].leave_override).toEqual(expect.arrayContaining([
+      { leave_type_id: 'lt-sick', mode: 'exclude' },
+      { leave_type_id: 'lt-bereavement', mode: 'include' },
+    ]));
+    expect(mockPeopleApi.create.mock.calls[0][0].leave_override).toHaveLength(2);
+    // Atomic: no follow-up per-override calls from the browser.
+    expect(mockLeaveConfigApi.setPersonOverride).not.toHaveBeenCalled();
   });
 });
 
@@ -272,24 +277,39 @@ describe('Given an HR admin customizes leave for this employee during creation',
 // 4. Persistence after creation — a failed override write does not read as a
 //    failed person creation
 // ============================================================================
-describe('Given the person is created successfully but the leave override write fails', () => {
-  it('When setPersonOverride rejects / Then the person is still created and the modal still closes', async () => {
-    mockPeopleApi.create.mockResolvedValue({ id: 'new-person-3' });
-    mockLeaveConfigApi.setPersonOverride.mockRejectedValue(new Error('network error'));
+describe('Given the backend rolls back because the leave override save failed', () => {
+  it('When create rejects / Then the modal stays open with the input and ONE error toast carries the backend message', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const successSpy = vi.spyOn(toast, 'success');
+    mockPeopleApi.create.mockRejectedValue(new Error('Person was not created: saving leave override failed (x). Nothing was saved; please retry.'));
 
     await openCreateModal();
     const nameInput = await fillMinimalPersonAndSelectEmploymentType();
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
-
     fireEvent.click(screen.getByRole('checkbox', { name: /Sick Leave/ }));
+    fireEvent.submit(nameInput.closest('form')!);
 
-    const form = nameInput.closest('form')!;
-    fireEvent.submit(form);
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1));
+    expect(errorSpy.mock.calls[0][0]).toMatch(/saving leave override failed/);
+    expect(successSpy).not.toHaveBeenCalledWith(expect.stringMatching(/has been added/));
+    expect(screen.getByText('Add New Person')).toBeInTheDocument();
+    expect(nameInput).toHaveValue('New Hire');
+    errorSpy.mockRestore();
+    successSpy.mockRestore();
+  });
 
-    await waitFor(() => expect(mockPeopleApi.create).toHaveBeenCalled());
-    await waitFor(() => expect(mockLeaveConfigApi.setPersonOverride).toHaveBeenCalled());
-    // The create modal closes regardless — creation itself succeeded.
+  it('When the person is created but the invite step reports failed / Then the modal closes and the invite failure toast fires', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    mockPeopleApi.create.mockResolvedValue({ id: 'new-person-3c', invite: { status: 'failed', error: 'core down' } });
+
+    await openCreateModal();
+    const nameInput = await fillMinimalPersonAndSelectEmploymentType();
+    await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
+    fireEvent.submit(nameInput.closest('form')!);
+
     await waitFor(() => expect(screen.queryByText('Add New Person')).not.toBeInTheDocument());
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/was added, but these could not be saved: the invite/)));
+    errorSpy.mockRestore();
   });
 });
 
@@ -314,9 +334,10 @@ describe('Given the employment type has no leave defaults', () => {
 
     fireEvent.submit(nameInput.closest('form')!);
 
-    await waitFor(() =>
-      expect(mockLeaveConfigApi.setPersonOverride).toHaveBeenCalledWith('new-person-4', 'lt-bereavement', 'exclude'),
-    );
+    await waitFor(() => expect(mockPeopleApi.create).toHaveBeenCalled());
+    expect(mockPeopleApi.create.mock.calls[0][0].leave_override).toEqual([
+      { leave_type_id: 'lt-bereavement', mode: 'exclude' },
+    ]);
   });
 });
 

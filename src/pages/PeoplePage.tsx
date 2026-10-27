@@ -15,6 +15,7 @@ import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/s
 import { QuotaBar, QuotaGate, toast, Drawer } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import { mastersApi, MasterRow } from '../services/mastersService';
+import { buildAtomicCreatePayload, inviteFailed } from './people/createPersonFlow';
 import {
     customFieldDefsApi,
     personCustomFieldsApi,
@@ -23,7 +24,6 @@ import {
     CHOICE_FIELD_TYPES,
 } from '../services/customFieldsService';
 import { usePeopleFormatters } from '../utils/formatters';
-import { leaveConfigApi } from '../services/leaveConfigService';
 import PersonLeaveConfigSection, { type PendingLeaveOverride } from '../components/leave/PersonLeaveConfigSection';
 import { fetchOrgBaseCurrency } from '../services/settingsService';
 import { validatePersonName, validateEmail, validatePhone, sanitizePhoneInput, focusFirstInvalid } from '../utils/validation';
@@ -369,61 +369,25 @@ const PeoplePage: React.FC = () => {
 
     const handleCreate = async (data: CreatePersonPayload) => {
         try {
-            const customFieldValues = (data as any).customFieldValues as Record<string, unknown> | undefined;
-            const leaveOverrides = (data as any).leaveOverrides as PendingLeaveOverride[] | undefined;
-            const createPayload = { ...data } as any;
-            delete createPayload.customFieldValues;
-            delete createPayload.leaveOverrides;
-            const created = await peopleApi.create(createPayload);
+            // One atomic request: the person, custom fields and leave overrides
+            // are saved together or not at all (the backend rolls back and names
+            // the failed step). The invite runs after, best-effort, and its
+            // outcome comes back as `created.invite`.
+            const created = await peopleApi.create(buildAtomicCreatePayload(data));
             setShowCreateModal(false);
             recordActivity({ eventType: 'people.person.created', eventCategory: 'identity', description: `Person ${data.full_name} was created`, resourceType: 'person', resourceId: created?.id }).catch(() => {});
 
-            if (created?.id && customFieldValues && Object.keys(customFieldValues).length > 0) {
-                const entries = Object.entries(customFieldValues).map(([field_def_id, value]) => ({ field_def_id, value }));
-                personCustomFieldsApi.setForPerson(created.id, entries).catch(() => {
-                    toast.error('Person created, but saving custom field values failed');
-                });
-            }
-
-            // Leave overrides are applied AFTER creation because they are keyed
-            // by person_id. The person is already saved at this point, so a
-            // failure here must not read as "creation failed" — it is reported
-            // as the partial it is, with the fix (Employee → Leave) named.
-            if (created?.id && leaveOverrides && leaveOverrides.length > 0) {
-                try {
-                    // Sequential, not Promise.all: each call returns the whole
-                    // recomputed config, and concurrent writes to the same
-                    // person's override set race each other.
-                    for (const o of leaveOverrides) {
-                        await leaveConfigApi.setPersonOverride(created.id, o.leave_type_id, o.mode);
-                    }
-                } catch {
-                    toast.error(
-                        `${data.full_name} was created, but their leave configuration could not be saved. Set it from the employee's Leave tab.`,
-                    );
-                }
-            }
-
-            // When the admin chose "Invite as New User", mint the invite via Core (which also emails
-            // it via SES when requested) and surface the copyable link so it can be shared manually
-            // if email delivery is unreliable.
-            const invite = data as CreatePersonPayload & { userLinkageMode?: string; inviteEmail?: string; inviteRole?: string; sendInviteEmail?: boolean };
-            // Single source of truth: the person's Identity email. Anything else would
-            // invite one address while the person record carries another, which leaves
-            // the invitee unlinked (Core resolves the person by email).
+            const invite = created?.invite;
             const inviteEmail = data.email;
-            if (invite.userLinkageMode === 'invite' && inviteEmail && invite.inviteRole && created?.id) {
-                try {
-                    const res = await peopleApi.inviteUser(created.id, inviteEmail, invite.inviteRole, invite.sendInviteEmail !== false);
-                    if (res.invite_status === 'existing_user') {
-                        toast.success(`${data.full_name} added — ${inviteEmail} already has an account and can sign in.`);
-                    } else if (res.invite_link) {
-                        setInviteResult({ link: res.invite_link, email: inviteEmail, emailSent: !!res.email_sent, emailRequested: invite.sendInviteEmail !== false });
-                    } else {
-                        toast.success(`${data.full_name} has been invited`);
-                    }
-                } catch {
-                    toast.error(`${data.full_name} added, but sending the invite failed`);
+            if (inviteFailed(invite)) {
+                toast.error(`${data.full_name} was added, but these could not be saved: the invite (resend it from the employee profile).`);
+            } else if (invite?.status === 'sent') {
+                if (invite.invite_status === 'existing_user') {
+                    toast.success(`${data.full_name} added — ${inviteEmail} already has an account and can sign in.`);
+                } else if (invite.invite_link && inviteEmail) {
+                    setInviteResult({ link: invite.invite_link, email: inviteEmail, emailSent: !!invite.email_sent, emailRequested: (data as CreatePersonPayload).sendInviteEmail !== false });
+                } else {
+                    toast.success(`${data.full_name} has been invited`);
                 }
             } else {
                 toast.success(`${data.full_name} has been added`);
@@ -431,7 +395,9 @@ const PeoplePage: React.FC = () => {
             loadPeople();
             refreshQuota().catch(() => {});
         } catch (error) {
-            toast.error('Failed to create person');
+            // Nothing was saved (the backend rolled back), so the modal stays open
+            // with the admin's input for a retry.
+            toast.error(error instanceof Error && error.message ? error.message : 'Failed to create person');
         }
     };
 

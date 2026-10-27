@@ -138,6 +138,19 @@ export interface CreatePersonPayload {
   inviteEmail?: string;
   inviteRole?: string;
   sendInviteEmail?: boolean;
+  /** Saved atomically with the person (all-or-nothing). */
+  custom_fields?: Array<{ field_def_id: string; value: unknown }>;
+  /** Per-person leave overrides, saved atomically with the person. */
+  leave_override?: Array<{ leave_type_id: string; mode: 'include' | 'exclude' }>;
+}
+
+/** Outcome of the best-effort invite step, returned by POST /people. */
+export interface CreatePersonInviteStatus {
+  status: 'sent' | 'failed' | 'skipped';
+  error?: string;
+  invite_link?: string | null;
+  invite_status?: string;
+  email_sent?: boolean;
 }
 
 // Allocation
