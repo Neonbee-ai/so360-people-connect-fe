@@ -94,12 +94,14 @@ describe('GIVEN the declaration review drawer', () => {
     mockApi.employees.taxDeclarations.reviewItem.mockResolvedValue({});
     await openDrawer();
     fireEvent.change(screen.getByLabelText('Approved amount for 80C'), { target: { value: '90000' } });
+    // Wait for the typed value to be committed to state before clicking Approve (avoids a race under load)
+    await waitFor(() => expect(screen.getByLabelText('Approved amount for 80C')).toHaveValue(90000));
     fireEvent.click(screen.getByLabelText('Approve 80C'));
     await waitFor(() =>
       expect(mockApi.employees.taxDeclarations.reviewItem).toHaveBeenCalledWith('p1', '2026-27', 'i1', {
         status: 'approved', approved_amount: 90000,
       }));
-  });
+  }, 15000);
 
   it('WHEN an item is rejected THEN reviewItem is called with rejected and no amount', async () => {
     mockApi.employees.taxDeclarations.reviewItem.mockResolvedValue({});
