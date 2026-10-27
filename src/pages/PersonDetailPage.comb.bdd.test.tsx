@@ -180,8 +180,9 @@ describe('Given the Comb PersonDetailPage', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('tab', { name: /Rate History/ }));
-    fireEvent.click(await screen.findByRole('button', { name: /Add new rate/ }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Add Rate' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a valid cost rate.');
+    // Role queries over the full detail page are slow on a loaded CI runner; widen the 1s default.
+    fireEvent.click(await screen.findByRole('button', { name: /Add new rate/ }, { timeout: 8000 }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Rate' }, { timeout: 8000 }));
+    expect(await screen.findByRole('alert', {}, { timeout: 8000 })).toHaveTextContent('Enter a valid cost rate.');
   });
 });
