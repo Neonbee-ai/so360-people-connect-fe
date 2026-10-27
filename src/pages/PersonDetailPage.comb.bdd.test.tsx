@@ -113,6 +113,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockPeopleApi.getById.mockResolvedValue(unlinkedPerson);
   mockPeopleApi.getOrgRoles.mockResolvedValue({ data: [] });
+  mockPeopleApi.getEmploymentHistory.mockResolvedValue([]);
+  mockPeopleApi.getRateHistory.mockResolvedValue([]);
   (allocationsApi as any).getAll.mockResolvedValue({ data: [] });
   (timesheetApi as any).getEntries.mockResolvedValue({ data: [] });
   (goalsApi as any).getAll.mockResolvedValue({ data: [] });
