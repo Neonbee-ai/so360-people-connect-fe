@@ -158,7 +158,7 @@ describe('Given active custom field definitions when adding a Person', () => {
     expect(screen.getByText('Select Vehicle Type')).toBeInTheDocument();
   });
 
-  it('When custom field values are filled and the person is created / Then personCustomFieldsApi.setForPerson is called with the new person id and entries', async () => {
+  it('When custom field values are filled and the person is created / Then they are sent in the single create request, not a follow-up call', async () => {
     mockPeopleApi.create.mockResolvedValue({ id: 'new-person-1' });
     await openCreateModal();
     await waitFor(() => expect(screen.getByText('Blood Group')).toBeInTheDocument());
@@ -182,17 +182,15 @@ describe('Given active custom field definitions when adding a Person', () => {
     await waitFor(() => expect(mockPeopleApi.create).toHaveBeenCalled());
     // customFieldValues must not leak into the person create payload itself.
     expect(mockPeopleApi.create.mock.calls[0][0]).not.toHaveProperty('customFieldValues');
-
-    await waitFor(() => expect(mockValuesApi.setForPerson).toHaveBeenCalledWith(
-      'new-person-1',
-      expect.arrayContaining([
-        { field_def_id: 'def-text', value: 'O+' },
-        { field_def_id: 'def-dropdown', value: 'Car' },
-      ]),
-    ));
+    // Atomic Add Person: the values ride on the SAME create request.
+    expect(mockPeopleApi.create.mock.calls[0][0].custom_fields).toEqual(expect.arrayContaining([
+      { field_def_id: 'def-text', value: 'O+' },
+      { field_def_id: 'def-dropdown', value: 'Car' },
+    ]));
+    expect(mockValuesApi.setForPerson).not.toHaveBeenCalled();
   });
 
-  it('When no custom field values are filled / Then personCustomFieldsApi.setForPerson is not called', async () => {
+  it('When no custom field values are filled / Then the create request carries no custom_fields', async () => {
     mockPeopleApi.create.mockResolvedValue({ id: 'new-person-2' });
     await openCreateModal();
     await waitFor(() => expect(screen.getByText('Blood Group')).toBeInTheDocument());
@@ -208,6 +206,7 @@ describe('Given active custom field definitions when adding a Person', () => {
     fireEvent.submit(form);
 
     await waitFor(() => expect(mockPeopleApi.create).toHaveBeenCalled());
+    expect(mockPeopleApi.create.mock.calls[0][0]).not.toHaveProperty('custom_fields');
     expect(mockValuesApi.setForPerson).not.toHaveBeenCalled();
   });
 });

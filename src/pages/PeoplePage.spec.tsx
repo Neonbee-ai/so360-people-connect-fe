@@ -567,24 +567,26 @@ describe('Given the "Invite as New User" flow on create', () => {
   };
 
   it('When a new user is invited / Then inviteUser is called and the copyable link is shown', async () => {
-    mockApi.inviteUser.mockResolvedValue({ invite_link: 'https://sso.neonbee.app/reset-password-confirm#token=xyz', invite_status: 'link_generated', user_id: 'u1', email_sent: true });
+    mockApi.create.mockResolvedValue({ id: 'new-p', invite: { status: 'sent', invite_link: 'https://sso.neonbee.app/reset-password-confirm#token=xyz', invite_status: 'link_generated', user_id: 'u1', email_sent: true } });
 
     const form = await openModalAndFillInvite();
     fireEvent.submit(form);
 
-    await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalledWith('new-p', 'hire@test.com', 'role-1', true));
+    // The invite is requested on the single create call and run by the backend.
+    await waitFor(() => expect(mockApi.create).toHaveBeenCalledWith(expect.objectContaining({ userLinkageMode: 'invite', inviteRole: 'role-1', email: 'hire@test.com' })));
+    expect(mockApi.inviteUser).not.toHaveBeenCalled();
     // The copyable invite link surfaces for manual sharing.
     await waitFor(() => expect(screen.getByDisplayValue('https://sso.neonbee.app/reset-password-confirm#token=xyz')).toBeInTheDocument());
     expect(screen.getByText('Copy link')).toBeInTheDocument();
   });
 
   it('When the invitee already has an account / Then no link modal is shown', async () => {
-    mockApi.inviteUser.mockResolvedValue({ invite_link: null, invite_status: 'existing_user', user_id: 'u2', email_sent: false });
+    mockApi.create.mockResolvedValue({ id: 'new-p', invite: { status: 'sent', invite_link: null, invite_status: 'existing_user', user_id: 'u2', email_sent: false } });
 
     const form = await openModalAndFillInvite();
     fireEvent.submit(form);
 
-    await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalled());
+    await waitFor(() => expect(mockApi.create).toHaveBeenCalled());
     expect(screen.queryByText('Copy link')).not.toBeInTheDocument();
   });
 });

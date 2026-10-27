@@ -1,6 +1,7 @@
 import type {
   Person,
   CreatePersonPayload,
+  CreatePersonInviteStatus,
   PersonRole,
   Allocation,
   CreateAllocationPayload,
@@ -59,8 +60,8 @@ export const peopleApi = {
     return api.get<LaborCategoryOption[]>('/people/labor-category-options');
   },
 
-  create: async (data: CreatePersonPayload): Promise<Person> => {
-    return api.post<Person>('/people', data);
+  create: async (data: CreatePersonPayload): Promise<Person & { invite?: CreatePersonInviteStatus }> => {
+    return api.post<Person & { invite?: CreatePersonInviteStatus }>('/people', data);
   },
 
   update: async (id: string, data: Partial<Person>): Promise<Person> => {
