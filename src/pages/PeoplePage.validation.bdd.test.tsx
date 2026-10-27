@@ -283,7 +283,7 @@ describe('Given the "Invite as New User" section', () => {
     expect(await screen.findByText(/The invitation will be emailed to/i)).toBeInTheDocument();
   });
 
-  it('When the person is submitted / Then the invitation is sent to the Identity email', async () => {
+  it('When the person is submitted / Then the invitation is requested for the Identity email in the single create call', async () => {
     mockApi.create.mockResolvedValue({ id: 'p2' });
     await openAddPerson();
     fireEvent.change(nameInput(), { target: { value: 'Henry Ford' } });
@@ -293,7 +293,7 @@ describe('Given the "Invite as New User" section', () => {
     await waitFor(() => expect(addButton()).not.toBeDisabled());
     fireEvent.click(addButton());
 
-    await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalledWith('p2', 'henry@ford.com', 'role-1', true));
+    await waitFor(() => expect(mockApi.create).toHaveBeenCalledWith(expect.objectContaining({ userLinkageMode: 'invite', email: 'henry@ford.com', inviteRole: 'role-1', sendInviteEmail: true })));
   });
 
   it('When invite mode is on with no Identity email / Then the invite section says where to add one and submit stays blocked', async () => {
