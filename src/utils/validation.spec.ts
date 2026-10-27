@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isUuid, validateEmail, sanitizePhoneInput } from './validation';
+import { isUuid, validateEmail, validatePhone, sanitizePhoneInput } from './validation';
 
 describe('isUuid', () => {
   describe('Given a syntactically valid UUID', () => {
@@ -140,5 +140,44 @@ describe('sanitizePhoneInput', () => {
       const long = '1'.repeat(30);
       expect(sanitizePhoneInput(long)).toHaveLength(20);
     });
+  });
+});
+
+describe('validatePhone', () => {
+  describe('Given a well-formed number', () => {
+    it.each(['+1 (555) 010-0100', '555-010-0100', '+971501234567'])('When "%s" is validated / Then it is accepted', (v) => {
+      expect(validatePhone(v)).toBeNull();
+    });
+  });
+
+  describe('Given too few or too many digits', () => {
+    it('When fewer than 7 digits / Then the message says too short', () => {
+      expect(validatePhone('12345')).toMatch(/too short/);
+    });
+    it('When more than 15 digits / Then the message says too long', () => {
+      expect(validatePhone('1234567890123456')).toMatch(/too long/);
+    });
+  });
+
+  describe('Given unbalanced parentheses', () => {
+    it.each(['(555 010 0100', '555) 010 0100', '()5550100100', ')(5550100100'])('When "%s" is validated / Then it is rejected with the character message', (v) => {
+      expect(validatePhone(v)).toMatch(/balanced/);
+    });
+  });
+
+  describe('Given empty input', () => {
+    it('When optional / Then null; when required / Then a required message', () => {
+      expect(validatePhone('')).toBeNull();
+      expect(validatePhone('', true)).toBe('Phone number is required.');
+    });
+  });
+});
+
+describe('validateEmail percent sign', () => {
+  it('Given a % in the username / When validated / Then it is accepted (matches BE @IsEmail)', () => {
+    expect(validateEmail('a%b@example.com')).toBeNull();
+  });
+  it('Given an invalid email / When validated / Then the message lists the percent sign as allowed', () => {
+    expect(validateEmail('bad')).toMatch(/percent signs \(%\)/);
   });
 });
