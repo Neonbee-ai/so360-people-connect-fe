@@ -36,7 +36,8 @@ import { WorkLocationFieldHelp, Section, QuickAddLocationPanel } from './WorkLoc
 export interface CreatePersonModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreate: (data: CreatePersonPayload) => void;
+    /** Resolve `false` when nothing was saved so the form keeps the admin's input for a retry. */
+    onCreate: (data: CreatePersonPayload) => void | boolean | Promise<void | boolean>;
     currencies?: string[];
     // Org's configured base currency; pre-selected as the default. Falls back to
     // 'USD' only when no org currency is configured.
@@ -210,7 +211,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
     // anchored to a field the user may have scrolled past.
     const isFormValid = Object.keys(validate(formData)).length === 0;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const validationErrors = validate(formData);
         if (Object.keys(validationErrors).length > 0) {
@@ -234,7 +235,9 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
         if (leaveOverrides.length > 0) {
             payload.leaveOverrides = leaveOverrides;
         }
-        onCreate(payload);
+        const saved = await onCreate(payload);
+        // Backend rolled back: keep the form as-is so the admin can retry.
+        if (saved === false) return;
         setCustomFieldValues({});
         setLeaveOverrides([]);
         // Reset form

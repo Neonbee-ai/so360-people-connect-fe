@@ -260,10 +260,12 @@ const PeoplePage: React.FC = () => {
             }
             loadPeople();
             refreshQuota().catch(() => {});
+            return true;
         } catch (error) {
             // Nothing was saved (the backend rolled back), so the modal stays open
             // with the admin's input for a retry.
             toast.error(error instanceof Error && error.message ? error.message : 'Failed to create person');
+            return false;
         }
     };
 

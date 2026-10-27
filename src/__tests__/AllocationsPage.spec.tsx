@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../services/peopleService', () => ({
@@ -93,7 +93,8 @@ describe('AllocationsPage', () => {
       // The old stat strip is gone: the header carries the total count and the table one row per allocation.
       await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(3));
       expect(screen.getByRole('heading', { name: 'Allocations' }).parentElement).toHaveTextContent('2');
-      expect(screen.getAllByText('Active').length).toBe(2);
+      // The status filter also lists an "Active" option, so count only table rows carrying the badge.
+      expect(screen.getAllByRole('row').filter(r => within(r).queryByText('Active')).length).toBe(2);
     });
   });
 

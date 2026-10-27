@@ -785,7 +785,7 @@ const LinkUserModal: React.FC<{
     };
 
     return (
-        <Modal open={isOpen} onClose={onClose} title="Link User Account" size="md">
+        <Modal isOpen={isOpen} onClose={onClose} title="Link User Account" size="md">
             <form onSubmit={handleSubmit} noValidate>
                 <Stack>
                     <p className="text-nb-body text-fg-muted">
@@ -862,7 +862,7 @@ const AddNewRateModal: React.FC<{
     };
 
     return (
-        <Modal open={isOpen} onClose={onClose} title="Add New Rate" size="md">
+        <Modal isOpen={isOpen} onClose={onClose} title="Add New Rate" size="md">
             <form onSubmit={handleSubmit} noValidate>
                 <Stack>
                     <p className="text-nb-body text-fg-muted">
@@ -931,7 +931,7 @@ const AddSkillModal: React.FC<{
     };
 
     return (
-        <Modal open={isOpen} onClose={onClose} title="Add Skill" size="sm">
+        <Modal isOpen={isOpen} onClose={onClose} title="Add Skill" size="sm">
             <form onSubmit={handleSubmit}>
                 <Stack>
                     <TextField
@@ -1003,7 +1003,7 @@ const EditSystemRoleModal: React.FC<{
     };
 
     return (
-        <Modal open={isOpen} onClose={onClose} title="Edit System Role" size="sm">
+        <Modal isOpen={isOpen} onClose={onClose} title="Edit System Role" size="sm">
             {!hasAccess ? (
                 <Stack>
                     <p className="text-nb-body text-fg">
