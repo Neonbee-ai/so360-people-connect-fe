@@ -6,7 +6,7 @@ import FeedbackPage from './FeedbackPage';
 import { feedbackApi } from '../services/feedbackService';
 
 vi.mock('../services/feedbackService', () => ({ feedbackApi: { getAll: vi.fn(), create: vi.fn(), acknowledge: vi.fn() } }));
-vi.mock('../services/peopleService', () => ({ peopleApi: { getAll: vi.fn().mockResolvedValue({ data: [] }) } }));
+vi.mock('../services/meService', () => ({ meService: { directory: vi.fn().mockResolvedValue({ data: [] }) } }));
 vi.mock('../services/apiClient', () => ({ apiContext: { getUserId: () => 'u1' } }));
 let flagEnabled = true;
 vi.mock('@so360/shell-context', () => ({
