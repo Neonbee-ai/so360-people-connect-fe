@@ -36,7 +36,8 @@ const PERSON_NAME_RE = /^[\p{L}\p{M}][\p{L}\p{M}\p{N}\s.'’-]*$/u;
 // disallows consecutive hyphens (e.g. "gm--ail.com").
 const EMAIL_RE = /^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:-?[A-Za-z0-9])*(?:\.[A-Za-z0-9](?:-?[A-Za-z0-9])*)*\.[A-Za-z]{2,}$/;
 // Digits with an optional leading +, plus the usual separators.
-const PHONE_RE = /^\+?[0-9\s().-]+$/;
+// Parentheses must be balanced and hold digits/separators: "(555) 123-4567".
+const PHONE_RE = /^\+?(?:[0-9\s.-]|\([0-9\s.-]+\))+$/;
 // Business code: alphanumeric, optionally separated by - or _.
 const DEPARTMENT_CODE_RE = /^[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*$/;
 // Department names allow the ampersand/slash/parenthesis forms businesses use
@@ -64,7 +65,7 @@ export function validateEmail(value: unknown, required = false): string | null {
   if (!EMAIL_RE.test(email)) {
     return (
       'Please enter a valid email address (e.g., name@example.com). ' +
-      'Username may contain letters (A–Z, a–z), numbers (0–9), periods (.), underscores (_), hyphens (-), and plus signs (+). ' +
+      'Username may contain letters (A–Z, a–z), numbers (0–9), periods (.), underscores (_), hyphens (-), percent signs (%), and plus signs (+). ' +
       'Domain must contain valid letters or numbers, may include single hyphens (-), and cannot contain consecutive hyphens (--), ' +
       'consecutive periods (..), spaces, or start/end with a hyphen or period.'
     );
@@ -87,12 +88,11 @@ export function validatePhone(value: unknown, required = false): string | null {
   const phone = typeof value === 'string' ? value.trim() : '';
   if (!phone) return required ? 'Phone number is required.' : null;
   if (!PHONE_RE.test(phone)) {
-    return 'Phone number can only contain digits, spaces, +, -, ( ) and .';
+    return 'Phone number can only contain digits, spaces, +, -, . and balanced ( ) around digits.';
   }
   const digits = phone.replace(/\D/g, '');
-  if (digits.length < 7 || digits.length > 15) {
-    return 'Phone number must contain between 7 and 15 digits.';
-  }
+  if (digits.length < 7) return 'Phone number is too short — it must contain at least 7 digits.';
+  if (digits.length > 15) return 'Phone number is too long — it must contain at most 15 digits.';
   return null;
 }
 

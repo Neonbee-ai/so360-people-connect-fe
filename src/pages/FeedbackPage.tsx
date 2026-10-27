@@ -9,9 +9,9 @@ import {
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { feedbackApi, Feedback, CreateFeedbackPayload } from '../services/feedbackService';
-import { peopleApi } from '../services/peopleService';
+import { meService } from '../services/meService';
 import { apiContext } from '../services/apiClient';
-import type { Person } from '../types/people';
+import type { PickablePerson } from '../components/PersonPicker';
 
 const FeedbackPage: React.FC = () => {
     const { recordActivity } = useActivity();
@@ -200,7 +200,8 @@ interface CreateFeedbackModalProps {
 }
 
 const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClose, onCreate }) => {
-    const [people, setPeople] = useState<Person[]>([]);
+    const [people, setPeople] = useState<PickablePerson[]>([]);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [formData, setFormData] = useState<CreateFeedbackPayload>({
         person_id: '',
         provider_id: apiContext.getUserId() || '',
@@ -212,9 +213,12 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
 
     useEffect(() => {
         if (isOpen) {
-            peopleApi.getAll({ status: 'active', limit: 200 }).then(res => {
-                setPeople(res.data || []);
-            }).catch(() => {});
+            setLoadError(null);
+            meService.directory().then(res => {
+                setPeople((res.data || []).map(d => ({ id: d.id, full_name: d.full_name, job_title: d.job_title || undefined })));
+            }).catch((err: any) => {
+                setLoadError(err?.message || 'Could not load people');
+            });
         }
     }, [isOpen]);
 
@@ -249,7 +253,7 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                             value={formData.person_id}
                             onChange={(id) => updateField('person_id', id)}
                             placeholder="Search people..."
-                            emptyMessage="No people available"
+                            emptyMessage={loadError ? `Could not load people: ${loadError}` : 'No people available'}
                             inputId="feedback-person-input"
                             data-testid="feedback-person-picker"
                         />

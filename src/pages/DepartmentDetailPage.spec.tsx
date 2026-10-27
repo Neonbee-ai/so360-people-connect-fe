@@ -397,6 +397,20 @@ describe('Given DepartmentDetailPage edit interaction', () => {
         fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
         await waitFor(() => expect(mockDeptApi.update).toHaveBeenCalledWith('d1', expect.objectContaining({ name: 'Engineering' })));
     });
+
+    it('Given active people / When a new head is picked in the edit modal and saved / Then update carries head_person_id (Pulse 27654625)', async () => {
+        mockPeopleApi.getAll.mockResolvedValue({ data: [{ id: 'p9', full_name: 'Asha Nair', job_title: 'CTO' }], total: 1 });
+        mockDeptApi.update.mockResolvedValue({ ...mockDept, head_person_id: 'p9' });
+        renderPage();
+        await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /^Edit$/i }));
+        await waitFor(() => expect(screen.getByText('Edit Department')).toBeInTheDocument());
+        const headSelect = await screen.findByLabelText(/Department Head/i);
+        await waitFor(() => expect(screen.getByRole('option', { name: /Asha Nair/ })).toBeInTheDocument());
+        fireEvent.change(headSelect, { target: { value: 'p9' } });
+        fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
+        await waitFor(() => expect(mockDeptApi.update).toHaveBeenCalledWith('d1', expect.objectContaining({ head_person_id: 'p9' })));
+    });
 });
 
 // =============================================================================

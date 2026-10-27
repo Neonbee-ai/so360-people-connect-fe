@@ -28,6 +28,9 @@ vi.mock('../services/onboardingService', async () => {
   };
 });
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
+
 let mockShell: any;
 
 vi.mock('@so360/shell-context', () => ({
@@ -98,6 +101,16 @@ describe('Given a person with no onboarding instance', () => {
     renderTab();
     await waitFor(() => expect(screen.getByText('No onboarding')).toBeInTheDocument());
     expect(screen.queryByText('Start onboarding')).not.toBeInTheDocument();
+  });
+
+  it('Given NO templates exist / When Configure Templates is clicked / Then it navigates in-app (BrowserRouter) to the module onboarding settings, not a hash URL', async () => {
+    mockApi.listTemplates.mockResolvedValue({ data: [], total: 0 });
+    renderTab();
+
+    fireEvent.click(await screen.findByRole('button', { name: /configure templates/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/people/settings/onboarding');
+    expect(window.location.hash).toBe('');
   });
 });
 

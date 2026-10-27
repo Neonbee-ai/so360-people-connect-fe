@@ -71,7 +71,15 @@ const DepartmentsPage: React.FC = () => {
         loadDepartments();
     }, [loadDepartments]);
 
+    const [submitting, setSubmitting] = useState(false);
+    const submittingRef = useRef(false);
+
     const handleCreate = async (data: CreateDepartmentPayload) => {
+        // Ignore a double click / Enter-repeat while the first request is in flight,
+        // otherwise the second POST hits the uniqueness check and shows a bogus clash.
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setSubmitting(true);
         try {
             const created = await departmentsApi.create(data);
             setShowCreateModal(false);
@@ -81,10 +89,16 @@ const DepartmentsPage: React.FC = () => {
             refreshQuota().catch(() => {});
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to create department');
+        } finally {
+            submittingRef.current = false;
+            setSubmitting(false);
         }
     };
 
     const handleUpdate = async (id: string, data: Partial<Department>) => {
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setSubmitting(true);
         try {
             await departmentsApi.update(id, data);
             setEditingDepartment(null);
@@ -94,6 +108,9 @@ const DepartmentsPage: React.FC = () => {
             refreshQuota().catch(() => {});
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to update department');
+        } finally {
+            submittingRef.current = false;
+            setSubmitting(false);
         }
     };
 
@@ -249,6 +266,7 @@ const DepartmentsPage: React.FC = () => {
                     setEditingDepartment(null);
                 }}
                 onCreate={handleCreate}
+                submitting={submitting}
                 onUpdate={handleUpdate}
                 department={editingDepartment}
                 departments={departments}
@@ -265,6 +283,7 @@ interface DepartmentModalProps {
     isOpen: boolean;
     onClose: () => void;
     onCreate: (data: CreateDepartmentPayload) => void;
+    submitting?: boolean;
     onUpdate: (id: string, data: Partial<Department>) => void;
     department: Department | null;
     departments: Department[];
@@ -291,6 +310,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
     isOpen,
     onClose,
     onCreate,
+    submitting = false,
     onUpdate,
     department,
     departments,
@@ -488,10 +508,10 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!isFormValid}
+                            disabled={!isFormValid || submitting}
                             title={isFormValid ? undefined : 'Enter a valid department code and name.'}
                         >
-                            {department ? 'Update' : 'Create'}
+                            {submitting ? 'Saving…' : department ? 'Update' : 'Create'}
                         </Button>
                     </Cluster>
                 </Stack>

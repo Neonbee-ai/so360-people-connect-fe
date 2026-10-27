@@ -10,6 +10,7 @@ import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
 import { peopleApi } from '../services/peopleService';
+import PersonPicker, { PickablePerson } from '../components/PersonPicker';
 
 const GoalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
@@ -52,7 +53,8 @@ const GoalsPage: React.FC = () => {
             recordActivity({ eventType: 'people.goal.created', eventCategory: 'data', description: `Goal "${data.title}" was created`, resourceType: 'goal', resourceId: created?.id }).catch(() => {});
             loadGoals();
         } catch (error) {
-            toast.error('Failed to create goal');
+            const reason = error instanceof Error && error.message ? `: ${error.message}` : '';
+            toast.error(`Failed to create goal${reason}`);
         }
     };
 
@@ -152,8 +154,9 @@ const GoalsPage: React.FC = () => {
                 <EmptyState
                     icon={Target}
                     title="No goals found"
-                    description="Create goals to track objectives and key results."
-                    action={canCreateGoal ? { label: 'Create Goal', onClick: () => setShowCreateModal(true) } : undefined}
+                    description={canCreateGoal
+                        ? 'Use Create Goal above to add your first objective.'
+                        : 'Create goals to track objectives and key results.'}
                 />
             )}
         >
@@ -301,8 +304,22 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
         let cancelled = false;
         peopleApi
             .getMe()
-            .then(me => { if (!cancelled) setFormData(prev => ({ ...prev, person_id: me.id })); })
+            .then(me => { if (!cancelled && me?.id) setFormData(prev => (prev.person_id ? prev : { ...prev, person_id: me.id })); })
             .catch(() => undefined);
+        return () => { cancelled = true; };
+    }, [goal, isOpen]);
+
+    // "Assigned To" candidates. Only people-directory readers (admins/HR) get a
+    // list; for everyone else the call 403s and the goal stays on their own
+    // record, so the picker is simply not shown.
+    const [people, setPeople] = useState<PickablePerson[]>([]);
+    useEffect(() => {
+        if (goal || !isOpen) return;
+        let cancelled = false;
+        peopleApi
+            .getAll({ status: 'active', limit: 200 })
+            .then(result => { if (!cancelled) setPeople(result?.data || []); })
+            .catch(() => { if (!cancelled) setPeople([]); });
         return () => { cancelled = true; };
     }, [goal, isOpen]);
 
@@ -375,6 +392,20 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                         value={formData.description || ''}
                         onChange={(e) => updateField('description', e.target.value)}
                     />
+                    {!goal && people.length > 0 && (
+                        <Stack gap="tight">
+                            <label htmlFor="goal-person-picker" className="text-nb-sm font-medium text-fg-muted">Assigned To</label>
+                            <PersonPicker
+                                options={people}
+                                value={formData.person_id}
+                                onChange={(id) => updateField('person_id', id)}
+                                placeholder="Search people..."
+                                emptyMessage="No active people found"
+                                inputId="goal-person-picker"
+                                data-testid="goal-person-picker"
+                            />
+                        </Stack>
+                    )}
                     <Grid columns={2} gap="lg">
                         <Select
                             name="goal_type"
@@ -407,7 +438,8 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                     <Grid columns={3} gap="lg">
                         <NumberInput
                             name="goal_target_value"
-                            label="Target Value"
+                            label="Target Value (optional)"
+                            hint="The number you are aiming for, e.g. 20 for a 20% increase."
                             min={0}
                             step={0.1}
                             value={formData.target_value || null}
@@ -415,7 +447,8 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                         />
                         <NumberInput
                             name="goal_current_value"
-                            label="Current Value"
+                            label="Current Value (optional)"
+                            hint="Where you are today. Progress is calculated from current / target."
                             min={0}
                             step={0.1}
                             value={formData.current_value || null}
@@ -423,7 +456,8 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                         />
                         <TextField
                             name="goal_unit"
-                            label="Unit"
+                            label="Unit (optional)"
+                            hint="What the values measure, e.g. %, deals, hours."
                             value={formData.unit || ''}
                             onChange={(e) => updateField('unit', e.target.value)}
                             placeholder="sales, projects, %"
