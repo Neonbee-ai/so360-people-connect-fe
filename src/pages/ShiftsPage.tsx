@@ -221,6 +221,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({ isOpen, onClose, onCreate, onUp
           <TextField
             name="shift-name"
             id="shift-name"
+            maxLength={100}
             label="Name *"
             required
             value={form.name}
