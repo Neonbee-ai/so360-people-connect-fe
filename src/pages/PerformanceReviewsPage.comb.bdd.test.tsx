@@ -65,6 +65,14 @@ describe('PerformanceReviewsPage (Comb)', () => {
     await waitFor(() => expect(api.getMyReviews).toHaveBeenCalled());
   });
 
+  it('Given an empty list / When Create Review is clicked / Then the create dialog opens (not hidden by the empty state)', async () => {
+    api.getAll.mockResolvedValue({ data: [], total: 0 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('No performance reviews found')).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button', { name: /Create Review/ })[0]);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
   it('Given the create modal is open / When Cancel is clicked / Then it closes', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());

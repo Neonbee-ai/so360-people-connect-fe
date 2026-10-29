@@ -75,6 +75,7 @@ const ReviewTemplatesPage: React.FC = () => {
     };
 
     return (
+        <>
         <ListPageTemplate trail={[]}
             title="Review Templates"
             description="Configure performance review structures"
@@ -159,6 +160,7 @@ const ReviewTemplatesPage: React.FC = () => {
                     { label: 'Edit', onSelect: () => setEditingTemplate(t) },
                 ] : undefined}
             />
+        </ListPageTemplate>
 
             <ReviewTemplateModal
                 isOpen={showCreateModal || !!editingTemplate}
@@ -170,7 +172,8 @@ const ReviewTemplatesPage: React.FC = () => {
                 onUpdate={handleUpdate}
                 template={editingTemplate}
             />
-        </ListPageTemplate>
+
+        </>
     );
 };
 

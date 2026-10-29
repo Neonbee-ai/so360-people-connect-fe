@@ -78,6 +78,7 @@ const PerformanceReviewsPage: React.FC = () => {
     const openReview = (id: string) => navigate(`/people/reviews/${id}`);
 
     return (
+        <>
         <ListPageTemplate trail={[]}
             title="Performance Reviews"
             description="Track employee performance evaluations"
@@ -181,13 +182,15 @@ const PerformanceReviewsPage: React.FC = () => {
                     },
                 ]}
             />
+        </ListPageTemplate>
 
             <CreateReviewModal
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
                 onCreate={handleCreate}
             />
-        </ListPageTemplate>
+
+        </>
     );
 };
 

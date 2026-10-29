@@ -63,6 +63,14 @@ describe('GoalsPage (Comb)', () => {
     await waitFor(() => expect(api.getAll).toHaveBeenLastCalledWith({ status: 'completed' }));
   });
 
+  it('Given an empty list / When Create Goal is clicked / Then the create dialog opens (not hidden by the empty state)', async () => {
+    api.getAll.mockResolvedValue({ data: [], total: 0 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('No goals found')).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button', { name: /Create Goal/ })[0]);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
   it('Given the create modal is open / When Cancel is clicked / Then it closes', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
