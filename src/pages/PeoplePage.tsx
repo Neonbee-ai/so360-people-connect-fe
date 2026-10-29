@@ -722,7 +722,7 @@ const PeoplePage: React.FC = () => {
                 )}
                     </>
                 }
-                loading={loading}
+                loading={loading && people.length === 0}
                 isEmpty={people.length === 0}
                 empty={
                     <EmptyState

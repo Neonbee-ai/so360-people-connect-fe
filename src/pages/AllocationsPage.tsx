@@ -216,7 +216,7 @@ const AllocationsPage: React.FC = () => {
                         New Allocation
                     </Button>
                 ) : undefined}
-                loading={loading}
+                loading={loading && allocations.length === 0}
                 isEmpty={allocations.length === 0 && !statusFilter && !entityTypeFilter && !departmentFilter}
                 isFilteredEmpty={allocations.length === 0 && !!(statusFilter || entityTypeFilter || departmentFilter)}
                 onClearFilters={filterConfig.onClear}
