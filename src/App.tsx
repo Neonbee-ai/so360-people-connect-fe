@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useShellBridge } from '@so360/shell-context';
-import { CombScope, FeatureRoute as FeatureRouteBase } from '@so360/design-system';
+import { Button, CombScope, FeatureRoute as FeatureRouteBase } from '@so360/design-system';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FeatureRoute = FeatureRouteBase as any;
 import { peopleService } from './services/peopleService';
@@ -14,13 +14,12 @@ const UpgradeLocked = () => {
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center px-4">
             <h2 className="text-lg font-bold text-fg">This feature is part of a higher plan</h2>
             <p className="text-fg-subtle text-sm max-w-md">Upgrade your plan to unlock it.</p>
-            <button
+            <Button
                 type="button"
                 onClick={() => navigate('/org/billing')}
-                className="px-4 py-2 rounded bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium transition-colors"
             >
                 Upgrade plan
-            </button>
+            </Button>
         </div>
     );
 };
