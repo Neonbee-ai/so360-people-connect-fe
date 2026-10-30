@@ -695,10 +695,11 @@ export const payrollApi = {
     close: (id: string) => api.post<PayrollRun>(`/payroll/runs/${id}/close`, {}),
     reopen: (id: string, reason: string) => api.post<PayrollRun>(`/payroll/runs/${id}/reopen`, { reason }),
     cancel: (id: string, reason?: string) => api.post<PayrollRun>(`/payroll/runs/${id}/cancel`, { reason }),
-    exclude: (id: string, personId: string, reason: string) =>
-      api.post<PayrollRunEmployee>(`/payroll/runs/${id}/exclude`, { person_id: personId, reason }),
-    include: (id: string, personId: string) =>
-      api.post<PayrollRunEmployee>(`/payroll/runs/${id}/include`, { person_id: personId }),
+    /** `runEmployeeId` is the payroll_run_employees row id (not the person id). */
+    exclude: (id: string, runEmployeeId: string, reason: string) =>
+      api.post<{ excluded: boolean }>(`/payroll/runs/${id}/employees/${runEmployeeId}/exclude`, { reason }),
+    include: (id: string, runEmployeeId: string) =>
+      api.post<{ included: boolean }>(`/payroll/runs/${id}/employees/${runEmployeeId}/include`, {}),
     postToAccounting: (id: string) => api.post<PayrollRun>(`/payroll/runs/${id}/post-to-accounting`, {}),
     generatePayslips: (id: string) => api.post<PayrollRun>(`/payroll/runs/${id}/generate-payslips`, {}),
   },
