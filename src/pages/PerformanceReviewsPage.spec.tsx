@@ -207,7 +207,7 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
 });
 
 /*
- * Regression: opening a review (row click and the "View" action button)
+ * Regression: opening a review (row click)
  * previously called navigate('/reviews/<id>'), which — because the
  * people-connect MFE is mounted under the shell at '/people/*' — escaped the
  * module and hit the shell's "Page Not Found". The correct target is
@@ -216,13 +216,6 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
 describe('Given a review row in the Performance Reviews table', () => {
   beforeEach(() => {
     mockReviewsApi.getAll.mockResolvedValue({ data: [mockReview], total: 1 });
-  });
-
-  it('When the "View" action is clicked / Then it navigates to the shell-prefixed review route', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText('View')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
-    expect(mockNavigate).toHaveBeenCalledWith('/people/reviews/rv1');
   });
 
   it('When the review row is clicked / Then it navigates to the shell-prefixed review route', async () => {
@@ -234,8 +227,8 @@ describe('Given a review row in the Performance Reviews table', () => {
 
   it('When a review is opened / Then it does NOT navigate to the bare /reviews/<id> path (regression guard)', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('View')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Alice'));
     expect(mockNavigate).not.toHaveBeenCalledWith('/reviews/rv1');
   });
 });

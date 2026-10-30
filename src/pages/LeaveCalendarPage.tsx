@@ -239,8 +239,7 @@ const LeaveCalendarPage: React.FC = () => {
                                             </div>
                                             <div className="flex flex-col gap-nb-1">
                                                 {filteredLeaves.slice(0, 3).map(leave => (
-                                                    // comb-exception: status-tinted calendar day chip
-                                                    <button
+                                                    <button // comb-exception: status-tinted calendar day chip
                                                         key={leave.id}
                                                         type="button"
                                                         onClick={() => setSelectedLeave(leave)}

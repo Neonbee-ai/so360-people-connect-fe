@@ -25,7 +25,7 @@ export const ResolvingNotice: React.FC<{ label?: string; timeoutMs?: number }> =
 
     if (timedOut) {
         return (
-            <div role="alert" className="flex flex-col items-center justify-center min-h-[300px] gap-3 text-center px-4">
+            <div role="alert" className="flex flex-col items-center justify-center min-h-72 gap-3 text-center px-4">
                 <h2 className="text-lg font-semibold text-fg">This is taking longer than expected</h2>
                 <p className="text-sm text-fg-subtle max-w-md">We could not load your workspace context. Check your connection and try again.</p>
                 <Button
@@ -39,7 +39,7 @@ export const ResolvingNotice: React.FC<{ label?: string; timeoutMs?: number }> =
     }
 
     return (
-        <div role="status" className="flex flex-col items-center justify-center min-h-[300px] gap-3 text-fg-muted">
+        <div role="status" className="flex flex-col items-center justify-center min-h-72 gap-3 text-fg-muted">
             <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
             <p className="text-sm">{label}</p>
         </div>

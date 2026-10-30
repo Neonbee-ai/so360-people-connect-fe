@@ -128,7 +128,6 @@ const PerformanceReviewsPage: React.FC = () => {
                 rows={reviews}
                 rowKey={(r) => r.id}
                 onRowClick={(r) => openReview(r.id)}
-                rowActions={(r) => [{ label: 'View', onSelect: () => openReview(r.id) }]}
                 columns={[
                     {
                         key: 'person',

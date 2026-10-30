@@ -270,12 +270,12 @@ const PersonDetailPage: React.FC = () => {
     const goBack = () => navigate('/people/people');
 
     if (loading) {
-        return <DetailPageTemplate title="Employee" onBack={goBack} backLabel="Back to People" loading />;
+        return <DetailPageTemplate title="Employee" trail={[{ label: 'People', onClick: goBack }]} loading />;
     }
 
     if (!person) {
         return (
-            <DetailPageTemplate title="Person" onBack={goBack} backLabel="Back to People">
+            <DetailPageTemplate title="Person" trail={[{ label: 'People', onClick: goBack }]}>
                 <EmptyState
                     icon={User}
                     title={loadError === 'load_failed' ? 'Unable to load employee details.' : 'Person not found.'}

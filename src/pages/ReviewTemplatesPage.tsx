@@ -7,6 +7,7 @@ import {
     TextField, Textarea, Checkbox, Alert,
 } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
+import { PromptDialog } from '../components/PromptDialog';
 import { reviewTemplatesApi, ReviewTemplate, CreateReviewTemplatePayload } from '../services/reviewTemplatesService';
 
 const ReviewTemplatesPage: React.FC = () => {
@@ -18,6 +19,7 @@ const ReviewTemplatesPage: React.FC = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<ReviewTemplate | null>(null);
     const [typeFilter, setTypeFilter] = useState('');
+    const [cloneSource, setCloneSource] = useState<ReviewTemplate | null>(null);
     const visibleTemplates = typeFilter ? templates.filter(t => t.review_type === typeFilter) : templates;
 
     const loadTemplates = useCallback(async () => {
@@ -61,8 +63,7 @@ const ReviewTemplatesPage: React.FC = () => {
         }
     };
 
-    const handleClone = async (template: ReviewTemplate) => {
-        const newName = prompt(`Clone template as:`, `${template.name} (Copy)`);
+    const handleClone = async (template: ReviewTemplate, newName: string) => {
         if (!newName) return;
 
         try {
@@ -71,6 +72,8 @@ const ReviewTemplatesPage: React.FC = () => {
             loadTemplates();
         } catch (error) {
             toast.error('Failed to clone template');
+        } finally {
+            setCloneSource(null);
         }
     };
 
@@ -156,7 +159,7 @@ const ReviewTemplatesPage: React.FC = () => {
                     },
                 ]}
                 rowActions={canCreate ? (t) => [
-                    { label: 'Clone template', onSelect: () => handleClone(t) },
+                    { label: 'Clone template', onSelect: () => setCloneSource(t) },
                     { label: 'Edit', onSelect: () => setEditingTemplate(t) },
                 ] : undefined}
             />
@@ -171,6 +174,15 @@ const ReviewTemplatesPage: React.FC = () => {
                 onCreate={handleCreate}
                 onUpdate={handleUpdate}
                 template={editingTemplate}
+            />
+
+            <PromptDialog
+                open={!!cloneSource}
+                title="Clone template"
+                submitLabel="Clone"
+                fields={[{ name: 'name', label: 'Clone template as', initialValue: cloneSource ? `${cloneSource.name} (Copy)` : '', required: true }]}
+                onSubmit={(v) => (cloneSource ? handleClone(cloneSource, v.name.trim()) : undefined)}
+                onClose={() => setCloneSource(null)}
             />
 
         </>
