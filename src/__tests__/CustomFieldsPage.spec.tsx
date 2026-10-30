@@ -178,7 +178,7 @@ describe('Given CustomFieldsPage — editing and deactivating', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Blood Group')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByTitle('Deactivate'));
+    fireEvent.click(screen.getByRole('switch', { name: 'Deactivate' }));
 
     await waitFor(() =>
       expect(mockApi.update).toHaveBeenCalledWith('f1', { is_active: false }),

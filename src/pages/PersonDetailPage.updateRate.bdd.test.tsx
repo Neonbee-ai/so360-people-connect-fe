@@ -98,12 +98,12 @@ const openRateHistoryTab = async () => {
   renderPage();
   await waitFor(() => expect(screen.getByText('Rate History')).toBeInTheDocument());
   fireEvent.click(screen.getByText('Rate History'));
-  await waitFor(() => expect(screen.getByText('Add New Rate')).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText('Add new rate')).toBeInTheDocument());
 };
 
 const openAddRateModal = async () => {
   await openRateHistoryTab();
-  fireEvent.click(screen.getByText('Add New Rate'));
+  fireEvent.click(screen.getByText('Add new rate'));
   await waitFor(() => expect(screen.getByText('Add Rate')).toBeInTheDocument());
 };
 
@@ -124,7 +124,7 @@ describe('Given the Rate History tab', () => {
     expect(screen.getByText('Initial rate')).toBeInTheDocument();
     // Exactly one rate-management control on the page (the Add New Rate action) —
     // no per-row edit/update affordance on the read-only history entries.
-    expect(screen.getAllByText('Add New Rate')).toHaveLength(1);
+    expect(screen.getAllByText('Add new rate')).toHaveLength(1);
   });
 
   it('When Add New Rate is clicked / Then the create-new-rate dialog opens instead of doing nothing', async () => {

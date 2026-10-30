@@ -62,7 +62,7 @@ describe('ShiftsPage (Comb)', () => {
     await waitFor(() => screen.getByText('Morning'));
     expect(screen.queryByText('Add Shift')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Delete')).not.toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Active', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('Given the load fails / When rendered / Then an error toast is shown', async () => {
