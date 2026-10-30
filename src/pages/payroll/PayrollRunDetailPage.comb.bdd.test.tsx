@@ -82,7 +82,7 @@ describe('GIVEN the Comb payroll run detail', () => {
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Leave' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(mockApi.runs.exclude).toHaveBeenCalledWith('run-1', 'p1', 'Leave'));
+    await waitFor(() => expect(mockApi.runs.exclude).toHaveBeenCalledWith('run-1', 're1', 'Leave'));
   });
 
   it('WHEN Cancel is clicked THEN a confirm dialog gates the cancellation', async () => {

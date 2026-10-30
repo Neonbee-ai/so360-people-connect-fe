@@ -129,8 +129,8 @@ const rows: Row[] = [
   ['runs.close', () => payrollApi.runs.close(ID), 'post', `/payroll/runs/${ID}/close`, {}],
   ['runs.reopen', () => payrollApi.runs.reopen(ID, 'why'), 'post', `/payroll/runs/${ID}/reopen`, { reason: 'why' }],
   ['runs.cancel', () => payrollApi.runs.cancel(ID, 'why'), 'post', `/payroll/runs/${ID}/cancel`, { reason: 'why' }],
-  ['runs.exclude', () => payrollApi.runs.exclude(ID, P, 'why'), 'post', `/payroll/runs/${ID}/exclude`, { person_id: P, reason: 'why' }],
-  ['runs.include', () => payrollApi.runs.include(ID, P), 'post', `/payroll/runs/${ID}/include`, { person_id: P }],
+  ['runs.exclude', () => payrollApi.runs.exclude(ID, P, 'why'), 'post', `/payroll/runs/${ID}/employees/${P}/exclude`, { reason: 'why' }],
+  ['runs.include', () => payrollApi.runs.include(ID, P), 'post', `/payroll/runs/${ID}/employees/${P}/include`, {}],
   ['runs.postToAccounting', () => payrollApi.runs.postToAccounting(ID), 'post', `/payroll/runs/${ID}/post-to-accounting`, {}],
   ['runs.generatePayslips', () => payrollApi.runs.generatePayslips(ID), 'post', `/payroll/runs/${ID}/generate-payslips`, {}],
   // Payslips
