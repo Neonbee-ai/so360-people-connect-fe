@@ -19,12 +19,7 @@ vi.mock('@so360/shell-context', () => ({
   }),
 }));
 
-vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../test/__mocks__/design-system')), 
-  Button: ({ children, onClick, disabled, type }: any) => (
-    <button onClick={onClick} disabled={disabled} type={type}>{children}</button>
-  ),
-  FeatureGate: ({ children }: any) => <>{children}</>,
-}));
+vi.mock('@so360/design-system', async () => await import('../test/__mocks__/design-system'));
 
 import { orgPolicyApi } from '../services/orgPolicyService';
 import EmploymentPolicyPage from '../pages/settings/EmploymentPolicyPage';

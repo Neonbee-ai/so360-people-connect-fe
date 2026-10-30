@@ -293,7 +293,7 @@ describe('Given the backend rolls back because the leave override save failed', 
     await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1));
     expect(errorSpy.mock.calls[0][0]).toMatch(/saving leave override failed/);
     expect(successSpy).not.toHaveBeenCalledWith(expect.stringMatching(/has been added/));
-    expect(screen.getByText('Add New Person')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('John Doe')).toBeInTheDocument();
     expect(nameInput).toHaveValue('New Hire');
     errorSpy.mockRestore();
     successSpy.mockRestore();
@@ -308,7 +308,7 @@ describe('Given the backend rolls back because the leave override save failed', 
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
     fireEvent.submit(nameInput.closest('form')!);
 
-    await waitFor(() => expect(screen.queryByText('Add New Person')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByPlaceholderText('John Doe')).not.toBeInTheDocument());
     await waitFor(() => expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/was added, but these could not be saved: the invite/)));
     errorSpy.mockRestore();
   });

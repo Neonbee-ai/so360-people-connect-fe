@@ -2,7 +2,7 @@
  * BDD specs - MasterListPage on Comb (ListPageTemplate + DataTable).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 
 const shellState = { canManage: true };
 vi.mock('@so360/shell-context', () => ({
@@ -65,7 +65,7 @@ describe('MasterListPage (Comb)', () => {
     await screen.findByText('Full Time');
     expect(screen.queryByRole('button', { name: /Add Employment Type/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Active', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('Given a manager / When the add form is submitted / Then create is called with the payload', async () => {
@@ -74,7 +74,7 @@ describe('MasterListPage (Comb)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Add Employment Type/ }));
     const input = await screen.findByLabelText(/Name/);
     fireEvent.change(input, { target: { value: 'Contract' } });
-    fireEvent.click(screen.getByRole('button', { name: /Create|Save/ }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Add Employment Type' }));
     await waitFor(() =>
       expect(api.create).toHaveBeenCalledWith('employment_type', expect.objectContaining({ name: 'Contract' })),
     );

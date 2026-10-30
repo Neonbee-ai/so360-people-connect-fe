@@ -514,10 +514,10 @@ describe('Given the Department field in the create modal', () => {
     // Search narrows the list.
     const searchBox = screen.getByPlaceholderText('Select department...');
     fireEvent.change(searchBox, { target: { value: 'eng' } });
-    await waitFor(() => expect(screen.queryByText('Sales')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryAllByText('Sales').filter(el => el.tagName !== 'OPTION')).toHaveLength(0));
 
     // Click the dropdown option (last 'Engineering' in DOM is the dropdown span)
-    const engItems = screen.getAllByText('Engineering');
+    const engItems = screen.getAllByText('Engineering').filter(el => el.tagName !== 'OPTION');
     fireEvent.click(engItems[engItems.length - 1]);
     // Wait for the field to show the chosen department — ensures department_id state is committed
     await waitFor(() => expect(screen.getByPlaceholderText('Select department...')).toHaveValue('Engineering'));

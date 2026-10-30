@@ -252,6 +252,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /^Arjun Prince/ }));
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
@@ -263,6 +264,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
     it('When no manager is selected / Then submit still routes via the department-head fallback (empty list)', async () => {
         await openForm();
 
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
@@ -273,6 +275,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
@@ -289,6 +292,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
             suggested_approver_id: 'mgr-1',
         });
         await openForm();
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
