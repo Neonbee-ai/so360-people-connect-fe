@@ -207,7 +207,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <Suspense
                     fallback={
                         <div className="flex items-center justify-center min-h-[300px]">
-                            <div className="w-6 h-6 border-2 border-primary/20 border-t-teal-500 rounded-full animate-spin" />
+                            <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
                         </div>
                     }
                 >
