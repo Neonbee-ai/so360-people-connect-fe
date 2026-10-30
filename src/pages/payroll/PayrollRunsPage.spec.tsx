@@ -139,6 +139,22 @@ describe('GIVEN the new-run dialog', () => {
     expect(mockApi.runs.create).not.toHaveBeenCalled();
   });
 
+  it('WHEN open periods exist THEN the dialog tells the user employee selection is the next step', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('#5')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New payroll run'));
+    await waitFor(() => expect(screen.getByText(/choose which employees are included/)).toBeInTheDocument());
+  });
+
+  it('WHEN there are no open periods THEN the employee-selection hint is not shown', async () => {
+    mockApi.periods.list.mockResolvedValue({ data: [], total: 0 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('#5')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New payroll run'));
+    await waitFor(() => expect(screen.getByText(/No open pay periods/)).toBeInTheDocument());
+    expect(screen.queryByText(/choose which employees are included/)).not.toBeInTheDocument();
+  });
+
   it('WHEN there are no open periods THEN the dialog explains how to generate them', async () => {
     mockApi.periods.list.mockResolvedValue({ data: [], total: 0 });
     renderPage();

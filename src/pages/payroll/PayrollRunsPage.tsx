@@ -161,6 +161,7 @@ const NewRunDialog: React.FC<{
                                 </option>
                             ))}
                         </select>
+                        <p className="text-xs text-slate-500 mt-2">Next step: choose which employees are included in this run before calculating.</p>
                     </div>
                 )}
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">

@@ -228,6 +228,9 @@ const PayrollRunDetailPage: React.FC = () => {
                     {/* PREPARE */}
                     {shownStep === 'prepare' && (
                         <div className="space-y-4">
+                            <h3 className="text-sm font-semibold text-slate-50">Select employees for this run</h3>
+                            <p className="text-sm text-slate-400">Choose who is paid in this run. All eligible employees are included by default; exclude anyone who should not be paid this period (a reason is required). Only included employees get payslips and count towards the totals.</p>
+                            <p className="text-xs text-slate-500">{included.length} of {employees.length} employees included · {excluded.length} excluded</p>
                             <h3 className="text-sm font-semibold text-slate-50">Included Employees ({included.length})</h3>
                             {included.length === 0 ? (
                                 <p className="text-sm text-slate-400">No employees are in this run yet. Employees join based on their payroll group.</p>
@@ -244,7 +247,7 @@ const PayrollRunDetailPage: React.FC = () => {
                                                     onClick={() => setReasonPrompt({
                                                         title: `Exclude ${employee.person_name}`,
                                                         label: 'Why is this employee excluded from this run?',
-                                                        onSubmit: reason => act(() => payrollApi.runs.exclude(id, employee.person_id, reason), `${employee.person_name} excluded`),
+                                                        onSubmit: reason => act(() => payrollApi.runs.exclude(id, employee.id, reason), `${employee.person_name} excluded`),
                                                     })}
                                                     className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors"
                                                 >
@@ -267,7 +270,7 @@ const PayrollRunDetailPage: React.FC = () => {
                                                 </div>
                                                 {isDraft && (
                                                     <button
-                                                        onClick={() => act(() => payrollApi.runs.include(id, employee.person_id), `${employee.person_name} included`)}
+                                                        onClick={() => act(() => payrollApi.runs.include(id, employee.id), `${employee.person_name} included`)}
                                                         className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors"
                                                     >
                                                         <UserPlus size={12} /> Include
