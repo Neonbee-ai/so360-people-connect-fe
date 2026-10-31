@@ -70,6 +70,15 @@ describe('validateEmail', () => {
     });
   });
 
+  describe('Given an email whose username contains a percent sign', () => {
+    it('When "ab%c@gmail.com" is checked / Then it is rejected with the username guidance', () => {
+      const msg = validateEmail('ab%c@gmail.com');
+      expect(msg).not.toBeNull();
+      expect(msg).toContain('Username may contain');
+      expect(msg).not.toContain('percent');
+    });
+  });
+
   describe('Given an email with a malformed domain', () => {
     it('When the domain has consecutive hyphens (gm--ail.com) / Then it is rejected', () => {
       expect(validateEmail('shunma-8@gm--ail.com')).not.toBeNull();

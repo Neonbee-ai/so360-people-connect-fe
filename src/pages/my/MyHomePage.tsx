@@ -58,7 +58,7 @@ const MyHomePage: React.FC = () => {
 
     return (
         <div className="p-6 space-y-5">
-            <PageHeader title="My Work" subtitle="Your leave, goals and team at a glance" />
+            <PageHeader title="Overview" subtitle="Your leave, goals and team at a glance" />
 
             {/* Only renders while an onboarding instance is active — fetches
                 independently so it can never degrade the panels below. */}

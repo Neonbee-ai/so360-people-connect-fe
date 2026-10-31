@@ -20,6 +20,7 @@ type Props = {
 export default function UserSelector({ value, onChange, placeholder = 'Select user...' }: Props) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -28,6 +29,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(null);
 
     const orgId = apiContext.getOrgId();
     const tenantId = apiContext.getTenantId();
@@ -41,7 +43,15 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => {
+        // A 401/403/500 body is not a member list — surfacing it as "No users
+        // found" hid the real failure (permission/auth) from admins.
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.message || `Could not load users (HTTP ${res.status}).`);
+        }
+        return res.json();
+      })
       .then((data) => {
         if (cancelled) return;
         // Core API returns { members: [...], invites: [...] } or array directly
@@ -54,8 +64,10 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
         }));
         setUsers(mapped);
       })
-      .catch(() => {
-        if (!cancelled) setUsers([]);
+      .catch((err: any) => {
+        if (cancelled) return;
+        setUsers([]);
+        setLoadError(err?.message || 'Could not load users.');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -139,8 +151,14 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
         <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-slate-900 border border-slate-700 rounded-lg shadow-lg">
           {loading ? (
             <div className="px-3 py-2 text-sm text-slate-400">Loading users...</div>
+          ) : loadError ? (
+            <div role="alert" className="px-3 py-2 text-sm text-rose-400">{loadError}</div>
           ) : filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-slate-400">No users found</div>
+            <div className="px-3 py-2 text-sm text-slate-400">
+              {search
+                ? `No users match "${search}". Search by name or email.`
+                : 'No users in this organization yet. Use "Invite as New User" instead.'}
+            </div>
           ) : (
             filtered.map((user) => (
               <button

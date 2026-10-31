@@ -58,7 +58,7 @@ const navigationItems: NavSection[] = [
         // degrade per-domain via the /me endpoints' own flags.
         section: 'My Work',
         items: [
-            { path: '/my', label: 'My Work', icon: LayoutDashboard, flagKey: 'submodule:people:self_service' },
+            { path: '/my', label: 'Overview', icon: LayoutDashboard, flagKey: 'submodule:people:self_service' },
             { path: '/my/time', label: 'My Time', icon: Clock, flagKey: 'submodule:people:self_service' },
             { path: '/my/leave', label: 'My Leave', icon: CalendarDays, flagKey: 'submodule:people:self_service' },
             { path: '/my/goals', label: 'My Goals', icon: Target, flagKey: 'submodule:people:self_service' },
@@ -143,7 +143,7 @@ const navigationItems: NavSection[] = [
             { path: '/settings/skills', label: 'Skills', icon: Sparkles, adminOnly: true, flagKey: 'submodule:people:masters' },
             { path: '/settings/employee-status', label: 'Employee Status', icon: UserCheck, adminOnly: true, flagKey: 'submodule:people:masters' },
             { path: '/settings/document-types', label: 'Document Types', icon: FileText, adminOnly: true, flagKey: 'submodule:people:masters' },
-            { path: '/settings/onboarding', label: 'Onboarding', icon: ClipboardCheck, adminOnly: true, flagKey: 'submodule:people:onboarding', permKey: ['onboarding.read', 'onboarding.manage'] },
+            { path: '/settings/onboarding', label: 'Onboarding Templates', icon: ClipboardCheck, adminOnly: true, flagKey: 'submodule:people:onboarding', permKey: ['onboarding.read', 'onboarding.manage'] },
             // Email connectivity (connecting/designating a sending account)
             // belongs to so360-connect, not People Connect — disabled for now.
             // { path: '/settings/notification-sender', label: 'Notification Sender', icon: Mail, adminOnly: true, permKey: 'org_policy.read' },

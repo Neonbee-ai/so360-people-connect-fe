@@ -12,7 +12,7 @@ import UserSelector from '../components/UserSelector';
 import { usePeopleContext } from '../hooks/useShellContext';
 import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { QuotaBar, QuotaGate, toast, Drawer } from '@so360/design-system';
+import { QuotaBar, QuotaGate, toast, getErrorMessage, Drawer } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import { mastersApi, MasterRow } from '../services/mastersService';
 import { buildAtomicCreatePayload, inviteFailed } from './people/createPersonFlow';
@@ -1286,6 +1286,9 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const [workLocationsError, setWorkLocationsError] = useState(false);
     const [designations, setDesignations] = useState<MasterRow[]>([]);
     const [designationsError, setDesignationsError] = useState(false);
+    const [addingDesignation, setAddingDesignation] = useState(false);
+    const [newDesignation, setNewDesignation] = useState('');
+    const [savingDesignation, setSavingDesignation] = useState(false);
     const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
     const [employmentTypesError, setEmploymentTypesError] = useState(false);
     // "Create Employment Type" opens in a new tab so a half-filled form is kept;
@@ -1317,6 +1320,30 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
     const canCreateLeaveTypes = !!shell?.permissionsLoaded
         && !!shell?.hasPermission?.('leave.configure')
         && !!shell?.hasPermission?.('leave.create');
+    // Inline "add designation" — the masters API requires employees.create, so
+    // offer it only to callers who hold it (fails closed until perms resolve).
+    const canAddDesignation = !!shell?.permissionsLoaded && !!shell?.hasPermission?.('employees.create');
+    const handleAddDesignation = async () => {
+        const name = newDesignation.trim();
+        if (!name) return;
+        if (designations.some(d => d.name.trim().toLowerCase() === name.toLowerCase())) {
+            toast.error(`Designation "${name}" already exists.`);
+            return;
+        }
+        setSavingDesignation(true);
+        try {
+            const created = await mastersApi.create('designation', { name });
+            setDesignations(prev => [...prev, created]);
+            updateField('job_title', created.name);
+            setNewDesignation('');
+            setAddingDesignation(false);
+            toast.success(`Designation "${created.name}" added.`);
+        } catch (err) {
+            toast.error(getErrorMessage(err));
+        } finally {
+            setSavingDesignation(false);
+        }
+    };
     // Holds the resolved org currency. Initialized from the shell prop when available;
     // falls back to a direct Core BE fetch to avoid the shell's async race condition.
     const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || 'USD');
@@ -1707,18 +1734,36 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                             </select>
                             {designationsError ? (
                                 <p className="text-xs text-rose-400 mt-1">Couldn't load designations. Try reopening this form.</p>
-                            ) : designations.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
-                                    No designations configured.{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/people/settings/designations')}
-                                        className="text-teal-400 hover:text-teal-300 underline"
-                                    >
-                                        Create Designation
-                                    </button>
-                                </p>
                             ) : null}
+                            {!designationsError && canAddDesignation && (
+                                addingDesignation ? (
+                                    <div className="mt-2 flex gap-2" data-testid="add-designation-row">
+                                        <input
+                                            value={newDesignation}
+                                            onChange={(e) => setNewDesignation(e.target.value)}
+                                            maxLength={100}
+                                            placeholder="e.g. Telecaller"
+                                            aria-label="New designation name"
+                                            className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                                        />
+                                        <button type="button" onClick={handleAddDesignation} disabled={savingDesignation || !newDesignation.trim()}
+                                            className="px-3 py-2 text-sm rounded-lg bg-teal-600 text-white disabled:opacity-50">
+                                            {savingDesignation ? 'Adding...' : 'Add'}
+                                        </button>
+                                        <button type="button" onClick={() => { setAddingDesignation(false); setNewDesignation(''); }}
+                                            className="px-3 py-2 text-sm rounded-lg border border-slate-700 text-slate-300">Cancel</button>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {designations.length === 0 ? 'No designations configured. ' : 'Not in the list? '}
+                                        <button type="button" onClick={() => setAddingDesignation(true)}
+                                            className="text-teal-400 hover:text-teal-300 underline">Add new designation</button>
+                                        {' · '}
+                                        <button type="button" onClick={() => navigate('/people/settings/designations')}
+                                            className="text-teal-400 hover:text-teal-300 underline">Manage designations</button>
+                                    </p>
+                                )
+                            )}
                         </div>
                     </div>
                 </Section>
