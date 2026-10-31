@@ -15,6 +15,7 @@ vi.mock('../services/performanceReviewsService', () => ({
   performanceReviewsApi: { getById: vi.fn(), submitSelfReview: vi.fn(), submitManagerReview: vi.fn(), complete: vi.fn() },
 }));
 vi.mock('../services/performanceBlocksService', () => ({ performanceBlocksApi: { list: vi.fn().mockResolvedValue([]) } }));
+vi.mock('../services/peopleService', () => ({ peopleApi: { getMe: () => Promise.resolve(null) } }));
 vi.mock('../services/reviewTemplatesService', () => ({ reviewTemplatesApi: { getById: vi.fn() } }));
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),

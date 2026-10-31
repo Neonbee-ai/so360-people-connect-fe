@@ -202,6 +202,37 @@ interface CreateReviewModalProps {
     onCreate: (data: CreatePerformanceReviewPayload) => void;
 }
 
+/** Read-only outline of the selected review template (Pulse cac0fab5). */
+export const TemplatePreview: React.FC<{ template?: ReviewTemplate }> = ({ template }) => {
+    if (!template) return null;
+    const sections = template.sections || [];
+    const meta = [
+        `${template.rating_scale}-point scale`,
+        template.requires_self_review ? 'employee self-assessment' : '',
+        template.requires_manager_review ? 'manager assessment' : '',
+    ].filter(Boolean).join(' · ');
+    return (
+        <Card title="Template preview" data-testid="template-preview">
+            <Stack gap="tight">
+                {template.description && <p className="text-nb-sm text-fg-muted">{template.description}</p>}
+                <p className="text-nb-caption text-fg-muted">{meta}</p>
+                {sections.length === 0 ? (
+                    <p className="text-nb-caption text-fg-muted">This template has no sections yet.</p>
+                ) : (
+                    sections.map((sec) => (
+                        <Stack key={sec.id} gap="tight">
+                            <p className="text-nb-sm font-medium text-fg">{sec.title}{sec.weight ? ` (${sec.weight}%)` : ''}</p>
+                            {(sec.fields || []).map((f, i) => (
+                                <p key={i} className="text-nb-caption text-fg-muted">{f.label}</p>
+                            ))}
+                        </Stack>
+                    ))
+                )}
+            </Stack>
+        </Card>
+    );
+};
+
 const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, onCreate }) => {
     // This modal is a SIBLING of the page component, so it cannot see the
     // page's formatters — it needs its own hook to reach the org timezone.
@@ -420,6 +451,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                             options={[{ value: '', label: 'Select template' }, ...templates.map((template) => ({ value: template.id, label: `${template.name} (${template.review_type})` }))]}
                         />
                     )}
+                    <TemplatePreview template={templates.find((t) => t.id === formData.template_id)} />
 
                     <Grid columns={2} gap="lg">
                         <DateInput
