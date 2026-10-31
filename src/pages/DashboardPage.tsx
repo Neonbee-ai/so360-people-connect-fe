@@ -6,7 +6,7 @@ import {
     Users, Clock, Target, DollarSign, ArrowRight, UserPlus, UserMinus,
 } from 'lucide-react';
 import {
-    DashboardPageTemplate, KpiCard, Card, Grid, Stack, Cluster, Button, Badge, Alert,
+    DashboardPageTemplate, KpiCard, Card, Grid, GridItem, Stack, Cluster, Button, Badge, Alert,
 } from '@so360/design-system';
 import StatusBadge from '../components/StatusBadge';
 import { utilizationApi, eventsApi } from '../services/peopleService';
@@ -86,88 +86,98 @@ const DashboardPage: React.FC = () => {
             kpis={kpis}
             primary={(
                 <Stack gap="region">
-                    <Grid columns={3} gap="lg">
-                        <Card title="Active Allocations">
-                            <p className="text-nb-xl font-bold text-fg">{summary?.active_allocations || 0}</p>
-                        </Card>
-                        <Card title="Pending Approvals">
-                            <Stack gap="tight">
-                                <p className="text-nb-xl font-bold text-fg">{summary?.pending_approvals || 0}</p>
-                                {summary && summary.pending_approvals > 0 && (
-                                    <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/people/time')}>
-                                        Review now <ArrowRight className="w-3 h-3" />
-                                    </Button>
-                                )}
-                            </Stack>
-                        </Card>
-                        <Card title="Daily Burn Rate">
-                            <p className="text-nb-xl font-bold text-fg">{formatCurrency(summary?.burn_rate_daily || 0)}</p>
-                        </Card>
+                    <Grid columns="auto" gap="lg">
+                        <GridItem span={4}>
+                            <Card title="Active Allocations">
+                                <p className="text-nb-xl font-bold text-fg">{summary?.active_allocations || 0}</p>
+                            </Card>
+                        </GridItem>
+                        <GridItem span={4}>
+                            <Card title="Pending Approvals">
+                                <Stack gap="tight">
+                                    <p className="text-nb-xl font-bold text-fg">{summary?.pending_approvals || 0}</p>
+                                    {summary && summary.pending_approvals > 0 && (
+                                        <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/people/time')}>
+                                            Review now <ArrowRight className="w-3 h-3" />
+                                        </Button>
+                                    )}
+                                </Stack>
+                            </Card>
+                        </GridItem>
+                        <GridItem span={4}>
+                            <Card title="Daily Burn Rate">
+                                <p className="text-nb-xl font-bold text-fg">{formatCurrency(summary?.burn_rate_daily || 0)}</p>
+                            </Card>
+                        </GridItem>
                     </Grid>
 
-                    <Grid columns={2} gap="lg">
-                        <Card
-                            title="Recent Timesheet Entries"
-                            actions={(
-                                <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/people/time')}>
-                                    View all <ArrowRight className="w-3 h-3" />
-                                </Button>
-                            )}
-                        >
-                            {recentEntries.length === 0 ? (
-                                <p className="text-nb-sm text-fg-subtle text-center">No time entries yet</p>
-                            ) : (
-                                <Stack gap="default">
-                                    {recentEntries.map((entry) => (
-                                        <Cluster key={entry.id} gap="default" align="center" justify="between">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-nb-sm text-fg truncate">{entry.entity_name || entry.entity_type || 'Time entry'}</div>
-                                                <div className="text-nb-xs text-fg-subtle truncate">
-                                                    {entry.entry_date} - {entry.description || 'No description'}
+                    <Grid columns="auto" gap="lg">
+                        <GridItem span={6}>
+                            <Card
+                                title="Recent Timesheet Entries"
+                                actions={(
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/people/time')}>
+                                        View all <ArrowRight className="w-3 h-3" />
+                                    </Button>
+                                )}
+                            >
+                                {recentEntries.length === 0 ? (
+                                    <p className="text-nb-sm text-fg-subtle text-center">No time entries yet</p>
+                                ) : (
+                                    <Stack gap="default">
+                                        {recentEntries.map((entry) => (
+                                            <Cluster key={entry.id} gap="default" align="center" justify="between">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-nb-sm text-fg truncate">{entry.entity_name || entry.entity_type || 'Time entry'}</div>
+                                                    <div className="text-nb-xs text-fg-subtle truncate">
+                                                        {entry.entry_date} - {entry.description || 'No description'}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <Cluster gap="default" align="center">
-                                                <span className="text-nb-sm font-medium text-fg">{entry.hours}h</span>
-                                                <StatusBadge status={entry.status} />
-                                            </Cluster>
-                                        </Cluster>
-                                    ))}
-                                </Stack>
-                            )}
-                        </Card>
-
-                        <Card title="Activity Feed">
-                            {recentEvents.length === 0 ? (
-                                <p className="text-nb-sm text-fg-subtle text-center">No events yet</p>
-                            ) : (
-                                <Stack gap="default">
-                                    {recentEvents.map((event) => {
-                                        const payload = payloadOf(event);
-                                        return (
-                                            <div key={event.id}>
-                                                <Cluster gap="tight" align="center">
-                                                    <span className="text-nb-xs font-medium text-primary">
-                                                        {eventTypeLabels[event.event_type] || event.event_type}
-                                                    </span>
-                                                    <span className="text-nb-xs text-fg-subtle">by</span>
-                                                    <span className="text-nb-xs text-fg-muted">{event.actor_name || 'System'}</span>
+                                                <Cluster gap="default" align="center">
+                                                    <span className="text-nb-sm font-medium text-fg">{entry.hours}h</span>
+                                                    <StatusBadge status={entry.status} />
                                                 </Cluster>
-                                                <div className="text-nb-xs text-fg-subtle">
-                                                    {payload && typeof payload === 'object' && (
-                                                        <>
-                                                            {payload.entity_name && <span>{String(payload.entity_name)}</span>}
-                                                            {payload.full_name && <span>{String(payload.full_name)}</span>}
-                                                            {payload.hours && <span> - {String(payload.hours)}h</span>}
-                                                        </>
-                                                    )}
-                                                    <span className="ml-2 text-fg-subtle">{formatters.formatDate(event.occurred_at)}</span>
+                                            </Cluster>
+                                        ))}
+                                    </Stack>
+                                )}
+                            </Card>
+                        </GridItem>
+
+                        <GridItem span={6}>
+                            <Card title="Activity Feed">
+                                {recentEvents.length === 0 ? (
+                                    <p className="text-nb-sm text-fg-subtle text-center">No events yet</p>
+                                ) : (
+                                    <Stack gap="default">
+                                        {recentEvents.map((event) => {
+                                            const payload = payloadOf(event);
+                                            return (
+                                                <div key={event.id}>
+                                                    <Cluster gap="tight" align="center">
+                                                        <span className="text-nb-xs font-medium text-primary">
+                                                            {eventTypeLabels[event.event_type] || event.event_type}
+                                                        </span>
+                                                        <span className="text-nb-xs text-fg-subtle">by</span>
+                                                        <span className="text-nb-xs text-fg-muted">{event.actor_name || 'System'}</span>
+                                                    </Cluster>
+                                                    <div className="text-nb-xs text-fg-subtle">
+                                                        {payload && typeof payload === 'object' && (
+                                                            <>
+                                                                {payload.entity_name && <span>{String(payload.entity_name)}</span>}
+                                                                {payload.full_name && <span>{String(payload.full_name)}</span>}
+                                                                {payload.hours && <span> - {String(payload.hours)}h</span>}
+                                                            </>
+                                                        )}
+                                                        <span className="ml-2 text-fg-subtle">{formatters.formatDate(event.occurred_at)}</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                </Stack>
-                            )}
-                        </Card>
+                                            );
+                                        })}
+                                    </Stack>
+                                )}
+                            </Card>
+                        </GridItem>
                     </Grid>
                 </Stack>
             )}

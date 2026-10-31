@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart3, Download, FileSpreadsheet } from 'lucide-react';
-import { toast, Select, Button, Cluster, Stack, Grid, GridItem, Skeleton, DataTable, DateInput, DashboardPageTemplate } from '@so360/design-system';
+import { toast, Select, Button, Cluster, ChoiceCardGrid, SelectableCard, Skeleton, DataTable, DateInput, DashboardPageTemplate } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import EmptyState from '../../components/EmptyState';
 import { payrollApi, ReportResult, PayrollGroup } from '../../services/payrollApi';
@@ -114,22 +114,22 @@ const PayrollReportsPage: React.FC = () => {
                 </Cluster>
             }
             primary={
-                <Grid columns="auto" gap="md">
+                <ChoiceCardGrid
+                    name="payroll-reports"
+                    aria-label="Payroll reports"
+                    value={selectedReport || undefined}
+                    onChange={(key: string) => runReport(key)}
+                >
                     {REPORTS.map(report => (
-                        <GridItem key={report.key} span={3}>
-                            <Button
-                                variant={selectedReport === report.key ? 'secondary' : 'ghost'}
-                                onClick={() => runReport(report.key)}
-                            >
-                                <Stack gap="tight">
-                                    <FileSpreadsheet size={16} className={selectedReport === report.key ? 'text-primary' : 'text-fg-subtle'} />
-                                    <span className="text-nb-body text-fg">{report.label}</span>
-                                    <span className="text-nb-caption text-fg-muted">{report.description}</span>
-                                </Stack>
-                            </Button>
-                        </GridItem>
+                        <SelectableCard
+                            key={report.key}
+                            value={report.key}
+                            icon={FileSpreadsheet}
+                            title={report.label}
+                            description={report.description}
+                        />
                     ))}
-                </Grid>
+                </ChoiceCardGrid>
             }
             bottom={
                 loading ? (
