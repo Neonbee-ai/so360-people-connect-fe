@@ -1478,7 +1478,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
         // triggered by an empty string.
         const payload: any = { ...formData, full_name: formData.full_name.trim() };
         payload.department_id = payload.department_id || undefined;
-        payload.type = personTypeForEmploymentType(payload.employment_type);
+        payload.type = personTypeForEmploymentType(payload.employment_type, 'employee', employmentTypes);
         // The invitation always goes to the Identity email — never carry a separate value.
         payload.inviteEmail = payload.email;
         if (Object.keys(customFieldValues).length > 0) {
@@ -1678,7 +1678,7 @@ const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, 
                                 </p>
                             ) : (
                                 <p className="text-xs text-slate-500 mt-1" data-testid="derived-person-type">
-                                    Recorded as {personTypeLabel(personTypeForEmploymentType((formData as any).employment_type))}
+                                    Recorded as {personTypeLabel(personTypeForEmploymentType((formData as any).employment_type, 'employee', employmentTypes))}
                                 </p>
                             )}
                         </div>
@@ -2175,7 +2175,7 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
         // implies a different type. An unrelated edit (e.g. the phone) must not
         // rewrite a stored type — it drives the party:contractor/party:employee
         // role — and a consultant must not be converted to a contractor.
-        const nextType = typeToSendOnEdit(person.employment_type, payload.employment_type, person.type);
+        const nextType = typeToSendOnEdit(person.employment_type, payload.employment_type, person.type, employmentTypes);
         if (nextType) payload.type = nextType;
         else delete payload.type;
         // Empty select value means "clear it". Send null rather than '' so the
@@ -2356,12 +2356,12 @@ const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClo
                                 </p>
                             ) : (
                                 <p className="text-xs text-slate-500 mt-1" data-testid="derived-person-type">
-                                    Recorded as {personTypeLabel(person ? (typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) ?? person.type) : personTypeForEmploymentType(formData.employment_type))}
+                                    Recorded as {personTypeLabel(person ? (typeToSendOnEdit(person.employment_type, formData.employment_type, person.type, employmentTypes) ?? person.type) : personTypeForEmploymentType(formData.employment_type, 'employee', employmentTypes))}
                                 </p>
                             )}
-                            {person && typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) && (
+                            {person && typeToSendOnEdit(person.employment_type, formData.employment_type, person.type, employmentTypes) && (
                                 <p role="status" className="text-xs text-amber-400 mt-1" data-testid="person-type-change-notice">
-                                    Saving will change this person's type from {personTypeLabel(person.type)} to {personTypeLabel(typeToSendOnEdit(person.employment_type, formData.employment_type, person.type)!)}.
+                                    Saving will change this person's type from {personTypeLabel(person.type)} to {personTypeLabel(typeToSendOnEdit(person.employment_type, formData.employment_type, person.type, employmentTypes)!)}.
                                 </p>
                             )}
                         </div>

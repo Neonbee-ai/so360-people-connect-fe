@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { masterPayloadForSubmit } from '../utils/masterPayload';
 import { Plus, Edit2, Trash2, Settings, LucideIcon } from 'lucide-react';
 import PageHeader from './PageHeader';
 import EmptyState from './EmptyState';
@@ -26,6 +27,8 @@ export interface MasterListPageProps {
   description?: string;
   /** Designations use Level + Grade; other lists omit them. */
   showLevelGrade?: boolean;
+  /** Employment Types: show and edit whether the type counts as a contractor (per org). */
+  showContractorFlag?: boolean;
   /** Feature flag gating create/edit/delete — defaults to the shared people action flag. */
   manageFlagKey?: string;
   /**
@@ -46,6 +49,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
   icon,
   description,
   showLevelGrade = false,
+  showContractorFlag = false,
   manageFlagKey = 'action:people:employees:create',
   rowExtraAction,
 }) => {
@@ -161,6 +165,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
                     <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Grade</th>
                   </>
                 )}
+                {showContractorFlag && <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Counts as</th>}
                 <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Active</th>
                 {canManage && <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>}
               </tr>
@@ -174,6 +179,13 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
                       <td className="px-4 py-3 text-slate-400">{row.level || '—'}</td>
                       <td className="px-4 py-3 text-slate-400">{row.grade || '—'}</td>
                     </>
+                  )}
+                  {showContractorFlag && (
+                    <td className="px-4 py-3">
+                      <span data-testid="master-contractor-badge" className={`text-xs ${row.is_contractor ? 'text-amber-400' : 'text-slate-400'}`}>
+                        {row.is_contractor ? 'Contractor' : 'Employee'}
+                      </span>
+                    </td>
                   )}
                   <td className="px-4 py-3">
                     {canManage ? (
@@ -226,6 +238,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
         row={editing}
         label={label}
         showLevelGrade={showLevelGrade}
+        showContractorFlag={showContractorFlag}
       />
     </div>
   );
@@ -243,6 +256,7 @@ interface MasterFormModalProps {
   row: MasterRow | null;
   label: string;
   showLevelGrade: boolean;
+  showContractorFlag?: boolean;
 }
 
 const MasterFormModal: React.FC<MasterFormModalProps> = ({
@@ -253,12 +267,13 @@ const MasterFormModal: React.FC<MasterFormModalProps> = ({
   row,
   label,
   showLevelGrade,
+  showContractorFlag = false,
 }) => {
   const [form, setForm] = useState<CreateMasterPayload>(BLANK);
 
   useEffect(() => {
     if (row) {
-      setForm({ name: row.name, level: row.level || '', grade: row.grade || '', is_active: row.is_active });
+      setForm({ name: row.name, level: row.level || '', grade: row.grade || '', is_active: row.is_active, is_contractor: row.is_contractor ?? undefined });
     } else {
       setForm(BLANK);
     }
@@ -270,10 +285,11 @@ const MasterFormModal: React.FC<MasterFormModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
+    const payload = masterPayloadForSubmit(form, row, showContractorFlag);
     if (row) {
-      onUpdate(row.id, form);
+      onUpdate(row.id, payload);
     } else {
-      onCreate(form);
+      onCreate(payload);
     }
   };
 
@@ -315,6 +331,21 @@ const MasterFormModal: React.FC<MasterFormModalProps> = ({
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
               />
             </div>
+          </div>
+        )}
+        {showContractorFlag && (
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400">Counts as contractor</label>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!form.is_contractor}
+              aria-label="Counts as contractor"
+              onClick={() => set('is_contractor', !form.is_contractor)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_contractor ? 'bg-teal-600' : 'bg-slate-700'}`}
+            >
+              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${form.is_contractor ? 'translate-x-5' : 'translate-x-1'}`} />
+            </button>
           </div>
         )}
         {row && (
