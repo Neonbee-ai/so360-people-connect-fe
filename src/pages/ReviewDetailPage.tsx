@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
     toast, DetailPageTemplate, Card, Stack, Cluster, Grid, Button, Badge, Rating,
-    TextField, Textarea, NumberInput, Checkbox,
+    TextField, Textarea, NumberInput, Checkbox, EmptyState,
 } from '@so360/design-system';
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -405,7 +405,7 @@ const ReviewDetailPage: React.FC = () => {
                                         </div>
                                     )}
                                     {!selfSubmitted && !managerSubmitted && (
-                                        <p className="text-nb-sm text-fg-muted text-center">No reviews submitted yet.</p>
+                                        <EmptyState title="No reviews submitted yet" />
                                     )}
                                 </Stack>
                             )}
