@@ -183,6 +183,7 @@ const EmploymentTypesPage: React.FC = () => {
             <MasterListPage
                 masterType="employment_type"
                 label="Employment Type"
+                showContractorFlag
                 icon={Briefcase}
                 description="Full Time, Part Time, Contract, and other employment arrangements"
                 rowExtraAction={canConfigureLeave ? (row) => (

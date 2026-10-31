@@ -163,7 +163,7 @@ export const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen
         // implies a different type. An unrelated edit (e.g. the phone) must not
         // rewrite a stored type — it drives the party:contractor/party:employee
         // role — and a consultant must not be converted to a contractor.
-        const nextType = typeToSendOnEdit(person.employment_type, payload.employment_type, person.type);
+        const nextType = typeToSendOnEdit(person.employment_type, payload.employment_type, person.type, employmentTypes);
         if (nextType) payload.type = nextType;
         else delete payload.type;
         // Empty select value means "clear it". Send null rather than '' so the
@@ -306,12 +306,12 @@ export const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen
                             </p>
                         ) : (
                             <p className="text-nb-caption text-fg-subtle" data-testid="derived-person-type">
-                                Recorded as {personTypeLabel(person ? (typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) ?? person.type) : personTypeForEmploymentType(formData.employment_type))}
+                                Recorded as {personTypeLabel(person ? (typeToSendOnEdit(person.employment_type, formData.employment_type, person.type, employmentTypes) ?? person.type) : personTypeForEmploymentType(formData.employment_type, 'employee', employmentTypes))}
                             </p>
                         )}
-                        {person && typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) && (
+                        {person && typeToSendOnEdit(person.employment_type, formData.employment_type, person.type, employmentTypes) && (
                             <p role="status" className="text-nb-caption text-warning" data-testid="person-type-change-notice">
-                                Saving will change this person's type from {personTypeLabel(person.type)} to {personTypeLabel(typeToSendOnEdit(person.employment_type, formData.employment_type, person.type)!)}.
+                                Saving will change this person's type from {personTypeLabel(person.type)} to {personTypeLabel(typeToSendOnEdit(person.employment_type, formData.employment_type, person.type, employmentTypes)!)}.
                             </p>
                         )}
                     </Stack>

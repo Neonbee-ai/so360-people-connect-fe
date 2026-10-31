@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { masterPayloadForSubmit } from '../utils/masterPayload';
 import { Plus, Edit2, Trash2, Settings, LucideIcon } from 'lucide-react';
 import EmptyState from './EmptyState';
 import Modal from './Modal';
@@ -38,6 +39,8 @@ export interface MasterListPageProps {
   description?: string;
   /** Designations use Level + Grade; other lists omit them. */
   showLevelGrade?: boolean;
+  /** Employment Types: show and edit whether the type counts as a contractor (per org). */
+  showContractorFlag?: boolean;
   /** Feature flag gating create/edit/delete — defaults to the shared people action flag. */
   manageFlagKey?: string;
   /**
@@ -58,6 +61,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
   icon,
   description,
   showLevelGrade = false,
+  showContractorFlag = false,
   manageFlagKey = 'action:people:employees:create',
   rowExtraAction,
 }) => {
@@ -130,6 +134,17 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
       ? [
           { key: 'level', header: 'Level', render: (row: MasterRow) => row.level || '—' },
           { key: 'grade', header: 'Grade', render: (row: MasterRow) => row.grade || '—' },
+        ]
+      : []),
+    ...(showContractorFlag
+      ? [
+          {
+            key: 'is_contractor',
+            header: 'Counts as',
+            render: (row: MasterRow) => (
+              <Badge tone={row.is_contractor ? 'warning' : 'neutral'}>{row.is_contractor ? 'Contractor' : 'Employee'}</Badge>
+            ),
+          },
         ]
       : []),
     {
@@ -210,6 +225,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
         row={editing}
         label={label}
         showLevelGrade={showLevelGrade}
+        showContractorFlag={showContractorFlag}
       />
     </>
   );
@@ -227,6 +243,7 @@ interface MasterFormModalProps {
   row: MasterRow | null;
   label: string;
   showLevelGrade: boolean;
+  showContractorFlag?: boolean;
 }
 
 const MasterFormModal: React.FC<MasterFormModalProps> = ({
@@ -237,12 +254,13 @@ const MasterFormModal: React.FC<MasterFormModalProps> = ({
   row,
   label,
   showLevelGrade,
+  showContractorFlag = false,
 }) => {
   const [form, setForm] = useState<CreateMasterPayload>(BLANK);
 
   useEffect(() => {
     if (row) {
-      setForm({ name: row.name, level: row.level || '', grade: row.grade || '', is_active: row.is_active });
+      setForm({ name: row.name, level: row.level || '', grade: row.grade || '', is_active: row.is_active, is_contractor: row.is_contractor ?? undefined });
     } else {
       setForm(BLANK);
     }
@@ -254,10 +272,11 @@ const MasterFormModal: React.FC<MasterFormModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
+    const payload = masterPayloadForSubmit(form, row, showContractorFlag);
     if (row) {
-      onUpdate(row.id, form);
+      onUpdate(row.id, payload);
     } else {
-      onCreate(form);
+      onCreate(payload);
     }
   };
 
@@ -296,6 +315,14 @@ const MasterFormModal: React.FC<MasterFormModalProps> = ({
                 placeholder="e.g. L3"
               />
             </FieldGrid>
+          )}
+          {showContractorFlag && (
+            <Switch
+              name="master-is-contractor"
+              label="Counts as contractor"
+              checked={!!form.is_contractor}
+              onCheckedChange={checked => set('is_contractor', checked)}
+            />
           )}
           {row && (
             <Switch
