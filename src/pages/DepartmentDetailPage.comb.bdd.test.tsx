@@ -119,3 +119,13 @@ describe('Given DepartmentDetailPage on Comb', () => {
         expect(toast).toBeDefined();
     });
 });
+
+describe('Given a department nobody has scoped access to (Pulse 27654625)', () => {
+    it('When the Access tab opens / Then exactly one Grant Access button is offered', async () => {
+        renderPage();
+        expect(await screen.findByRole('heading', { name: 'Engineering' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'Access' }));
+        expect(await screen.findByText('No one has scoped access to this department')).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: /Grant Access/ })).toHaveLength(1);
+    });
+});
