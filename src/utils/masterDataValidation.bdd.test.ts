@@ -35,8 +35,12 @@ describe('Given the Full Name field on Add Person', () => {
     expect(validatePersonName('2John Doe')).toBeTruthy();
   });
 
-  it('When a name mixes digits with symbols / Then it is rejected', () => {
-    expect(validatePersonName('John+46 Doe')).toBeTruthy();
+  it('When a name has symbols after the first character / Then it is accepted (matches BE, fe5e09e)', () => {
+    expect(validatePersonName('John+46 Doe')).toBeNull();
+  });
+
+  it('When a name starts with + / Then it is rejected', () => {
+    expect(validatePersonName('+46 John')).toBeTruthy();
   });
 
   it('When the field is empty or whitespace / Then a required message is returned', () => {

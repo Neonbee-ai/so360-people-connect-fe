@@ -28,8 +28,8 @@ export function isUuid(value: unknown): boolean {
 
 // At least one letter (any script) — blocks "897+46+4+61" / "5464687987&(&%".
 const HAS_LETTER_RE = /\p{L}/u;
-// Starts with a letter; then letters, digits ("John Smith 3rd"), spaces and
-// the punctuation that occurs in real names — same as HubSpot/Zoho/Salesforce.
+// Must not start with a digit or "+"; no control characters. Symbols, emoji
+// and digits after the first character are allowed (matches the BE).
 const PERSON_NAME_RE = /^(?![\d+])[^\p{Cc}\p{Cs}]+$/u;
 // Practical RFC-5322 subset: no spaces, single @, dotted TLD of 2+ letters.
 // Username disallows consecutive/leading/trailing periods; each domain label
@@ -44,7 +44,7 @@ const DEPARTMENT_CODE_RE = /^[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*$/;
 // ("R&D", "QA Department", "Sales (EMEA)").
 const DEPARTMENT_NAME_RE = /^[\p{L}\p{M}\p{N}\s&/(),.'’-]+$/u;
 
-/** Full name: 2–100 chars, starts with a letter, digits allowed after it, no symbols. */
+/** Full name: 2–100 chars, contains a letter, not starting with a digit or +, no control chars. */
 export function validatePersonName(value: unknown): string | null {
   const name = typeof value === 'string' ? value.trim() : '';
   if (!name) return 'Full name is required.';
