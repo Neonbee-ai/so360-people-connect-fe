@@ -506,3 +506,11 @@ const TrailBack = ({ item }: any) => {
     />
   );
 };
+
+export const EventCalendar = ({ events = [], onEventClick, name, 'data-testid': testId }: any) => (
+  <div data-testid={testId} data-name={name} role="grid" aria-label="Calendar">
+    {events.map((e: any) => (
+      <button key={e.id} type="button" data-start={e.start} data-tone={e.tone} onClick={() => onEventClick?.(e)}>{e.title}</button>
+    ))}
+  </div>
+);
