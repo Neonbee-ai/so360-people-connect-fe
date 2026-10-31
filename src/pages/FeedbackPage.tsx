@@ -207,6 +207,7 @@ interface CreateFeedbackModalProps {
 
 const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClose, onCreate }) => {
     const [people, setPeople] = useState<Person[]>([]);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [formData, setFormData] = useState<CreateFeedbackPayload>({
         person_id: '',
         provider_id: apiContext.getUserId() || '',
@@ -220,7 +221,11 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
         if (isOpen) {
             peopleApi.getAll({ status: 'active', limit: 200 }).then(res => {
                 setPeople(res.data || []);
-            }).catch(() => {});
+                setLoadError(null);
+            }).catch((err: unknown) => {
+                setPeople([]);
+                setLoadError(err instanceof Error && err.message ? err.message : 'Could not load people. Please try again.');
+            });
         }
     }, [isOpen]);
 
@@ -245,9 +250,10 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
                         value={formData.person_id}
                         onChange={(id) => updateField('person_id', id)}
                         placeholder="Search people..."
-                        emptyMessage="No people available"
+                        emptyMessage={loadError || 'No people found'}
                         data-testid="feedback-person-picker"
                     />
+                    {loadError && <p role="alert" className="mt-1 text-xs text-red-400">{loadError}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
