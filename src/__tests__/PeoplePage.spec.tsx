@@ -124,7 +124,7 @@ describe('PeoplePage', () => {
     it('When a status filter is selected / Then the API is called with status', async () => {
       renderPage();
       await waitFor(() => expect(mockPeopleApi.getAll).toHaveBeenCalled());
-      const statusSelect = screen.getByDisplayValue('All Statuses');
+      const statusSelect = screen.getAllByLabelText('Status')[0];
       fireEvent.change(statusSelect, { target: { value: 'active' } });
       await waitFor(() => expect(mockPeopleApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ status: 'active' })));
     });
@@ -279,7 +279,7 @@ const accessPerson = (over: Record<string, any> = {}) => ({
 // Scope assertions to a single person's card so duplicated labels (Role:/Invite:)
 // across rows never cross-match.
 const rowFor = (name: string) =>
-  screen.getByText(name).closest('div.cursor-pointer') as HTMLElement;
+  screen.getByText(name).closest('tr') as HTMLElement;
 
 describe('PeoplePage — System access columns', () => {
   describe('Access Status badge', () => {

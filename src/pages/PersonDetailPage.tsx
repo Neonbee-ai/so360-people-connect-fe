@@ -239,7 +239,7 @@ const PersonDetailPage: React.FC = () => {
         if (!id) return;
         try {
             const data = await peopleApi.getRateHistory(id);
-            setRateHistory(data);
+            setRateHistory(data ?? []);
         } catch (error) {
             console.error('Failed to load rate history:', error);
         }

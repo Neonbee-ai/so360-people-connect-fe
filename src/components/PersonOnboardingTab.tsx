@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ClipboardCheck, CheckCircle, Ban, Play, Upload } from 'lucide-react';
 import {
   toast, getErrorMessage, Select, Button, Badge, Card, Progress, Skeleton, Stack, Cluster, TextField, Textarea,
@@ -50,6 +51,7 @@ const ItemStatusPill: React.FC<{ status: string }> = ({ status }) => (
  */
 const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
   const shell = useShellBridge() as any;
+  const navigate = useNavigate();
   // Fail open while permissions resolve, fail closed once loaded — the
   // useCanViewCompensation pattern applied to the onboarding codes.
   const canManage = !shell?.permissionsLoaded
@@ -214,7 +216,7 @@ const PersonOnboardingTab: React.FC<{ personId: string }> = ({ personId }) => {
           description="Onboarding runs from a checklist template, and this organization doesn't have one yet. Add a standard template — or build your own — then come back to start onboarding."
           action={{
             label: 'Configure Templates',
-            onClick: () => { window.location.hash = '#/settings/onboarding'; },
+            onClick: () => { navigate('/people/settings/onboarding'); },
           }}
         />
       );

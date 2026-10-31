@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Calendar } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
-import { toast, Select, Button, Badge, Avatar, ListPageTemplate, DataTable, Modal, DateInput, Checkbox, Textarea, DescriptionList, Stack, Cluster } from '@so360/design-system';
+import { toast, Select, Button, Badge, Avatar, ListPageTemplate, DataTable, Modal, DateInput, Checkbox, Textarea, DescriptionList, Stack, Cluster, Alert } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -323,6 +323,7 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (exceedsBalance) return;
         const nextErrors = validate(formData, allowsBackdating);
         if (Object.keys(nextErrors).length > 0 || !formData.person_id) {
             setErrors(nextErrors);
@@ -369,6 +370,15 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
     };
 
     const selectedBalance = balances.find(b => b.leave_type_id === formData.leave_type_id);
+    // Over-balance requests are rejected by the server; say so up front and block
+    // the submit. Leave types with accrual_type 'none' (e.g. event-based) have no
+    // balance to exceed. Unknown balance never blocks — the server is authoritative.
+    const requestedDays = calculateTotalDays();
+    const exceedsBalance =
+        !!selectedBalance &&
+        selectedLeaveType?.accrual_type !== 'none' &&
+        requestedDays !== null &&
+        requestedDays > selectedBalance.available;
 
     return (
         <Modal
@@ -381,8 +391,8 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                     <Button
                         type="submit"
                         form="leave-request-form"
-                        disabled={!isFormValid || submitting}
-                        title={isFormValid ? undefined : 'Complete all required fields with valid dates to submit.'}
+                        disabled={!isFormValid || exceedsBalance || submitting}
+                        title={exceedsBalance ? 'Requested days exceed your available balance.' : isFormValid ? undefined : 'Complete all required fields with valid dates to submit.'}
                     >
                         {submitting ? 'Submitting…' : 'Submit Request'}
                     </Button>
@@ -425,6 +435,11 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                                     { label: 'Remaining', value: <span className="font-medium text-primary">{selectedBalance.available} days</span> },
                                 ]}
                             />
+                        )}
+                        {exceedsBalance && selectedBalance && (
+                            <Alert variant="warning">
+                                You are requesting {requestedDays} days but only {selectedBalance.available} are available for this leave type.
+                            </Alert>
                         )}
                     </Stack>
 

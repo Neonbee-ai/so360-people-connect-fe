@@ -168,6 +168,11 @@ const NewRunDialog: React.FC<{
                             options={[{ value: '', label: 'Select an open period…' }, ...periods.map(period => ({ value: period.id, label: `${period.period_start} – ${period.period_end}` }))]}
                         />
                     )}
+                    {periods.length > 0 && (
+                        <p className="text-nb-caption text-fg-subtle">
+                            Next step: choose which employees are included in this run before calculating.
+                        </p>
+                    )}
                 </Stack>
             </form>
         </Modal>

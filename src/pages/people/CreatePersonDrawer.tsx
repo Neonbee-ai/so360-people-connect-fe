@@ -36,7 +36,8 @@ import { WorkLocationFieldHelp, Section, QuickAddLocationPanel } from './WorkLoc
 export interface CreatePersonModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreate: (data: CreatePersonPayload) => void;
+    /** Resolve `false` when nothing was saved so the form keeps the admin's input for a retry. */
+    onCreate: (data: CreatePersonPayload) => void | boolean | Promise<void | boolean>;
     currencies?: string[];
     // Org's configured base currency; pre-selected as the default. Falls back to
     // 'USD' only when no org currency is configured.
@@ -81,6 +82,10 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
     // Types page guard (leave.configure) and the create endpoint's own guard
     // (leave.create). Fails closed: offering a create that then 403s is worse
     // than not offering it until permissions resolve.
+    // The Employment Types page is guarded by org_policy.read — don't open a
+    // new tab onto an access-denied screen. Fails closed while loading.
+    const canManageEmploymentTypes = !!shell?.permissionsLoaded
+        && !!shell?.hasPermission?.('org_policy.read');
     const canCreateLeaveTypes = !!shell?.permissionsLoaded
         && !!shell?.hasPermission?.('leave.configure')
         && !!shell?.hasPermission?.('leave.create');
@@ -206,7 +211,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
     // anchored to a field the user may have scrolled past.
     const isFormValid = Object.keys(validate(formData)).length === 0;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const validationErrors = validate(formData);
         if (Object.keys(validationErrors).length > 0) {
@@ -230,7 +235,9 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
         if (leaveOverrides.length > 0) {
             payload.leaveOverrides = leaveOverrides;
         }
-        onCreate(payload);
+        const saved = await onCreate(payload);
+        // Backend rolled back: keep the form as-is so the admin can retry.
+        if (saved === false) return;
         setCustomFieldValues({});
         setLeaveOverrides([]);
         // Reset form
@@ -367,6 +374,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
                         ) : employmentTypes.length === 0 ? (
                             <p className="text-nb-caption text-fg-subtle">
                                 No employment types configured.{' '}
+                                {!canManageEmploymentTypes ? 'Ask an administrator to add them.' : (
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -374,6 +382,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
                                 >
                                     Create Employment Type
                                 </Button>
+                                )}
                             </p>
                         ) : (
                             <p className="text-nb-caption text-fg-subtle" data-testid="derived-person-type">

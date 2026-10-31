@@ -180,7 +180,7 @@ describe('Given a person linked to a department', () => {
     fireEvent.click(screen.getByText('Edit'));
 
     // The active-only dropdown cannot resolve the archived dept → placeholder.
-    const deptTrigger = await screen.findByText('Select department...');
+    const deptTrigger = await screen.findByPlaceholderText('Select department...');
     fireEvent.click(deptTrigger);
     fireEvent.click(await screen.findByText('Sales'));
 

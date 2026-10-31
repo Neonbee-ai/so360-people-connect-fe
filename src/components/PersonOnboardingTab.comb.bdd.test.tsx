@@ -19,6 +19,9 @@ vi.mock('../services/onboardingService', async () => {
   };
 });
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
+
 let mockShell: any;
 vi.mock('@so360/shell-context', () => ({ useShellBridge: () => mockShell }));
 

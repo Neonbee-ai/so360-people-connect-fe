@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { toast } from '@so360/design-system';
 import GoalsPage from './GoalsPage';
+import { peopleApi } from '../services/peopleService';
 import { goalsApi } from '../services/goalsService';
 
 vi.mock('../services/goalsService', () => ({
@@ -85,5 +86,38 @@ describe('GoalsPage (Comb)', () => {
     api.getAll.mockRejectedValue(new Error('boom'));
     renderPage();
     await waitFor(() => expect(spy).toHaveBeenCalledWith('Failed to load goals'));
+  });
+
+  it('Given no goals and create allowed / When loaded / Then exactly one Create Goal button is shown', async () => {
+    api.getAll.mockResolvedValue({ data: [], total: 0 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('No goals found')).toBeInTheDocument());
+    expect(screen.getAllByRole('button', { name: /Create Goal/ })).toHaveLength(1);
+  });
+
+  it('Given a directory reader (admin) / When the create modal opens / Then an Assigned To picker is shown', async () => {
+    (peopleApi.getAll as any).mockResolvedValueOnce({ data: [{ id: 'p1', full_name: 'Alice' }] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Create Goal/ }));
+    expect(await screen.findByText('Assigned To')).toBeInTheDocument();
+  });
+
+  it('Given a user who cannot list people (403) / When the create modal opens / Then no picker is shown', async () => {
+    (peopleApi.getAll as any).mockRejectedValueOnce(new Error('403'));
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Create Goal/ }));
+    await screen.findByRole('dialog');
+    expect(screen.queryByText('Assigned To')).not.toBeInTheDocument();
+  });
+
+  it('Given the modal is open / When viewed / Then Target, Current and Unit are marked optional with hints', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Create Goal/ }));
+    expect(await screen.findByText('Target Value (optional)')).toBeInTheDocument();
+    expect(screen.getByText('Current Value (optional)')).toBeInTheDocument();
+    expect(screen.getByText('Unit (optional)')).toBeInTheDocument();
   });
 });

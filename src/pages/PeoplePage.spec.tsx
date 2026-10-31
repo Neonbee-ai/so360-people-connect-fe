@@ -44,11 +44,12 @@ vi.mock('../services/departmentsService', () => ({
 }));
 
 const { mockRefreshQuota } = vi.hoisted(() => ({ mockRefreshQuota: vi.fn(async () => {}) }));
+const permState = vi.hoisted(() => ({ orgPolicyRead: true }));
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
 
-  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => (c === 'org_policy.read' ? permState.orgPolicyRead : true), hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: mockRefreshQuota }),
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
 
@@ -431,6 +432,19 @@ describe('Given the Employment Type field in the create modal', () => {
     open.mockRestore();
   });
 
+  it('When no employment types exist and the user lacks org_policy.read / Then no Create Employment Type button opens a denied page', async () => {
+    permState.orgPolicyRead = false;
+    mockMastersApi.getAll.mockResolvedValue({ data: [] });
+    try {
+      await openModal();
+      await waitFor(() => expect(screen.getByText(/No employment types configured/i)).toBeInTheDocument());
+      expect(screen.queryByText('Create Employment Type')).not.toBeInTheDocument();
+      expect(screen.getByText(/Ask an administrator/i)).toBeInTheDocument();
+    } finally {
+      permState.orgPolicyRead = true;
+    }
+  });
+
   it('When the user returns from the Create Employment Type tab / Then the list is refetched once; plain focus changes never refetch', async () => {
     mockMastersApi.getAll.mockResolvedValue({ data: [] });
     await openModal();
@@ -500,10 +514,10 @@ describe('Given the Department field in the create modal', () => {
     // Search narrows the list.
     const searchBox = screen.getByPlaceholderText('Select department...');
     fireEvent.change(searchBox, { target: { value: 'eng' } });
-    await waitFor(() => expect(screen.queryByText('Sales')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryAllByText('Sales').filter(el => el.tagName !== 'OPTION')).toHaveLength(0));
 
     // Click the dropdown option (last 'Engineering' in DOM is the dropdown span)
-    const engItems = screen.getAllByText('Engineering');
+    const engItems = screen.getAllByText('Engineering').filter(el => el.tagName !== 'OPTION');
     fireEvent.click(engItems[engItems.length - 1]);
     // Wait for the field to show the chosen department — ensures department_id state is committed
     await waitFor(() => expect(screen.getByPlaceholderText('Select department...')).toHaveValue('Engineering'));
@@ -567,24 +581,26 @@ describe('Given the "Invite as New User" flow on create', () => {
   };
 
   it('When a new user is invited / Then inviteUser is called and the copyable link is shown', async () => {
-    mockApi.inviteUser.mockResolvedValue({ invite_link: 'https://sso.neonbee.app/reset-password-confirm#token=xyz', invite_status: 'link_generated', user_id: 'u1', email_sent: true });
+    mockApi.create.mockResolvedValue({ id: 'new-p', invite: { status: 'sent', invite_link: 'https://sso.neonbee.app/reset-password-confirm#token=xyz', invite_status: 'link_generated', user_id: 'u1', email_sent: true } });
 
     const form = await openModalAndFillInvite();
     fireEvent.submit(form);
 
-    await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalledWith('new-p', 'hire@test.com', 'role-1', true));
+    // The invite is requested on the single create call and run by the backend.
+    await waitFor(() => expect(mockApi.create).toHaveBeenCalledWith(expect.objectContaining({ userLinkageMode: 'invite', inviteRole: 'role-1', email: 'hire@test.com' })));
+    expect(mockApi.inviteUser).not.toHaveBeenCalled();
     // The copyable invite link surfaces for manual sharing.
     await waitFor(() => expect(screen.getByDisplayValue('https://sso.neonbee.app/reset-password-confirm#token=xyz')).toBeInTheDocument());
     expect(screen.getByText('Copy link')).toBeInTheDocument();
   });
 
   it('When the invitee already has an account / Then no link modal is shown', async () => {
-    mockApi.inviteUser.mockResolvedValue({ invite_link: null, invite_status: 'existing_user', user_id: 'u2', email_sent: false });
+    mockApi.create.mockResolvedValue({ id: 'new-p', invite: { status: 'sent', invite_link: null, invite_status: 'existing_user', user_id: 'u2', email_sent: false } });
 
     const form = await openModalAndFillInvite();
     fireEvent.submit(form);
 
-    await waitFor(() => expect(mockApi.inviteUser).toHaveBeenCalled());
+    await waitFor(() => expect(mockApi.create).toHaveBeenCalled());
     expect(screen.queryByText('Copy link')).not.toBeInTheDocument();
   });
 });

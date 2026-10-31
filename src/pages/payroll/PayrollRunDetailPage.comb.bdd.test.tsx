@@ -82,7 +82,7 @@ describe('GIVEN the Comb payroll run detail', () => {
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Leave' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(mockApi.runs.exclude).toHaveBeenCalledWith('run-1', 'p1', 'Leave'));
+    await waitFor(() => expect(mockApi.runs.exclude).toHaveBeenCalledWith('run-1', 're1', 'Leave'));
   });
 
   it('WHEN Cancel is clicked THEN a confirm dialog gates the cancellation', async () => {
@@ -90,8 +90,7 @@ describe('GIVEN the Comb payroll run detail', () => {
     mockApi.runs.cancel.mockResolvedValue({});
     renderPage();
     await waitFor(() => expect(screen.getByText('Payroll Run #3')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Cancel run' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel run' }));
     await waitFor(() => expect(screen.getByText('Cancel Payroll Run')).toBeInTheDocument());
     expect(mockApi.runs.cancel).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel Run' }));

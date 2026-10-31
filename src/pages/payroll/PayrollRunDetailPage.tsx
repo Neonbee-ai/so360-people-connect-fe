@@ -349,6 +349,9 @@ const PayrollRunDetailPage: React.FC = () => {
                                 {/* PREPARE */}
                                 {shownStep === 'prepare' && (
                                     <Stack gap="default">
+                                        <h3 className="text-nb-title text-fg">Select employees for this run</h3>
+                                        <p className="text-nb-body text-fg-muted">Choose who is paid in this run. All eligible employees are included by default; exclude anyone who should not be paid this period (a reason is required). Only included employees get payslips and count towards the totals.</p>
+                                        <p className="text-nb-caption text-fg-subtle">{included.length} of {employees.length} employees included · {excluded.length} excluded</p>
                                         <h3 className="text-nb-title text-fg">Included Employees ({included.length})</h3>
                                         {included.length === 0 ? (
                                             <p className="text-nb-body text-fg-muted">No employees are in this run yet. Employees join based on their payroll group.</p>
@@ -367,7 +370,7 @@ const PayrollRunDetailPage: React.FC = () => {
                                                                 onClick={() => setReasonPrompt({
                                                                     title: `Exclude ${employee.person_name}`,
                                                                     label: 'Why is this employee excluded from this run?',
-                                                                    onSubmit: reason => act(() => payrollApi.runs.exclude(id, employee.person_id, reason), `${employee.person_name} excluded`),
+                                                                    onSubmit: reason => act(() => payrollApi.runs.exclude(id, employee.id, reason), `${employee.person_name} excluded`),
                                                                 })}
                                                             >
                                                                 <UserMinus size={12} /> Exclude
@@ -391,7 +394,7 @@ const PayrollRunDetailPage: React.FC = () => {
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
-                                                                    onClick={() => act(() => payrollApi.runs.include(id, employee.person_id), `${employee.person_name} included`)}
+                                                                    onClick={() => act(() => payrollApi.runs.include(id, employee.id), `${employee.person_name} included`)}
                                                                 >
                                                                     <UserPlus size={12} /> Include
                                                                 </Button>

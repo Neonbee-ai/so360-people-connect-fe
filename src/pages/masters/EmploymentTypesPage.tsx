@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Briefcase, CalendarDays } from 'lucide-react';
 import MasterListPage from '../../components/MasterListPage';
 import Modal from '../../components/Modal';
+import { useCanConfigureLeave } from '../../hooks/useCanConfigureLeave';
 import { Button, Checkbox, Cluster, IconButton, Spinner, Stack, TextField } from '@so360/design-system';
 import { leaveConfigApi } from '../../services/leaveConfigService';
 import { leaveTypesApi, type LeaveType } from '../../services/leaveTypesService';
@@ -171,6 +172,9 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
 
 const EmploymentTypesPage: React.FC = () => {
     const [editingLeave, setEditingLeave] = useState<{ id: string; name: string } | null>(null);
+    // The modal writes leave config (leave.update on the BE); hide the entry point
+    // from users who would only hit a 403 on save.
+    const canConfigureLeave = useCanConfigureLeave();
 
     return (
         <>
@@ -179,14 +183,14 @@ const EmploymentTypesPage: React.FC = () => {
                 label="Employment Type"
                 icon={Briefcase}
                 description="Full Time, Part Time, Contract, and other employment arrangements"
-                rowExtraAction={(row) => (
+                rowExtraAction={canConfigureLeave ? (row) => (
                     <IconButton
                         label={`Configure leave types for ${row.name}`}
                         icon={<CalendarDays size={14} />}
                         size="sm"
                         onClick={() => setEditingLeave({ id: row.id, name: row.name })}
                     />
-                )}
+                ) : undefined}
             />
             {editingLeave && (
                 <EmploymentTypeLeaveTypesModal

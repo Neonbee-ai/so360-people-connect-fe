@@ -37,7 +37,17 @@ const EditDepartmentModal: React.FC<EditModalProps> = ({ isOpen, onClose, depart
         code: department.code,
         description: department.description || '',
         is_active: department.is_active,
+        head_person_id: department.head_person_id || '',
     });
+    const [people, setPeople] = useState<Person[]>([]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        peopleApi
+            .getAll({ status: 'active', limit: 200 })
+            .then(res => setPeople(res.data ?? []))
+            .catch(() => setPeople([]));
+    }, [isOpen]);
 
     useEffect(() => {
         setForm({
@@ -45,13 +55,14 @@ const EditDepartmentModal: React.FC<EditModalProps> = ({ isOpen, onClose, depart
             code: department.code,
             description: department.description || '',
             is_active: department.is_active,
+            head_person_id: department.head_person_id || '',
         });
     }, [department]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.name || !form.code) return;
-        onSave(form);
+        onSave({ ...form, head_person_id: form.head_person_id || undefined });
     };
 
     return (
@@ -80,6 +91,20 @@ const EditDepartmentModal: React.FC<EditModalProps> = ({ isOpen, onClose, depart
                         rows={3}
                         value={form.description}
                         onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                    />
+                    <Select
+                        name="dept-edit-head"
+                        label="Department Head"
+                        value={form.head_person_id}
+                        onChange={e => setForm(p => ({ ...p, head_person_id: e.target.value }))}
+                        options={[
+                            { value: '', label: 'Not assigned' },
+                            ...people.map(person => ({
+                                value: person.id,
+                                label: `${person.full_name}${person.job_title ? ` — ${person.job_title}` : ''}`,
+                            })),
+                        ]}
+                        hint="Approvals and reviews for this department route to its head."
                     />
                     <Checkbox
                         name="edit_is_active"
@@ -319,6 +344,8 @@ const DepartmentDetailPage: React.FC = () => {
             await departmentsApi.update(id, data);
             setDepartment(prev => prev ? { ...prev, ...data } : prev);
             setShowEditModal(false);
+            // head_person (name/avatar) is server-resolved — refetch so the header shows it.
+            loadData();
             toast.success('Department updated successfully');
             recordActivity({ eventType: 'people.department.updated', eventCategory: 'identity', description: `Department ${data.name || department.name} was updated`, resourceType: 'department', resourceId: id }).catch(() => {});
         } catch {

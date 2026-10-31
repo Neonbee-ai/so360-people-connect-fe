@@ -134,7 +134,7 @@ describe('Given PerformanceReviewsPage status filter', () => {
   it('When status filter changes / Then API is called with new status', async () => {
     renderPage();
     await waitFor(() => expect(mockReviewsApi.getAll).toHaveBeenCalled());
-    fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'completed' } });
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'completed' } });
     await waitFor(() =>
       expect(mockReviewsApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }))
     );
@@ -246,6 +246,12 @@ const ASWIN = { id: 'p9', full_name: 'Aswin Shaji', job_title: 'Developer' };
 const BOB_MANAGER = { id: 'p2', full_name: 'Manager Bob', job_title: 'Head of Engineering', heads_departments: ['Engineering'], is_direct_manager: true };
 const ZOE_MANAGER = { id: 'p3', full_name: 'Zoe Head', job_title: 'Head of Design', heads_departments: ['Design'], is_direct_manager: false };
 
+// Comb Combobox shows the selection as the input value, and options only while open.
+const reviewerText = () => {
+  const el = screen.getByTestId('reviewer-picker');
+  return `${(el.querySelector('input') as HTMLInputElement).value}|${el.textContent}`;
+};
+
 const openCreateModal = async () => {
   renderPage();
   await waitFor(() => expect(screen.getAllByText('Create Review').length).toBeGreaterThan(0));
@@ -321,7 +327,8 @@ describe('Given the Create Performance Review modal', () => {
 
       await waitFor(() => expect(mockReviewsApi.getEligibleReviewers).toHaveBeenCalledWith('p1'));
 
-      const reviewerField = screen.getByTestId('reviewer-picker');
+      const reviewerField = { get textContent() { return reviewerText(); } };
+      fireEvent.focus(screen.getByTestId('reviewer-picker').querySelector('input') as HTMLInputElement);
       await waitFor(() => expect(reviewerField.textContent).toContain('Manager Bob'));
       // Aswin Shaji is an ordinary employee — he must never surface as a reviewer.
       expect(reviewerField.textContent).not.toContain('Aswin Shaji');
@@ -332,7 +339,7 @@ describe('Given the Create Performance Review modal', () => {
       await selectPerson('Alice');
 
       await waitFor(() =>
-        expect(screen.getByTestId('reviewer-picker').textContent).toContain('Manager Bob'),
+        expect(reviewerText()).toContain('Manager Bob'),
       );
       expect(screen.getByText('Their reporting manager.')).toBeInTheDocument();
     });
@@ -364,18 +371,19 @@ describe('Given the Create Performance Review modal', () => {
       // Falls back to the full people list — minus the person under review,
       // who must never be offered as their own reviewer.
       await waitFor(() => expect(screen.getByText(/Aswin Shaji/)).toBeInTheDocument());
-      expect(screen.getByTestId('reviewer-picker').textContent).not.toContain('Alice');
+      expect(reviewerText()).not.toContain('Alice');
     });
 
     it('When the org HAS department heads / Then the list stays restricted to them', async () => {
       await openCreateModal();
       await selectPerson('Alice');
       await waitFor(() =>
-        expect(screen.getByTestId('reviewer-picker').textContent).toContain('Manager Bob'),
+        expect(reviewerText()).toContain('Manager Bob'),
       );
 
       expect(screen.queryByText(/No department heads are configured/i)).not.toBeInTheDocument();
-      expect(screen.getByTestId('reviewer-picker').textContent).not.toContain('Aswin Shaji');
+      fireEvent.focus(screen.getByTestId('reviewer-picker').querySelector('input') as HTMLInputElement);
+      expect(reviewerText()).not.toContain('Aswin Shaji');
     });
 
     it('When the person is changed / Then the reviewer list is refetched for the new person', async () => {
@@ -385,7 +393,7 @@ describe('Given the Create Performance Review modal', () => {
 
       // Two Clear controls exist once a reviewer is auto-selected; the first
       // belongs to the person field.
-      fireEvent.click(screen.getAllByText('Clear')[0]);
+      fireEvent.click(screen.getAllByLabelText('Clear selection')[0]);
       await selectPerson('Aswin Shaji');
 
       await waitFor(() => expect(mockReviewsApi.getEligibleReviewers).toHaveBeenCalledWith('p9'));
@@ -395,15 +403,15 @@ describe('Given the Create Performance Review modal', () => {
       await openCreateModal();
       await selectPerson('Alice');
       await waitFor(() =>
-        expect(screen.getByTestId('reviewer-picker').textContent).toContain('Manager Bob'),
+        expect(reviewerText()).toContain('Manager Bob'),
       );
 
       mockReviewsApi.getEligibleReviewers.mockResolvedValue({ data: [ZOE_MANAGER], direct_manager_id: null });
-      fireEvent.click(screen.getAllByText('Clear')[0]);
+      fireEvent.click(screen.getAllByLabelText('Clear selection')[0]);
       await selectPerson('Aswin Shaji');
 
       await waitFor(() =>
-        expect(screen.getByTestId('reviewer-picker').textContent).not.toContain('Manager Bob'),
+        expect(reviewerText()).not.toContain('Manager Bob'),
       );
     });
   });
@@ -429,7 +437,7 @@ describe('Given the Create Performance Review modal', () => {
       await openCreateModal();
       await selectPerson('Alice');
       await waitFor(() =>
-        expect(screen.getByTestId('reviewer-picker').textContent).toContain('Manager Bob'),
+        expect(reviewerText()).toContain('Manager Bob'),
       );
       // Scope to the form — the page renders its own status-filter select first.
       const form = document.querySelector('form') as HTMLFormElement;
@@ -483,7 +491,7 @@ describe('Given the Create Performance Review modal', () => {
       await openCreateModal();
       await selectPerson('Alice');
       await waitFor(() =>
-        expect(screen.getByTestId('reviewer-picker').textContent).toContain('Manager Bob'),
+        expect(reviewerText()).toContain('Manager Bob'),
       );
 
       // Scope to the form — the page itself renders a status-filter select first.

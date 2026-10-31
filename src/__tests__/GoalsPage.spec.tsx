@@ -91,7 +91,7 @@ describe('GoalsPage', () => {
     it('When the status filter is changed / Then goals are re-fetched', async () => {
       renderPage();
       await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledTimes(1));
-      fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'in_progress' } });
+      fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'in_progress' } });
       await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledWith({ status: 'in_progress' }));
     });
 

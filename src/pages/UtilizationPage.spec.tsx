@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -87,7 +87,7 @@ describe('Given UtilizationPage loads with data', () => {
 
   it('When utilization data loads / Then utilization percentage is displayed', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText(/75%/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('75%')).toBeInTheDocument());
   });
 });
 
@@ -212,8 +212,10 @@ describe('Given resource rows are rendered in the Utilization table', () => {
       period: { start: '2024-06-10', end: '2024-06-14' },
     });
     renderPage();
-    await waitFor(() => expect(screen.getByText('Bartholomew Featherstonehaugh-Montgomery')).toBeInTheDocument());
-    expect(screen.getAllByText('Idle').length).toBeGreaterThan(0);
+    // The name also appears in the Idle KPI hint, so locate the table cell specifically.
+    await waitFor(() => expect(screen.getAllByText('Bartholomew Featherstonehaugh-Montgomery').length).toBeGreaterThan(0));
+    const cell = screen.getAllByText('Bartholomew Featherstonehaugh-Montgomery').map(el => el.closest('td')).find(Boolean) as HTMLElement;
+    expect(within(cell).getByText('Idle')).toBeInTheDocument();
   });
 
   it('When rows render / Then each row shows a utilization progress bar', async () => {

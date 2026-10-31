@@ -164,6 +164,7 @@ describe('Given an employee requesting leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
         await waitFor(() => expect(meService.requestLeave).toHaveBeenCalled());
@@ -203,6 +204,7 @@ describe('Given an employee requesting leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
         await waitFor(() =>
@@ -216,6 +218,7 @@ describe('Given an employee requesting leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
         await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Leave requested'));
@@ -249,6 +252,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /^Arjun Prince/ }));
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
@@ -260,6 +264,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
     it('When no manager is selected / Then submit still routes via the department-head fallback (empty list)', async () => {
         await openForm();
 
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
@@ -270,6 +275,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
@@ -286,6 +292,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
             suggested_approver_id: 'mgr-1',
         });
         await openForm();
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
@@ -345,7 +352,7 @@ describe('Given the request form is dismissed', () => {
         expect(payload.reason).toBe('Family event');
     });
 
-    it('When no reason is typed / Then the field is omitted rather than sent empty', async () => {
+    it('When no reason is typed / Then submit is refused before hitting the API (Pulse cc9733eb)', async () => {
         renderPage();
         await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
@@ -354,8 +361,36 @@ describe('Given the request form is dismissed', () => {
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Enter a reason for your leave'));
+        expect(meService.requestLeave).not.toHaveBeenCalled();
+    });
+
+    it('When the reason is only whitespace / Then it is refused', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Leave type/i)).toBeInTheDocument());
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '   ' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(meService.requestLeave).not.toHaveBeenCalled();
+    });
+
+    it('When the reason has padding / Then the trimmed value is sent', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Leave type/i)).toBeInTheDocument());
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '  Medical  ' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
         await waitFor(() => expect(meService.requestLeave).toHaveBeenCalled());
-        expect((meService.requestLeave as any).mock.calls[0][0].reason).toBeUndefined();
+        expect((meService.requestLeave as any).mock.calls[0][0].reason).toBe('Medical');
     });
 });
 

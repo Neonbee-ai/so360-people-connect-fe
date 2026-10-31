@@ -70,7 +70,7 @@ describe('ReviewDetailPage (Comb)', () => {
   it('Given the header / When Back is clicked / Then it navigates inside the module', async () => {
     renderPage();
     await screen.findByRole('heading', { name: /Alice/ });
-    fireEvent.click(screen.getAllByRole('button')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Reviews' }));
     expect(mockNavigate).toHaveBeenCalledWith('/people/reviews');
   });
 

@@ -182,13 +182,12 @@ const PerformanceReviewsPage: React.FC = () => {
                 ]}
             />
         </ListPageTemplate>
-
-            <CreateReviewModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onCreate={handleCreate}
-            />
-
+        {/* Sibling of the template: children are replaced by the empty state when the list is empty. */}
+        <CreateReviewModal
+            isOpen={showCreateModal}
+            onClose={() => setShowCreateModal(false)}
+            onCreate={handleCreate}
+        />
         </>
     );
 };
