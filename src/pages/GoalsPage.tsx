@@ -4,7 +4,7 @@ import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, getErrorMessage } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
@@ -51,7 +51,7 @@ const GoalsPage: React.FC = () => {
             recordActivity({ eventType: 'people.goal.created', eventCategory: 'data', description: `Goal "${data.title}" was created`, resourceType: 'goal', resourceId: created?.id }).catch(() => {});
             loadGoals();
         } catch (error) {
-            toast.error('Failed to create goal');
+            toast.error(getErrorMessage(error, 'Failed to create goal'));
         }
     };
 
@@ -164,7 +164,6 @@ const GoalsPage: React.FC = () => {
                     icon={Target}
                     title="No goals found"
                     description="Create goals to track objectives and key results."
-                    action={canCreateGoal ? { label: 'Create Goal', onClick: () => setShowCreateModal(true) } : undefined}
                 />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -500,13 +499,19 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                     </div>
                     <div>
                         <label className="block text-xs text-slate-400 mb-1">Unit</label>
-                        <input
-                            type="text"
+                        <select
                             value={formData.unit || ''}
-                            onChange={(e) => updateField('unit', e.target.value)}
+                            onChange={(e) => updateField('unit', e.target.value || undefined)}
                             className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            placeholder="sales, projects, %"
-                        />
+                        >
+                            <option value="">Select unit...</option>
+                            <option value="%">% (percentage)</option>
+                            <option value="count">Count</option>
+                            <option value="currency">Currency</option>
+                            <option value="hours">Hours</option>
+                            <option value="projects">Projects</option>
+                        </select>
+                        <p className="mt-1 text-xs text-slate-500">Target and current values are measured in this unit.</p>
                     </div>
                 </div>
 
