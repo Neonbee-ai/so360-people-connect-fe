@@ -73,7 +73,7 @@ const ShiftsPage: React.FC = () => {
       header: 'Name',
       render: (shift) => (
         <Cluster gap="tight">
-          <span className="font-medium text-fg">{shift.name}</span>
+          <span className="min-w-0 break-words font-medium text-fg">{shift.name}</span>
           {shift.is_night_shift && <Badge tone="primary">Night</Badge>}
         </Cluster>
       ),
