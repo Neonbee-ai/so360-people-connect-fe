@@ -115,8 +115,8 @@ export const FormField = ({ label, children, hint, error }: any) => (
   </div>
 );
 
-export const Card = ({ title, actions, footer, children, 'data-testid': testId }: any) => (
-  <section data-testid={testId}>
+export const Card = ({ title, actions, footer, children, onClick, 'data-testid': testId }: any) => (
+  <section data-testid={testId} onClick={onClick} role={onClick ? 'button' : undefined}>
     {title ? <h2>{title}</h2> : null}
     {actions}
     {children}
@@ -504,5 +504,22 @@ const TrailBack = ({ item }: any) => {
       aria-label={`Back to ${item.label}`}
       onClick={item.onClick ?? (item.to && nav ? () => nav(item.to) : undefined)}
     />
+  );
+};
+
+const ChoiceCtx = React.createContext<{ value?: string; onChange?: (v: string) => void } | null>(null);
+export const ChoiceCardGrid = ({ value, onChange, children, name: _n, columns: _c, multiple: _m, ...rest }: any) => (
+  <ChoiceCtx.Provider value={{ value, onChange }}>
+    <div role="radiogroup" aria-label={rest['aria-label']} data-testid={rest['data-testid']}>{children}</div>
+  </ChoiceCtx.Provider>
+);
+export const SelectableCard = ({ title, description, value, selected, onSelect, disabled, tags, 'data-testid': testId }: any) => {
+  const ctx = React.useContext(ChoiceCtx);
+  const isOn = selected ?? (ctx && value !== undefined ? ctx.value === value : false);
+  return (
+    <button type="button" role="radio" aria-checked={!!isOn} disabled={disabled} data-testid={testId}
+      onClick={() => (onSelect ? onSelect() : value !== undefined && ctx?.onChange?.(value))}>
+      <span>{title}</span>{description ? <span>{description}</span> : null}{tags}
+    </button>
   );
 };
