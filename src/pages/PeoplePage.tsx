@@ -476,16 +476,16 @@ const PeoplePage: React.FC = () => {
             key: 'person',
             header: 'Person',
             render: (person: Person) => (
-                <Cluster gap="default">
+                <Cluster gap="default" className="min-w-0 max-w-full">
                     <Avatar name={person.full_name} src={person.avatar_url || undefined} />
-                    <Stack gap="none">
+                    <Stack gap="none" className="min-w-0 max-w-full">
                         <span className="text-nb-body font-medium text-fg truncate">{person.full_name}</span>
-                        <Cluster gap="default">
+                        <Cluster gap="default" className="min-w-0 max-w-full">
                             {person.job_title && (
-                                <span className="inline-flex items-center gap-nb-1 text-nb-caption text-fg-muted"><Briefcase size={12} />{person.job_title}</span>
+                                <span className="inline-flex min-w-0 items-center gap-nb-1 text-nb-caption text-fg-muted"><Briefcase size={12} />{person.job_title}</span>
                             )}
                             {person.email && (
-                                <span className="inline-flex items-center gap-nb-1 text-nb-caption text-fg-muted"><Mail size={12} />{person.email}</span>
+                                <span className="inline-flex min-w-0 max-w-full items-center gap-nb-1 break-all text-nb-caption text-fg-muted"><Mail size={12} className="shrink-0" />{person.email}</span>
                             )}
                             {(person.department_info?.name || person.department) && (
                                 <span className="text-nb-caption text-fg-muted">{person.department_info?.name || person.department}</span>
