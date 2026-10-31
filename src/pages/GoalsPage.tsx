@@ -11,6 +11,7 @@ import { usePeopleFormatters } from '../utils/formatters';
 import { goalsApi, Goal, CreateGoalPayload } from '../services/goalsService';
 import { peopleApi } from '../services/peopleService';
 import PersonPicker, { PickablePerson } from '../components/PersonPicker';
+import { enumLabel } from '../utils/format';
 
 const GoalsPage: React.FC = () => {
     const { recordActivity } = useActivity();
@@ -177,8 +178,8 @@ const GoalsPage: React.FC = () => {
                 ] : []}
                 columns={[
                     { key: 'title', header: 'Goal', render: (g) => <span className="text-nb-sm font-medium text-fg">{g.title}</span> },
-                    { key: 'goal_type', header: 'Type', render: (g) => <Badge tone={goalTypeTone(g.goal_type)}>{g.goal_type}</Badge> },
-                    { key: 'priority', header: 'Priority', render: (g) => <Badge tone={priorityTone(g.priority)}>{g.priority}</Badge> },
+                    { key: 'goal_type', header: 'Type', render: (g) => g.goal_type ? <Badge tone={goalTypeTone(g.goal_type)}>{enumLabel(g.goal_type)}</Badge> : <span className="text-fg-subtle">—</span> },
+                    { key: 'priority', header: 'Priority', render: (g) => g.priority ? <Badge tone={priorityTone(g.priority)}>{enumLabel(g.priority)}</Badge> : <span className="text-fg-subtle" data-testid="goal-priority-none">—</span> },
                     {
                         key: 'person',
                         header: 'Owner',

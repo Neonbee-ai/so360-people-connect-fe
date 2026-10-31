@@ -149,6 +149,9 @@ const LeaveApprovalsPage: React.FC = () => {
             key: 'actions',
             header: 'Actions',
             align: 'right',
+            // Pinned so Approve/Reject stay reachable when the row scrolls sideways.
+            sticky: 'right',
+            alwaysVisible: true,
             render: (r) => (
                 <Cluster gap="tight" justify="end" align="center">
                     {/* Opening a request must never change its state: Review is read-only. */}

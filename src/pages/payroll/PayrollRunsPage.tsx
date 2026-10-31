@@ -59,8 +59,10 @@ const PayrollRunsPage: React.FC = () => {
             key: 'actions',
             header: 'Actions',
             align: 'right',
+            sticky: 'right',
+            alwaysVisible: true,
             render: run => (
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/people/payroll/runs/${run.id}`)}>Open</Button>
+                <Button variant="secondary" size="sm" onClick={() => navigate(`/people/payroll/runs/${run.id}`)}>Open</Button>
             ),
         },
     ];
