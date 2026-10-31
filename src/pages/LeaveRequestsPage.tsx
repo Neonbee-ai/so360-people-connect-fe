@@ -7,6 +7,7 @@ import Modal from '../components/Modal';
 import { toast } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
+import { balanceError, minWorkingDays } from '../utils/leaveBalance';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload, LeaveBalance } from '../services/leaveRequestsService';
 import { LeaveType } from '../services/leaveTypesService';
 import { leaveConfigApi } from '../services/leaveConfigService';
@@ -341,8 +342,12 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
     };
 
     const validationErrors = validate(formData, allowsBackdating);
+    const balanceBlock = balanceError(
+        balances.find(b => b.leave_type_id === formData.leave_type_id)?.available,
+        minWorkingDays(formData.start_date, formData.end_date, formData.is_half_day_start, formData.is_half_day_end),
+    );
     const hasValidRange = !validationErrors.start_date && !validationErrors.end_date;
-    const isFormValid = Object.keys(validationErrors).length === 0 && !!formData.person_id && !personError;
+    const isFormValid = Object.keys(validationErrors).length === 0 && !balanceBlock && !!formData.person_id && !personError;
 
     /**
      * Total days for the selected window. Returns null for an invalid range so
@@ -366,6 +371,7 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const nextErrors = validate(formData, allowsBackdating);
+        if (balanceBlock) return;
         if (Object.keys(nextErrors).length > 0 || !formData.person_id) {
             setErrors(nextErrors);
             focusFirstInvalid(formRef.current, ['leave_type_id', 'start_date', 'end_date', 'reason'], nextErrors);
@@ -462,6 +468,9 @@ const CreateLeaveRequestModal: React.FC<CreateLeaveRequestModalProps> = ({ isOpe
                                 <p className="text-sm font-medium text-teal-400">{selectedBalance.available} days</p>
                             </div>
                         </div>
+                    )}
+                    {balanceBlock && (
+                        <p role="alert" data-testid="leave-balance-error" className="mt-1 text-xs text-rose-400">{balanceBlock}</p>
                     )}
                 </div>
 
@@ -680,16 +689,8 @@ const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, 
                     </div>
                 )}
 
-                {shown.status === 'rejected' && shown.rejection_reason && (
-                    <div>
-                        <p className="text-xs text-slate-400 mb-1">Rejection Reason</p>
-                        <p className="rounded-lg border border-rose-700/40 bg-rose-900/20 p-3 text-sm text-rose-200">
-                            {shown.rejection_reason}
-                        </p>
-                    </div>
-                )}
-
                 <ApprovalProgress
+                    fallbackRejectionReason={shown.status === 'rejected' ? shown.rejection_reason : undefined}
                     approvals={shown.approvals ?? []}
                     submittedAt={shown.submitted_at}
                     submittedByName={shown.person?.full_name}

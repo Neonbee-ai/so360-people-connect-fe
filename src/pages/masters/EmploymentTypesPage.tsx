@@ -69,10 +69,12 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
         try {
             await leaveConfigApi.setForEmploymentType(masterId, Array.from(selected));
             onClose();
-        } catch {
+        } catch (err) {
             // Keep the user's selections on screen — making them re-pick after a
-            // failed save is how a transient error turns into lost work.
-            setError('Could not save. Your selection has been kept — try again.');
+            // failed save is how a transient error turns into lost work. Surface
+            // the server's reason when it gave one so the failure is diagnosable.
+            const detail = err instanceof Error && err.message ? ` (${err.message})` : '';
+            setError(`Could not save${detail}. Your selection has been kept — try again.`);
         } finally {
             setSaving(false);
         }

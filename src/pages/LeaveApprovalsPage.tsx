@@ -18,6 +18,8 @@ const LeaveApprovalsPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [rejectingRequest, setRejectingRequest] = useState<LeaveRequest | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
+    const [approvingRequest, setApprovingRequest] = useState<LeaveRequest | null>(null);
+    const [approvalNotes, setApprovalNotes] = useState('');
     // Disables both actions on the row being decided, so a double-click can't
     // fire approve twice (the second now 400s, but the UI shouldn't invite it).
     const [actingId, setActingId] = useState<string | null>(null);
@@ -40,13 +42,18 @@ const LeaveApprovalsPage: React.FC = () => {
         loadPendingApprovals();
     }, [loadPendingApprovals]);
 
-    const handleApprove = async (request: LeaveRequest) => {
-        if (!confirm(`Approve leave request for ${request.person?.full_name}?`)) return;
+    const openApprove = (request: LeaveRequest) => {
+        setViewing(null);
+        setApprovalNotes('');
+        setApprovingRequest(request);
+    };
+
+    const handleApprove = async (request: LeaveRequest, notes: string) => {
         if (actingId) return;
 
         setActingId(request.id);
         try {
-            const result = await leaveRequestsApi.approve(request.id);
+            const result = await leaveRequestsApi.approve(request.id, notes.trim() || undefined);
             // Multi-approver requests stay pending until everyone has approved.
             // Saying "approved" here when it isn't would be a lie the approver
             // has no way to check.
@@ -191,7 +198,7 @@ const LeaveApprovalsPage: React.FC = () => {
                                             </button>
                                             {canApproveLeave && (
                                             <button
-                                                onClick={() => handleApprove(request)}
+                                                onClick={() => openApprove(request)}
                                                 disabled={actingId === request.id}
                                                 className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
@@ -226,7 +233,53 @@ const LeaveApprovalsPage: React.FC = () => {
                 request={viewing}
                 onClose={() => setViewing(null)}
                 formatters={formatters}
+                onApprove={canApproveLeave ? openApprove : undefined}
             />
+
+            {/* Approve Modal — replaces the browser confirm; notes are optional */}
+            <Modal
+                isOpen={!!approvingRequest}
+                onClose={() => { setApprovingRequest(null); setApprovalNotes(''); }}
+                title="Approve Leave Request"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-300">
+                        Approving leave request for <span className="font-medium text-slate-50">{approvingRequest?.person?.full_name}</span>
+                    </p>
+                    <div>
+                        <label htmlFor="approval-notes" className="block text-xs text-slate-400 mb-1">Notes (optional)</label>
+                        <textarea
+                            id="approval-notes"
+                            value={approvalNotes}
+                            onChange={(e) => setApprovalNotes(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            rows={3}
+                            placeholder="Add a comment or conditions for this approval..."
+                        />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                        <button
+                            onClick={() => { setApprovingRequest(null); setApprovalNotes(''); }}
+                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={async () => {
+                                const req = approvingRequest;
+                                if (!req) return;
+                                await handleApprove(req, approvalNotes);
+                                setApprovingRequest(null);
+                                setApprovalNotes('');
+                            }}
+                            disabled={!!actingId}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Approve Request
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Reject Modal */}
             <Modal
@@ -286,6 +339,8 @@ interface ReviewRequestModalProps {
   request: LeaveRequest | null;
   onClose: () => void;
   formatters: { formatDate: (d: string) => string; formatDateTime: (d: string) => string };
+  /** When provided, the footer offers Approve and continues into the same approve flow. */
+  onApprove?: (request: LeaveRequest) => void;
 }
 
 /**
@@ -295,7 +350,7 @@ interface ReviewRequestModalProps {
  * The pending-approvals list doesn't join the approval chain, so the detail is
  * fetched on open to show who else is involved and what they have already said.
  */
-const ReviewRequestModal: React.FC<ReviewRequestModalProps> = ({ request, onClose, formatters }) => {
+const ReviewRequestModal: React.FC<ReviewRequestModalProps> = ({ request, onClose, formatters, onApprove }) => {
   const [detail, setDetail] = useState<LeaveRequest | null>(null);
 
   useEffect(() => {
@@ -374,19 +429,28 @@ const ReviewRequestModal: React.FC<ReviewRequestModalProps> = ({ request, onClos
         )}
 
         <ApprovalProgress
+          fallbackRejectionReason={shown.status === 'rejected' ? shown.rejection_reason : undefined}
           approvals={shown.approvals ?? []}
           submittedAt={shown.submitted_at}
           submittedByName={shown.person?.full_name}
           formatDateTime={formatters.formatDateTime}
         />
 
-        <div className="flex justify-end border-t border-slate-800 pt-4">
+        <div className="flex justify-end gap-3 border-t border-slate-800 pt-4">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm text-slate-400 transition-colors hover:text-slate-50"
           >
             Close
           </button>
+          {onApprove && (
+            <button
+              onClick={() => onApprove(request)}
+              className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              Approve
+            </button>
+          )}
         </div>
       </div>
     </Modal>

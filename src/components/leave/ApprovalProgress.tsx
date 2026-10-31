@@ -8,6 +8,12 @@ interface ApprovalProgressProps {
   submittedAt?: string | null;
   submittedByName?: string | null;
   formatDateTime?: (iso: string) => string;
+  /**
+   * Request-level rejection reason. Shown on the rejecting approver only when
+   * that approval row has no notes of its own (requests rejected before
+   * per-approver notes were stored), so old rejections still show a reason.
+   */
+  fallbackRejectionReason?: string | null;
 }
 
 const STATUS_META: Record<
@@ -36,8 +42,20 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
   submittedAt,
   submittedByName,
   formatDateTime,
+  fallbackRejectionReason,
 }) => {
-  if (!approvals || approvals.length === 0) return null;
+  if (!approvals || approvals.length === 0) {
+    // Old rejections have no approval rows: keep their reason visible.
+    if (fallbackRejectionReason) {
+      return (
+        <div className="rounded-lg border border-rose-700/40 bg-rose-900/20 p-3 text-sm text-rose-200">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-rose-300">Rejected</p>
+          {fallbackRejectionReason}
+        </div>
+      );
+    }
+    return null;
+  }
 
   const fmt = (iso?: string | null) => {
     if (!iso) return '';
@@ -100,9 +118,9 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
                 {a.responded_at && fmt(a.responded_at) && (
                   <span className="block text-xs text-slate-500">{fmt(a.responded_at)}</span>
                 )}
-                {a.decision_notes && (
+                {(a.decision_notes || (a.status === 'rejected' && fallbackRejectionReason)) && (
                   <span className="mt-1 block rounded border border-slate-700 bg-slate-900/60 px-2 py-1 text-xs text-slate-400">
-                    {a.decision_notes}
+                    {a.decision_notes || fallbackRejectionReason}
                   </span>
                 )}
               </span>

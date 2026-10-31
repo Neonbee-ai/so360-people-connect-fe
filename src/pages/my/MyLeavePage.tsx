@@ -74,12 +74,25 @@ const MyLeavePage: React.FC = () => {
             .catch(() => undefined);
     }, []);
 
+    const balanceBlock = balanceError(
+        balances.find(b => b.leave_type_id === form.leave_type_id)?.available,
+        minWorkingDays(form.start_date, form.end_date),
+    );
+
     const setApproverIds = (ids: string[]) =>
         setForm(f => ({ ...f, approver_ids: ids }));
 
     const submit = async () => {
         if (!form.leave_type_id) {
             toast.error('Choose a leave type');
+            return;
+        }
+        if (!form.reason.trim()) {
+            toast.error('Reason is required');
+            return;
+        }
+        if (balanceBlock) {
+            toast.error(balanceBlock);
             return;
         }
         if (form.end_date < form.start_date) {
@@ -96,7 +109,7 @@ const MyLeavePage: React.FC = () => {
                 leave_type_id: form.leave_type_id,
                 start_date: form.start_date,
                 end_date: form.end_date,
-                reason: form.reason || undefined,
+                reason: form.reason.trim(),
             });
             await leaveRequestsApi.submit(created.id, form.approver_ids);
             toast.success('Leave requested');
@@ -180,7 +193,7 @@ const MyLeavePage: React.FC = () => {
                         <button onClick={() => setFormOpen(false)} className={secondaryBtn}>
                             Cancel
                         </button>
-                        <button onClick={submit} disabled={submitting} className={primaryBtn}>
+                        <button onClick={submit} disabled={submitting || !form.reason.trim() || !!balanceBlock} className={primaryBtn}>
                             {submitting ? 'Submitting…' : 'Submit request'}
                         </button>
                     </div>
@@ -223,14 +236,23 @@ const MyLeavePage: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className={labelCls}>Reason (optional)</label>
+                        <label className={labelCls}>Reason *</label>
                         <textarea
                             value={form.reason}
                             onChange={e => setForm({ ...form, reason: e.target.value })}
                             rows={3}
+                            required
+                            aria-required="true"
+                            aria-invalid={!form.reason.trim()}
                             className={inputCls}
                         />
                     </div>
+                    <p className="text-xs text-slate-400">
+                        Total days: <span className="text-teal-400 font-medium">{minWorkingDays(form.start_date, form.end_date) ?? '—'}</span>
+                    </p>
+                    {balanceBlock && (
+                        <p role="alert" data-testid="leave-balance-error" className="text-xs text-rose-400">{balanceBlock}</p>
+                    )}
 
                     {myPersonId && (
                         <ApproverSelector
