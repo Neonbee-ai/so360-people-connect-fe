@@ -3,7 +3,7 @@ import { Target, AlertTriangle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import {
-    toast, useConfirm, Select, ListPageTemplate, DataTable, Modal, Button, Badge, Avatar, Progress,
+    toast, getErrorMessage, useConfirm, Select, ListPageTemplate, DataTable, Modal, Button, Badge, Avatar, Progress,
     Cluster, Stack, Grid, TextField, Textarea, NumberInput, DateInput,
 } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
@@ -54,8 +54,7 @@ const GoalsPage: React.FC = () => {
             recordActivity({ eventType: 'people.goal.created', eventCategory: 'data', description: `Goal "${data.title}" was created`, resourceType: 'goal', resourceId: created?.id }).catch(() => {});
             loadGoals();
         } catch (error) {
-            const reason = error instanceof Error && error.message ? `: ${error.message}` : '';
-            toast.error(`Failed to create goal${reason}`);
+            toast.error(getErrorMessage(error, 'Failed to create goal'));
         }
     };
 
@@ -455,13 +454,14 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
                             value={formData.current_value || null}
                             onChange={(v) => updateField('current_value', v || undefined)}
                         />
-                        <TextField
+                        <Select
                             name="goal_unit"
                             label="Unit (optional)"
-                            hint="What the values measure, e.g. %, deals, hours."
+                            hint="Target and current values are measured in this unit."
+                            placeholder="Select unit..."
                             value={formData.unit || ''}
-                            onChange={(e) => updateField('unit', e.target.value)}
-                            placeholder="sales, projects, %"
+                            onChange={(e) => updateField('unit', e.target.value || undefined)}
+                            options={goalUnitOptions(formData.unit)}
                         />
                     </Grid>
                 </Stack>
@@ -469,5 +469,19 @@ const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onCreate, onUpda
         </Modal>
     );
 };
+
+/** Fixed unit list (Pulse 3900d9c0); a legacy free-text unit stays selectable so editing never drops it. */
+export const GOAL_UNITS = [
+    { value: '%', label: '% (percentage)' },
+    { value: 'count', label: 'Count' },
+    { value: 'currency', label: 'Currency' },
+    { value: 'hours', label: 'Hours' },
+    { value: 'projects', label: 'Projects' },
+];
+export function goalUnitOptions(current?: string) {
+    return current && !GOAL_UNITS.some((u) => u.value === current)
+        ? [...GOAL_UNITS, { value: current, label: current }]
+        : GOAL_UNITS;
+}
 
 export default GoalsPage;
