@@ -100,7 +100,8 @@ const EmploymentPolicyPage: React.FC = () => {
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps} primaryAction={primaryAction}>
       <Stack gap="region">
-        <Grid columns={2} gap="lg">
+        <Grid columns="auto" gap="lg">
+          <Grid.Item span={6}>
           <Stack gap="default">
             <SettingsCard title="Daily Threshold">
               <NumberInput
@@ -121,6 +122,8 @@ const EmploymentPolicyPage: React.FC = () => {
               />
             </SettingsCard>
           </Stack>
+          </Grid.Item>
+          <Grid.Item span={6}>
           <Stack gap="default">
             <SettingsCard title="Overtime Multiplier">
               <NumberInput
@@ -135,6 +138,7 @@ const EmploymentPolicyPage: React.FC = () => {
               Changes apply to <strong>new</strong> time entries only. Previously approved costs are immutable for accounting integrity.
             </Banner>
           </Stack>
+          </Grid.Item>
         </Grid>
 
         {saveError && <Banner variant="danger">{saveError}</Banner>}

@@ -190,7 +190,7 @@ const AllocationsPage: React.FC = () => {
             header: 'Period',
             sortable: true,
             sortValue: (a) => a.start_date,
-            render: (a) => <span className="text-nb-sm tabular-nums text-fg-muted">{a.start_date} to {a.end_date}</span>,
+            render: (a) => <span className="break-words text-nb-sm tabular-nums text-fg-muted">{a.start_date} to {a.end_date}</span>,
         },
         {
             key: 'progress',

@@ -94,8 +94,8 @@ const LeaveBalancesPage: React.FC = () => {
             header: 'Leave Type',
             render: (type) => (
                 <Cluster gap="tight" align="center">
-                    {type.color && <span className="w-nb-3 h-nb-3 rounded-full" style={{ backgroundColor: type.color }} />}
-                    <span className="text-nb-body font-medium text-fg">{type.name}</span>
+                    {type.color && <span className="w-nb-3 h-nb-3 shrink-0 rounded-full" style={{ backgroundColor: type.color }} />}
+                    <span className="min-w-0 break-words text-nb-body font-medium text-fg">{type.name}</span>
                 </Cluster>
             ),
         },
@@ -155,6 +155,7 @@ const LeaveBalancesPage: React.FC = () => {
                 </Cluster>
             }
         >
+            <div className="min-w-0 max-w-full overflow-x-auto">
             <DataTable
                 name="leave-balances"
                 columns={columns}
@@ -162,6 +163,7 @@ const LeaveBalancesPage: React.FC = () => {
                 rowKey={(t) => t.id}
                 rowActions={canManage ? (t) => [{ label: 'Adjust', onSelect: () => setAdjustingType(t), disabled: !balanceByType.get(t.id) }] : undefined}
             />
+            </div>
 
             <AdjustBalanceModal
                 isOpen={!!adjustingType}

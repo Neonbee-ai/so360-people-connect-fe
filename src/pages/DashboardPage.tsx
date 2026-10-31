@@ -153,15 +153,15 @@ const DashboardPage: React.FC = () => {
                                         {recentEvents.map((event) => {
                                             const payload = payloadOf(event);
                                             return (
-                                                <div key={event.id}>
+                                                <div key={event.id} className="min-w-0">
                                                     <Cluster gap="tight" align="center">
                                                         <span className="text-nb-xs font-medium text-primary">
                                                             {eventTypeLabels[event.event_type] || event.event_type}
                                                         </span>
                                                         <span className="text-nb-xs text-fg-subtle">by</span>
-                                                        <span className="text-nb-xs text-fg-muted">{event.actor_name || 'System'}</span>
+                                                        <span className="min-w-0 break-words text-nb-xs text-fg-muted">{event.actor_name || 'System'}</span>
                                                     </Cluster>
-                                                    <div className="text-nb-xs text-fg-subtle">
+                                                    <div className="min-w-0 break-words text-nb-xs text-fg-subtle">
                                                         {payload && typeof payload === 'object' && (
                                                             <>
                                                                 {payload.entity_name && <span>{String(payload.entity_name)}</span>}
@@ -190,7 +190,7 @@ const DashboardPage: React.FC = () => {
                             <Stack gap="tight">
                                 {summary.department_headcount.map((dept: DepartmentHeadcountEntry) => (
                                     <Cluster key={dept.name} gap="default" align="center" justify="between">
-                                        <span className="text-nb-sm text-fg truncate">{dept.name}</span>
+                                        <span className="min-w-0 text-nb-sm text-fg truncate" title={dept.name}>{dept.name}</span>
                                         <span className="text-nb-sm font-semibold text-fg">{dept.count}</span>
                                     </Cluster>
                                 ))}

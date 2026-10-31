@@ -79,8 +79,8 @@ const ShiftsPage: React.FC = () => {
       ),
     },
     { key: 'timing', header: 'Timing', render: (shift) => <span className="text-fg">{shift.start_time} – {shift.end_time}</span> },
-    { key: 'grace', header: 'Grace', render: (shift) => <span className="text-fg-muted">{shift.grace_period_minutes} min</span> },
-    { key: 'break', header: 'Break', render: (shift) => <span className="text-fg-muted">{shift.break_duration_minutes} min</span> },
+    { key: 'grace', header: 'Grace', hideBelow: 'medium', render: (shift) => <span className="text-fg-muted">{shift.grace_period_minutes} min</span> },
+    { key: 'break', header: 'Break', hideBelow: 'medium', render: (shift) => <span className="text-fg-muted">{shift.break_duration_minutes} min</span> },
     {
       key: 'is_active',
       header: 'Active',

@@ -73,8 +73,8 @@ const PayrollReportsPage: React.FC = () => {
         header: column.label,
         render: (row: ReportRow) => (
             row.__totals
-                ? <span className="text-fg">{result?.totals && result.totals[column.key] !== undefined ? String(result.totals[column.key]) : ''}</span>
-                : <span className="text-fg">{String(row[column.key] ?? '—')}</span>
+                ? <span className="break-words text-fg">{result?.totals && result.totals[column.key] !== undefined ? String(result.totals[column.key]) : ''}</span>
+                : <span className="break-words text-fg">{String(row[column.key] ?? '—')}</span>
         ),
     }));
     const tableRows: ReportRow[] = result
@@ -139,7 +139,9 @@ const PayrollReportsPage: React.FC = () => {
                 ) : !result || result.rows.length === 0 ? (
                     <EmptyState icon={BarChart3} title="No data" description="No rows match the selected filters." />
                 ) : (
-                    <DataTable name="payroll-report" columns={tableColumns} rows={tableRows} rowKey={(row) => String(tableRows.indexOf(row))} />
+                    <div className="min-w-0 max-w-full overflow-x-auto">
+                        <DataTable name="payroll-report" columns={tableColumns} rows={tableRows} rowKey={(row) => String(tableRows.indexOf(row))} />
+                    </div>
                 )
             }
         />
