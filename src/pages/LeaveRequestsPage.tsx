@@ -604,18 +604,12 @@ const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, 
                     />
                 )}
 
-                {shown.status === 'rejected' && shown.rejection_reason && (
-                    <DescriptionList
-                        columns={1}
-                        items={[{ label: 'Rejection Reason', value: <p className="rounded-nb border border-danger/40 bg-danger-container/20 p-nb-3 text-danger">{shown.rejection_reason}</p> }]}
-                    />
-                )}
-
                 <ApprovalProgress
                     approvals={shown.approvals ?? []}
                     submittedAt={shown.submitted_at}
                     submittedByName={shown.person?.full_name}
                     formatDateTime={formatters.formatDateTime}
+                    fallbackRejectionReason={shown.status === 'rejected' ? shown.rejection_reason : undefined}
                 />
             </Stack>
         </Modal>

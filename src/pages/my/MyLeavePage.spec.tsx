@@ -409,3 +409,47 @@ describe('Given no balances have been set up', () => {
         await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
     });
 });
+
+describe('Given an employee requesting more days than their balance (Pulse 78626df8)', () => {
+    const openForm = async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Leave type/i)).toBeInTheDocument());
+    };
+    const setRange = (start: string, end: string) => {
+        const dates = screen.getAllByDisplayValue(new Date().toISOString().slice(0, 10));
+        fireEvent.change(dates[1], { target: { value: end } });
+        fireEvent.change(dates[0], { target: { value: start } });
+    };
+
+    it('When the weekdays in the range exceed the remaining balance / Then an inline error shows and submit is blocked', async () => {
+        await openForm();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        setRange('2026-12-01', '2026-12-31'); // 23 weekdays > 12 available
+        await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/exceeds your remaining balance of 12/));
+        expect(screen.getByTestId('my-leave-total-days')).toHaveTextContent('23');
+        expect(screen.getByRole('button', { name: /submit request/i })).toBeDisabled();
+        expect(meService.requestLeave).not.toHaveBeenCalled();
+    });
+
+    it('When the range fits the balance / Then no balance error shows and submit stays enabled', async () => {
+        await openForm();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        setRange('2026-12-01', '2026-12-03');
+        await waitFor(() => expect(screen.getByTestId('my-leave-total-days')).toHaveTextContent('3'));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /submit request/i })).not.toBeDisabled();
+    });
+
+    it('When the leave type has no accrual / Then the balance never blocks the request', async () => {
+        (leaveTypesApi.getAll as any).mockResolvedValue({
+            data: [{ id: 'lt-1', name: 'Annual Leave', code: 'AL', is_active: true, accrual_type: 'none' }],
+        });
+        await openForm();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        setRange('2026-12-01', '2026-12-31');
+        await waitFor(() => expect(screen.getByTestId('my-leave-total-days')).toHaveTextContent('23'));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+});

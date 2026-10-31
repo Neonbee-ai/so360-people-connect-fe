@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Plus } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
-import { Button, Cluster, DashboardPageTemplate, DateInput, Drawer, Grid, Select, Stack, Textarea, toast } from '@so360/design-system';
+import { Alert, Button, Cluster, DashboardPageTemplate, DateInput, Drawer, Grid, Select, Stack, Textarea, toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance } from '../../services/meService';
 import { leaveRequestsApi } from '../../services/leaveRequestsService';
@@ -10,6 +10,7 @@ import { leaveTypesApi, LeaveType } from '../../services/leaveTypesService';
 import { peopleApi } from '../../services/peopleService';
 import ApproverSelector from '../../components/leave/ApproverSelector';
 import { MyCard, StatTile, StatusPill, Skeleton } from './myUi';
+import { balanceError, minWorkingDays } from '../../utils/leaveBalance';
 
 /**
  * My Leave — the employee's own balances, history and request form.
@@ -76,6 +77,15 @@ const MyLeavePage: React.FC = () => {
     const setApproverIds = (ids: string[]) =>
         setForm(f => ({ ...f, approver_ids: ids }));
 
+    // Same early over-balance warning the admin form gives (Pulse 78626df8).
+    // Leave types without accrual have no balance to exceed; the server stays
+    // authoritative either way.
+    const requestedDays = minWorkingDays(form.start_date, form.end_date);
+    const selectedType = leaveTypes.find(t => t.id === form.leave_type_id);
+    const balanceBlock = selectedType?.accrual_type === 'none'
+        ? ''
+        : balanceError(balances.find(b => b.leave_type_id === form.leave_type_id)?.available, requestedDays);
+
     const submit = async () => {
         if (!form.leave_type_id) {
             toast.error('Choose a leave type');
@@ -89,6 +99,10 @@ const MyLeavePage: React.FC = () => {
         const reason = form.reason.trim();
         if (!reason) {
             toast.error('Enter a reason for your leave');
+            return;
+        }
+        if (balanceBlock) {
+            toast.error(balanceBlock);
             return;
         }
 
@@ -186,7 +200,7 @@ const MyLeavePage: React.FC = () => {
                         <Button variant="secondary" onClick={() => setFormOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={submit} disabled={submitting}>
+                        <Button onClick={submit} disabled={submitting || !!balanceBlock}>
                             {submitting ? 'Submitting…' : 'Submit request'}
                         </Button>
                     </Cluster>
@@ -215,6 +229,15 @@ const MyLeavePage: React.FC = () => {
                             onChange={iso => setForm({ ...form, end_date: iso })}
                         />
                     </Grid>
+
+                    <p className="text-nb-caption text-fg-muted" data-testid="my-leave-total-days">
+                        Total days: <span className="font-medium text-primary">{requestedDays ?? '—'}</span>
+                    </p>
+                    {balanceBlock && (
+                        <Alert name="leave-balance-error" variant="error">
+                            {balanceBlock}
+                        </Alert>
+                    )}
 
                     <Textarea
                         name="reason"

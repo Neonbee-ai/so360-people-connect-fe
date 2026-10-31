@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
-import { toast, getErrorMessage, useConfirm, Button, ListPageTemplate, DataTable, Modal, Textarea, Avatar, DescriptionList, Stack, Cluster } from '@so360/design-system';
+import { toast, getErrorMessage, Button, ListPageTemplate, DataTable, Modal, Textarea, Avatar, DescriptionList, Stack, Cluster } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -22,6 +22,10 @@ const LeaveApprovalsPage: React.FC = () => {
     // fire approve twice (the second now 400s, but the UI shouldn't invite it).
     const [actingId, setActingId] = useState<string | null>(null);
     const [viewing, setViewing] = useState<LeaveRequest | null>(null);
+    // Approve opens a dialog with optional notes (Pulse 78626df8) instead of a
+    // bare yes/no confirm, so approvers can record conditions like rejecters do.
+    const [approvingRequest, setApprovingRequest] = useState<LeaveRequest | null>(null);
+    const [approvalNotes, setApprovalNotes] = useState('');
 
     const loadPendingApprovals = useCallback(async () => {
         try {
@@ -40,15 +44,24 @@ const LeaveApprovalsPage: React.FC = () => {
         loadPendingApprovals();
     }, [loadPendingApprovals]);
 
-    const [confirm, confirmDialog] = useConfirm();
+    const openApprove = (request: LeaveRequest) => {
+        setViewing(null);
+        setApprovalNotes('');
+        setApprovingRequest(request);
+    };
 
-    const handleApprove = async (request: LeaveRequest) => {
-        if (!(await confirm({ title: 'Approve leave', message: `Approve leave request for ${request.person?.full_name}?`, confirmLabel: 'Approve' }))) return;
-        if (actingId) return;
+    const closeApprove = () => {
+        setApprovingRequest(null);
+        setApprovalNotes('');
+    };
+
+    const handleApprove = async () => {
+        const request = approvingRequest;
+        if (!request || actingId) return;
 
         setActingId(request.id);
         try {
-            const result = await leaveRequestsApi.approve(request.id);
+            const result = await leaveRequestsApi.approve(request.id, approvalNotes.trim() || undefined);
             // Multi-approver requests stay pending until everyone has approved.
             // Saying "approved" here when it isn't would be a lie the approver
             // has no way to check.
@@ -60,6 +73,7 @@ const LeaveApprovalsPage: React.FC = () => {
                     : 'Leave request approved',
             );
             recordActivity({ eventType: 'people.leave.approved', eventCategory: 'data', description: `Leave request for ${request.person?.full_name || 'person'} was approved`, resourceType: 'leave_request', resourceId: request.id }).catch(() => {});
+            closeApprove();
             loadPendingApprovals();
         } catch (error) {
             // Surface the server's message — "not routed to you", "already
@@ -160,7 +174,7 @@ const LeaveApprovalsPage: React.FC = () => {
                         Review
                     </Button>
                     {canApproveLeave && (
-                        <Button size="sm" variant="primary" onClick={() => handleApprove(r)} disabled={actingId === r.id}>
+                        <Button size="sm" variant="primary" onClick={() => openApprove(r)} disabled={actingId === r.id}>
                             <CheckCircle size={14} />
                             Approve
                         </Button>
@@ -204,7 +218,6 @@ const LeaveApprovalsPage: React.FC = () => {
                 />
             }
         >
-            {confirmDialog}
             <DataTable
                 name="leave-approvals"
                 columns={columns}
@@ -212,12 +225,41 @@ const LeaveApprovalsPage: React.FC = () => {
                 rowKey={(r) => r.id}
             />
 
-            {/* Review Modal — read-only. Opening a request never decides it. */}
+            {/* Review Modal — opening a request never decides it; its Approve
+                button only opens the approve dialog below. */}
             <ReviewRequestModal
                 request={viewing}
                 onClose={() => setViewing(null)}
                 formatters={formatters}
+                onApprove={canApproveLeave ? openApprove : undefined}
             />
+
+            {/* Approve Modal — notes are optional */}
+            <Modal
+                open={!!approvingRequest}
+                onClose={closeApprove}
+                title="Approve Leave Request"
+                footer={
+                    <Cluster gap="default" justify="end">
+                        <Button variant="ghost" onClick={closeApprove}>Cancel</Button>
+                        <Button variant="primary" onClick={handleApprove} disabled={!!actingId}>Approve Request</Button>
+                    </Cluster>
+                }
+            >
+                <Stack gap="default">
+                    <p className="text-nb-body text-fg">
+                        Approving leave request for <span className="font-medium text-fg">{approvingRequest?.person?.full_name}</span>
+                    </p>
+                    <Textarea
+                        name="approval-notes"
+                        label="Notes (optional)"
+                        value={approvalNotes}
+                        onChange={(e) => setApprovalNotes(e.target.value)}
+                        rows={3}
+                        placeholder="Add a comment or conditions for this approval..."
+                    />
+                </Stack>
+            </Modal>
 
             {/* Reject Modal */}
             <Modal
@@ -257,6 +299,8 @@ interface ReviewRequestModalProps {
   request: LeaveRequest | null;
   onClose: () => void;
   formatters: { formatDate: (d: string) => string; formatDateTime: (d: string) => string };
+  /** When provided, the footer offers Approve, which opens the approve dialog. */
+  onApprove?: (request: LeaveRequest) => void;
 }
 
 /**
@@ -266,7 +310,7 @@ interface ReviewRequestModalProps {
  * The pending-approvals list doesn't join the approval chain, so the detail is
  * fetched on open to show who else is involved and what they have already said.
  */
-const ReviewRequestModal: React.FC<ReviewRequestModalProps> = ({ request, onClose, formatters }) => {
+const ReviewRequestModal: React.FC<ReviewRequestModalProps> = ({ request, onClose, formatters, onApprove }) => {
   const [detail, setDetail] = useState<LeaveRequest | null>(null);
 
   useEffect(() => {
@@ -295,7 +339,12 @@ const ReviewRequestModal: React.FC<ReviewRequestModalProps> = ({ request, onClos
       open={!!request}
       onClose={onClose}
       title="Leave Request"
-      footer={<Cluster gap="default" justify="end"><Button variant="ghost" onClick={onClose}>Close</Button></Cluster>}
+      footer={
+        <Cluster gap="default" justify="end">
+          <Button variant="ghost" onClick={onClose}>Close</Button>
+          {onApprove && <Button variant="primary" onClick={() => onApprove(request)}>Approve</Button>}
+        </Cluster>
+      }
     >
       <Stack gap="default">
         <DescriptionList
@@ -326,6 +375,7 @@ const ReviewRequestModal: React.FC<ReviewRequestModalProps> = ({ request, onClos
           submittedAt={shown.submitted_at}
           submittedByName={shown.person?.full_name}
           formatDateTime={formatters.formatDateTime}
+          fallbackRejectionReason={shown.status === 'rejected' ? shown.rejection_reason : undefined}
         />
       </Stack>
     </Modal>

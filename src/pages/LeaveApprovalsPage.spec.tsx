@@ -116,7 +116,7 @@ describe('Given LeaveApprovalsPage API failure', () => {
   });
 });
 
-describe('Given a pending leave request and the approve confirmation', () => {
+describe('Given a pending leave request and the approve dialog with optional notes', () => {
   beforeEach(() => {
     mockApi.getPendingApprovals.mockResolvedValue({ data: [mockRequest], total: 1 });
     mockApi.approve.mockResolvedValue({});
@@ -127,8 +127,18 @@ describe('Given a pending leave request and the approve confirmation', () => {
     await waitFor(() => expect(screen.getByText('Approve')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Approve'));
     const dialog = await screen.findByRole('dialog');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Approve' }));
-    await waitFor(() => expect(mockApi.approve).toHaveBeenCalledWith('lr1'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Approve Request' }));
+    await waitFor(() => expect(mockApi.approve).toHaveBeenCalledWith('lr1', undefined));
+  });
+
+  it('When the approver adds notes and confirms / Then the notes are sent with the approval', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Approve')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Approve'));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/Notes/), { target: { value: '  Back by Monday  ' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Approve Request' }));
+    await waitFor(() => expect(mockApi.approve).toHaveBeenCalledWith('lr1', 'Back by Monday'));
   });
 
   it('When Approve is clicked and the dialog is cancelled / Then the request is not approved', async () => {
