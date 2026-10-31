@@ -271,6 +271,34 @@ interface CreateReviewModalProps {
     onCreate: (data: CreatePerformanceReviewPayload) => void;
 }
 
+/** Read-only outline of the selected review template (sections and questions). */
+export const TemplatePreview: React.FC<{ template?: ReviewTemplate }> = ({ template }) => {
+    if (!template) return null;
+    const sections = template.sections || [];
+    return (
+        <div data-testid="template-preview" className="mt-2 rounded-lg border border-slate-800 bg-slate-900/60 p-3 text-xs text-slate-300 space-y-2">
+            {template.description && <p className="text-slate-400">{template.description}</p>}
+            <p className="text-slate-500">
+                {template.rating_scale}-point scale
+                {template.requires_self_review ? ' · employee self-assessment' : ''}
+                {template.requires_manager_review ? ' · manager assessment' : ''}
+            </p>
+            {sections.length === 0 ? (
+                <p className="text-slate-500">This template has no sections yet.</p>
+            ) : (
+                sections.map(sec => (
+                    <div key={sec.id}>
+                        <p className="font-medium text-slate-200">{sec.title}{sec.weight ? ` (${sec.weight}%)` : ''}</p>
+                        <ul className="list-disc pl-5 text-slate-400">
+                            {(sec.fields || []).map((f, i) => <li key={i}>{f.label}</li>)}
+                        </ul>
+                    </div>
+                ))
+            )}
+        </div>
+    );
+};
+
 const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, onCreate }) => {
     // This modal is a SIBLING of the page component, so it cannot see the
     // page's formatters — it needs its own hook to reach the org timezone.
@@ -492,6 +520,7 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
                             ))}
                         </select>
                     )}
+                    <TemplatePreview template={templates.find(t => t.id === formData.template_id)} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

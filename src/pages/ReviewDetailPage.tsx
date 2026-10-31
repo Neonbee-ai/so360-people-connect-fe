@@ -6,6 +6,7 @@ import { toast } from '@so360/design-system';
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
+import { peopleApi } from '../services/peopleService';
 import { reviewTemplatesApi, ReviewTemplate, ReviewTemplateSection } from '../services/reviewTemplatesService';
 import PerformanceEvidencePanel from '../components/PerformanceEvidencePanel';
 
@@ -133,10 +134,15 @@ const ReviewDetailPage: React.FC = () => {
     const [managerFormData, setManagerFormData] = useState<Record<string, unknown>>({});
     const [overallRating, setOverallRating] = useState<number>(0);
     const [submitting, setSubmitting] = useState(false);
+    const [myPersonId, setMyPersonId] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) loadReview(id);
     }, [id]);
+
+    useEffect(() => {
+        peopleApi.getMe().then(me => setMyPersonId(me?.id ?? null)).catch(() => setMyPersonId(null));
+    }, []);
 
     const loadReview = async (reviewId: string) => {
         try {
@@ -275,6 +281,15 @@ const ReviewDetailPage: React.FC = () => {
     const ratingScale = template?.rating_scale || 5;
     const selfSubmitted = !!review.self_review_submitted_at;
     const managerSubmitted = !!review.manager_review_submitted_at;
+    // Role-based sections. Unknown viewer (profile not resolved) fails open for
+    // display only; the API is the enforcement point.
+    const isSubject = !!myPersonId && myPersonId === review.person_id;
+    const isReviewer = !!myPersonId && myPersonId === review.reviewer_id;
+    const showSelfTab = !myPersonId || isSubject || selfSubmitted;
+    const showManagerTab = !myPersonId || !isSubject || isReviewer || review.status === 'completed';
+    const canSubmitSelf = !myPersonId || isSubject;
+    const canSubmitManager = !myPersonId || isReviewer || !isSubject;
+    const tab = activeTab === 'self' && !showSelfTab ? (showManagerTab ? 'manager' : 'overall') : activeTab === 'manager' && !showManagerTab ? 'overall' : activeTab;
 
     return (
         <div className="p-6 space-y-5">
@@ -353,26 +368,26 @@ const ReviewDetailPage: React.FC = () => {
 
             {/* Tabs */}
             <div className="flex items-center gap-2 border-b border-slate-800">
-                <button
+                {showSelfTab && <button
                     onClick={() => setActiveTab('self')}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'self' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
+                        tab === 'self' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
                     }`}
                 >
                     Self Review {selfSubmitted && <span className="text-green-400 ml-1">&#10003;</span>}
-                </button>
-                <button
+                </button>}
+                {showManagerTab && <button
                     onClick={() => setActiveTab('manager')}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'manager' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
+                        tab === 'manager' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
                     }`}
                 >
                     Manager Review {managerSubmitted && <span className="text-green-400 ml-1">&#10003;</span>}
-                </button>
+                </button>}
                 <button
                     onClick={() => setActiveTab('overall')}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'overall' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
+                        tab === 'overall' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
                     }`}
                 >
                     Overall
@@ -383,7 +398,7 @@ const ReviewDetailPage: React.FC = () => {
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                 {sections.length > 0 ? (
                     <>
-                        {activeTab === 'self' && (
+                        {tab === 'self' && (
                             <ReviewForm
                                 sections={sections}
                                 ratingScale={ratingScale}
@@ -392,7 +407,7 @@ const ReviewDetailPage: React.FC = () => {
                                 readOnly={selfSubmitted}
                             />
                         )}
-                        {activeTab === 'manager' && (
+                        {tab === 'manager' && (
                             <>
                                 <ReviewForm
                                     sections={sections}
@@ -426,7 +441,7 @@ const ReviewDetailPage: React.FC = () => {
                                 )}
                             </>
                         )}
-                        {activeTab === 'overall' && (
+                        {tab === 'overall' && (
                             <div className="space-y-6">
                                 {selfSubmitted && (
                                     <div>
@@ -455,7 +470,7 @@ const ReviewDetailPage: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-3">
-                {review.status === 'self_review_pending' && !selfSubmitted && (
+                {review.status === 'self_review_pending' && !selfSubmitted && canSubmitSelf && (
                     <button
                         onClick={handleSubmitSelfReview}
                         disabled={submitting}
@@ -464,7 +479,7 @@ const ReviewDetailPage: React.FC = () => {
                         {submitting ? 'Submitting...' : 'Submit Self Review'}
                     </button>
                 )}
-                {review.status === 'manager_review_pending' && !managerSubmitted && (
+                {review.status === 'manager_review_pending' && !managerSubmitted && canSubmitManager && (
                     <button
                         onClick={handleSubmitManagerReview}
                         disabled={submitting || overallRating === 0}
