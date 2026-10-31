@@ -151,7 +151,7 @@ const AllocationsPage: React.FC = () => {
             render: (a) => (
                 <Cluster gap="tight" className="flex-nowrap">
                     <Avatar name={a.person?.full_name || 'Unknown Person'} size="sm" />
-                    <span className="min-w-0 truncate text-nb-sm font-medium text-fg">{a.person?.full_name || 'Unknown Person'}</span>
+                    <span className="min-w-0 break-words text-nb-sm font-medium text-fg">{a.person?.full_name || 'Unknown Person'}</span>
                 </Cluster>
             ),
         },
@@ -162,8 +162,8 @@ const AllocationsPage: React.FC = () => {
             sortValue: (a) => a.entity_name || a.entity_id,
             render: (a) => (
                 <Stack gap="none">
-                    <span className="truncate text-nb-sm text-fg">{a.entity_name || a.entity_id}</span>
-                    <span className="truncate text-nb-xs capitalize text-fg-muted">{a.entity_type}</span>
+                    <span className="break-words text-nb-sm text-fg">{a.entity_name || a.entity_id}</span>
+                    <span className="break-words text-nb-xs capitalize text-fg-muted">{a.entity_type}</span>
                 </Stack>
             ),
         },
@@ -190,7 +190,7 @@ const AllocationsPage: React.FC = () => {
             header: 'Period',
             sortable: true,
             sortValue: (a) => a.start_date,
-            render: (a) => <span className="whitespace-nowrap text-nb-sm text-fg-muted">{a.start_date} to {a.end_date}</span>,
+            render: (a) => <span className="text-nb-sm tabular-nums text-fg-muted">{a.start_date} to {a.end_date}</span>,
         },
         {
             key: 'progress',
