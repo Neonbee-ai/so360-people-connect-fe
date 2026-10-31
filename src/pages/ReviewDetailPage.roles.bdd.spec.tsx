@@ -88,12 +88,12 @@ beforeEach(() => { vi.resetAllMocks(); });
 describe('Given role-based review sections (Pulse cac0fab5)', () => {
   it('When the employee opens their review Then Manager Review tab is hidden', async () => {
     await renderAs('emp1');
-    await waitFor(() => expect(screen.queryByText(/Manager Review/)).not.toBeInTheDocument());
-    expect(screen.getByText(/Self Review/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Manager Review/ })).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /^Self Review/ })).toBeInTheDocument();
   });
   it('When an admin (not subject) opens an unsubmitted review Then Self Review tab is hidden', async () => {
     await renderAs('admin1');
-    await waitFor(() => expect(screen.queryByText(/^Self Review/)).not.toBeInTheDocument());
-    expect(screen.getByText(/Manager Review/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Self Review/ })).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /^Manager Review/ })).toBeInTheDocument();
   });
 });
