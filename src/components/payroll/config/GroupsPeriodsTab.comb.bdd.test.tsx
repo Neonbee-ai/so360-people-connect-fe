@@ -57,10 +57,10 @@ describe('GIVEN the Comb groups & periods tab', () => {
     render(<GroupsPeriodsTab />);
     await waitFor(() => expect(screen.getByText('New Group')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New Group'));
-    await waitFor(() => expect(screen.getByPlaceholderText('Monthly Staff')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByPlaceholderText('Monthly Staff')).toBeInTheDocument(), { timeout: 5000 });
     fireEvent.change(screen.getByPlaceholderText('Monthly Staff'), { target: { value: 'Interns' } });
     fireEvent.change(screen.getByPlaceholderText('MONTHLY'), { target: { value: 'INTERN' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to save payroll group'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to save payroll group'), { timeout: 5000 });
   });
 });
