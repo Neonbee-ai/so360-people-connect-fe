@@ -214,19 +214,6 @@ const GoalsPage: React.FC = () => {
                     { key: 'status', header: 'Status', render: (g) => <StatusBadge status={g.status} /> },
                 ]}
             />
-
-            {/* Create/Edit Modal */}
-            <GoalModal
-                isOpen={showCreateModal || !!editingGoal}
-                onClose={() => {
-                    setShowCreateModal(false);
-                    setEditingGoal(null);
-                }}
-                onCreate={handleCreate}
-                onUpdate={handleUpdate}
-                goal={editingGoal}
-            />
-
             {/* Update Progress Modal */}
             <Modal
                 open={!!updatingProgress}
@@ -259,6 +246,19 @@ const GoalsPage: React.FC = () => {
                 </Stack>
             </Modal>
         </ListPageTemplate>
+
+            {/* Create/Edit Modal */}
+            <GoalModal
+                isOpen={showCreateModal || !!editingGoal}
+                onClose={() => {
+                    setShowCreateModal(false);
+                    setEditingGoal(null);
+                }}
+                onCreate={handleCreate}
+                onUpdate={handleUpdate}
+                goal={editingGoal}
+            />
+
         </>
     );
 };

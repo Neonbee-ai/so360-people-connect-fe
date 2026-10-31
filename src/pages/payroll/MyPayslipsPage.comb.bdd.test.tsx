@@ -40,14 +40,14 @@ describe('GIVEN the Comb My Payslips page', () => {
     await waitFor(() => expect(screen.getByText('Your August 2026 payslip')).toBeInTheDocument());
   });
 
-  it('WHEN View is clicked THEN the detail dialog opens', async () => {
+  it('WHEN the payslip card is clicked THEN the detail dialog opens', async () => {
     mockApi.my.payslip.mockResolvedValue({
       ...mockPayslip,
       lines: [{ id: 'l1', run_employee_id: 're1', component_code: 'BASIC', component_name: 'Basic Salary', kind: 'earning', amount: 50000 }],
     });
     renderPage();
     await waitFor(() => expect(screen.getByText('Your August 2026 payslip')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
+    fireEvent.click(screen.getByText(/Your .* payslip/));
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
   });
 

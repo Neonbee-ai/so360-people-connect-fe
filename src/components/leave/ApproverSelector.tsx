@@ -159,7 +159,7 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
           results.map(p => {
             const selected = value.includes(p.id);
             return (
-              <button
+              <button // comb-exception: selectable approver row (multi-line person card with check state)
                 type="button"
                 key={p.id}
                 disabled={disabled}

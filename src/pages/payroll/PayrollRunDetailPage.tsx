@@ -359,10 +359,10 @@ const PayrollRunDetailPage: React.FC = () => {
                                             <Stack gap="tight">
                                                 {included.map(employee => (
                                                     <Cluster key={employee.id} gap="default" justify="between" align="center">
-                                                        <div>
+                                                        <Stack gap="none" className="min-w-0 flex-1">
                                                             <span className="text-nb-body text-fg">{employee.person_name}</span>
-                                                            <span className="text-nb-caption text-fg-subtle ml-2">{[employee.employee_code, employee.department_name].filter(Boolean).join(' · ')}</span>
-                                                        </div>
+                                                            <span className="text-nb-caption text-fg-subtle">{[employee.employee_code, employee.department_name].filter(Boolean).join(' · ')}</span>
+                                                        </Stack>
                                                         {isDraft && (
                                                             <Button
                                                                 variant="ghost"
@@ -386,10 +386,10 @@ const PayrollRunDetailPage: React.FC = () => {
                                                 <Stack gap="tight">
                                                     {excluded.map(employee => (
                                                         <Cluster key={employee.id} gap="default" justify="between" align="center">
-                                                            <div>
+                                                            <Stack gap="none" className="min-w-0 flex-1">
                                                                 <span className="text-nb-body text-fg-muted">{employee.person_name}</span>
-                                                                {employee.exclusion_reason && <span className="text-nb-caption text-warning ml-2">{employee.exclusion_reason}</span>}
-                                                            </div>
+                                                                {employee.exclusion_reason && <span className="text-nb-caption text-warning">{employee.exclusion_reason}</span>}
+                                                            </Stack>
                                                             {isDraft && (
                                                                 <Button
                                                                     variant="ghost"

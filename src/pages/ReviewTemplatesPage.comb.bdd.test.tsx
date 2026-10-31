@@ -56,6 +56,14 @@ describe('ReviewTemplatesPage (Comb)', () => {
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
   });
 
+  it('Given an empty list / When Create Template is clicked / Then the create dialog opens (not hidden by the empty state)', async () => {
+    api.getAll.mockResolvedValue({ data: [], total: 0 });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('No review templates found')).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button', { name: /Create Template/ })[0]);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
   it('Given the create modal is open / When Cancel is clicked / Then it closes', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Annual 2024')).toBeInTheDocument());

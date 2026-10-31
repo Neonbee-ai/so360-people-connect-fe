@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useShellBridge } from '@so360/shell-context';
-import { CombScope, FeatureRoute as FeatureRouteBase } from '@so360/design-system';
+import { Button, CombScope, FeatureRoute as FeatureRouteBase } from '@so360/design-system';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FeatureRoute = FeatureRouteBase as any;
 import { peopleService } from './services/peopleService';
@@ -11,23 +11,22 @@ import { ResolvingNotice } from './components/ResolvingNotice';
 const UpgradeLocked = () => {
     const navigate = useNavigate();
     return (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center px-4">
+        <div className="flex flex-col items-center justify-center min-h-96 gap-4 text-center px-4">
             <h2 className="text-lg font-bold text-fg">This feature is part of a higher plan</h2>
             <p className="text-fg-subtle text-sm max-w-md">Upgrade your plan to unlock it.</p>
-            <button
+            <Button
                 type="button"
                 onClick={() => navigate('/org/billing')}
-                className="px-4 py-2 rounded bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium transition-colors"
             >
                 Upgrade plan
-            </button>
+            </Button>
         </div>
     );
 };
 
 /** Shown when a submodule is `disabled`/`hidden` — turned off, no upgrade path. */
 const FeatureUnavailable = () => (
-    <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-center px-4">
+    <div className="flex flex-col items-center justify-center min-h-96 gap-3 text-center px-4">
         <h2 className="text-lg font-bold text-fg">Feature Not Available</h2>
         <p className="text-fg-subtle text-sm max-w-md">This feature is not available for your organization. Contact your administrator.</p>
     </div>
@@ -206,8 +205,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <main className="flex-1 overflow-auto">
                 <Suspense
                     fallback={
-                        <div className="flex items-center justify-center min-h-[300px]">
-                            <div className="w-6 h-6 border-2 border-primary/20 border-t-teal-500 rounded-full animate-spin" />
+                        <div className="flex items-center justify-center min-h-72">
+                            <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
                         </div>
                     }
                 >

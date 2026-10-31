@@ -73,14 +73,14 @@ const ShiftsPage: React.FC = () => {
       header: 'Name',
       render: (shift) => (
         <Cluster gap="tight">
-          <span className="font-medium text-fg">{shift.name}</span>
+          <span className="min-w-0 break-words font-medium text-fg">{shift.name}</span>
           {shift.is_night_shift && <Badge tone="primary">Night</Badge>}
         </Cluster>
       ),
     },
     { key: 'timing', header: 'Timing', render: (shift) => <span className="text-fg">{shift.start_time} – {shift.end_time}</span> },
-    { key: 'grace', header: 'Grace', render: (shift) => <span className="text-fg-muted">{shift.grace_period_minutes} min</span> },
-    { key: 'break', header: 'Break', render: (shift) => <span className="text-fg-muted">{shift.break_duration_minutes} min</span> },
+    { key: 'grace', header: 'Grace', hideBelow: 'medium', render: (shift) => <span className="text-fg-muted">{shift.grace_period_minutes} min</span> },
+    { key: 'break', header: 'Break', hideBelow: 'medium', render: (shift) => <span className="text-fg-muted">{shift.break_duration_minutes} min</span> },
     {
       key: 'is_active',
       header: 'Active',
@@ -221,6 +221,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({ isOpen, onClose, onCreate, onUp
           <TextField
             name="shift-name"
             id="shift-name"
+            maxLength={100}
             label="Name *"
             required
             value={form.name}

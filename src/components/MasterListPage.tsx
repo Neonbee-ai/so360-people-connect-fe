@@ -272,6 +272,7 @@ const MasterFormModal: React.FC<MasterFormModalProps> = ({
         <Stack>
           <TextField
             name="master-name"
+            maxLength={100}
             label="Name"
             required
             value={form.name}
