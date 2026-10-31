@@ -256,8 +256,8 @@ const DepartmentsPage: React.FC = () => {
 interface DepartmentModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreate: (data: CreateDepartmentPayload) => void;
-    onUpdate: (id: string, data: Partial<Department>) => void;
+    onCreate: (data: CreateDepartmentPayload) => void | Promise<void>;
+    onUpdate: (id: string, data: Partial<Department>) => void | Promise<void>;
     department: Department | null;
     departments: Department[];
 }
@@ -296,6 +296,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
         is_active: true,
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [submitting, setSubmitting] = useState(false);
     const [people, setPeople] = useState<Person[]>([]);
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -359,8 +360,9 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
 
     const isFormValid = Object.keys(validate(formData)).length === 0;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (submitting) return; // guard double submit (Enter + click, retries)
         const validationErrors = validate(formData);
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
@@ -369,10 +371,15 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
         }
 
         const payload = { ...formData, code: formData.code.trim(), name: formData.name.trim() };
-        if (department) {
-            onUpdate(department.id, payload);
-        } else {
-            onCreate(payload);
+        setSubmitting(true);
+        try {
+            if (department) {
+                await onUpdate(department.id, payload);
+            } else {
+                await onCreate(payload);
+            }
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -511,11 +518,11 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
                     </button>
                     <button
                         type="submit"
-                        disabled={!isFormValid}
+                        disabled={!isFormValid || submitting}
                         title={isFormValid ? undefined : 'Enter a valid department code and name.'}
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {department ? 'Update' : 'Create'}
+                        {submitting ? 'Saving...' : department ? 'Update' : 'Create'}
                     </button>
                 </div>
             </form>
