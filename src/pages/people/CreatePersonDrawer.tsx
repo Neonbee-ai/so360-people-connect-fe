@@ -223,7 +223,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
         // triggered by an empty string.
         const payload: any = { ...formData, full_name: formData.full_name.trim() };
         payload.department_id = payload.department_id || undefined;
-        payload.type = personTypeForEmploymentType(payload.employment_type);
+        payload.type = personTypeForEmploymentType(payload.employment_type, 'employee', employmentTypes);
         // The invitation always goes to the Identity email — never carry a separate value.
         payload.inviteEmail = payload.email;
         if (Object.keys(customFieldValues).length > 0) {
@@ -386,7 +386,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
                             </p>
                         ) : (
                             <p className="text-nb-caption text-fg-subtle" data-testid="derived-person-type">
-                                Recorded as {personTypeLabel(personTypeForEmploymentType((formData as any).employment_type))}
+                                Recorded as {personTypeLabel(personTypeForEmploymentType((formData as any).employment_type, 'employee', employmentTypes))}
                             </p>
                         )}
                     </Stack>
