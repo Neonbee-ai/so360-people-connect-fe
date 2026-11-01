@@ -173,6 +173,8 @@ const renderWithId = (element: React.ReactElement, path: string, id: string) =>
 
 beforeEach(() => {
   vi.resetAllMocks();
+  // resetAllMocks wipes factory implementations; restore the viewer (the reviewer).
+  vi.mocked(peopleApi.getMe).mockResolvedValue({ id: 'r1', full_name: 'Dana Manager' } as any);
 });
 
 // ===========================================================================
