@@ -126,7 +126,8 @@ describe('LeaveRequestsPage — extra scenarios', () => {
     it('When page loads / Then shows status badges', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Pending')).toBeInTheDocument());
-      expect(screen.getByText('Approved')).toBeInTheDocument();
+      // 'Approved' is also a status-filter <option>; assert the row badge itself.
+      expect(screen.getByTestId('status-approved')).toHaveTextContent('Approved');
       expect(screen.queryByText('pending')).toBeNull();
     });
 
