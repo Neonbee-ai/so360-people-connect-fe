@@ -2,9 +2,9 @@
  * Client-side leave balance pre-check. The backend stays authoritative (it
  * rejects over-balance requests); this only gives an inline early warning.
  *
- * Counts Mon-Fri days in the range, minus half-days. That is a LOWER bound on
- * the server's working-day count (holidays can only reduce it further), so the
- * form never blocks a request the server would accept.
+ * Counts Mon-Fri days in the range, minus half-days. The server may exclude
+ * holidays too, so this can over-count by the number of holidays in range; it
+ * is an early warning only and the server's balance check is authoritative.
  */
 export function minWorkingDays(
     start: string,

@@ -1,14 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    Target, Plus, Search, Calendar, User,
-    ArrowRight, ChevronDown, MoreHorizontal, Edit2, XCircle,
-} from 'lucide-react';
-import PageHeader from '../components/PageHeader';
+import { Target, Plus, Edit2, XCircle } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import { toast, useConfirm, Select, Button, ListPageTemplate, DataTable, Avatar, Progress, Modal, DateInput, TextField, Textarea, Banner, Stack, Cluster } from '@so360/design-system';
+import type { DataTableColumn, FilterValues, ListFilterConfig } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { allocationsApi, peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
@@ -88,8 +84,10 @@ const AllocationsPage: React.FC = () => {
         loadAllocations();
     };
 
+    const [confirm, confirmDialog] = useConfirm();
+
     const handleCancel = async (id: string) => {
-        if (!confirm('Cancel this allocation? This action cannot be undone.')) return;
+        if (!(await confirm({ title: 'Cancel allocation', message: 'Cancel this allocation? This action cannot be undone.', intent: 'danger', confirmLabel: 'Cancel allocation' }))) return;
         try {
             await allocationsApi.cancel(id);
             toast.success('Allocation cancelled');
@@ -116,213 +114,141 @@ const AllocationsPage: React.FC = () => {
         return acc;
     }, {});
 
+    const deptOptions = [
+        { value: '', label: 'All Departments' },
+        ...departments.map(dept => ({
+            value: dept.id,
+            label: `${dept.depth > 0 ? `${'  '.repeat(dept.depth)}└ ` : ''}${dept.name}`,
+        })),
+    ];
+
+    const filterValues: FilterValues = {
+        status: statusFilter || null,
+        entity_type: entityTypeFilter || null,
+        department_id: departmentFilter || null,
+    };
+    const filterConfig: ListFilterConfig = {
+        fields: [
+            { key: 'status', label: 'Status', type: 'select', options: [{ value: 'planned', label: 'Planned' }, { value: 'active', label: 'Active' }, { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' }] },
+            { key: 'entity_type', label: 'Entity type', type: 'select', options: [{ value: 'project', label: 'Project' }, { value: 'task', label: 'Task' }, { value: 'lead', label: 'Lead' }, { value: 'customer', label: 'Customer' }, { value: 'opportunity', label: 'Opportunity' }, { value: 'department', label: 'Department' }] },
+            { key: 'department_id', label: 'Department', type: 'select', options: deptOptions.filter(o => o.value) },
+        ],
+        values: filterValues,
+        onChange: (v) => {
+            setStatusFilter(typeof v.status === 'string' ? v.status : '');
+            setEntityTypeFilter(typeof v.entity_type === 'string' ? v.entity_type : '');
+            setDepartmentFilter(typeof v.department_id === 'string' ? v.department_id : '');
+        },
+        onClear: () => { setStatusFilter(''); setEntityTypeFilter(''); setDepartmentFilter(''); },
+    };
+
+    const columns: DataTableColumn<Allocation>[] = [
+        {
+            key: 'person',
+            header: 'Person',
+            sortable: true,
+            sortValue: (a) => a.person?.full_name ?? '',
+            render: (a) => (
+                <Cluster gap="tight" className="flex-nowrap">
+                    <Avatar name={a.person?.full_name || 'Unknown Person'} size="sm" />
+                    <span className="min-w-0 break-words text-nb-sm font-medium text-fg">{a.person?.full_name || 'Unknown Person'}</span>
+                </Cluster>
+            ),
+        },
+        {
+            key: 'entity',
+            header: 'Project / entity',
+            sortable: true,
+            sortValue: (a) => a.entity_name || a.entity_id,
+            render: (a) => (
+                <Stack gap="none">
+                    <span className="break-words text-nb-sm text-fg">{a.entity_name || a.entity_id}</span>
+                    <span className="break-words text-nb-xs capitalize text-fg-muted">{a.entity_type}</span>
+                </Stack>
+            ),
+        },
+        {
+            key: 'allocation_value',
+            header: 'Allocation',
+            align: 'right',
+            sortable: true,
+            sortValue: (a) => a.allocation_value ?? 0,
+            render: (a) => {
+                const personData = allocationsByPerson[a.person_id];
+                const over = a.status === 'active' && !!personData && personData.totalPct > 100;
+                return (
+                    <Stack gap="none">
+                        <span className="tabular-nums text-nb-sm font-medium text-fg">{a.allocation_value}%</span>
+                        {over && <span className="tabular-nums text-nb-xs text-warning">Total: {personData.totalPct}%</span>}
+                    </Stack>
+                );
+            },
+        },
+        { key: 'status', header: 'Status', sortable: true, sortValue: (a) => a.status, render: (a) => <StatusBadge status={a.status} /> },
+        {
+            key: 'period',
+            header: 'Period',
+            sortable: true,
+            sortValue: (a) => a.start_date,
+            render: (a) => <span className="break-words text-nb-sm tabular-nums text-fg-muted">{a.start_date} to {a.end_date}</span>,
+        },
+        {
+            key: 'progress',
+            header: 'Capacity',
+            hideBelow: 'medium',
+            widthClassName: 'w-40',
+            render: (a) => a.status === 'active'
+                ? <Progress value={Math.min(a.allocation_value ?? 0, 100)} size="sm" tone={(a.allocation_value ?? 0) > 80 ? 'warning' : 'brand'} label={`Capacity ${a.allocation_value ?? 0}%`} />
+                : <span className="text-fg-muted">—</span>,
+        },
+    ];
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
+        <>
+            {confirmDialog}
+            <ListPageTemplate trail={[]}
                 title="Allocations"
-                subtitle="Assign people to execution entities with capacity control"
-                actions={canCreateAllocation ? (
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
+                description="Assign people to execution entities with capacity control"
+                count={allocations.length}
+                primaryAction={canCreateAllocation ? (
+                    <Button variant="primary" onClick={() => setShowCreateModal(true)}>
                         <Plus size={16} />
                         New Allocation
-                    </button>
+                    </Button>
                 ) : undefined}
-            />
-
-            {/* Filters — controls and summary share one row and one baseline, so
-                the stats never float away from the filter group. */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-3">
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="planned">Planned</option>
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
-                <select
-                    value={entityTypeFilter}
-                    onChange={(e) => setEntityTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Entity Types</option>
-                    <option value="project">Project</option>
-                    <option value="task">Task</option>
-                    <option value="lead">Lead</option>
-                    <option value="customer">Customer</option>
-                    <option value="opportunity">Opportunity</option>
-                    <option value="department">Department</option>
-                </select>
-                <select
-                    value={departmentFilter}
-                    onChange={(e) => setDepartmentFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Departments</option>
-                    {departments.map(dept => (
-                        <option key={dept.id} value={dept.id}>
-                            {dept.depth > 0 ? `${'  '.repeat(dept.depth)}└ ` : ''}{dept.name}
-                        </option>
-                    ))}
-                </select>
-                </div>
-
-                {/* Summary Stats */}
-                <div className="flex items-center gap-4 text-xs text-slate-400">
-                    <span>{allocations.length} allocation{allocations.length !== 1 ? 's' : ''}</span>
-                    <span>{allocations.filter(a => a.status === 'active').length} active</span>
-                    <span className="text-amber-400">
-                        {Object.values(allocationsByPerson).filter(p => p.totalPct > 100).length} overallocated
-                    </span>
-                </div>
-            </div>
-
-            {/* Allocations List */}
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-24 bg-slate-800/50 rounded-xl animate-pulse" />
-                    ))}
-                </div>
-            ) : allocations.length === 0 ? (
-                <EmptyState
-                    icon={Target}
-                    title="No allocations"
-                    description="Create allocations to assign people to projects, tasks, or other execution entities."
-                    action={{ label: 'Create Allocation', onClick: () => setShowCreateModal(true) }}
+                loading={loading && allocations.length === 0}
+                isEmpty={allocations.length === 0 && !statusFilter && !entityTypeFilter && !departmentFilter}
+                isFilteredEmpty={allocations.length === 0 && !!(statusFilter || entityTypeFilter || departmentFilter)}
+                onClearFilters={filterConfig.onClear}
+                empty={(
+                    <EmptyState
+                        icon={Target}
+                        title="No allocations"
+                        description="Create allocations to assign people to projects, tasks, or other execution entities."
+                        action={{ label: 'Create Allocation', onClick: () => setShowCreateModal(true) }}
+                    />
+                )}
+                filterConfig={filterConfig}
+            >
+                <DataTable
+                    name="allocations"
+                    columns={columns}
+                    rows={allocations}
+                    rowKey={(a) => a.id}
+                    onRowClick={(a) => navigate(`/people/people/${a.person_id}`)}
+                    rowActions={(a) => (a.status === 'cancelled' || a.status === 'completed' ? [] : [
+                        { label: 'Edit', icon: <Edit2 size={14} />, onSelect: () => setEditingAllocation(a) },
+                        { label: 'Cancel allocation', icon: <XCircle size={14} />, danger: true, onSelect: () => handleCancel(a.id) },
+                    ])}
                 />
-            ) : (
-                <div className="space-y-2">
-                    {allocations.map((alloc) => {
-                        const personData = allocationsByPerson[alloc.person_id];
-                        const isOverallocated = personData && personData.totalPct > 100;
+            </ListPageTemplate>
 
-                        return (
-                            <div
-                                key={alloc.id}
-                                className={`bg-slate-900 border rounded-xl p-4 transition-all ${
-                                    isOverallocated && alloc.status === 'active'
-                                        ? 'border-amber-500/30'
-                                        : 'border-slate-800 hover:border-slate-700'
-                                }`}
-                            >
-                                {/* Fixed column track so every row lines up: avatar |
-                                    info (flexes) | % | status | actions. The trailing
-                                    columns are sized, not content-driven, so a long
-                                    entity name can never push them out of alignment. */}
-                                <div className="grid items-center gap-4 grid-cols-[2.5rem_minmax(0,1fr)_5.5rem_6rem_4.5rem]">
-                                    {/* Person Avatar */}
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-xs font-medium text-teal-400">
-                                            {(alloc.person?.full_name || 'U').split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                        </span>
-                                    </div>
-
-                                    {/* Info */}
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2 mb-0.5 min-w-0">
-                                            <span
-                                                onClick={() => navigate(`/people/people/${alloc.person_id}`)}
-                                                className="text-sm font-medium text-slate-50 hover:text-teal-400 cursor-pointer truncate"
-                                            >
-                                                {alloc.person?.full_name || 'Unknown Person'}
-                                            </span>
-                                            <ArrowRight size={12} className="text-slate-600 flex-shrink-0" />
-                                            <span className="text-sm text-slate-300 truncate">
-                                                {alloc.entity_name || alloc.entity_id}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-xs text-slate-500 min-w-0">
-                                            <span className="flex items-center gap-1 flex-shrink-0">
-                                                <Calendar size={11} />
-                                                {alloc.start_date} to {alloc.end_date}
-                                            </span>
-                                            <span className="text-slate-600 flex-shrink-0 capitalize">{alloc.entity_type}</span>
-                                            {alloc.notes && <span className="truncate">{alloc.notes}</span>}
-                                        </div>
-                                    </div>
-
-                                    {/* Allocation Value */}
-                                    <div className="text-right">
-                                        <div className="text-lg font-bold text-slate-50 leading-tight">
-                                            {alloc.allocation_value}
-                                            <span className="text-sm text-slate-400 ml-0.5">%</span>
-                                        </div>
-                                        {isOverallocated && alloc.status === 'active' && (
-                                            <div className="text-xs text-amber-400 leading-tight">
-                                                Total: {personData.totalPct}%
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Status */}
-                                    <div className="flex justify-start">
-                                        <StatusBadge status={alloc.status} />
-                                    </div>
-
-                                    {/* Actions — always occupies its column so rows without
-                                        actions keep the same track widths. */}
-                                    <div className="flex items-center justify-end gap-1">
-                                        {alloc.status !== 'cancelled' && alloc.status !== 'completed' && (
-                                            <>
-                                                <button
-                                                    onClick={() => setEditingAllocation(alloc)}
-                                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-50 hover:bg-slate-800 transition-colors"
-                                                    title="Edit"
-                                                    aria-label="Edit allocation"
-                                                >
-                                                    <Edit2 size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleCancel(alloc.id)}
-                                                    className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-                                                    title="Cancel"
-                                                    aria-label="Cancel allocation"
-                                                >
-                                                    <XCircle size={14} />
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Capacity bar — rendered on every card (empty track for
-                                    non-active allocations) so each row is the same height
-                                    and the bar always sits the same distance from the
-                                    card edge. */}
-                                <div className="mt-3 pt-3 border-t border-slate-800/50">
-                                    <div className="w-full bg-slate-800 rounded-full h-1.5" role="presentation">
-                                        {alloc.status === 'active' && (
-                                            <div
-                                                className={`h-1.5 rounded-full transition-all ${
-                                                    (alloc.allocation_value ?? 0) > 80 ? 'bg-amber-500' : 'bg-teal-500'
-                                                }`}
-                                                style={{ width: `${Math.min(alloc.allocation_value ?? 0, 100)}%` }}
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
-            {/* Create Modal */}
             <CreateAllocationModal
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
                 onCreate={handleCreate}
             />
 
-            {/* Edit Modal */}
             {editingAllocation && (
                 <EditAllocationModal
                     allocation={editingAllocation}
@@ -330,8 +256,7 @@ const AllocationsPage: React.FC = () => {
                     onSave={(data) => handleUpdate(editingAllocation.id, data)}
                 />
             )}
-
-        </div>
+        </>
     );
 };
 
@@ -466,54 +391,31 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Create Allocation" size="lg">
-            <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Person Selection */}
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Resource</h4>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Person *</label>
-                        <select
-                            required
-                            value={formData.person_id}
-                            onChange={(e) => updateField('person_id', e.target.value)}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.person_id ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                        >
-                            <option value="">Select a person...</option>
-                            {people.map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.full_name} - {p.job_title || p.type}
-                                    {canViewCompensation ? ` (${formatters.formatCurrency(p.cost_rate)}/${p.cost_rate_unit})` : ''}
-                                </option>
-                            ))}
-                        </select>
-                        {errors.person_id && <p className="mt-1 text-xs text-rose-400">{errors.person_id}</p>}
-                    </div>
-                </div>
+        <Modal open={isOpen} onClose={onClose} title="Create Allocation" size="lg">
+            <form onSubmit={handleSubmit}>
+                <Stack gap="default">
+                    <Select
+                        name="allocations-select-28"
+                        label="Person *"
+                        required
+                        value={formData.person_id}
+                        onChange={(e) => updateField('person_id', e.target.value)}
+                        options={[{ value: "", label: "Select a person..." }, ...people.map((p) => ({ value: p.id, label: `${p.full_name} - ${p.job_title || p.type}${canViewCompensation ? ` (${formatters.formatCurrency(p.cost_rate)}/${p.cost_rate_unit})` : ''}` }))]}
+                    />
+                    {errors.person_id && <p role="alert" className="text-nb-xs text-danger">{errors.person_id}</p>}
 
-                {/* Execution Entity */}
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Execution Entity</h4>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Entity Type *</label>
-                            <select
-                                value={formData.entity_type}
-                                onChange={(e) => handleEntityTypeChange(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="project">Project</option>
-                                <option value="task">Task</option>
-                                <option value="lead">Lead</option>
-                                <option value="customer">Customer</option>
-                                <option value="opportunity">Opportunity</option>
-                                <option value="department">Department</option>
-                            </select>
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-xs text-slate-400 mb-1">
+                    <div className="grid grid-cols-1 wc-medium:grid-cols-3 gap-nb-4">
+                        <Select
+                            name="allocations-select-29"
+                            label="Entity Type *"
+                            value={formData.entity_type}
+                            onChange={(e) => handleEntityTypeChange(e.target.value)}
+                            options={[{ value: "project", label: "Project" }, { value: "task", label: "Task" }, { value: "lead", label: "Lead" }, { value: "customer", label: "Customer" }, { value: "opportunity", label: "Opportunity" }, { value: "department", label: "Department" }]}
+                        />
+                        <div className="wc-medium:col-span-2">
+                            <p className="text-nb-xs text-fg-muted mb-nb-1">
                                 {formData.entity_type === 'task' ? 'Project & Task *' : 'Entity *'}
-                            </label>
+                            </p>
                             <EntitySelector
                                 entityType={formData.entity_type as LookupEntityType}
                                 value={formData.entity_id}
@@ -521,108 +423,81 @@ const CreateAllocationModal: React.FC<CreateAllocationModalProps> = ({ isOpen, o
                                 onChange={handleEntitySelect}
                                 error={!!errors.entity_id}
                             />
-                            {errors.entity_id && <p className="mt-1 text-xs text-rose-400">{errors.entity_id}</p>}
+                            {errors.entity_id && <p className="mt-nb-1 text-nb-xs text-danger">{errors.entity_id}</p>}
                         </div>
                     </div>
-                </div>
 
-                {/* Allocation Window */}
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Allocation Window</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Start Date *</label>
-                            <input
-                                type="date" required aria-label="Start Date" value={formData.start_date}
-                                onChange={(e) => updateField('start_date', e.target.value)}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.start_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                            />
-                            <p className="mt-1 text-xs text-slate-500">Defaults to today — the allocation starts as soon as it is created.</p>
-                            {errors.start_date && <p className="mt-1 text-xs text-rose-400">{errors.start_date}</p>}
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">End Date *</label>
-                            <input
-                                type="date" required aria-label="End Date" value={formData.end_date}
-                                min={formData.start_date || undefined}
-                                onChange={(e) => updateField('end_date', e.target.value)}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.end_date ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                            />
-                            <p className="mt-1 text-xs text-slate-500">Required — allocations are costed over a closed window.</p>
-                            {errors.end_date && <p className="mt-1 text-xs text-rose-400">{errors.end_date}</p>}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Allocation Amount */}
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Allocation Amount</h4>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Allocation Percentage *</label>
-                        <input
-                            type="number" required min="1" max="100" step="1"
-                            aria-label="Allocation Percentage"
-                            value={formData.allocation_percentage}
-                            onChange={(e) => updateField('allocation_percentage', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.allocation_percentage ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                    <div className="grid grid-cols-1 wc-medium:grid-cols-2 gap-nb-4">
+                        <DateInput
+                            name="allocation-start-date"
+                            label="Start Date"
+                            required
+                            aria-label="Start Date"
+                            value={formData.start_date}
+                            onChange={(v: string) => updateField('start_date', v)}
+                            hint="Defaults to today — the allocation starts as soon as it is created."
+                            error={errors.start_date || undefined}
                         />
-                        {errors.allocation_percentage ? (
-                            <p className="mt-1 text-xs text-rose-400">{errors.allocation_percentage}</p>
-                        ) : (
-                            <p className="mt-1 text-xs text-slate-500">
-                                Share of this person's working capacity, 1–100%. The bar below previews the value entered here.
-                            </p>
-                        )}
+                        <DateInput
+                            name="allocation-end-date"
+                            label="End Date"
+                            required
+                            aria-label="End Date"
+                            value={formData.end_date}
+                            min={formData.start_date || undefined}
+                            onChange={(v: string) => updateField('end_date', v)}
+                            hint="Required — allocations are costed over a closed window."
+                            error={errors.end_date || undefined}
+                        />
                     </div>
 
-                    {/* Visual Preview */}
-                    <div className="mt-3">
-                        <div className="w-full bg-slate-800 rounded-full h-2">
+                    <TextField
+                        name="allocation-percentage"
+                        label="Allocation Percentage"
+                        type="number"
+                        required
+                        min={1}
+                        max={100}
+                        step={1}
+                        aria-label="Allocation Percentage"
+                        value={formData.allocation_percentage}
+                        onChange={(e) => updateField('allocation_percentage', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                        hint={errors.allocation_percentage ? undefined : "Share of this person's working capacity, 1–100%. The bar below previews the value entered here."}
+                        error={errors.allocation_percentage || undefined}
+                    />
+
+                    <div>
+                        <div className="w-full bg-surface-raised rounded-full h-2">
                             <div
-                                className={`h-2 rounded-full transition-all ${
-                                    Number(formData.allocation_percentage) > 80 ? 'bg-amber-500' :
-                                    Number(formData.allocation_percentage) > 50 ? 'bg-teal-500' : 'bg-blue-500'
-                                }`}
+                                className={`h-2 rounded-full transition-all ${Number(formData.allocation_percentage) > 80 ? 'bg-warning' : 'bg-primary'}`}
                                 style={{ width: `${Math.min(Number(formData.allocation_percentage) || 0, 100)}%` }}
                             />
                         </div>
-                        <div className="text-xs text-slate-500 mt-1 text-right">{Number(formData.allocation_percentage) || 0}% capacity</div>
+                        <div className="text-nb-xs text-fg-subtle mt-nb-1 text-right">{Number(formData.allocation_percentage) || 0}% capacity</div>
                     </div>
-                </div>
 
-                {/* Notes */}
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Notes</label>
-                    <textarea
+                    <Textarea
+                        name="allocation-notes"
+                        label="Notes"
+                        rows={2}
                         value={formData.notes || ''}
                         onChange={(e) => updateField('notes', e.target.value)}
-                        rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 resize-none"
                         placeholder="Additional context for this allocation..."
                     />
-                </div>
 
-                {/* API error banner */}
-                {apiError && (
-                    <div className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-400">
-                        {apiError}
-                    </div>
-                )}
+                    {apiError && <Banner variant="danger">{apiError}</Banner>}
 
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={submitting || !isFormValid}
-                        title={isFormValid ? undefined : 'Complete all required fields to create the allocation.'}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {submitting ? 'Creating…' : 'Create Allocation'}
-                    </button>
-                </div>
+                    <Cluster justify="end" gap="default">
+                        <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
+                        <Button
+                            type="submit"
+                            disabled={submitting || !isFormValid}
+                            title={isFormValid ? undefined : 'Complete all required fields to create the allocation.'}
+                        >
+                            {submitting ? 'Creating…' : 'Create Allocation'}
+                        </Button>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );
@@ -672,79 +547,63 @@ const EditAllocationModal: React.FC<EditAllocationModalProps> = ({ allocation, o
     };
 
     return (
-        <Modal isOpen={true} onClose={onClose} title={`Edit Allocation - ${allocation.entity_name || allocation.entity_id}`} size="md">
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="text-xs text-slate-500 mb-4">
-                    {allocation.person?.full_name} allocated to {allocation.entity_name || allocation.entity_id}
-                </div>
+        <Modal open onClose={onClose} title={`Edit Allocation - ${allocation.entity_name || allocation.entity_id}`} size="md">
+            <form onSubmit={handleSubmit}>
+                <Stack gap="default">
+                    <p className="text-nb-xs text-fg-subtle">
+                        {allocation.person?.full_name} allocated to {allocation.entity_name || allocation.entity_id}
+                    </p>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Start Date</label>
-                        <input
-                            type="date" value={formData.start_date}
-                            onChange={(e) => setFormData(d => ({ ...d, start_date: e.target.value }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                    <div className="grid grid-cols-1 wc-medium:grid-cols-2 gap-nb-4">
+                        <DateInput
+                            name="allocation-edit-start-date"
+                            label="Start Date"
+                            value={formData.start_date}
+                            onChange={(v: string) => setFormData(d => ({ ...d, start_date: v }))}
+                        />
+                        <DateInput
+                            name="allocation-edit-end-date"
+                            label="End Date"
+                            value={formData.end_date}
+                            onChange={(v: string) => setFormData(d => ({ ...d, end_date: v }))}
                         />
                     </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">End Date</label>
-                        <input
-                            type="date" value={formData.end_date}
-                            onChange={(e) => setFormData(d => ({ ...d, end_date: e.target.value }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        />
-                    </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Allocation Percentage (1-100%)</label>
-                        <input
-                            type="number" min="1" max="100" value={formData.allocation_percentage}
+                    <div className="grid grid-cols-1 wc-medium:grid-cols-2 gap-nb-4">
+                        <TextField
+                            name="allocation-edit-percentage"
+                            label="Allocation Percentage (1-100%)"
+                            type="number"
+                            min={1}
+                            max={100}
+                            value={formData.allocation_percentage}
                             onChange={(e) => { setError(''); setFormData(d => ({ ...d, allocation_percentage: e.target.value === '' ? 0 : parseFloat(e.target.value) })); }}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${error ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
+                            error={error || undefined}
                         />
-                        {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Status</label>
-                        <select
+                        <Select
+                            name="allocations-select-30"
+                            label="Status"
                             value={formData.status}
                             onChange={(e) => setFormData(d => ({ ...d, status: e.target.value as AllocationStatus }))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="planned">Planned</option>
-                            <option value="active">Active</option>
-                            <option value="completed">Completed</option>
-                        </select>
+                            options={[{ value: "planned", label: "Planned" }, { value: "active", label: "Active" }, { value: "completed", label: "Completed" }]}
+                        />
                     </div>
-                </div>
 
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Notes</label>
-                    <textarea
+                    <Textarea
+                        name="allocation-edit-notes"
+                        label="Notes"
+                        rows={2}
                         value={formData.notes}
                         onChange={(e) => setFormData(d => ({ ...d, notes: e.target.value }))}
-                        rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 resize-none"
                     />
-                </div>
 
-                {apiError && (
-                    <div className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-400">
-                        {apiError}
-                    </div>
-                )}
+                    {apiError && <Banner variant="danger">{apiError}</Banner>}
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50">
-                        Cancel
-                    </button>
-                    <button type="submit" disabled={submitting} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-                        {submitting ? 'Saving…' : 'Save Changes'}
-                    </button>
-                </div>
+                    <Cluster justify="end" gap="default">
+                        <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
+                        <Button type="submit" disabled={submitting}>{submitting ? 'Saving…' : 'Save Changes'}</Button>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );

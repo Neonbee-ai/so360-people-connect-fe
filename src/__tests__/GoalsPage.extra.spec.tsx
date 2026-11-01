@@ -157,7 +157,6 @@ describe('GoalsPage — extra scenarios', () => {
     beforeEach(() => {
       mockApi.getAll.mockResolvedValue({ data: sampleGoals });
       mockApi.complete.mockResolvedValue({});
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
     });
 
     it('When Mark Complete is clicked and confirmed / Then goalsApi.complete is called', async () => {
@@ -165,16 +164,28 @@ describe('GoalsPage — extra scenarios', () => {
       await waitFor(() => screen.getByText('Grow revenue'));
       const completeBtns = screen.getAllByText('Mark Complete');
       fireEvent.click(completeBtns[0]);
+      fireEvent.click(await screen.findByRole('button', { name: 'Complete' }));
       await waitFor(() => expect(mockApi.complete).toHaveBeenCalledWith('g1'));
     });
 
     it('When Mark Complete is cancelled / Then goalsApi.complete is NOT called', async () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(false);
       renderPage();
       await waitFor(() => screen.getByText('Grow revenue'));
       const completeBtns = screen.getAllByText('Mark Complete');
       fireEvent.click(completeBtns[0]);
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
       expect(mockApi.complete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Given goals with and without a priority', () => {
+    it('When the list renders / Then the priority shows title-cased and a missing one shows a dash, never an empty badge', async () => {
+      mockApi.getAll.mockResolvedValue({ data: [sampleGoals[0], { ...sampleGoals[1], priority: null }] });
+      renderPage();
+      await waitFor(() => screen.getByText('Learn TypeScript'));
+      expect(screen.getAllByText('High').length).toBeGreaterThan(0);
+      expect(screen.queryByText('high')).toBeNull();
+      expect(screen.getByTestId('goal-priority-none')).toHaveTextContent('—');
     });
   });
 

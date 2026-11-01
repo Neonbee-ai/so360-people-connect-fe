@@ -14,14 +14,12 @@ export function duplicateSeed(h: Holiday): Holiday {
   return { ...h, id: '', name: `${h.name} (copy)`, holiday_date: '' };
 }
 
-/** Calendar cells (Sun-first) for a month; null pads leading blanks. */
-export function monthCells(year: number, month: number, holidays: Holiday[]): Array<{ day: number; items: Holiday[] } | null> {
-  const first = new Date(year, month, 1).getDay();
-  const days = new Date(year, month + 1, 0).getDate();
-  const cells: Array<{ day: number; items: Holiday[] } | null> = Array(first).fill(null);
-  for (let d = 1; d <= days; d++) {
-    const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    cells.push({ day: d, items: holidays.filter(h => h.holiday_date.slice(0, 10) === iso) });
-  }
-  return cells;
+/** Holidays as DS EventCalendar events (all-day, keyed by holiday id). */
+export function holidayEvents(
+  holidays: Holiday[],
+  toneOf: (h: Holiday) => 'primary' | 'info' | 'neutral' | 'warning' = () => 'primary',
+): Array<{ id: string; title: string; start: string; tone: 'primary' | 'info' | 'neutral' | 'warning' }> {
+  return holidays
+    .filter(h => !!h.holiday_date)
+    .map(h => ({ id: h.id, title: h.name, start: h.holiday_date.slice(0, 10), tone: toneOf(h) }));
 }

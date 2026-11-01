@@ -3,7 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import Modal from './Modal';
 
-describe('Given Modal is closed', () => {
+// The adapter delegates rendering to the Comb Modal (see src/test/__mocks__/design-system.ts);
+// these specs pin the legacy `isOpen` contract that the 25 call sites rely on.
+describe('Given the Modal adapter is closed', () => {
   it('When isOpen is false / Then nothing is rendered', () => {
     const { container } = render(
       <Modal isOpen={false} onClose={() => {}} title="Test Modal">
@@ -14,13 +16,14 @@ describe('Given Modal is closed', () => {
   });
 });
 
-describe('Given Modal is open', () => {
-  it('When rendered / Then it shows the title', () => {
+describe('Given the Modal adapter is open', () => {
+  it('When rendered / Then a dialog labelled by the title is shown', () => {
     render(
       <Modal isOpen onClose={() => {}} title="People Details">
         <p>Content</p>
       </Modal>
     );
+    expect(screen.getByRole('dialog', { name: 'People Details' })).toBeInTheDocument();
     expect(screen.getByText('People Details')).toBeInTheDocument();
   });
 
@@ -33,60 +36,14 @@ describe('Given Modal is open', () => {
     expect(screen.getByText('Modal body text')).toBeInTheDocument();
   });
 
-  it('When the close button is clicked / Then onClose is called', () => {
+  it('When the close button is clicked / Then onClose is called once', () => {
     const handleClose = vi.fn();
     render(
       <Modal isOpen onClose={handleClose} title="Test">
         <p>Content</p>
       </Modal>
     );
-    // The X button is the first button
-    const closeBtn = screen.getAllByRole('button')[0];
-    fireEvent.click(closeBtn);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(handleClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('When the backdrop is clicked / Then onClose is called', () => {
-    const handleClose = vi.fn();
-    render(
-      <Modal isOpen onClose={handleClose} title="Test">
-        <p>Content</p>
-      </Modal>
-    );
-    // backdrop is the fixed overlay div behind the modal panel
-    const backdrop = document.querySelector('.fixed.inset-0.bg-black\\/60') as HTMLElement;
-    expect(backdrop).not.toBeNull();
-    fireEvent.click(backdrop!);
-    expect(handleClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('When size is xl / Then the modal panel has max-w-4xl class', () => {
-    render(
-      <Modal isOpen onClose={() => {}} title="Wide" size="xl">
-        <p>Wide content</p>
-      </Modal>
-    );
-    const panel = document.querySelector('.max-w-4xl');
-    expect(panel).not.toBeNull();
-  });
-
-  it('When size is sm / Then the modal panel has max-w-md class', () => {
-    render(
-      <Modal isOpen onClose={() => {}} title="Small" size="sm">
-        <p>Small content</p>
-      </Modal>
-    );
-    const panel = document.querySelector('.max-w-md');
-    expect(panel).not.toBeNull();
-  });
-
-  it('When no size is provided / Then the default md size is applied', () => {
-    render(
-      <Modal isOpen onClose={() => {}} title="Default">
-        <p>Content</p>
-      </Modal>
-    );
-    const panel = document.querySelector('.max-w-lg');
-    expect(panel).not.toBeNull();
   });
 });

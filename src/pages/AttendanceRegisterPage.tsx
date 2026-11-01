@@ -1,11 +1,28 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { UserCheck, UserMinus, Clock, Home, CalendarDays, Pencil, ClipboardCheck, Users } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
-import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import {
+    toast,
+    Select,
+    Button,
+    IconButton,
+    Badge,
+    KpiCard,
+    ListPageTemplate,
+    DataTable,
+    Modal,
+    DateInput,
+    TextField,
+    Textarea,
+    Tabs,
+    SegmentedControl,
+    Skeleton,
+    Stack,
+    Cluster,
+    Grid,
+} from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import {
     attendanceApi,
     attendanceCorrectionsApi,
@@ -104,157 +121,123 @@ const AttendanceRegisterPage: React.FC = () => {
         loadSummary(date);
     };
 
-    return (
-        <div className="p-6 space-y-5">
-            <PageHeader title="Attendance Register" subtitle="Daily attendance for your organization" />
-
-            {/* Tabs */}
-            <div className="flex items-center gap-1 border-b border-slate-800" role="tablist">
-                {([
-                    { id: 'register', label: 'Register' },
-                    { id: 'corrections', label: 'Corrections' },
-                ] as const).map((t) => (
-                    <button
-                        key={t.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={tab === t.id}
-                        onClick={() => setTab(t.id)}
-                        className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                            tab === t.id
-                                ? 'border-teal-500 text-teal-400'
-                                : 'border-transparent text-slate-400 hover:text-slate-50'
-                        }`}
-                    >
-                        {t.label}
-                    </button>
-                ))}
-            </div>
-
-            {tab === 'corrections' ? (
-                <CorrectionsSection
-                    onChanged={() => {
-                        loadRegister(date);
-                        loadSummary(date);
-                    }}
-                />
-            ) : (
-            <>
-            {/* Date Picker */}
-            <div className="flex items-center gap-3">
-                <label htmlFor="attendance-date" className="text-xs text-slate-400">
-                    Date
-                </label>
-                <input
-                    id="attendance-date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                />
-            </div>
-
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <StatCard label="Total Employees" value={summary?.total_employees ?? 0} icon={Users} color="teal" />
-                <StatCard label="Present" value={summary?.present ?? 0} icon={UserCheck} color="emerald" />
-                <StatCard label="Absent" value={summary?.absent ?? 0} icon={UserMinus} color="rose" />
-                <StatCard label="On Leave" value={summary?.on_leave ?? 0} icon={CalendarDays} color="purple" />
-                <StatCard label="Half Day" value={summary?.half_day ?? 0} icon={Clock} color="amber" />
-                <StatCard label="Remote" value={summary?.remote ?? 0} icon={Home} color="blue" />
-            </div>
-
-            {/* Register Table */}
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+    const columns: DataTableColumn<AttendanceRegisterRow>[] = [
+        {
+            key: 'person_name',
+            header: 'Employee',
+            render: (row) => (
+                <Stack gap="none">
+                    <span className="text-nb-sm text-fg">{row.person_name}</span>
+                    <span className="text-nb-xs text-fg-subtle">
+                        {[row.department_name, row.designation].filter(Boolean).join(' · ') || '—'}
+                    </span>
+                </Stack>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (row) =>
+                row.status ? <StatusBadge status={row.status} /> : <Badge tone="neutral">Not Marked</Badge>,
+        },
+        { key: 'check_in', header: 'Check In', render: (row) => row.check_in || '—' },
+        { key: 'check_out', header: 'Check Out', render: (row) => row.check_out || '—' },
+        { key: 'notes', header: 'Notes', hideBelow: 'medium', render: (row) => row.notes || '—' },
+        {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: (row) => (
+                <Cluster gap="none" justify="end" align="center">
+                    {QUICK_ACTIONS.map(({ status, label, icon: Icon }) => (
+                        <IconButton
+                            key={status}
+                            label={label}
+                            icon={<Icon size={14} />}
+                            variant="ghost"
+                            size="sm"
+                            selected={row.status === status}
+                            onClick={() => handleQuickMark(row, status)}
+                        />
                     ))}
-                </div>
-            ) : rows.length === 0 ? (
-                <EmptyState
-                    icon={ClipboardCheck}
-                    title="No employees found for this date"
-                    description="Attendance records will appear here once people are registered."
-                />
-            ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Employee</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Check In</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Check Out</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Notes</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800">
-                            {rows.map((row) => (
-                                <tr key={row.person_id} className="hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-4 py-3">
-                                        <div className="text-sm text-slate-50">{row.person_name}</div>
-                                        <div className="text-xs text-slate-500">
-                                            {[row.department_name, row.designation].filter(Boolean).join(' · ') || '—'}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {row.status ? (
-                                            <StatusBadge status={row.status} />
-                                        ) : (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border border-dashed border-slate-600 text-slate-500">
-                                                Not Marked
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">{row.check_in || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">{row.check_out || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-400 max-w-[200px] truncate" title={row.notes || ''}>
-                                        {row.notes || '—'}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-1">
-                                            {QUICK_ACTIONS.map(({ status, label, icon: Icon }) => (
-                                                <button
-                                                    key={status}
-                                                    type="button"
-                                                    title={label}
-                                                    aria-label={label}
-                                                    onClick={() => handleQuickMark(row, status)}
-                                                    className={`p-1.5 rounded-lg transition-colors ${
-                                                        row.status === status
-                                                            ? 'bg-teal-500/20 text-teal-400'
-                                                            : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                                                    }`}
-                                                >
-                                                    <Icon size={14} />
-                                                </button>
-                                            ))}
-                                            <button
-                                                type="button"
-                                                title="Edit Attendance"
-                                                aria-label={`Edit attendance for ${row.person_name}`}
-                                                onClick={() => setEditingRow(row)}
-                                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
-                                            >
-                                                <Pencil size={14} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                    <IconButton
+                        label={`Edit attendance for ${row.person_name}`}
+                        icon={<Pencil size={14} />}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingRow(row)}
+                    />
+                </Cluster>
+            ),
+        },
+    ];
 
-            {/* Edit Modal */}
-            <AttendanceEditModal row={editingRow} date={date} onClose={() => setEditingRow(null)} onSaved={handleSaved} />
-            </>
-            )}
+    const tabs = (
+        <Tabs
+            name="attendance-register-tabs"
+            items={[
+                { id: 'register', label: 'Register' },
+                { id: 'corrections', label: 'Corrections' },
+            ]}
+            value={tab}
+            onChange={(id: string) => setTab(id as 'register' | 'corrections')}
+        />
+    );
 
-        </div>
+    const isRegister = tab === 'register';
+
+    return (
+        <>
+            <ListPageTemplate trail={[]}
+                title="Attendance Register"
+                description="Daily attendance for your organization"
+                loading={isRegister && loading}
+                isEmpty={isRegister && rows.length === 0}
+                empty={
+                    <EmptyState
+                        icon={ClipboardCheck}
+                        title="No employees found for this date"
+                        description="Attendance records will appear here once people are registered."
+                    />
+                }
+                filters={tabs}
+                toolbarEnd={
+                    isRegister ? (
+                        <DateInput name="attendance-date" label="Date" value={date} onChange={(v: string) => setDate(v)} />
+                    ) : undefined
+                }
+                kpis={
+                    isRegister ? (
+                        <Grid columns={4} gap="md">
+                            <KpiCard label="Total Employees" value={summary?.total_employees ?? 0} icon={Users} />
+                            <KpiCard
+                                label="Present"
+                                value={summary?.present ?? 0}
+                                icon={UserCheck}
+                                hint={`${summary?.remote ?? 0} remote · ${summary?.half_day ?? 0} half day`}
+                            />
+                            <KpiCard label="Absent" value={summary?.absent ?? 0} icon={UserMinus} />
+                            <KpiCard label="On Leave" value={summary?.on_leave ?? 0} icon={CalendarDays} />
+                        </Grid>
+                    ) : undefined
+                }
+            >
+                {isRegister ? (
+                    <DataTable name="attendance-register" columns={columns} rows={rows} rowKey={(r) => r.person_id} />
+                ) : (
+                    <CorrectionsSection
+                        onChanged={() => {
+                            loadRegister(date);
+                            loadSummary(date);
+                        }}
+                    />
+                )}
+            </ListPageTemplate>
+
+            {isRegister && (
+                <AttendanceEditModal row={editingRow} date={date} onClose={() => setEditingRow(null)} onSaved={handleSaved} />
+            )}
+        </>
     );
 };
 
@@ -262,11 +245,11 @@ const AttendanceRegisterPage: React.FC = () => {
 // Corrections tab — review employee regularization requests
 // =============================================================================
 
-const CORRECTION_FILTERS: { id: CorrectionStatus | 'all'; label: string }[] = [
-    { id: 'pending', label: 'Pending' },
-    { id: 'approved', label: 'Approved' },
-    { id: 'rejected', label: 'Rejected' },
-    { id: 'all', label: 'All' },
+const CORRECTION_FILTERS: { value: CorrectionStatus | 'all'; label: string }[] = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'all', label: 'All' },
 ];
 
 const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
@@ -309,32 +292,89 @@ const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
         }
     };
 
+    const columns: DataTableColumn<AttendanceCorrectionRequest>[] = [
+        {
+            key: 'person_name',
+            header: 'Employee',
+            render: (r) => (
+                <Stack gap="none">
+                    <span className="text-nb-sm text-fg">{r.person_name || '—'}</span>
+                    <span className="text-nb-xs text-fg-subtle">{r.designation || ''}</span>
+                </Stack>
+            ),
+        },
+        { key: 'attendance_date', header: 'Date' },
+        {
+            key: 'requested',
+            header: 'Requested',
+            render: (r) => (
+                <Stack gap="none">
+                    <span>{r.requested_status ? statusLabel(r.requested_status) : '—'}</span>
+                    <span className="text-nb-xs text-fg-subtle">
+                        {[r.requested_check_in, r.requested_check_out].filter(Boolean).join(' – ') || ''}
+                    </span>
+                </Stack>
+            ),
+        },
+        { key: 'reason', header: 'Reason', hideBelow: 'medium', render: (r) => <span title={r.reason}>{r.reason}</span> },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (r) => (
+                <Stack gap="none">
+                    <StatusBadge status={r.status} />
+                    {r.review_note && (
+                        <span className="text-nb-xs text-fg-subtle" title={r.review_note}>
+                            {r.review_note}
+                        </span>
+                    )}
+                </Stack>
+            ),
+        },
+        {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: (r) =>
+                r.status === 'pending' ? (
+                    <Cluster gap="tight" justify="end" align="center">
+                        <Button
+                            size="sm"
+                            disabled={busyId === r.id}
+                            onClick={() => handleApprove(r)}
+                            aria-label={`Approve correction for ${r.person_name || 'employee'}`}
+                        >
+                            Approve
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={busyId === r.id}
+                            onClick={() => setRejecting(r)}
+                            aria-label={`Reject correction for ${r.person_name || 'employee'}`}
+                        >
+                            Reject
+                        </Button>
+                    </Cluster>
+                ) : null,
+        },
+    ];
+
     return (
-        <div className="space-y-4">
-            {/* Status filter */}
-            <div className="flex items-center gap-2">
-                {CORRECTION_FILTERS.map((f) => (
-                    <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => setFilter(f.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                            filter === f.id
-                                ? 'bg-teal-500/20 text-teal-400'
-                                : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800'
-                        }`}
-                    >
-                        {f.label}
-                    </button>
-                ))}
-            </div>
+        <Stack gap="default">
+            <SegmentedControl
+                aria-label="Correction status"
+                options={CORRECTION_FILTERS}
+                value={filter}
+                onChange={(v: string) => setFilter(v as CorrectionStatus | 'all')}
+            />
 
             {loading ? (
-                <div className="space-y-3">
-                    {[...Array(3)].map((_, i) => (
-                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+                <Stack gap="tight">
+                    {[0, 1, 2].map((i) => (
+                        <Skeleton key={i} />
                     ))}
-                </div>
+                </Stack>
             ) : requests.length === 0 ? (
                 <EmptyState
                     icon={ClipboardCheck}
@@ -342,72 +382,7 @@ const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                     description="Employee attendance correction requests will appear here for review."
                 />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Employee</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Date</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Requested</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Reason</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800">
-                            {requests.map((r) => (
-                                <tr key={r.id} className="hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-4 py-3">
-                                        <div className="text-sm text-slate-50">{r.person_name || '—'}</div>
-                                        <div className="text-xs text-slate-500">{r.designation || ''}</div>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">{r.attendance_date}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">
-                                        {r.requested_status ? statusLabel(r.requested_status) : '—'}
-                                        <div className="text-xs text-slate-500">
-                                            {[r.requested_check_in, r.requested_check_out].filter(Boolean).join(' – ') || ''}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400 max-w-[240px] truncate" title={r.reason}>
-                                        {r.reason}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <StatusBadge status={r.status} />
-                                        {r.review_note && (
-                                            <div className="text-xs text-slate-500 mt-0.5 max-w-[160px] truncate" title={r.review_note}>
-                                                {r.review_note}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {r.status === 'pending' && (
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    type="button"
-                                                    disabled={busyId === r.id}
-                                                    onClick={() => handleApprove(r)}
-                                                    aria-label={`Approve correction for ${r.person_name || 'employee'}`}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white transition-colors disabled:opacity-50"
-                                                >
-                                                    Approve
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled={busyId === r.id}
-                                                    onClick={() => setRejecting(r)}
-                                                    aria-label={`Reject correction for ${r.person_name || 'employee'}`}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-rose-400 transition-colors disabled:opacity-50"
-                                                >
-                                                    Reject
-                                                </button>
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable name="attendance-corrections" columns={columns} rows={requests} rowKey={(r) => r.id} />
             )}
 
             <RejectCorrectionModal
@@ -418,7 +393,7 @@ const CorrectionsSection: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                     await load();
                 }}
             />
-        </div>
+        </Stack>
     );
 };
 
@@ -452,30 +427,24 @@ const RejectCorrectionModal: React.FC<{
     };
 
     return (
-        <Modal isOpen={!!request} onClose={onClose} title={`Reject Correction — ${request.person_name || 'Employee'}`}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Reason for rejection *</label>
-                    <textarea
+        <Modal open onClose={onClose} title={`Reject Correction — ${request.person_name || 'Employee'}`}>
+            <form onSubmit={handleSubmit}>
+                <Stack gap="default">
+                    <Textarea
+                        name="attendance-reject-note"
+                        label="Reason for rejection *"
                         value={note}
-                        onChange={(e) => setNote(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNote(e.target.value)}
                         rows={3}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         placeholder="Shown to the employee — why is this request being rejected?"
                     />
-                </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={saving || !note.trim()}
-                        className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Reject Request
-                    </button>
-                </div>
+                    <Cluster gap="tight" justify="end">
+                        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                        <Button type="submit" variant="danger" disabled={saving || !note.trim()}>
+                            Reject Request
+                        </Button>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );
@@ -557,82 +526,63 @@ const AttendanceEditModal: React.FC<AttendanceEditModalProps> = ({ row, date, on
     };
 
     return (
-        <Modal isOpen={!!row} onClose={onClose} title={`Edit Attendance — ${row.person_name}`}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Status *</label>
-                    <select
+        <Modal open onClose={onClose} title={`Edit Attendance — ${row.person_name}`}>
+            <form onSubmit={handleSubmit}>
+                <Stack gap="default">
+                    <Select
+                        name="attendanceregister-select-31"
+                        label="Status *"
                         value={status}
                         onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                    >
-                        {STATUS_OPTIONS.map((s) => (
-                            <option key={s} value={s}>
-                                {statusLabel(s)}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                        options={[...STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabel(s) }))]}
+                    />
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Check In</label>
-                        <input
+                    <div className="grid grid-cols-1 wc-medium:grid-cols-2 gap-nb-4">
+                        <TextField
+                            name="attendance-check-in"
+                            label="Check In"
                             type="time"
                             value={checkIn}
-                            onChange={(e) => setCheckIn(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCheckIn(e.target.value)}
                         />
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Check Out</label>
-                        <input
+                        <TextField
+                            name="attendance-check-out"
+                            label="Check Out"
                             type="time"
                             value={checkOut}
-                            onChange={(e) => setCheckOut(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCheckOut(e.target.value)}
                         />
                     </div>
-                </div>
 
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Notes</label>
-                    <textarea
+                    <Textarea
+                        name="attendance-notes"
+                        label="Notes"
                         value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         placeholder="Optional notes..."
                     />
-                </div>
 
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Reason *</label>
-                    <textarea
+                    <Textarea
+                        name="attendance-reason"
+                        label="Reason *"
                         value={reason}
-                        onChange={(e) => {
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                             setReason(e.target.value);
                             if (e.target.value.trim()) setReasonError(null);
                         }}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                         placeholder="Why is this change being made?"
+                        error={reasonError ?? undefined}
                     />
-                    {reasonError && <p className="mt-1 text-xs text-rose-400">{reasonError}</p>}
-                </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={saving || !reason.trim()}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Save Changes
-                    </button>
-                </div>
+                    <Cluster gap="tight" justify="end">
+                        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                        <Button type="submit" disabled={saving || !reason.trim()}>
+                            Save Changes
+                        </Button>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );

@@ -1,16 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Layers } from 'lucide-react';
-import { toast } from '@so360/design-system';
+import {
+    toast, Alert, Button, Checkbox, Cluster, DataTable, FieldGrid, FormActions, NumberInput, Select, Skeleton, Stack, TextField,
+} from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import Modal from '../../Modal';
 import EmptyState from '../../EmptyState';
 import StatusChip from '../StatusChip';
-import FieldTooltip from '../FieldTooltip';
 import {
     payrollApi, SalaryComponent, SalaryComponentPayload, CalcType, ComponentKind,
 } from '../../../services/payrollApi';
-
-const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
-const labelCls = 'block text-xs text-slate-400 mb-1';
 
 const STATUTORY_CODES = ['PF_EMP', 'PF_ER', 'ESI_EMP', 'ESI_ER', 'PT', 'TDS', 'LWF_EMP', 'LWF_ER', 'GRATUITY'];
 
@@ -51,19 +50,38 @@ const ComponentsTab: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />;
+    if (loading) return <Skeleton variant="text" lines={6} />;
+
+    const columns: DataTableColumn<SalaryComponent>[] = [
+        { key: 'code', header: 'Code', render: c => <span className="font-medium text-fg">{c.code}</span> },
+        { key: 'name', header: 'Name', render: c => <>{c.name}</> },
+        { key: 'kind', header: 'Kind', align: 'center', render: c => <StatusChip status={c.kind} /> },
+        { key: 'calc_type', header: 'Calculation', render: c => <span className="capitalize">{c.calc_type.replace(/_/g, ' ')}</span> },
+        {
+            key: 'is_statutory',
+            header: 'Statutory',
+            align: 'center',
+            render: c => c.is_statutory
+                ? <StatusChip status="statutory" label={c.statutory_code || 'Statutory'} />
+                : <span className="text-nb-caption text-fg-subtle">—</span>,
+        },
+        { key: 'is_active', header: 'Status', align: 'center', render: c => <StatusChip status={c.is_active ? 'active' : 'inactive'} /> },
+        {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: c => <Button variant="ghost" size="sm" onClick={() => { setEditing(c); setShowModal(true); }}>Edit</Button>,
+        },
+    ];
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-50">Salary Components</h3>
-                <button
-                    onClick={() => { setEditing(null); setShowModal(true); }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-medium rounded-lg transition-colors"
-                >
+        <Stack>
+            <Cluster justify="between">
+                <h3 className="text-nb-section-title text-fg">Salary Components</h3>
+                <Button size="sm" onClick={() => { setEditing(null); setShowModal(true); }}>
                     <Plus size={13} /> New Component
-                </button>
-            </div>
+                </Button>
+            </Cluster>
 
             {components.length === 0 ? (
                 <EmptyState
@@ -73,38 +91,7 @@ const ComponentsTab: React.FC = () => {
                     action={{ label: 'New Component', onClick: () => setShowModal(true) }}
                 />
             ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Code</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Kind</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Calculation</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Statutory</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800">
-                            {components.map(component => (
-                                <tr key={component.id} className="hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-4 py-3 text-sm font-medium text-slate-50">{component.code}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-300">{component.name}</td>
-                                    <td className="px-4 py-3 text-center"><StatusChip status={component.kind} /></td>
-                                    <td className="px-4 py-3 text-sm text-slate-400 capitalize">{component.calc_type.replace(/_/g, ' ')}</td>
-                                    <td className="px-4 py-3 text-center">
-                                        {component.is_statutory ? <StatusChip status="statutory" label={component.statutory_code || 'Statutory'} /> : <span className="text-xs text-slate-600">—</span>}
-                                    </td>
-                                    <td className="px-4 py-3 text-center"><StatusChip status={component.is_active ? 'active' : 'inactive'} /></td>
-                                    <td className="px-4 py-3 text-right">
-                                        <button onClick={() => { setEditing(component); setShowModal(true); }} className="text-xs text-teal-400 hover:text-teal-300 transition-colors">Edit</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable columns={columns} rows={components} rowKey={c => c.id} name="salary-components" />
             )}
 
             <ComponentModal
@@ -113,7 +100,7 @@ const ComponentsTab: React.FC = () => {
                 onClose={() => { setShowModal(false); setEditing(null); }}
                 onSave={handleSave}
             />
-        </div>
+        </Stack>
     );
 };
 
@@ -182,150 +169,131 @@ const ComponentModal: React.FC<{
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={component ? 'Edit Component' : 'New Component'} size="lg">
-            <form onSubmit={handleSubmit} className="space-y-5">
-                {validationError && (
-                    <div className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-xs text-rose-400">
-                        {validationError}
-                    </div>
-                )}
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className={labelCls}>
-                            Code *
-                            <FieldTooltip text="Unique identifier used in formulas (e.g. BASIC, HRA). Immutable once the component is used in a run." />
-                        </label>
-                        <input type="text" required disabled={!!component} value={form.code || ''} onChange={e => update('code', e.target.value.toUpperCase())} className={`${inputCls} disabled:opacity-50`} placeholder="HRA" />
-                    </div>
-                    <div>
-                        <label className={labelCls}>Name *</label>
-                        <input type="text" required value={form.name || ''} onChange={e => update('name', e.target.value)} className={inputCls} placeholder="House Rent Allowance" />
-                    </div>
-                    <div>
-                        <label className={labelCls}>
-                            Kind
-                            <FieldTooltip text="Earnings add to gross pay; deductions reduce net pay; employer contributions add to employer cost without touching net pay." />
-                        </label>
-                        <select value={form.kind} onChange={e => update('kind', e.target.value)} className={inputCls}>
-                            <option value="earning">Earning</option>
-                            <option value="deduction">Deduction</option>
-                            <option value="employer_contribution">Employer Contribution</option>
-                            <option value="benefit">Benefit</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className={labelCls}>
-                            Calculation Type
-                            <FieldTooltip text="Fixed = flat amount. Percent of = percentage of another component. Formula = expression over components. Slab = rate table (e.g. professional tax)." />
-                        </label>
-                        <select value={form.calc_type} onChange={e => update('calc_type', e.target.value)} className={inputCls}>
-                            <option value="fixed">Fixed amount</option>
-                            <option value="percent_of">Percent of another component</option>
-                            <option value="formula">Formula</option>
-                            <option value="slab">Slab table</option>
-                        </select>
-                    </div>
-                </div>
+            <form onSubmit={handleSubmit}>
+                <Stack>
+                    {validationError && <Alert variant="error">{validationError}</Alert>}
+                    <FieldGrid columns={2}>
+                        <TextField
+                            name="component-code"
+                            label="Code"
+                            required
+                            disabled={!!component}
+                            value={form.code || ''}
+                            onChange={e => update('code', e.target.value.toUpperCase())}
+                            placeholder="HRA"
+                            hint="Unique identifier used in formulas (e.g. BASIC, HRA). Immutable once the component is used in a run."
+                        />
+                        <TextField
+                            name="component-name"
+                            label="Name"
+                            required
+                            value={form.name || ''}
+                            onChange={e => update('name', e.target.value)}
+                            placeholder="House Rent Allowance"
+                        />
+                        <Select
+                            name="component-kind"
+                            label="Kind"
+                            hint="Earnings add to gross pay; deductions reduce net pay; employer contributions add to employer cost without touching net pay."
+                            value={form.kind}
+                            onChange={e => update('kind', e.target.value)}
+                            options={[{ value: 'earning', label: 'Earning' }, { value: 'deduction', label: 'Deduction' }, { value: 'employer_contribution', label: 'Employer Contribution' }, { value: 'benefit', label: 'Benefit' }]}
+                        />
+                        <Select
+                            name="component-calc-type"
+                            label="Calculation Type"
+                            hint="Fixed = flat amount. Percent of = percentage of another component. Formula = expression over components. Slab = rate table (e.g. professional tax)."
+                            value={form.calc_type}
+                            onChange={e => update('calc_type', e.target.value)}
+                            options={[{ value: 'fixed', label: 'Fixed amount' }, { value: 'percent_of', label: 'Percent of another component' }, { value: 'formula', label: 'Formula' }, { value: 'slab', label: 'Slab table' }]}
+                        />
+                    </FieldGrid>
 
-                {/* Calc-type-dependent fields */}
-                {form.calc_type === 'fixed' && (
-                    <div>
-                        <label className={labelCls}>
-                            Default Amount
-                            <FieldTooltip text="Default per-period amount. Can be overridden per structure line or per employee." />
-                        </label>
-                        <input type="number" min={0} step="0.01" value={form.calc_config?.amount ?? ''} onChange={e => updateCalc({ amount: parseFloat(e.target.value) || 0 })} className={inputCls} />
-                    </div>
-                )}
-                {form.calc_type === 'percent_of' && (
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className={labelCls}>Percentage *</label>
-                            <input type="number" min={0} max={100} step="0.01" value={form.calc_config?.percent ?? ''} onChange={e => updateCalc({ percent: parseFloat(e.target.value) || 0 })} className={inputCls} placeholder="40" />
-                        </div>
-                        <div>
-                            <label className={labelCls}>
-                                Of Component *
-                                <FieldTooltip text="The component code this percentage is computed from, e.g. BASIC or GROSS." />
-                            </label>
-                            <input type="text" value={form.calc_config?.of ?? ''} onChange={e => updateCalc({ of: e.target.value.toUpperCase() })} className={inputCls} placeholder="BASIC" />
-                        </div>
-                    </div>
-                )}
-                {form.calc_type === 'formula' && (
-                    <div>
-                        <label className={labelCls}>
-                            Formula Expression *
-                            <FieldTooltip text="Expression over component codes and payroll variables (BASIC, GROSS, PAYABLE_DAYS, LOP_DAYS...). Validated when the structure is saved — no code runs from here." />
-                        </label>
-                        <input type="text" value={form.calc_config?.expr ?? ''} onChange={e => updateCalc({ expr: e.target.value })} className={`${inputCls} font-mono`} placeholder="BASIC * 0.4 + 1000" />
-                    </div>
-                )}
-                {form.calc_type === 'slab' && (
-                    <div>
-                        <label className={labelCls}>
-                            Slab Basis
-                            <FieldTooltip text="The figure the slab table is applied to, e.g. GROSS_ANNUAL for tax-style slabs. Slab rows are managed by the statutory pack or via import." />
-                        </label>
-                        <input type="text" value={form.calc_config?.basis ?? ''} onChange={e => updateCalc({ basis: e.target.value.toUpperCase() })} className={inputCls} placeholder="GROSS_ANNUAL" />
-                    </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className={labelCls}>
-                            Frequency
-                            <FieldTooltip text="Per period = every pay run. Annual spread = yearly figure divided over periods. One time = only when explicitly added to a run." />
-                        </label>
-                        <select value={form.frequency} onChange={e => update('frequency', e.target.value)} className={inputCls}>
-                            <option value="per_period">Per period</option>
-                            <option value="annual_spread">Annual spread</option>
-                            <option value="one_time">One time</option>
-                            <option value="per_day">Per day</option>
-                            <option value="per_hour">Per hour</option>
-                        </select>
-                    </div>
-                    {form.is_statutory && (
-                        <div>
-                            <label className={labelCls}>
-                                Statutory Code *
-                                <FieldTooltip text="Maps this component to a statutory rule so the engine applies the right ceilings and rates (e.g. PF_EMP is the employee's Provident Fund share)." />
-                            </label>
-                            <select value={form.statutory_code || ''} onChange={e => update('statutory_code', e.target.value || null)} className={inputCls}>
-                                <option value="">Select…</option>
-                                {STATUTORY_CODES.map(code => <option key={code} value={code}>{code}</option>)}
-                            </select>
-                        </div>
+                    {/* Calc-type-dependent fields */}
+                    {form.calc_type === 'fixed' && (
+                        <NumberInput
+                            name="component-default-amount"
+                            label="Default Amount"
+                            hint="Default per-period amount. Can be overridden per structure line or per employee."
+                            min={0}
+                            step={0.01}
+                            value={form.calc_config?.amount ?? null}
+                            onChange={v => updateCalc({ amount: v || 0 })}
+                        />
                     )}
-                </div>
+                    {form.calc_type === 'percent_of' && (
+                        <FieldGrid columns={2}>
+                            <NumberInput
+                                name="component-percent"
+                                label="Percentage *"
+                                min={0}
+                                max={100}
+                                step={0.01}
+                                value={form.calc_config?.percent ?? null}
+                                onChange={v => updateCalc({ percent: v || 0 })}
+                                placeholder="40"
+                            />
+                            <TextField
+                                name="component-of"
+                                label="Of Component *"
+                                hint="The component code this percentage is computed from, e.g. BASIC or GROSS."
+                                value={form.calc_config?.of ?? ''}
+                                onChange={e => updateCalc({ of: e.target.value.toUpperCase() })}
+                                placeholder="BASIC"
+                            />
+                        </FieldGrid>
+                    )}
+                    {form.calc_type === 'formula' && (
+                        <TextField
+                            name="component-formula"
+                            label="Formula Expression *"
+                            hint="Expression over component codes and payroll variables (BASIC, GROSS, PAYABLE_DAYS, LOP_DAYS...). Validated when the structure is saved — no code runs from here."
+                            value={form.calc_config?.expr ?? ''}
+                            onChange={e => updateCalc({ expr: e.target.value })}
+                            placeholder="BASIC * 0.4 + 1000"
+                        />
+                    )}
+                    {form.calc_type === 'slab' && (
+                        <TextField
+                            name="component-slab-basis"
+                            label="Slab Basis"
+                            hint="The figure the slab table is applied to, e.g. GROSS_ANNUAL for tax-style slabs. Slab rows are managed by the statutory pack or via import."
+                            value={form.calc_config?.basis ?? ''}
+                            onChange={e => updateCalc({ basis: e.target.value.toUpperCase() })}
+                            placeholder="GROSS_ANNUAL"
+                        />
+                    )}
 
-                <div className="space-y-2">
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.taxable} onChange={e => update('taxable', e.target.checked)} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                        <span className="text-sm text-slate-300">Taxable</span>
-                        <FieldTooltip text="Counts toward taxable income when computing TDS." />
-                    </label>
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.is_statutory} onChange={e => update('is_statutory', e.target.checked)} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                        <span className="text-sm text-slate-300">Statutory component</span>
-                        <FieldTooltip text="Computed by the statutory engine (PF, ESI, PT, TDS...) instead of the component's own calculation." />
-                    </label>
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.prorate_on_lop} onChange={e => update('prorate_on_lop', e.target.checked)} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                        <span className="text-sm text-slate-300">Prorate on LOP</span>
-                        <FieldTooltip text="Reduce this component proportionally for unpaid leave days: amount × payable days ÷ basis days." />
-                    </label>
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!form.is_active} onChange={e => update('is_active', e.target.checked)} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                        <span className="text-sm text-slate-300">Active</span>
-                    </label>
-                </div>
+                    <FieldGrid columns={2}>
+                        <Select
+                            name="component-frequency"
+                            label="Frequency"
+                            hint="Per period = every pay run. Annual spread = yearly figure divided over periods. One time = only when explicitly added to a run."
+                            value={form.frequency}
+                            onChange={e => update('frequency', e.target.value)}
+                            options={[{ value: 'per_period', label: 'Per period' }, { value: 'annual_spread', label: 'Annual spread' }, { value: 'one_time', label: 'One time' }, { value: 'per_day', label: 'Per day' }, { value: 'per_hour', label: 'Per hour' }]}
+                        />
+                        {form.is_statutory && (
+                            <Select
+                                name="component-statutory-code"
+                                label="Statutory Code *"
+                                hint="Maps this component to a statutory rule so the engine applies the right ceilings and rates (e.g. PF_EMP is the employee's Provident Fund share)."
+                                value={form.statutory_code || ''}
+                                onChange={e => update('statutory_code', e.target.value || null)}
+                                options={[{ value: '', label: 'Select…' }, ...STATUTORY_CODES.map((code) => ({ value: code, label: code }))]}
+                            />
+                        )}
+                    </FieldGrid>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">
-                        {component ? 'Update' : 'Create'}
-                    </button>
-                </div>
+                    <Stack gap="tight">
+                        <Checkbox name="component-taxable" label="Taxable" description="Counts toward taxable income when computing TDS." checked={!!form.taxable} onChange={e => update('taxable', e.target.checked)} />
+                        <Checkbox name="component-statutory" label="Statutory component" description="Computed by the statutory engine (PF, ESI, PT, TDS...) instead of the component's own calculation." checked={!!form.is_statutory} onChange={e => update('is_statutory', e.target.checked)} />
+                        <Checkbox name="component-prorate" label="Prorate on LOP" description="Reduce this component proportionally for unpaid leave days: amount × payable days ÷ basis days." checked={!!form.prorate_on_lop} onChange={e => update('prorate_on_lop', e.target.checked)} />
+                        <Checkbox name="component-active" label="Active" checked={!!form.is_active} onChange={e => update('is_active', e.target.checked)} />
+                    </Stack>
+
+                    <FormActions divider onCancel={onClose} submitLabel={component ? 'Update' : 'Create'} />
+                </Stack>
             </form>
         </Modal>
     );

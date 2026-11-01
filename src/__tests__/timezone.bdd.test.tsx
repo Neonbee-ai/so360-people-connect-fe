@@ -82,6 +82,8 @@ vi.mock('../services/peopleService', () => ({
     linkUser: vi.fn(),
     unlinkUser: vi.fn(),
     updateRate: vi.fn(),
+    // ReviewDetailPage resolves the viewer to pick visible sections; view as the reviewer.
+    getMe: vi.fn().mockResolvedValue({ id: 'r1', full_name: 'Dana Manager' }),
   },
   allocationsApi: {
     getAll: vi.fn(),
@@ -171,6 +173,8 @@ const renderWithId = (element: React.ReactElement, path: string, id: string) =>
 
 beforeEach(() => {
   vi.resetAllMocks();
+  // resetAllMocks wipes factory implementations; restore the viewer (the reviewer).
+  vi.mocked(peopleApi.getMe).mockResolvedValue({ id: 'r1', full_name: 'Dana Manager' } as any);
 });
 
 // ===========================================================================

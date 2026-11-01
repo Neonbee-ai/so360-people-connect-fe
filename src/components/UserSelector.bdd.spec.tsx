@@ -19,25 +19,27 @@ describe('UserSelector', () => {
   it('Given the members call is forbidden / When opened / Then the real error shows, not "No users found"', async () => {
     globalThis.fetch = respond(false, 403, { message: 'Missing permission members.read' }) as any;
     render(<UserSelector onChange={() => {}} />);
-    fireEvent.click(screen.getByText('Select user...'));
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Missing permission'));
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('combobox'));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Missing permission'));
     expect(screen.queryByText('No users found')).toBeNull();
   });
 
   it('Given an org with no members / When opened / Then a helpful empty message shows', async () => {
     globalThis.fetch = respond(true, 200, { members: [] }) as any;
     render(<UserSelector onChange={() => {}} />);
-    fireEvent.click(screen.getByText('Select user...'));
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('combobox'));
     await waitFor(() => expect(screen.getByText(/No users in this organization yet/)).toBeTruthy());
   });
 
   it('Given members / When searching by email / Then matching users are listed', async () => {
     globalThis.fetch = respond(true, 200, { members: [{ user_id: 'u1', email: 'a@x.com', full_name: 'Asha' }, { user_id: 'u2', email: 'b@x.com', full_name: 'Bo' }] }) as any;
     render(<UserSelector onChange={() => {}} />);
-    fireEvent.click(screen.getByText('Select user...'));
+    fireEvent.click(screen.getByRole('combobox'));
     await waitFor(() => screen.getByText('Asha'));
-    fireEvent.change(screen.getByPlaceholderText('Select user...'), { target: { value: 'b@x' } });
-    expect(screen.queryByText('Asha')).toBeNull();
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'b@x' } });
+    await waitFor(() => expect(screen.queryByText('Asha')).toBeNull());
     expect(screen.getByText('Bo')).toBeTruthy();
   });
 });

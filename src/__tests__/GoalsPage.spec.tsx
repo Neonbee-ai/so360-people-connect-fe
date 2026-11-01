@@ -79,19 +79,22 @@ describe('GoalsPage', () => {
 
     it('When the page loads / Then it shows goal type badges', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('company')).toBeInTheDocument());
-      expect(screen.getByText('development')).toBeInTheDocument();
+      // Badges are title-cased (enumLabel); ignore same-text <option>s in the create form.
+      const badge = (text: string) => screen.queryAllByText(text).find((el) => el.tagName !== 'OPTION');
+      await waitFor(() => expect(badge('Company')).toBeInTheDocument());
+      expect(badge('Development')).toBeInTheDocument();
     });
 
     it('When the page loads / Then it shows priority labels', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('high')).toBeInTheDocument());
+      const badge = (text: string) => screen.queryAllByText(text).find((el) => el.tagName !== 'OPTION');
+      await waitFor(() => expect(badge('High')).toBeInTheDocument());
     });
 
     it('When the status filter is changed / Then goals are re-fetched', async () => {
       renderPage();
       await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledTimes(1));
-      fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'in_progress' } });
+      fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'in_progress' } });
       await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledWith({ status: 'in_progress' }));
     });
 

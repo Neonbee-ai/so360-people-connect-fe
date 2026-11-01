@@ -39,7 +39,7 @@ describe('GIVEN the component modal with calc-type-dependent fields', () => {
     render(<ComponentsTab />);
     await waitFor(() => expect(screen.getByText('BASIC')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New Component'));
-    await waitFor(() => expect(screen.getByText('Code *')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('Code')).toBeInTheDocument());
   };
 
   it('WHEN calc type is fixed THEN the Default Amount field renders', async () => {

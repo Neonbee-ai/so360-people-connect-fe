@@ -31,9 +31,9 @@ describe('GIVEN the payslip template tab', () => {
     render(<PayslipTemplateTab />);
     await waitFor(() => expect(screen.getByRole('radiogroup', { name: 'Payslip layout' })).toBeInTheDocument());
     const lightLayout = screen.getAllByRole('radio', { name: 'Light' })[0];
-    expect(lightLayout).toHaveAttribute('aria-checked', 'true');
+    expect(lightLayout).toBeChecked();
     const boxed = screen.getByRole('radio', { name: 'Boxed' });
-    expect(boxed).toHaveAttribute('aria-checked', 'true');
+    expect(boxed).toBeChecked();
   });
 
   it('WHEN the template loads THEN a debounced preview call renders the server HTML', async () => {

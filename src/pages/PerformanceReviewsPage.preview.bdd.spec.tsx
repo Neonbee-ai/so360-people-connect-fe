@@ -24,3 +24,11 @@ describe('Given the review template preview', () => {
         expect(screen.getByText(/no sections yet/i)).toBeInTheDocument();
     });
 });
+
+describe('Given a template with self and manager review', () => {
+    it('When previewed Then the scale and who assesses are summarised', () => {
+        render(<TemplatePreview template={tpl} />);
+        expect(screen.getByText('5-point scale · employee self-assessment · manager assessment')).toBeInTheDocument();
+        expect(screen.getByTestId('template-preview')).toBeInTheDocument();
+    });
+});

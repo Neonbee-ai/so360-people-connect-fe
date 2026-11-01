@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, toast } from '@so360/design-system';
+import { Button, Cluster, FieldGrid, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Spinner, TextField, toast } from '@so360/design-system';
 import { Hash, Save } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
@@ -24,44 +23,35 @@ export const DEFAULT_NUMBERING_SETTINGS: NumberingSettingsValue = {
   review: { prefix: 'REV-', padding: 4 },
 };
 
-const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
-
 const preview = (rule: NumberingRule) => `${rule.prefix}${String(1).padStart(rule.padding, '0')}`;
 
 const RuleGroup: React.FC<{
   title: string;
+  name: string;
   rule: NumberingRule;
   onChange: (rule: NumberingRule) => void;
-}> = ({ title, rule, onChange }) => (
-  <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">{title}</h3>
-    <div className="grid grid-cols-2 gap-3">
-      <div className="space-y-1.5">
-        <label className="text-xs text-slate-400">Prefix</label>
-        <input
-          type="text"
-          className={INPUT_CLASS}
-          value={rule.prefix}
-          onChange={(e) => onChange({ ...rule, prefix: e.target.value })}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <label className="text-xs text-slate-400">Padding (digits)</label>
-        <input
-          type="number"
-          min={1}
-          max={10}
-          className={INPUT_CLASS}
-          value={rule.padding}
-          onChange={(e) => onChange({ ...rule, padding: parseInt(e.target.value, 10) || 1 })}
-        />
-      </div>
+}> = ({ title, name, rule, onChange }) => (
+  <SettingsCard title={title}>
+    <FieldGrid columns={2}>
+      <TextField
+        name={`${name}-prefix`}
+        label="Prefix"
+        value={rule.prefix}
+        onChange={(e) => onChange({ ...rule, prefix: e.target.value })}
+      />
+      <NumberInput
+        name={`${name}-padding`}
+        label="Padding (digits)"
+        min={1}
+        max={10}
+        value={rule.padding}
+        onChange={(n) => onChange({ ...rule, padding: n || 1 })}
+      />
+    </FieldGrid>
+    <div className="text-nb-caption text-fg-subtle">
+      Preview: <span className="font-mono text-primary">{preview(rule)}</span>
     </div>
-    <div className="text-xs text-slate-500">
-      Preview: <span className="font-mono text-blue-400">{preview(rule)}</span>
-    </div>
-  </div>
+  </SettingsCard>
 );
 
 const NumberingSettingsPage: React.FC = () => {
@@ -98,37 +88,37 @@ const NumberingSettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading numbering settings...</div>;
-  }
+  const saveAction = canManage ? (
+    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
+      <Save className="w-4 h-4" />
+      {saving ? 'Saving...' : 'Save Changes'}
+    </Button>
+  ) : undefined;
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Numbering & Prefixes"
-        subtitle="Auto-generated ID formats used across People Connect"
-        actions={
-          canManage && (
-            <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )
-        }
-      />
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      title="Numbering & Prefixes"
+      description="Auto-generated ID formats used across People Connect"
+      primaryAction={saveAction}
+    >
+      {loading ? (
+        <Spinner aria-label="Loading numbering settings..." />
+      ) : (
+        <>
+          <Grid columns={2} gap="lg">
+            <RuleGroup title="Employee ID" name="employee" rule={value.employee} onChange={(r) => setValue((p) => ({ ...p, employee: r }))} />
+            <RuleGroup title="Department Code" name="department" rule={value.department} onChange={(r) => setValue((p) => ({ ...p, department: r }))} />
+            <RuleGroup title="Leave Request Number" name="leave" rule={value.leave} onChange={(r) => setValue((p) => ({ ...p, leave: r }))} />
+            <RuleGroup title="Review Number" name="review" rule={value.review} onChange={(r) => setValue((p) => ({ ...p, review: r }))} />
+          </Grid>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <RuleGroup title="Employee ID" rule={value.employee} onChange={(r) => setValue((p) => ({ ...p, employee: r }))} />
-        <RuleGroup title="Department Code" rule={value.department} onChange={(r) => setValue((p) => ({ ...p, department: r }))} />
-        <RuleGroup title="Leave Request Number" rule={value.leave} onChange={(r) => setValue((p) => ({ ...p, leave: r }))} />
-        <RuleGroup title="Review Number" rule={value.review} onChange={(r) => setValue((p) => ({ ...p, review: r }))} />
-      </div>
-
-      <div className="flex items-center gap-2 text-xs text-slate-500">
-        <Hash className="w-3.5 h-3.5" />
-        <span>Changes apply to new records only. Existing IDs are never renumbered.</span>
-      </div>
-    </div>
+          <Cluster gap="tight" align="center" className="text-nb-caption text-fg-subtle">
+            <Hash className="w-3.5 h-3.5" />
+            <span>Changes apply to new records only. Existing IDs are never renumbered.</span>
+          </Cluster>
+        </>
+      )}
+    </SettingsPageTemplate>
   );
 };
 

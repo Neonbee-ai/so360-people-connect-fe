@@ -1,17 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Plus } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import { toast, Drawer } from '@so360/design-system';
+import { Alert, Button, Cluster, DashboardPageTemplate, DateInput, Drawer, Grid, Select, Stack, Textarea, toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance } from '../../services/meService';
 import { leaveRequestsApi } from '../../services/leaveRequestsService';
 import type { LeaveRequest } from '../../services/leaveRequestsService';
 import { leaveTypesApi, LeaveType } from '../../services/leaveTypesService';
 import { peopleApi } from '../../services/peopleService';
-import { balanceError, minWorkingDays } from '../../utils/leaveBalance';
 import ApproverSelector from '../../components/leave/ApproverSelector';
-import { MyCard, StatTile, StatusPill, Skeleton, primaryBtn, secondaryBtn, inputCls, labelCls } from './myUi';
+import { MyCard, StatTile, StatusPill, Skeleton } from './myUi';
+import { balanceError, minWorkingDays } from '../../utils/leaveBalance';
 
 /**
  * My Leave — the employee's own balances, history and request form.
@@ -75,29 +74,35 @@ const MyLeavePage: React.FC = () => {
             .catch(() => undefined);
     }, []);
 
-    const balanceBlock = balanceError(
-        balances.find(b => b.leave_type_id === form.leave_type_id)?.available,
-        minWorkingDays(form.start_date, form.end_date),
-    );
-
     const setApproverIds = (ids: string[]) =>
         setForm(f => ({ ...f, approver_ids: ids }));
+
+    // Same early over-balance warning the admin form gives (Pulse 78626df8).
+    // Leave types without accrual have no balance to exceed; the server stays
+    // authoritative either way.
+    const requestedDays = minWorkingDays(form.start_date, form.end_date);
+    const selectedType = leaveTypes.find(t => t.id === form.leave_type_id);
+    const balanceBlock = selectedType?.accrual_type === 'none'
+        ? ''
+        : balanceError(balances.find(b => b.leave_type_id === form.leave_type_id)?.available, requestedDays);
 
     const submit = async () => {
         if (!form.leave_type_id) {
             toast.error('Choose a leave type');
             return;
         }
-        if (!form.reason.trim()) {
-            toast.error('Reason is required');
+        if (form.end_date < form.start_date) {
+            toast.error('The end date cannot be before the start date');
+            return;
+        }
+
+        const reason = form.reason.trim();
+        if (!reason) {
+            toast.error('Enter a reason for your leave');
             return;
         }
         if (balanceBlock) {
             toast.error(balanceBlock);
-            return;
-        }
-        if (form.end_date < form.start_date) {
-            toast.error('The end date cannot be before the start date');
             return;
         }
 
@@ -110,7 +115,7 @@ const MyLeavePage: React.FC = () => {
                 leave_type_id: form.leave_type_id,
                 start_date: form.start_date,
                 end_date: form.end_date,
-                reason: form.reason.trim(),
+                reason,
             });
             await leaveRequestsApi.submit(created.id, form.approver_ids);
             toast.success('Leave requested');
@@ -131,58 +136,59 @@ const MyLeavePage: React.FC = () => {
     };
 
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
+        <>
+            <DashboardPageTemplate trail={[]}
                 title="My Leave"
-                subtitle="Your balances and requests"
-                actions={
-                    <button onClick={() => setFormOpen(true)} className={primaryBtn}>
+                description="Your balances and requests"
+                primaryAction={
+                    <Button onClick={() => setFormOpen(true)}>
                         <Plus size={16} /> Request leave
-                    </button>
+                    </Button>
+                }
+                kpis={
+                    balances.length > 0 ? (
+                        <Grid columns="auto" gap="md">
+                            {balances.map(b => (
+                                <Grid.Item key={b.id} span={3}>
+                                    <StatTile
+                                        label={b.leave_type?.name ?? 'Leave'}
+                                        value={b.available}
+                                        hint={`days available · ${b.used} used`}
+                                    />
+                                </Grid.Item>
+                            ))}
+                        </Grid>
+                    ) : undefined
+                }
+                primary={
+                    <MyCard title="My requests" icon={<CalendarDays size={14} />}>
+                        {loading ? (
+                            <Skeleton rows={3} />
+                        ) : requests.length === 0 ? (
+                            <EmptyState
+                                icon={CalendarDays}
+                                title="No leave requests yet"
+                                description="When you request time off it will appear here."
+                            />
+                        ) : (
+                            <Stack gap="default">
+                                {requests.map(r => (
+                                    <Cluster key={r.id} justify="between">
+                                        <Stack gap="tight">
+                                            <p className="text-nb-sm text-fg">{r.leave_type?.name ?? 'Leave'}</p>
+                                            <p className="text-nb-sm text-fg-subtle">
+                                                {r.start_date} → {r.end_date}
+                                                {r.total_days ? ` · ${r.total_days} day(s)` : ''}
+                                            </p>
+                                        </Stack>
+                                        <StatusPill status={r.status} />
+                                    </Cluster>
+                                ))}
+                            </Stack>
+                        )}
+                    </MyCard>
                 }
             />
-
-            {balances.length > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {balances.map(b => (
-                        <StatTile
-                            key={b.id}
-                            label={b.leave_type?.name ?? 'Leave'}
-                            value={b.available}
-                            hint={`days available · ${b.used} used`}
-                        />
-                    ))}
-                </div>
-            )}
-
-            <MyCard title="My requests" icon={<CalendarDays size={14} />} flush>
-                {loading ? (
-                    <Skeleton rows={3} className="p-4" />
-                ) : requests.length === 0 ? (
-                    <EmptyState
-                        icon={CalendarDays}
-                        title="No leave requests yet"
-                        description="When you request time off it will appear here."
-                    />
-                ) : (
-                    <ul className="divide-y divide-slate-800">
-                        {requests.map(r => (
-                            <li key={r.id} className="flex items-center justify-between px-4 py-3">
-                                <div>
-                                    <p className="text-sm text-slate-50">
-                                        {r.leave_type?.name ?? 'Leave'}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                        {r.start_date} → {r.end_date}
-                                        {r.total_days ? ` · ${r.total_days} day(s)` : ''}
-                                    </p>
-                                </div>
-                                <StatusPill status={r.status} />
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </MyCard>
 
             <Drawer
                 isOpen={formOpen}
@@ -190,70 +196,57 @@ const MyLeavePage: React.FC = () => {
                 title="Request leave"
                 size="sm"
                 footer={
-                    <div className="flex justify-end gap-3">
-                        <button onClick={() => setFormOpen(false)} className={secondaryBtn}>
+                    <Cluster justify="end">
+                        <Button variant="secondary" onClick={() => setFormOpen(false)}>
                             Cancel
-                        </button>
-                        <button onClick={submit} disabled={submitting || !form.reason.trim() || !!balanceBlock} className={primaryBtn}>
+                        </Button>
+                        <Button onClick={submit} disabled={submitting || !!balanceBlock}>
                             {submitting ? 'Submitting…' : 'Submit request'}
-                        </button>
-                    </div>
+                        </Button>
+                    </Cluster>
                 }
             >
-                <div className="space-y-4">
-                    <div>
-                        <label className={labelCls}>Leave type</label>
-                        <select
-                            value={form.leave_type_id}
-                            onChange={e => setForm({ ...form, leave_type_id: e.target.value })}
-                            className={inputCls}
-                        >
-                            <option value="">Select…</option>
-                            {leaveTypes.map(t => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                <Stack gap="default">
+                    <Select
+                        name="leave_type_id"
+                        label="Leave type"
+                        value={form.leave_type_id}
+                        onChange={e => setForm({ ...form, leave_type_id: e.target.value })}
+                        options={[{ value: '', label: 'Select…' }, ...leaveTypes.map(t => ({ value: t.id, label: t.name }))]}
+                    />
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className={labelCls}>From</label>
-                            <input
-                                type="date"
-                                value={form.start_date}
-                                onChange={e => setForm({ ...form, start_date: e.target.value })}
-                                className={inputCls}
-                            />
-                        </div>
-                        <div>
-                            <label className={labelCls}>To</label>
-                            <input
-                                type="date"
-                                value={form.end_date}
-                                onChange={e => setForm({ ...form, end_date: e.target.value })}
-                                className={inputCls}
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className={labelCls}>Reason *</label>
-                        <textarea
-                            value={form.reason}
-                            onChange={e => setForm({ ...form, reason: e.target.value })}
-                            rows={3}
-                            required
-                            aria-required="true"
-                            aria-invalid={!form.reason.trim()}
-                            className={inputCls}
+                    <Grid columns={2}>
+                        <DateInput
+                            name="start_date"
+                            label="From"
+                            value={form.start_date}
+                            onChange={iso => setForm({ ...form, start_date: iso })}
                         />
-                    </div>
-                    <p className="text-xs text-slate-400">
-                        Total days: <span className="text-teal-400 font-medium">{minWorkingDays(form.start_date, form.end_date) ?? '—'}</span>
+                        <DateInput
+                            name="end_date"
+                            label="To"
+                            value={form.end_date}
+                            onChange={iso => setForm({ ...form, end_date: iso })}
+                        />
+                    </Grid>
+
+                    <p className="text-nb-caption text-fg-muted" data-testid="my-leave-total-days">
+                        Total days: <span className="font-medium text-primary">{requestedDays ?? '—'}</span>
                     </p>
                     {balanceBlock && (
-                        <p role="alert" data-testid="leave-balance-error" className="text-xs text-rose-400">{balanceBlock}</p>
+                        <Alert name="leave-balance-error" variant="error">
+                            {balanceBlock}
+                        </Alert>
                     )}
+
+                    <Textarea
+                        name="reason"
+                        label="Reason *"
+                        required
+                        value={form.reason}
+                        onChange={e => setForm({ ...form, reason: e.target.value })}
+                        rows={3}
+                    />
 
                     {myPersonId && (
                         <ApproverSelector
@@ -264,9 +257,9 @@ const MyLeavePage: React.FC = () => {
                             helpText="Leave blank to route to your department's configured head."
                         />
                     )}
-                </div>
+                </Stack>
             </Drawer>
-        </div>
+        </>
     );
 };
 

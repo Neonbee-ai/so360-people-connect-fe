@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { ClipboardCheck, CheckCircle, Upload } from 'lucide-react';
-import { toast, getErrorMessage } from '@so360/design-system';
+import { Button, Cluster, Stack, TextField, toast, getErrorMessage } from '@so360/design-system';
 import { myOnboardingApi, type MyOnboardingResponse, type OnboardingInstanceItem } from '../../services/onboardingService';
 import { MyCard, ProgressBar, StatusPill } from './myUi';
 
@@ -92,102 +92,103 @@ const MyOnboardingCard: React.FC = () => {
 
     return (
         <MyCard title="Your onboarding" icon={<ClipboardCheck size={14} />}>
-            <div className="space-y-4">
-                <div>
-                    <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-xs text-slate-400">
+            <Stack gap="default">
+                <Stack gap="tight">
+                    <Cluster justify="between">
+                        <span className="text-nb-sm text-fg-muted">
                             {settled} of {items.length} steps done
                         </span>
-                        <span className="text-xs font-semibold text-teal-400">{percent}%</span>
-                    </div>
+                        <span className="text-nb-sm font-semibold text-primary">{percent}%</span>
+                    </Cluster>
                     <ProgressBar percent={percent} />
-                </div>
+                </Stack>
 
                 {pending.length === 0 ? (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-nb-sm text-fg-subtle">
                         All your steps are settled — HR is wrapping up the rest.
                     </p>
                 ) : (
-                    <ul className="space-y-2.5">
+                    <Stack gap="tight">
                         {pending.slice(0, 5).map(item => (
-                            <li key={item.id}>
-                                <div className="flex items-center justify-between gap-3">
+                            <Stack key={item.id} gap="tight">
+                                <Cluster justify="between">
                                     <span className="min-w-0">
-                                        <span className="block truncate text-sm text-slate-300">{item.title}</span>
+                                        <span className="block truncate text-nb-sm text-fg">{item.title}</span>
                                         {item.due_date && (
-                                            <span className="text-xs text-slate-500">Due {item.due_date}</span>
+                                            <span className="text-nb-sm text-fg-subtle">Due {item.due_date}</span>
                                         )}
                                     </span>
                                     {selfCompletable(item) ? (
-                                        <button
+                                        <Button
+                                            size="sm"
                                             onClick={() => handleComplete(item)}
                                             disabled={completingId === item.id}
-                                            className="flex shrink-0 items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal-500 disabled:opacity-50"
                                         >
                                             <CheckCircle size={12} />
                                             {completingId === item.id ? 'Saving…' : 'Mark done'}
-                                        </button>
+                                        </Button>
                                     ) : item.assignee_role === 'employee' && item.item_type === 'document_upload' ? (
                                         // B4 — your document steps complete by attaching
                                         // the requested document right here.
-                                        <button
-                                            onClick={() => toggleAttach(item)}
-                                            className="flex shrink-0 items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal-500"
-                                        >
+                                        <Button size="sm" onClick={() => toggleAttach(item)}>
                                             <Upload size={12} />
                                             Attach
-                                        </button>
+                                        </Button>
                                     ) : item.assignee_role === 'employee' ? (
                                         // Signature steps complete via the Sign flow (B3).
-                                        <span className="shrink-0 text-xs text-slate-500">Awaiting signature</span>
+                                        <span className="shrink-0 text-nb-sm text-fg-subtle">Awaiting signature</span>
                                     ) : (
                                         <StatusPill status="pending" />
                                     )}
-                                </div>
+                                </Cluster>
                                 {attachingId === item.id && (
                                     <form
                                         onSubmit={e => {
                                             e.preventDefault();
                                             void handleAttach(item);
                                         }}
-                                        className="mt-2 space-y-2 rounded-lg border border-slate-700 bg-slate-800/60 p-2.5"
+                                        className="rounded-nb border border-line bg-surface p-nb-3"
                                     >
-                                        <input
-                                            value={fileName}
-                                            onChange={e => setFileName(e.target.value)}
-                                            placeholder="File name (e.g. passport.pdf)"
-                                            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-50 placeholder-slate-500 focus:border-teal-500 focus:outline-none"
-                                        />
-                                        <input
-                                            value={fileUrl}
-                                            onChange={e => setFileUrl(e.target.value)}
-                                            placeholder="Link to the file (optional)"
-                                            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-50 placeholder-slate-500 focus:border-teal-500 focus:outline-none"
-                                        />
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setAttachingId(null)}
-                                                disabled={uploading}
-                                                className="px-2 py-1 text-xs text-slate-400 hover:text-slate-50 disabled:opacity-50"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                disabled={uploading || !fileName.trim()}
-                                                className="rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                            >
-                                                {uploading ? 'Attaching…' : 'Attach document'}
-                                            </button>
-                                        </div>
+                                        <Stack gap="tight">
+                                            <TextField
+                                                name={`onboarding-file-name-${item.id}`}
+                                                aria-label="File name"
+                                                value={fileName}
+                                                onChange={e => setFileName(e.target.value)}
+                                                placeholder="File name (e.g. passport.pdf)"
+                                            />
+                                            <TextField
+                                                name={`onboarding-file-url-${item.id}`}
+                                                aria-label="Link to the file"
+                                                value={fileUrl}
+                                                onChange={e => setFileUrl(e.target.value)}
+                                                placeholder="Link to the file (optional)"
+                                            />
+                                            <Cluster justify="end">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setAttachingId(null)}
+                                                    disabled={uploading}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button
+                                                    type="submit"
+                                                    size="sm"
+                                                    disabled={uploading || !fileName.trim()}
+                                                >
+                                                    {uploading ? 'Attaching…' : 'Attach document'}
+                                                </Button>
+                                            </Cluster>
+                                        </Stack>
                                     </form>
                                 )}
-                            </li>
+                            </Stack>
                         ))}
-                    </ul>
+                    </Stack>
                 )}
-            </div>
+            </Stack>
         </MyCard>
     );
 };

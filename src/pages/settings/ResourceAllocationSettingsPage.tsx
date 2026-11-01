@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, toast } from '@so360/design-system';
-import { PieChart, Save } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Button, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, toast } from '@so360/design-system';
+import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
@@ -20,16 +19,6 @@ export const DEFAULT_RESOURCE_ALLOCATION_SETTINGS: ResourceAllocationSettingsVal
   auto_warning_limit_percent: 120,
   allocation_unit: 'percentage',
 };
-
-const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
-
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs text-slate-400">{label}</label>
-    {children}
-  </div>
-);
 
 const ResourceAllocationSettingsPage: React.FC = () => {
   const shell = useShellBridge();
@@ -68,84 +57,69 @@ const ResourceAllocationSettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading resource allocation settings...</div>;
-  }
+  const num = (field: keyof ResourceAllocationSettingsValue) => (n: number | null) =>
+    set(field, (n || 0) as never);
+
+  const saveAction = canManage ? (
+    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
+      <Save className="w-4 h-4" />
+      {saving ? 'Saving...' : 'Save Changes'}
+    </Button>
+  ) : undefined;
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Resource Allocation Defaults"
-        subtitle="Default allocation percentages and warning thresholds used across Allocations"
-        actions={
-          canManage && (
-            <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )
-        }
-      />
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      title="Resource Allocation Defaults"
+      description="Default allocation percentages and warning thresholds used across Allocations"
+      primaryAction={saveAction}
+    >
+      {loading ? (
+        <Spinner aria-label="Loading resource allocation settings..." />
+      ) : (
+        <Grid columns={2} gap="lg">
+          <SettingsCard title="Allocation Defaults">
+            <Stack gap="default">
+              <NumberInput
+                name="default_allocation_percent"
+                label="Default Allocation %"
+                value={value.default_allocation_percent}
+                onChange={num('default_allocation_percent')}
+              />
+              <Select
+                name="allocation_unit"
+                label="Allocation Unit"
+                value={value.allocation_unit}
+                onChange={(e) => set('allocation_unit', e.target.value as ResourceAllocationSettingsValue['allocation_unit'])}
+                options={[{ value: 'percentage', label: 'Percentage' }, { value: 'hours', label: 'Hours' }]}
+              />
+            </Stack>
+          </SettingsCard>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-            <PieChart className="w-4 h-4" /> Allocation Defaults
-          </h3>
-
-          <Field label="Default Allocation %">
-            <input
-              type="number"
-              className={INPUT_CLASS}
-              value={value.default_allocation_percent}
-              onChange={(e) => set('default_allocation_percent', parseFloat(e.target.value) || 0)}
-            />
-          </Field>
-
-          <Field label="Allocation Unit">
-            <select
-              className={INPUT_CLASS}
-              value={value.allocation_unit}
-              onChange={(e) => set('allocation_unit', e.target.value as ResourceAllocationSettingsValue['allocation_unit'])}
-            >
-              <option value="percentage">Percentage</option>
-              <option value="hours">Hours</option>
-            </select>
-          </Field>
-        </div>
-
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Thresholds &amp; Warnings</h3>
-
-          <Field label="Over Allocation Threshold %">
-            <input
-              type="number"
-              className={INPUT_CLASS}
-              value={value.over_allocation_threshold_percent}
-              onChange={(e) => set('over_allocation_threshold_percent', parseFloat(e.target.value) || 0)}
-            />
-          </Field>
-
-          <Field label="Under Utilization Threshold %">
-            <input
-              type="number"
-              className={INPUT_CLASS}
-              value={value.under_utilization_threshold_percent}
-              onChange={(e) => set('under_utilization_threshold_percent', parseFloat(e.target.value) || 0)}
-            />
-          </Field>
-
-          <Field label="Auto Warning Limit %">
-            <input
-              type="number"
-              className={INPUT_CLASS}
-              value={value.auto_warning_limit_percent}
-              onChange={(e) => set('auto_warning_limit_percent', parseFloat(e.target.value) || 0)}
-            />
-          </Field>
-        </div>
-      </div>
-    </div>
+          <SettingsCard title="Thresholds & Warnings">
+            <Stack gap="default">
+              <NumberInput
+                name="over_allocation_threshold_percent"
+                label="Over Allocation Threshold %"
+                value={value.over_allocation_threshold_percent}
+                onChange={num('over_allocation_threshold_percent')}
+              />
+              <NumberInput
+                name="under_utilization_threshold_percent"
+                label="Under Utilization Threshold %"
+                value={value.under_utilization_threshold_percent}
+                onChange={num('under_utilization_threshold_percent')}
+              />
+              <NumberInput
+                name="auto_warning_limit_percent"
+                label="Auto Warning Limit %"
+                value={value.auto_warning_limit_percent}
+                onChange={num('auto_warning_limit_percent')}
+              />
+            </Stack>
+          </SettingsCard>
+        </Grid>
+      )}
+    </SettingsPageTemplate>
   );
 };
 

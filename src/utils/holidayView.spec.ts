@@ -1,25 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { filterHolidaysBySearch, duplicateSeed, monthCells } from './holidayView';
+import { filterHolidaysBySearch, duplicateSeed, holidayEvents } from './holidayView';
 
-const h = (o: any) => ({ id: 'a', name: 'Diwali', holiday_date: '2026-11-08', holiday_type: 'public', region: 'North', state: null, country: 'IN', ...o }) as any;
+const h = (over: any = {}) => ({ id: 'h1', name: 'Republic Day', holiday_date: '2030-01-26T00:00:00', holiday_type: 'national', is_optional: false, is_mandatory: true, ...over });
 
-describe('holiday view helpers', () => {
-  it('given a query, when filtering, then matches name/region case-insensitively', () => {
-    const list = [h({}), h({ id: 'b', name: 'Christmas', region: 'West' })];
-    expect(filterHolidaysBySearch(list, 'dIw')).toHaveLength(1);
-    expect(filterHolidaysBySearch(list, 'west')[0].name).toBe('Christmas');
+describe('holidayView (8df0cba8)', () => {
+  it('Given a blank query / When filtering / Then every holiday is kept', () => {
+    expect(filterHolidaysBySearch([h(), h({ id: 'h2' })] as any, '  ')).toHaveLength(2);
   });
-  it('given blank query, then returns all', () => {
-    expect(filterHolidaysBySearch([h({}), h({ id: 'b' })], '  ')).toHaveLength(2);
+  it('Given a query matching name, region, state or country / When filtering / Then only matches stay (case-insensitive)', () => {
+    const list = [h(), h({ id: 'h2', name: 'Onam', state: 'Kerala' }), h({ id: 'h3', name: 'Eid', country: 'UAE' })] as any;
+    expect(filterHolidaysBySearch(list, 'kerala').map(x => x.id)).toEqual(['h2']);
+    expect(filterHolidaysBySearch(list, 'REPUBLIC').map(x => x.id)).toEqual(['h1']);
+    expect(filterHolidaysBySearch(list, 'uae').map(x => x.id)).toEqual(['h3']);
   });
-  it('given a holiday, when duplicating, then id and date are cleared and name marked copy', () => {
-    const d = duplicateSeed(h({}));
-    expect(d).toMatchObject({ id: '', holiday_date: '', name: 'Diwali (copy)', region: 'North' });
+  it('Given a holiday / When duplicating / Then the seed has no id, a copy name and a blank date', () => {
+    const s = duplicateSeed(h({ state: 'Kerala' }) as any);
+    expect(s).toMatchObject({ id: '', name: 'Republic Day (copy)', holiday_date: '', state: 'Kerala', holiday_type: 'national' });
   });
-  it('given Nov 2026, when building cells, then pads to Sunday-first and flags the holiday day', () => {
-    const cells = monthCells(2026, 10, [h({})]);
-    expect(cells.filter(c => c === null)).toHaveLength(0); // Nov 1 2026 is Sunday
-    expect(cells).toHaveLength(30);
-    expect(cells[7]!.items).toHaveLength(1);
+  it('Given holidays / When mapped to calendar events / Then each has a date-only start and the tone given', () => {
+    const ev = holidayEvents([h(), h({ id: 'h2', holiday_date: '' })] as any, () => 'info');
+    expect(ev).toEqual([{ id: 'h1', title: 'Republic Day', start: '2030-01-26', tone: 'info' }]);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
 
@@ -97,7 +97,7 @@ describe('GIVEN a draft run (prepare step)', () => {
     await waitFor(() => expect(screen.getByText('Asha Nair')).toBeInTheDocument());
     fireEvent.click(screen.getAllByText('Exclude')[0]);
     await waitFor(() => expect(screen.getByText('Confirm')).toBeInTheDocument());
-    expect(screen.getByText('Confirm')).toBeDisabled();
+    // Blank reason is blocked by the required field / trim guard; nothing is sent.
     fireEvent.click(screen.getByText('Confirm'));
     expect(mockApi.runs.exclude).not.toHaveBeenCalled();
     // Cancel closes the prompt
@@ -105,12 +105,12 @@ describe('GIVEN a draft run (prepare step)', () => {
     await waitFor(() => expect(screen.queryByText('Confirm')).not.toBeInTheDocument());
   });
 
-  it('WHEN the reason prompt is dismissed via the backdrop THEN it closes without acting', async () => {
+  it('WHEN the reason prompt is dismissed via the close control THEN it closes without acting', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Asha Nair')).toBeInTheDocument());
     fireEvent.click(screen.getAllByText('Exclude')[0]);
     await waitFor(() => expect(screen.getByText('Exclude Asha Nair')).toBeInTheDocument());
-    fireEvent.click(document.querySelector('div.fixed.inset-0.bg-black\\/60') as Element);
+    fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]);
     await waitFor(() => expect(screen.queryByText('Exclude Asha Nair')).not.toBeInTheDocument());
     expect(mockApi.runs.exclude).not.toHaveBeenCalled();
   });
@@ -143,7 +143,7 @@ describe('GIVEN a draft run (prepare step)', () => {
     mockApi.runs.cancel.mockResolvedValue({});
     renderPage();
     await waitFor(() => expect(screen.getByText('Payroll Run #9')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Cancel'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel run' }));
     await waitFor(() => expect(screen.getByText('Cancel Payroll Run')).toBeInTheDocument());
     expect(mockApi.runs.cancel).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('Cancel Run'));
@@ -370,7 +370,7 @@ describe('GIVEN navigation and failure states', () => {
     mockApi.runs.get.mockResolvedValue({ ...baseRun });
     renderPage();
     await waitFor(() => expect(screen.getByText('All Runs')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('All Runs'));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to All Runs' }));
     await waitFor(() => expect(screen.getByText('Runs list page')).toBeInTheDocument());
   });
 

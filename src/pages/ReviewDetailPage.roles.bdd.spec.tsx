@@ -84,16 +84,27 @@ const renderAs = async (meId: string) => {
 };
 
 beforeEach(() => { vi.resetAllMocks(); });
-
 describe('Given role-based review sections (Pulse cac0fab5)', () => {
-  it('When the employee opens their review Then Manager Review tab is hidden', async () => {
+  it('When the employee opens their review / Then the Manager Review tab is hidden and Submit Self Review is offered', async () => {
     await renderAs('emp1');
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^Manager Review/ })).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /^Self Review/ })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('tab', { name: /^Manager Review/ })).not.toBeInTheDocument());
+    expect(screen.getByRole('tab', { name: /^Self Review/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Submit Self Review' })).toBeInTheDocument();
   });
-  it('When an admin (not subject) opens an unsubmitted review Then Self Review tab is hidden', async () => {
+
+  it('When someone other than the subject opens an unsubmitted review / Then Self Review is hidden and they cannot submit it', async () => {
     await renderAs('admin1');
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^Self Review/ })).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /^Manager Review/ })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('tab', { name: /^Self Review/ })).not.toBeInTheDocument());
+    expect(screen.getByRole('tab', { name: /^Manager Review/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Submit Self Review' })).not.toBeInTheDocument();
+  });
+
+  it('When the viewer profile cannot be resolved / Then both sections stay visible (display fails open)', async () => {
+    (performanceReviewsApi as any).getById.mockResolvedValue(review);
+    (reviewTemplatesApi as any).getById.mockResolvedValue(tpl);
+    (peopleApi as any).getMe.mockRejectedValue(new Error('no profile'));
+    render(<MemoryRouter initialEntries={['/reviews/rv1']}><Routes><Route path="/reviews/:id" element={<ReviewDetailPage />} /></Routes></MemoryRouter>);
+    expect(await screen.findByRole('tab', { name: /^Self Review/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^Manager Review/ })).toBeInTheDocument();
   });
 });

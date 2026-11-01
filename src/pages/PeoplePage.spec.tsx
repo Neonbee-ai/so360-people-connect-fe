@@ -44,11 +44,12 @@ vi.mock('../services/departmentsService', () => ({
 }));
 
 const { mockRefreshQuota } = vi.hoisted(() => ({ mockRefreshQuota: vi.fn(async () => {}) }));
+const permState = vi.hoisted(() => ({ orgPolicyRead: true }));
 
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
 
-  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => true, hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
+  useShellBridge: () => ({ effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: (c: string) => (c === 'org_policy.read' ? permState.orgPolicyRead : true), hasAnyPermission: () => true, isFeatureEnabled: () => true, isFeatureHidden: () => false, currentTenant: { id: 'tenant-1' }, currentOrg: { id: 'org-1' }, user: { id: 'u1', email: 'a@b.com' }, accessToken: 'tok' }),
   useQuota: () => ({ quotas: [], isLoading: false, error: null, isExceeded: () => false, getQuota: () => null, getPercentage: () => 0, refresh: mockRefreshQuota }),
   useSandboxLimit: () => ({ isSandboxMode: false, sandboxEntryLimit: 5, limitItems: (items: any[]) => items, isLimited: () => false }),}));
 
@@ -431,6 +432,19 @@ describe('Given the Employment Type field in the create modal', () => {
     open.mockRestore();
   });
 
+  it('When no employment types exist and the user lacks org_policy.read / Then no Create Employment Type button opens a denied page', async () => {
+    permState.orgPolicyRead = false;
+    mockMastersApi.getAll.mockResolvedValue({ data: [] });
+    try {
+      await openModal();
+      await waitFor(() => expect(screen.getByText(/No employment types configured/i)).toBeInTheDocument());
+      expect(screen.queryByText('Create Employment Type')).not.toBeInTheDocument();
+      expect(screen.getByText(/Ask an administrator/i)).toBeInTheDocument();
+    } finally {
+      permState.orgPolicyRead = true;
+    }
+  });
+
   it('When the user returns from the Create Employment Type tab / Then the list is refetched once; plain focus changes never refetch', async () => {
     mockMastersApi.getAll.mockResolvedValue({ data: [] });
     await openModal();
@@ -482,7 +496,7 @@ describe('Given the Department field in the create modal', () => {
     // The old free-text input used placeholder "Engineering" — it must be gone.
     expect(screen.queryByPlaceholderText('Engineering')).not.toBeInTheDocument();
     // The DepartmentSelector dropdown placeholder is present instead.
-    expect(screen.getByText('Select department...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Select department...')).toBeInTheDocument();
   });
 
   it('When a department is searched and selected / Then the create payload stores department_id (relational ref, no free text)', async () => {
@@ -494,19 +508,19 @@ describe('Given the Department field in the create modal', () => {
     await waitFor(() => expect(nameInput).toHaveValue('New Hire'));
 
     // Open the dropdown and load active departments.
-    fireEvent.click(screen.getByText('Select department...'));
+    fireEvent.click(screen.getByPlaceholderText('Select department...'));
     await waitFor(() => expect(screen.getAllByText('Engineering').length).toBeGreaterThan(0));
 
     // Search narrows the list.
     const searchBox = screen.getByPlaceholderText('Select department...');
     fireEvent.change(searchBox, { target: { value: 'eng' } });
-    await waitFor(() => expect(screen.queryByText('Sales')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryAllByText('Sales').filter(el => el.tagName !== 'OPTION')).toHaveLength(0));
 
     // Click the dropdown option (last 'Engineering' in DOM is the dropdown span)
-    const engItems = screen.getAllByText('Engineering');
+    const engItems = screen.getAllByText('Engineering').filter(el => el.tagName !== 'OPTION');
     fireEvent.click(engItems[engItems.length - 1]);
-    // Wait for dropdown to close — ensures department_id state is committed in same React batch
-    await waitFor(() => expect(screen.queryByPlaceholderText('Select department...')).not.toBeInTheDocument());
+    // Wait for the field to show the chosen department — ensures department_id state is committed
+    await waitFor(() => expect(screen.getByPlaceholderText('Select department...')).toHaveValue('Engineering'));
 
     selectNoSystemAccess();
 
@@ -760,7 +774,7 @@ describe('Given "Deactivate" is clicked from the Actions menu', () => {
     fireEvent.click(screen.getByText('Deactivate'));
 
     await waitFor(() => expect(screen.getByText('Deactivate Employee')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Deactivate' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Deactivate' }));
 
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('p1', { status: 'inactive' }));
   });
@@ -776,7 +790,7 @@ describe('Given "Archive" is clicked from the Actions menu', () => {
     fireEvent.click(screen.getByText('Archive'));
 
     await waitFor(() => expect(screen.getByText('Archive Employee')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Archive' }));
 
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('p1', { status: 'archived' }));
   });
@@ -793,8 +807,8 @@ describe('Given "Delete Employee" is clicked from the Actions menu', () => {
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Delete Employee'));
 
-    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Employee' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Delete Employee' })).toBeInTheDocument());
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete Employee' }));
 
     await waitFor(() => expect(mockApi.delete).toHaveBeenCalledWith('p1'));
     await waitFor(() => expect(toastInfoSpy).toHaveBeenCalledWith('Person deactivated successfully'));
@@ -805,8 +819,8 @@ describe('Given "Delete Employee" is clicked from the Actions menu', () => {
     const toastSuccessSpy = vi.spyOn(toast, 'success');
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Delete Employee'));
-    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Employee' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Delete Employee' })).toBeInTheDocument());
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete Employee' }));
 
     await waitFor(() => expect(toastSuccessSpy).toHaveBeenCalledWith('Alice Smith was permanently deleted'));
   });
@@ -820,8 +834,8 @@ describe('Given "Delete Employee" is clicked from the Actions menu', () => {
     const toastInfoSpy = vi.spyOn(toast, 'info');
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Delete Employee'));
-    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Employee' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Delete Employee' })).toBeInTheDocument());
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete Employee' }));
 
     await waitFor(() => expect(toastInfoSpy).toHaveBeenCalledWith(expect.stringContaining('time_entries')));
   });
@@ -855,7 +869,7 @@ describe('Given the lifecycle confirmation dialogs', () => {
   it('When Delete is chosen / Then the dialog names the employee and states the action is destructive and irreversible', async () => {
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Delete Employee'));
-    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Delete Employee' })).toBeInTheDocument());
     expect(screen.getByText(/Permanently delete Alice Smith/)).toBeInTheDocument();
     expect(screen.getByText(/cannot be undone/i)).toBeInTheDocument();
   });
@@ -863,7 +877,7 @@ describe('Given the lifecycle confirmation dialogs', () => {
   it('When Delete is dismissed / Then nothing is deleted', async () => {
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Delete Employee'));
-    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Delete Employee' })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     await waitFor(() => expect(screen.queryByText('Delete Employee', { selector: 'h2' })).not.toBeInTheDocument());
@@ -912,7 +926,7 @@ describe('Given PeoplePage mutates an employee', () => {
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Deactivate'));
     await waitFor(() => expect(screen.getByText('Deactivate Employee')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Deactivate' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Deactivate' }));
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('p1', { status: 'inactive' }));
     await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
   });
@@ -921,7 +935,7 @@ describe('Given PeoplePage mutates an employee', () => {
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Archive'));
     await waitFor(() => expect(screen.getByText('Archive Employee')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Archive' }));
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('p1', { status: 'archived' }));
     await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
   });
@@ -930,8 +944,8 @@ describe('Given PeoplePage mutates an employee', () => {
     mockApi.delete.mockResolvedValue({ message: 'Person deleted', hard_deleted: true });
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Delete Employee'));
-    await waitFor(() => expect(screen.getByText('Delete Employee', { selector: 'h2' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Employee' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Delete Employee' })).toBeInTheDocument());
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete Employee' }));
     await waitFor(() => expect(mockApi.delete).toHaveBeenCalledWith('p1'));
     await waitFor(() => expect(mockRefreshQuota).toHaveBeenCalled());
   });
@@ -949,8 +963,8 @@ describe('Given "Cancel Invitation" is clicked for a pending person', () => {
     await openRowActionsMenu();
     fireEvent.click(screen.getByText('Cancel Invitation'));
 
-    await waitFor(() => expect(screen.getByText('Cancel Invitation', { selector: 'h2' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel Invitation' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Cancel Invitation' })).toBeInTheDocument());
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel Invitation' }));
 
     await waitFor(() => expect(mockApi.cancelInvite).toHaveBeenCalledWith('p1'));
   });

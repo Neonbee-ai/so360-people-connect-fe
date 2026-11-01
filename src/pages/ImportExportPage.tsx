@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Download, Upload, FileDown, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
-import { toast } from '@so360/design-system';
+import {
+    toast, Select, Alert, Button, Card, Checkbox, Cluster, FieldGrid, SettingsPageTemplate, Stack, Tabs,
+} from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
 
@@ -128,246 +129,140 @@ const ImportExportPage: React.FC = () => {
         }
     };
 
-    return (
-        <div className="p-6 space-y-5">
-            <PageHeader
-                title="Data Management"
-                subtitle="Bulk import and export for people data"
-            />
+    const exportSection = (
+        <Card title="Export People">
+            <Stack gap="default">
+                <FieldGrid>
+                    <Select name="importexport-select-49" label="Format" value={exportFormat} onChange={(e) => setExportFormat(e.target.value as 'csv' | 'excel')} options={[{ value: "csv", label: "CSV" }, { value: "excel", label: "Excel" }]} />
+                    <Select name="importexport-select-50" label="Status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Statuses" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }, { value: "on_leave", label: "On Leave" }, { value: "terminated", label: "Terminated" }]} />
+                    <Select name="importexport-select-51" label="Type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} options={[{ value: "", label: "All Types" }, { value: "employee", label: "Employee" }, { value: "contractor", label: "Contractor" }]} />
+                    <Select name="importexport-select-52" label="Department" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} options={[{ value: "", label: "All Departments" }, ...departments.map((dept) => ({ value: dept.id, label: dept.name }))]} />
+                </FieldGrid>
 
-            {/* Workflow tabs — only one workflow is ever on screen, so Import
-                never shows Export controls and vice versa. */}
-            <div className="flex items-center gap-1 border-b border-slate-800" role="tablist">
-                {(['export', 'import'] as BulkTab[]).map(tab => (
-                    <button
-                        key={tab}
-                        type="button"
-                        role="tab"
-                        aria-selected={activeTab === tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors ${
-                            activeTab === tab
-                                ? 'border-teal-500 text-teal-400'
-                                : 'border-transparent text-slate-400 hover:text-slate-50'
-                        }`}
-                    >
-                        {tab === 'export' ? 'Export People' : 'Import People'}
-                    </button>
-                ))}
-            </div>
+                <Cluster gap="default">
+                    <Button onClick={handleExport} disabled={isExporting}>
+                        {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                        {isExporting ? 'Exporting...' : 'Export People'}
+                    </Button>
+                    <Button variant="secondary" onClick={handleDownloadTemplate}>
+                        <FileDown size={16} />
+                        Download Template
+                    </Button>
+                </Cluster>
+            </Stack>
+        </Card>
+    );
 
-            {/* Export Section */}
-            {activeTab === 'export' && (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <Download size={20} className="text-teal-400" />
-                    <h2 className="text-lg font-medium text-slate-50">Export People</h2>
-                </div>
-
-                <div className="space-y-4">
-                    <div className="grid grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Format</label>
-                            <select
-                                value={exportFormat}
-                                onChange={(e) => setExportFormat(e.target.value as 'csv' | 'excel')}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="csv">CSV</option>
-                                <option value="excel">Excel</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Status</label>
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">All Statuses</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="on_leave">On Leave</option>
-                                <option value="terminated">Terminated</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Type</label>
-                            <select
-                                value={typeFilter}
-                                onChange={(e) => setTypeFilter(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">All Types</option>
-                                <option value="employee">Employee</option>
-                                <option value="contractor">Contractor</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Department</label>
-                            <select
-                                value={departmentFilter}
-                                onChange={(e) => setDepartmentFilter(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">All Departments</option>
-                                {departments.map(dept => (
-                                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                        <button
-                            onClick={handleExport}
-                            disabled={isExporting}
-                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                            {isExporting ? 'Exporting...' : 'Export People'}
-                        </button>
-                        <button
-                            onClick={handleDownloadTemplate}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-50 text-sm font-medium rounded-lg transition-colors"
-                        >
-                            <FileDown size={16} />
+    const importSection = (
+        <Card title="Import People">
+            <Stack gap="default">
+                {/* File Upload — compact drop zone. */}
+                <Stack gap="tight">
+                    <Cluster justify="between">
+                        <label htmlFor="file-upload" className="text-nb-caption text-fg-muted">Upload File</label>
+                        <Button variant="ghost" size="sm" onClick={handleDownloadTemplate}>
+                            <FileDown size={13} />
                             Download Template
-                        </button>
-                    </div>
-                </div>
-            </div>
-            )}
-
-            {/* Import Section */}
-            {activeTab === 'import' && (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <Upload size={20} className="text-teal-400" />
-                    <h2 className="text-lg font-medium text-slate-50">Import People</h2>
-                </div>
-
-                <div className="space-y-4">
-                    {/* File Upload — compact drop zone. The old p-8 + h-12 icon
-                        pushed the Validate button below the fold on a standard
-                        desktop viewport. */}
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <label htmlFor="file-upload" className="text-xs text-slate-400">Upload File</label>
-                            <button
-                                type="button"
-                                onClick={handleDownloadTemplate}
-                                className="flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors"
-                            >
-                                <FileDown size={13} />
-                                Download Template
-                            </button>
-                        </div>
-                        <div className="border-2 border-dashed border-slate-700 rounded-lg px-4 py-5 text-center hover:border-slate-600 transition-colors">
-                            <input
-                                type="file"
-                                accept=".csv,.xlsx,.xls"
-                                onChange={handleFileChange}
-                                className="hidden"
-                                id="file-upload"
-                            />
-                            <label
-                                htmlFor="file-upload"
-                                className="cursor-pointer flex flex-col items-center"
-                            >
-                                <Upload className="h-7 w-7 text-slate-600 mb-2" />
-                                <p className="text-sm text-slate-300">
-                                    {importFile ? importFile.name : 'Click to browse or drag and drop'}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                    Supports CSV and Excel files
-                                </p>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Validate Only Checkbox */}
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            checked={validateOnly}
-                            onChange={(e) => setValidateOnly(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                        </Button>
+                    </Cluster>
+                    <div className="border border-line rounded-nb px-nb-4 py-nb-5 text-center">
+                        <input // comb-exception: hidden file input driven by the label
+                            type="file"
+                            name="import-file"
+                            accept=".csv,.xlsx,.xls"
+                            onChange={handleFileChange}
+                            className="hidden"
+                            id="file-upload"
                         />
-                        <span className="text-sm text-slate-300">Validate Only (Don't import yet)</span>
-                    </label>
+                        <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
+                            <Upload size={28} className="text-fg-muted mb-nb-2" />
+                            <p className="text-nb-body text-fg">
+                                {importFile ? importFile.name : 'Click to browse or drag and drop'}
+                            </p>
+                            <p className="text-nb-caption text-fg-muted">
+                                Supports CSV and Excel files
+                            </p>
+                        </label>
+                    </div>
+                </Stack>
 
-                    {/* Import Button */}
-                    <button
-                        onClick={handleImport}
-                        disabled={!importFile || isImporting}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                <Checkbox
+                    name="import-validate-only"
+                    label="Validate Only (Don't import yet)"
+                    checked={validateOnly}
+                    onChange={(e) => setValidateOnly(e.target.checked)}
+                />
+
+                <Cluster>
+                    <Button onClick={handleImport} disabled={!importFile || isImporting}>
                         {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                         {isImporting ? 'Processing...' : validateOnly ? 'Validate' : 'Import'}
-                    </button>
+                    </Button>
+                </Cluster>
 
-                    {/* Validation Results */}
-                    {validationResults && (
-                        <div className="mt-6 space-y-4">
-                            {/* Success Count */}
-                            {validationResults.success > 0 && (
-                                <div className="bg-green-900/20 border border-green-800 rounded-lg p-4">
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle className="text-green-400" size={20} />
-                                        <p className="text-sm font-medium text-green-400">
-                                            {validationResults.success} records validated successfully
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
+                {validationResults && (
+                    <Stack gap="default">
+                        {validationResults.success > 0 && (
+                            <Alert variant="success">
+                                {`${validationResults.success} records validated successfully`}
+                            </Alert>
+                        )}
 
-                            {/* Errors */}
-                            {validationResults.errors.length > 0 && (
-                                <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <AlertCircle className="text-red-400" size={20} />
-                                        <p className="text-sm font-medium text-red-400">
-                                            {validationResults.errors.length} errors found
-                                        </p>
-                                    </div>
-                                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                                        {validationResults.errors.map((error, index) => (
-                                            <div key={index} className="bg-slate-900 rounded-lg p-3">
-                                                <p className="text-xs text-red-400 font-medium mb-1">
-                                                    Row {error.row} - Field: {error.field}
-                                                </p>
-                                                <p className="text-xs text-slate-400">{error.message}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                        {validationResults.errors.length > 0 && (
+                            <Alert variant="error">
+                                <Stack gap="tight">
+                                    <p className="text-nb-label">{`${validationResults.errors.length} errors found`}</p>
+                                    {validationResults.errors.map((error, index) => (
+                                        <div key={index}>
+                                            <p className="text-nb-caption text-fg">
+                                                Row {error.row} - Field: {error.field}
+                                            </p>
+                                            <p className="text-nb-caption text-fg-muted">{error.message}</p>
+                                        </div>
+                                    ))}
+                                </Stack>
+                            </Alert>
+                        )}
 
-                            {/* Action after validation */}
-                            {validateOnly && validationResults.errors.length === 0 && validationResults.success > 0 && (
-                                <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                                    <p className="text-sm text-slate-300 mb-3">
-                                        All records are valid. Ready to import?
-                                    </p>
-                                    <button
-                                        onClick={() => {
-                                            setValidateOnly(false);
-                                            handleImport();
-                                        }}
-                                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                                    >
-                                        Proceed with Import
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-            )}
+                        {validateOnly && validationResults.errors.length === 0 && validationResults.success > 0 && (
+                            <Alert
+                                variant="info"
+                                action={{
+                                    label: 'Proceed with Import',
+                                    onClick: () => {
+                                        setValidateOnly(false);
+                                        handleImport();
+                                    },
+                                }}
+                            >
+                                All records are valid. Ready to import?
+                            </Alert>
+                        )}
+                    </Stack>
+                )}
+            </Stack>
+        </Card>
+    );
 
-        </div>
+    return (
+        <SettingsPageTemplate trail={[]}
+            title="Data Management"
+            description="Bulk import and export for people data"
+        >
+            {/* Workflow tabs — only one workflow is ever on screen, so Import
+                never shows Export controls and vice versa. */}
+            <Tabs
+                name="bulk-workflow"
+                items={[
+                    { id: 'export', label: 'Export People' },
+                    { id: 'import', label: 'Import People' },
+                ]}
+                value={activeTab}
+                onChange={(id: string) => setActiveTab(id as BulkTab)}
+            >
+                {(tab: string) => (tab === 'export' ? exportSection : importSection)}
+            </Tabs>
+        </SettingsPageTemplate>
     );
 };
 
