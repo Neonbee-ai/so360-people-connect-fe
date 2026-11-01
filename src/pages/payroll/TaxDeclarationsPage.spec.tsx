@@ -103,6 +103,19 @@ describe('GIVEN the declaration review drawer', () => {
       }));
   }, 15000);
 
+  it('WHEN the drawer is closed and reopened THEN the typed amount and notes are cleared', async () => {
+    await openDrawer();
+    fireEvent.change(screen.getByLabelText('Approved amount for 80C'), { target: { value: '90000' } });
+    fireEvent.change(screen.getByLabelText('Review Notes'), { target: { value: 'checked' } });
+    expect(screen.getByLabelText('Approved amount for 80C')).toHaveValue(90000);
+    fireEvent.click(screen.getByLabelText('Close'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByText('Review'));
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+    expect(screen.getByLabelText('Approved amount for 80C')).toHaveValue(null);
+    expect(screen.getByLabelText('Review Notes')).toHaveValue('');
+  });
+
   it('WHEN an item is rejected THEN reviewItem is called with rejected and no amount', async () => {
     mockApi.employees.taxDeclarations.reviewItem.mockResolvedValue({});
     await openDrawer();
