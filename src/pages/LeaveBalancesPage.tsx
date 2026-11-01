@@ -147,8 +147,8 @@ const LeaveBalancesPage: React.FC = () => {
                             variant="primary"
                             onClick={handleInitialize}
                             disabled={!personId || initializing}
-                            leadingIcon={<RefreshCw size={16} />}
                         >
+                            <RefreshCw size={16} />
                             {initializing ? 'Initializing...' : 'Initialize Balances'}
                         </Button>
                     )}
