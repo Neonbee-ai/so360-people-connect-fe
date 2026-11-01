@@ -82,6 +82,8 @@ vi.mock('../services/peopleService', () => ({
     linkUser: vi.fn(),
     unlinkUser: vi.fn(),
     updateRate: vi.fn(),
+    // ReviewDetailPage resolves the viewer to pick visible sections; view as the reviewer.
+    getMe: vi.fn().mockResolvedValue({ id: 'r1', full_name: 'Dana Manager' }),
   },
   allocationsApi: {
     getAll: vi.fn(),
