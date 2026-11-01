@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Calendar } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
-import { toast, Select, Button, Badge, Avatar, ListPageTemplate, DataTable, Modal, DateInput, Checkbox, Textarea, DescriptionList, Stack, Cluster, Alert } from '@so360/design-system';
+import StatusBadge from '../components/StatusBadge';
+import { toast, Select, Button, Avatar, ListPageTemplate, DataTable, Modal, DateInput, Checkbox, Textarea, DescriptionList, Stack, Cluster, Alert } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -111,7 +112,7 @@ const LeaveRequestsPage: React.FC = () => {
             ),
         },
         { key: 'total_days', header: 'Total Days', align: 'center', render: (r) => <span className="font-medium text-fg">{r.total_days}</span> },
-        { key: 'status', header: 'Status', align: 'center', render: (r) => <LeaveStatusBadge status={r.status} /> },
+        { key: 'status', header: 'Status', align: 'center', render: (r) => <StatusBadge status={r.status} /> },
     ];
 
     return (
@@ -161,17 +162,6 @@ const LeaveRequestsPage: React.FC = () => {
     );
 };
 
-const STATUS_TONE: Record<string, 'neutral' | 'warning' | 'success' | 'danger'> = {
-    draft: 'neutral',
-    pending: 'warning',
-    approved: 'success',
-    rejected: 'danger',
-    cancelled: 'neutral',
-};
-
-const LeaveStatusBadge: React.FC<{ status: string }> = ({ status }) => (
-    <Badge tone={STATUS_TONE[status] ?? 'neutral'}>{status}</Badge>
-);
 
 // =============================================================================
 // Create Leave Request Modal
@@ -573,7 +563,7 @@ const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, 
                     columns={2}
                     items={[
                         { label: 'Employee', value: <span className="font-medium">{request.person?.full_name || '—'}</span> },
-                        { label: 'Status', value: <LeaveStatusBadge status={request.status} /> },
+                        { label: 'Status', value: <StatusBadge status={request.status} /> },
                         {
                             label: 'Leave Type',
                             value: (
@@ -614,18 +604,12 @@ const ViewLeaveRequestModal: React.FC<ViewLeaveRequestModalProps> = ({ request, 
                     />
                 )}
 
-                {shown.status === 'rejected' && shown.rejection_reason && (
-                    <DescriptionList
-                        columns={1}
-                        items={[{ label: 'Rejection Reason', value: <p className="rounded-nb border border-danger/40 bg-danger-container/20 p-nb-3 text-danger">{shown.rejection_reason}</p> }]}
-                    />
-                )}
-
                 <ApprovalProgress
                     approvals={shown.approvals ?? []}
                     submittedAt={shown.submitted_at}
                     submittedByName={shown.person?.full_name}
                     formatDateTime={formatters.formatDateTime}
+                    fallbackRejectionReason={shown.status === 'rejected' ? shown.rejection_reason : undefined}
                 />
             </Stack>
         </Modal>

@@ -144,20 +144,18 @@ const LeaveRequestDetailPage: React.FC = () => {
                             ]}
                         />
                         {request.reason && <p className="text-nb-body text-fg">{request.reason}</p>}
-                        {request.status === 'rejected' && request.rejection_reason && (
-                            <p className="text-nb-body text-danger">Rejected: {request.rejection_reason}</p>
-                        )}
                     </Stack>
                 </Card>
 
-                {request.approvals && request.approvals.length > 0 && (
-                    <ApprovalProgress
-                        approvals={request.approvals}
-                        submittedAt={request.submitted_at}
-                        submittedByName={request.person?.full_name}
-                        formatDateTime={formatters.formatDateTime}
-                    />
-                )}
+                {/* Per-approver reasons live in the approval progress (Pulse 85d80186);
+                    the request-level reason is only a fallback for old rejections. */}
+                <ApprovalProgress
+                    approvals={request.approvals ?? []}
+                    submittedAt={request.submitted_at}
+                    submittedByName={request.person?.full_name}
+                    formatDateTime={formatters.formatDateTime}
+                    fallbackRejectionReason={request.status === 'rejected' ? request.rejection_reason : undefined}
+                />
 
                 {showActions && rejecting && (
                     <Stack gap="default">

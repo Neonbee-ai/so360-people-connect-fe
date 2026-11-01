@@ -507,6 +507,13 @@ const TrailBack = ({ item }: any) => {
   );
 };
 
+export const EventCalendar = ({ events = [], onEventClick, name, 'data-testid': testId }: any) => (
+  <div data-testid={testId} data-name={name} role="grid" aria-label="Calendar">
+    {events.map((e: any) => (
+      <button key={e.id} type="button" data-start={e.start} data-tone={e.tone} onClick={() => onEventClick?.(e)}>{e.title}</button>
+    ))}
+  </div>
+);
 const ChoiceCtx = React.createContext<{ value?: string; onChange?: (v: string) => void } | null>(null);
 export const ChoiceCardGrid = ({ value, onChange, children, name: _n, columns: _c, multiple: _m, ...rest }: any) => (
   <ChoiceCtx.Provider value={{ value, onChange }}>

@@ -7,6 +7,7 @@ import {
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
+import { peopleApi } from '../services/peopleService';
 import { reviewTemplatesApi, ReviewTemplate, ReviewTemplateSection } from '../services/reviewTemplatesService';
 import PerformanceEvidencePanel from '../components/PerformanceEvidencePanel';
 
@@ -133,10 +134,16 @@ const ReviewDetailPage: React.FC = () => {
     const [managerFormData, setManagerFormData] = useState<Record<string, unknown>>({});
     const [overallRating, setOverallRating] = useState<number>(0);
     const [submitting, setSubmitting] = useState(false);
+    const [myPersonId, setMyPersonId] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) loadReview(id);
     }, [id]);
+
+    // Who is viewing decides which sections show (Pulse cac0fab5).
+    useEffect(() => {
+        peopleApi.getMe().then(me => setMyPersonId(me?.id ?? null)).catch(() => setMyPersonId(null));
+    }, []);
 
     const loadReview = async (reviewId: string) => {
         try {
@@ -269,15 +276,26 @@ const ReviewDetailPage: React.FC = () => {
     const ratingScale = template?.rating_scale || 5;
     const selfSubmitted = !!review.self_review_submitted_at;
     const managerSubmitted = !!review.manager_review_submitted_at;
+    // Role-based sections: the subject sees Self, the reviewer sees Manager.
+    // An unresolved viewer fails open for display only; the API enforces.
+    const isSubject = !!myPersonId && myPersonId === review.person_id;
+    const isReviewer = !!myPersonId && myPersonId === review.reviewer_id;
+    const showSelfTab = !myPersonId || isSubject || selfSubmitted;
+    const showManagerTab = !myPersonId || !isSubject || isReviewer || review.status === 'completed';
+    const canSubmitSelf = !myPersonId || isSubject;
+    const canSubmitManager = !myPersonId || isReviewer || !isSubject;
+    const tab = activeTab === 'self' && !showSelfTab
+        ? (showManagerTab ? 'manager' : 'overall')
+        : activeTab === 'manager' && !showManagerTab ? 'overall' : activeTab;
 
     let primaryAction: React.ReactNode;
-    if (review.status === 'self_review_pending' && !selfSubmitted) {
+    if (review.status === 'self_review_pending' && !selfSubmitted && canSubmitSelf) {
         primaryAction = (
             <Button type="button" onClick={handleSubmitSelfReview} disabled={submitting}>
                 {submitting ? 'Submitting...' : 'Submit Self Review'}
             </Button>
         );
-    } else if (review.status === 'manager_review_pending' && !managerSubmitted) {
+    } else if (review.status === 'manager_review_pending' && !managerSubmitted && canSubmitManager) {
         primaryAction = (
             <Button type="button" onClick={handleSubmitManagerReview} disabled={submitting || overallRating === 0}>
                 {submitting ? 'Submitting...' : 'Submit Manager Review'}
@@ -298,11 +316,11 @@ const ReviewDetailPage: React.FC = () => {
             trail={[{ label: 'Reviews', to: '/people/reviews' }]}
             primaryAction={primaryAction}
             tabs={[
-                { id: 'self', label: `Self Review${selfSubmitted ? ' \u2713' : ''}` },
-                { id: 'manager', label: `Manager Review${managerSubmitted ? ' \u2713' : ''}` },
+                ...(showSelfTab ? [{ id: 'self', label: `Self Review${selfSubmitted ? ' \u2713' : ''}` }] : []),
+                ...(showManagerTab ? [{ id: 'manager', label: `Manager Review${managerSubmitted ? ' \u2713' : ''}` }] : []),
                 { id: 'overall', label: 'Overall' },
             ]}
-            activeTab={activeTab}
+            activeTab={tab}
             onTabChange={(t: string) => setActiveTab(t as 'self' | 'manager' | 'overall')}
         >
             <Stack gap="region">
@@ -356,7 +374,7 @@ const ReviewDetailPage: React.FC = () => {
                 <Card name="review-form">
                     {sections.length > 0 ? (
                         <>
-                            {activeTab === 'self' && (
+                            {tab === 'self' && (
                                 <ReviewForm
                                     sections={sections}
                                     ratingScale={ratingScale}
@@ -365,7 +383,7 @@ const ReviewDetailPage: React.FC = () => {
                                     readOnly={selfSubmitted}
                                 />
                             )}
-                            {activeTab === 'manager' && (
+                            {tab === 'manager' && (
                                 <Stack gap="region">
                                     <ReviewForm
                                         sections={sections}
@@ -390,7 +408,7 @@ const ReviewDetailPage: React.FC = () => {
                                     )}
                                 </Stack>
                             )}
-                            {activeTab === 'overall' && (
+                            {tab === 'overall' && (
                                 <Stack gap="region">
                                     {selfSubmitted && (
                                         <div>

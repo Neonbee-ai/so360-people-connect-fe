@@ -28,6 +28,7 @@ vi.mock('../services/performanceBlocksService', () => ({
   performanceBlocksApi: { list: vi.fn().mockResolvedValue([]) },
 }));
 
+vi.mock('../services/peopleService', () => ({ peopleApi: { getMe: () => Promise.resolve(null) } }));
 vi.mock('../services/reviewTemplatesService', () => ({
   reviewTemplatesApi: { getById: vi.fn() },
   ReviewTemplate: {},

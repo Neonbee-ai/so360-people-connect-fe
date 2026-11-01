@@ -140,8 +140,11 @@ export const leaveRequestsApi = {
    * not granted until every assigned approver has approved — `fully_approved`
    * is false while others are still pending, and the request stays `pending`.
    */
-  approve: async (id: string): Promise<LeaveRequest & { fully_approved?: boolean }> => {
-    return api.post<LeaveRequest & { fully_approved?: boolean }>(`/leave-requests/${id}/approve`, {});
+  approve: async (id: string, notes?: string): Promise<LeaveRequest & { fully_approved?: boolean }> => {
+    return api.post<LeaveRequest & { fully_approved?: boolean }>(
+      `/leave-requests/${id}/approve`,
+      notes ? { decision_notes: notes } : {},
+    );
   },
 
   reject: async (id: string, reason: string): Promise<LeaveRequest> => {

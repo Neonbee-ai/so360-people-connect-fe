@@ -178,6 +178,17 @@ describe('GoalsPage — extra scenarios', () => {
     });
   });
 
+  describe('Given goals with and without a priority', () => {
+    it('When the list renders / Then the priority shows title-cased and a missing one shows a dash, never an empty badge', async () => {
+      mockApi.getAll.mockResolvedValue({ data: [sampleGoals[0], { ...sampleGoals[1], priority: null }] });
+      renderPage();
+      await waitFor(() => screen.getByText('Learn TypeScript'));
+      expect(screen.getAllByText('High').length).toBeGreaterThan(0);
+      expect(screen.queryByText('high')).toBeNull();
+      expect(screen.getByTestId('goal-priority-none')).toHaveTextContent('—');
+    });
+  });
+
   describe('Given page header', () => {
     beforeEach(() => {
       mockApi.getAll.mockResolvedValue({ data: [] });
