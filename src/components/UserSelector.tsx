@@ -52,7 +52,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
         // (permission/auth) instead of hiding it behind "No users found".
         if (!res.ok) {
           const body = await res.json().catch(() => null);
-          throw new Error(body?.message || `Could not load users (HTTP ${res.status}).`);
+          throw new Error(body?.message || `Could not load users (${res.status})`);
         }
         return res.json();
       })

@@ -34,7 +34,7 @@ const PERSON_NAME_RE = /^(?![\d+])[^\p{Cc}\p{Cs}]+$/u;
 // Practical RFC-5322 subset: no spaces, single @, dotted TLD of 2+ letters.
 // Username disallows consecutive/leading/trailing periods; each domain label
 // disallows consecutive hyphens (e.g. "gm--ail.com").
-const EMAIL_RE = /^[A-Za-z0-9_+-]+(?:\.[A-Za-z0-9_+-]+)*@[A-Za-z0-9](?:-?[A-Za-z0-9])*(?:\.[A-Za-z0-9](?:-?[A-Za-z0-9])*)*\.[A-Za-z]{2,}$/;
+const EMAIL_RE = /^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:-?[A-Za-z0-9])*(?:\.[A-Za-z0-9](?:-?[A-Za-z0-9])*)*\.[A-Za-z]{2,}$/;
 // Digits with an optional leading +, plus the usual separators.
 // Parentheses must be balanced and hold digits/separators: "(555) 123-4567".
 const PHONE_RE = /^\+?(?:[0-9\s.-]|\([0-9\s.-]+\))+$/;
@@ -65,7 +65,7 @@ export function validateEmail(value: unknown, required = false): string | null {
   if (!EMAIL_RE.test(email)) {
     return (
       'Please enter a valid email address (e.g., name@example.com). ' +
-      'Username may contain letters (A–Z, a–z), numbers (0–9), periods (.), underscores (_), hyphens (-), and plus signs (+). ' +
+      'Username may contain letters (A–Z, a–z), numbers (0–9), periods (.), underscores (_), hyphens (-), percent signs (%), and plus signs (+). ' +
       'Domain must contain valid letters or numbers, may include single hyphens (-), and cannot contain consecutive hyphens (--), ' +
       'consecutive periods (..), spaces, or start/end with a hyphen or period.'
     );
