@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { FileText, Copy } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
+import { FileText } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import Modal from '../components/Modal';
-import { toast } from '@so360/design-system';
+import {
+    toast, Select, ListPageTemplate, DataTable, Modal, Button, Cluster, Stack, Grid,
+    TextField, Textarea, Checkbox, Alert,
+} from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
+import { PromptDialog } from '../components/PromptDialog';
 import { reviewTemplatesApi, ReviewTemplate, CreateReviewTemplatePayload } from '../services/reviewTemplatesService';
 
 const ReviewTemplatesPage: React.FC = () => {
@@ -16,6 +18,9 @@ const ReviewTemplatesPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<ReviewTemplate | null>(null);
+    const [typeFilter, setTypeFilter] = useState('');
+    const [cloneSource, setCloneSource] = useState<ReviewTemplate | null>(null);
+    const visibleTemplates = typeFilter ? templates.filter(t => t.review_type === typeFilter) : templates;
 
     const loadTemplates = useCallback(async () => {
         try {
@@ -58,8 +63,7 @@ const ReviewTemplatesPage: React.FC = () => {
         }
     };
 
-    const handleClone = async (template: ReviewTemplate) => {
-        const newName = prompt(`Clone template as:`, `${template.name} (Copy)`);
+    const handleClone = async (template: ReviewTemplate, newName: string) => {
         if (!newName) return;
 
         try {
@@ -68,112 +72,99 @@ const ReviewTemplatesPage: React.FC = () => {
             loadTemplates();
         } catch (error) {
             toast.error('Failed to clone template');
+        } finally {
+            setCloneSource(null);
         }
     };
 
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
-                title="Review Templates"
-                subtitle="Configure performance review structures"
-                actions={
-                    canCreate && <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                        <FileText size={16} />
-                        Create Template
-                    </button>
-                }
-            />
-
-            {/* Templates Table */}
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
-                    ))}
-                </div>
-            ) : templates.length === 0 ? (
+        <>
+        <ListPageTemplate trail={[]}
+            title="Review Templates"
+            description="Configure performance review structures"
+            loading={loading}
+            isEmpty={templates.length === 0}
+            isFilteredEmpty={templates.length > 0 && visibleTemplates.length === 0}
+            onClearFilters={() => setTypeFilter('')}
+            filterConfig={{
+                fields: [{ key: 'review_type', label: 'Review Type', type: 'select', options: [
+                    { value: 'annual', label: 'Annual' },
+                    { value: 'quarterly', label: 'Quarterly' },
+                    { value: 'probation', label: 'Probation' },
+                    { value: 'project_end', label: 'Project End' },
+                    { value: 'custom', label: 'Custom' },
+                ] }],
+                values: { review_type: typeFilter || undefined },
+                onChange: (v) => setTypeFilter((v.review_type as string) || ''),
+                onClear: () => setTypeFilter(''),
+            }}
+            primaryAction={canCreate ? (
+                <Button type="button" onClick={() => setShowCreateModal(true)}>
+                    <FileText className="w-4 h-4" /> Create Template
+                </Button>
+            ) : undefined}
+            empty={(
                 <EmptyState
                     icon={FileText}
                     title="No review templates found"
                     description="Create templates to standardize performance reviews."
                     action={canCreate ? { label: 'Create Template', onClick: () => setShowCreateModal(true) } : undefined}
                 />
-            ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Review Type</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Rating Scale</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Self Review</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Manager Review</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800">
-                            {templates.map(template => (
-                                <tr
-                                    key={template.id}
-                                    className="hover:bg-slate-800/50 cursor-pointer transition-colors"
-                                    onClick={() => setEditingTemplate(template)}
-                                >
-                                    <td className="px-4 py-3">
-                                        <div className="text-sm font-medium text-slate-50">{template.name}</div>
-                                        {template.description && (
-                                            <div className="text-xs text-slate-500">{template.description}</div>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400 capitalize">
-                                        {template.review_type.replace('_', ' ')}
-                                    </td>
-                                    <td className="px-4 py-3 text-center text-sm text-slate-400">
-                                        {template.rating_scale}
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <StatusBadge status={template.requires_self_review ? 'required' : 'not_required'} />
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <StatusBadge status={template.requires_manager_review ? 'required' : 'not_required'} />
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <StatusBadge status={template.is_active ? 'active' : 'inactive'} />
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {canCreate && <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleClone(template);
-                                                }}
-                                                className="text-xs text-slate-400 hover:text-teal-400 transition-colors"
-                                                title="Clone template"
-                                            >
-                                                <Copy size={14} />
-                                            </button>}
-                                            {canCreate && <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setEditingTemplate(template);
-                                                }}
-                                                className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
-                                            >
-                                                Edit
-                                            </button>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
             )}
+        >
+            <DataTable<ReviewTemplate>
+                name="review-templates"
+                rows={visibleTemplates}
+                rowKey={(t) => t.id}
+                onRowClick={(t) => setEditingTemplate(t)}
+                columns={[
+                    {
+                        key: 'name',
+                        header: 'Name',
+                        render: (t) => (
+                            <Stack gap="tight">
+                                <span className="text-nb-sm font-medium text-fg">{t.name}</span>
+                                {t.description && <span className="text-nb-xs text-fg-subtle">{t.description}</span>}
+                            </Stack>
+                        ),
+                    },
+                    {
+                        key: 'review_type',
+                        header: 'Review Type',
+                        render: (t) => <span className="text-nb-sm text-fg-muted capitalize">{t.review_type.replace('_', ' ')}</span>,
+                    },
+                    {
+                        key: 'rating_scale',
+                        header: 'Rating Scale',
+                        align: 'center',
+                        render: (t) => <span className="text-nb-sm text-fg-muted">{t.rating_scale}</span>,
+                    },
+                    {
+                        key: 'requires_self_review',
+                        header: 'Self Review',
+                        align: 'center',
+                        render: (t) => <StatusBadge status={t.requires_self_review ? 'required' : 'not_required'} />,
+                    },
+                    {
+                        key: 'requires_manager_review',
+                        header: 'Manager Review',
+                        align: 'center',
+                        render: (t) => <StatusBadge status={t.requires_manager_review ? 'required' : 'not_required'} />,
+                    },
+                    {
+                        key: 'is_active',
+                        header: 'Status',
+                        align: 'center',
+                        render: (t) => <StatusBadge status={t.is_active ? 'active' : 'inactive'} />,
+                    },
+                ]}
+                rowActions={canCreate ? (t) => [
+                    { label: 'Clone template', onSelect: () => setCloneSource(t) },
+                    { label: 'Edit', onSelect: () => setEditingTemplate(t) },
+                ] : undefined}
+            />
+        </ListPageTemplate>
 
-            {/* Create/Edit Modal */}
             <ReviewTemplateModal
                 isOpen={showCreateModal || !!editingTemplate}
                 onClose={() => {
@@ -185,7 +176,16 @@ const ReviewTemplatesPage: React.FC = () => {
                 template={editingTemplate}
             />
 
-        </div>
+            <PromptDialog
+                open={!!cloneSource}
+                title="Clone template"
+                submitLabel="Clone"
+                fields={[{ name: 'name', label: 'Clone template as', initialValue: cloneSource ? `${cloneSource.name} (Copy)` : '', required: true }]}
+                onSubmit={(v) => (cloneSource ? handleClone(cloneSource, v.name.trim()) : undefined)}
+                onClose={() => setCloneSource(null)}
+            />
+
+        </>
     );
 };
 
@@ -253,114 +253,76 @@ const ReviewTemplateModal: React.FC<ReviewTemplateModalProps> = ({
 
     return (
         <Modal
-            isOpen={isOpen}
+            open={isOpen}
             onClose={onClose}
             title={template ? 'Edit Review Template' : 'Create Review Template'}
             size="lg"
+            footer={(
+                <Cluster gap="default" justify="end">
+                    <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button type="submit" form="review-template-form">{template ? 'Update' : 'Create'}</Button>
+                </Cluster>
+            )}
         >
-            <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                        <label className="block text-xs text-slate-400 mb-1">Name *</label>
-                        <input
-                            type="text"
-                            required
-                            value={formData.name}
-                            onChange={(e) => updateField('name', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            placeholder="Annual Performance Review"
-                        />
-                    </div>
-                    <div className="col-span-2">
-                        <label className="block text-xs text-slate-400 mb-1">Description</label>
-                        <textarea
-                            value={formData.description || ''}
-                            onChange={(e) => updateField('description', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            rows={2}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Review Type</label>
-                        <select
+            <form id="review-template-form" onSubmit={handleSubmit}>
+                <Stack gap="region">
+                    <TextField
+                        name="name"
+                        label="Name *"
+                        value={formData.name}
+                        onChange={(e) => updateField('name', e.target.value)}
+                        placeholder="Annual Performance Review"
+                    />
+                    <Textarea
+                        name="description"
+                        label="Description"
+                        rows={2}
+                        value={formData.description || ''}
+                        onChange={(e) => updateField('description', e.target.value)}
+                    />
+                    <Grid columns={2} gap="lg">
+                        <Select
+                            name="review_type"
+                            label="Review Type"
                             value={formData.review_type}
                             onChange={(e) => updateField('review_type', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="annual">Annual</option>
-                            <option value="quarterly">Quarterly</option>
-                            <option value="probation">Probation</option>
-                            <option value="project_end">Project End</option>
-                            <option value="custom">Custom</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Rating Scale</label>
-                        <select
-                            value={formData.rating_scale}
+                            options={[{ value: 'annual', label: 'Annual' }, { value: 'quarterly', label: 'Quarterly' }, { value: 'probation', label: 'Probation' }, { value: 'project_end', label: 'Project End' }, { value: 'custom', label: 'Custom' }]}
+                        />
+                        <Select
+                            name="rating_scale"
+                            label="Rating Scale"
+                            value={String(formData.rating_scale)}
                             onChange={(e) => updateField('rating_scale', parseInt(e.target.value))}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="3">3 Point</option>
-                            <option value="5">5 Point</option>
-                            <option value="10">10 Point</option>
-                            <option value="100">100 Point</option>
-                        </select>
-                    </div>
-                </div>
+                            options={[{ value: '3', label: '3 Point' }, { value: '5', label: '5 Point' }, { value: '10', label: '10 Point' }, { value: '100', label: '100 Point' }]}
+                        />
+                    </Grid>
 
-                <div className="space-y-2">
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
+                    <Stack gap="tight">
+                        <Checkbox
+                            name="requires_self_review"
+                            label="Requires Self Review"
                             checked={formData.requires_self_review}
                             onChange={(e) => updateField('requires_self_review', e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
                         />
-                        <span className="text-sm text-slate-300">Requires Self Review</span>
-                    </label>
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
+                        <Checkbox
+                            name="requires_manager_review"
+                            label="Requires Manager Review"
                             checked={formData.requires_manager_review}
                             onChange={(e) => updateField('requires_manager_review', e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
                         />
-                        <span className="text-sm text-slate-300">Requires Manager Review</span>
-                    </label>
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
+                        <Checkbox
+                            name="is_active"
+                            label="Active"
                             checked={formData.is_active}
                             onChange={(e) => updateField('is_active', e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
                         />
-                        <span className="text-sm text-slate-300">Active</span>
-                    </label>
-                </div>
+                    </Stack>
 
-                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                    <p className="text-xs text-slate-400">
+                    <Alert variant="info">
                         Note: Section builder and rating labels editor will be implemented in a future iteration.
                         Templates created now will have default sections.
-                    </p>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                        {template ? 'Update' : 'Create'}
-                    </button>
-                </div>
+                    </Alert>
+                </Stack>
             </form>
         </Modal>
     );

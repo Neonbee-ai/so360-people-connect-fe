@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarClock, Clock, Coffee, LogOut, Play, Send } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
-import { toast } from '@so360/design-system';
+import { Button, Card, Cluster, DashboardPageTemplate, DateInput, Grid, Select, Stack, Textarea, TimePicker, toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyOpenSession, MyAttendanceRecord, MyAllocation } from '../../services/meService';
 import { attendanceCorrectionsApi } from '../../services/attendanceService';
 import type { AttendanceCorrectionRequest, AttendanceStatus } from '../../services/attendanceService';
-import { MyCard, StatusPill, Skeleton, primaryBtn, secondaryBtn, dangerBtn, inputCls, labelCls } from './myUi';
+import { MyCard, StatusPill, Skeleton } from './myUi';
 import { usePeopleFormatters } from '../../utils/formatters';
 
 /**
@@ -79,159 +78,132 @@ const MyTimePage: React.FC = () => {
 
     const onBreak = !!session?.break_started_at;
 
-    if (loading) {
-        return (
-            <div className="p-6 space-y-5">
-                <PageHeader title="My Time" subtitle="Clock in, take breaks, clock out" />
-                <Skeleton rows={3} />
-            </div>
-        );
-    }
+    const heroCard = session ? (
+        <Card>
+            <Cluster justify="between">
+                <Stack gap="tight">
+                    <p className="text-nb-lg font-semibold text-fg">
+                        {onBreak ? 'On break' : 'Clocked in'}
+                        {session.entity_name ? (
+                            <span className="font-normal text-fg-muted"> · {session.entity_name}</span>
+                        ) : ''}
+                    </p>
+                    <p className="text-nb-sm text-fg-muted">
+                        Started {elapsed(session.started_at, now)} ago
+                    </p>
+                </Stack>
 
-    return (
-        <div className="p-6 space-y-5">
-            <PageHeader title="My Time" subtitle="Clock in, take breaks, clock out" />
+                <Cluster>
+                    {onBreak ? (
+                        <Button
+                            disabled={busy}
+                            onClick={() => act(() => meService.endBreak(), 'Break ended')}
+                        >
+                            <Play size={16} /> Resume work
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="secondary"
+                            disabled={busy}
+                            onClick={() => act(() => meService.startBreak(), 'Break started')}
+                        >
+                            <Coffee size={16} /> Take a break
+                        </Button>
+                    )}
 
-            {/* Hero clock card — the one thing this page is for. */}
-            <section className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-                {session ? (
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <span className="relative flex h-3 w-3">
-                                <span
-                                    className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
-                                        onBreak ? 'bg-amber-400' : 'bg-emerald-400'
-                                    }`}
-                                />
-                                <span
-                                    className={`relative inline-flex h-3 w-3 rounded-full ${
-                                        onBreak ? 'bg-amber-500' : 'bg-emerald-500'
-                                    }`}
-                                />
-                            </span>
-                            <div>
-                                <p className="text-lg font-semibold text-slate-50">
-                                    {onBreak ? 'On break' : 'Clocked in'}
-                                    {session.entity_name ? (
-                                        <span className="font-normal text-slate-400"> · {session.entity_name}</span>
-                                    ) : ''}
-                                </p>
-                                <p className="text-sm text-slate-400">
-                                    Started {elapsed(session.started_at, now)} ago
-                                </p>
-                            </div>
-                        </div>
+                    <Button
+                        variant="danger"
+                        disabled={busy}
+                        onClick={() => act(() => meService.clockOut(), 'Clocked out')}
+                    >
+                        <LogOut size={16} /> Clock out
+                    </Button>
+                </Cluster>
+            </Cluster>
+        </Card>
+    ) : (
+        <Card>
+            <Stack gap="default">
+                <p className="text-nb-lg font-semibold text-fg">You&apos;re not clocked in</p>
 
-                        <div className="flex flex-wrap gap-2">
-                            {onBreak ? (
-                                <button
-                                    disabled={busy}
-                                    onClick={() => act(() => meService.endBreak(), 'Break ended')}
-                                    className={primaryBtn}
-                                >
-                                    <Play size={16} /> Resume work
-                                </button>
-                            ) : (
-                                <button
-                                    disabled={busy}
-                                    onClick={() => act(() => meService.startBreak(), 'Break started')}
-                                    className={secondaryBtn}
-                                >
-                                    <Coffee size={16} /> Take a break
-                                </button>
-                            )}
-
-                            <button
-                                disabled={busy}
-                                onClick={() => act(() => meService.clockOut(), 'Clocked out')}
-                                className={dangerBtn}
-                            >
-                                <LogOut size={16} /> Clock out
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div>
-                        <div className="mb-4 flex items-center gap-3">
-                            <span className="inline-block h-3 w-3 rounded-full bg-slate-600" />
-                            <p className="text-lg font-semibold text-slate-50">
-                                You&apos;re not clocked in
-                            </p>
-                        </div>
-
-                        {allocations.length === 0 ? (
-                            // A job session must book time against a work unit, so with no
-                            // assignment there is genuinely nothing to clock in to. Say that
-                            // plainly rather than offering a button that cannot work.
-                            <p className="text-sm text-slate-500">
-                                You have no active work assignments. Ask your supervisor to
-                                assign one, then clock in here.
-                            </p>
-                        ) : (
-                            <div className="flex flex-wrap items-end gap-3">
-                                <div className="min-w-[220px] flex-1">
-                                    <label className={labelCls}>What are you working on?</label>
-                                    <select
-                                        value={picked}
-                                        onChange={e => setPicked(e.target.value)}
-                                        className={inputCls}
-                                    >
-                                        <option value="">Select a job…</option>
-                                        {allocations.map(a => (
-                                            <option key={a.id} value={a.id}>
-                                                {a.entity_name || `${a.entity_type} ${a.entity_id.slice(0, 8)}`}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <button
-                                    disabled={busy || !picked}
-                                    onClick={() => {
-                                        const a = allocations.find(x => x.id === picked);
-                                        if (!a) return;
-                                        void act(
-                                            () => meService.clockIn({
-                                                entity_type: a.entity_type,
-                                                entity_id: a.entity_id,
-                                                entity_name: a.entity_name ?? undefined,
-                                            }),
-                                            'Clocked in',
-                                        );
-                                    }}
-                                    className={primaryBtn}
-                                >
-                                    <Play size={16} /> Clock in
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </section>
-
-            <CorrectionRequestsCard
-                corrections={corrections}
-                onFiled={load}
-            />
-
-            <MyCard title="My attendance" icon={<Clock size={14} />} flush>
-                {history.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-slate-500">
-                        No attendance recorded yet.
+                {allocations.length === 0 ? (
+                    // A job session must book time against a work unit, so with no
+                    // assignment there is genuinely nothing to clock in to. Say that
+                    // plainly rather than offering a button that cannot work.
+                    <p className="text-nb-sm text-fg-subtle">
+                        You have no active work assignments. Ask your supervisor to
+                        assign one, then clock in here.
                     </p>
                 ) : (
-                    <ul className="divide-y divide-slate-800">
-                        {history.slice(0, 30).map(r => (
-                            <li key={r.id} className="flex items-center justify-between px-4 py-2.5">
-                                <span className="text-sm text-slate-300">
-                                    {r.attendance_date}
-                                </span>
-                                <StatusPill status={r.status} />
-                            </li>
-                        ))}
-                    </ul>
+                    <Cluster align="end">
+                        <Select
+                            name="clock-in-allocation"
+                            label="What are you working on?"
+                            value={picked}
+                            onChange={e => setPicked(e.target.value)}
+                            options={[
+                                { value: '', label: 'Select a job…' },
+                                ...allocations.map(a => ({
+                                    value: a.id,
+                                    label: `${a.entity_name || `${a.entity_type} ${a.entity_id.slice(0, 8)}`}`,
+                                })),
+                            ]}
+                        />
+                        <Button
+                            disabled={busy || !picked}
+                            onClick={() => {
+                                const a = allocations.find(x => x.id === picked);
+                                if (!a) return;
+                                void act(
+                                    () => meService.clockIn({
+                                        entity_type: a.entity_type,
+                                        entity_id: a.entity_id,
+                                        entity_name: a.entity_name ?? undefined,
+                                    }),
+                                    'Clocked in',
+                                );
+                            }}
+                        >
+                            <Play size={16} /> Clock in
+                        </Button>
+                    </Cluster>
                 )}
-            </MyCard>
-        </div>
+            </Stack>
+        </Card>
+    );
+
+    return (
+        <DashboardPageTemplate trail={[]}
+            title="My Time"
+            description="Clock in, take breaks, clock out"
+            primary={
+                loading ? (
+                    <Skeleton rows={3} />
+                ) : (
+                    <Stack gap="region">
+                        {/* Hero clock card — the one thing this page is for. */}
+                        {heroCard}
+
+                        <CorrectionRequestsCard corrections={corrections} onFiled={load} />
+
+                        <MyCard title="My attendance" icon={<Clock size={14} />}>
+                            {history.length === 0 ? (
+                                <p className="text-nb-sm text-fg-subtle">No attendance recorded yet.</p>
+                            ) : (
+                                <Stack gap="tight">
+                                    {history.slice(0, 30).map(r => (
+                                        <Cluster key={r.id} justify="between">
+                                            <span className="text-nb-sm text-fg">{r.attendance_date}</span>
+                                            <StatusPill status={r.status} />
+                                        </Cluster>
+                                    ))}
+                                </Stack>
+                            )}
+                        </MyCard>
+                    </Stack>
+                )
+            }
+        />
     );
 };
 
@@ -286,109 +258,86 @@ const CorrectionRequestsCard: React.FC<{
             title="Attendance corrections"
             icon={<CalendarClock size={14} />}
             actions={
-                <button
-                    type="button"
-                    onClick={() => setOpen(v => !v)}
-                    className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors"
-                >
+                <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(v => !v)}>
                     {open ? 'Close' : 'Request correction'}
-                </button>
+                </Button>
             }
-            flush
         >
-            {open && (
-                <form onSubmit={submit} className="space-y-4 border-b border-slate-800 p-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div>
-                            <label htmlFor="correction-date" className={labelCls}>Date *</label>
-                            <input
-                                id="correction-date"
-                                type="date"
-                                max={formatters.businessToday()}
-                                value={date}
-                                onChange={e => setDate(e.target.value)}
-                                className={inputCls}
+            <Stack gap="default">
+                {open && (
+                    <form onSubmit={submit}>
+                        <Stack gap="default">
+                            <Grid columns={2}>
+                                <DateInput
+                                    name="correction-date"
+                                    label="Date"
+                                    max={formatters.businessToday()}
+                                    value={date}
+                                    onChange={iso => setDate(iso)}
+                                    required
+                                />
+                                <Select
+                                    name="correction-status"
+                                    label="Correct status"
+                                    value={status}
+                                    onChange={e => setStatus(e.target.value as AttendanceStatus)}
+                                    options={CORRECTION_STATUSES.map(s => ({ value: s, label: s.replace(/_/g, ' ') }))}
+                                />
+                                <TimePicker
+                                    name="correction-check-in"
+                                    label="Check in"
+                                    value={checkIn}
+                                    onChange={setCheckIn}
+                                />
+                                <TimePicker
+                                    name="correction-check-out"
+                                    label="Check out"
+                                    value={checkOut}
+                                    onChange={setCheckOut}
+                                />
+                            </Grid>
+                            <Textarea
+                                name="correction-reason"
+                                label="Reason"
                                 required
+                                rows={2}
+                                value={reason}
+                                onChange={e => setReason(e.target.value)}
+                                placeholder="e.g. I was on site but forgot to punch in"
                             />
-                        </div>
-                        <div>
-                            <label htmlFor="correction-status" className={labelCls}>Correct status</label>
-                            <select
-                                id="correction-status"
-                                value={status}
-                                onChange={e => setStatus(e.target.value as AttendanceStatus)}
-                                className={inputCls}
-                            >
-                                {CORRECTION_STATUSES.map(s => (
-                                    <option key={s} value={s}>
-                                        {s.replace(/_/g, ' ')}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="correction-check-in" className={labelCls}>Check in</label>
-                            <input
-                                id="correction-check-in"
-                                type="time"
-                                value={checkIn}
-                                onChange={e => setCheckIn(e.target.value)}
-                                className={inputCls}
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="correction-check-out" className={labelCls}>Check out</label>
-                            <input
-                                id="correction-check-out"
-                                type="time"
-                                value={checkOut}
-                                onChange={e => setCheckOut(e.target.value)}
-                                className={inputCls}
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label htmlFor="correction-reason" className={labelCls}>Reason *</label>
-                        <textarea
-                            id="correction-reason"
-                            rows={2}
-                            value={reason}
-                            onChange={e => setReason(e.target.value)}
-                            placeholder="e.g. I was on site but forgot to punch in"
-                            className={inputCls}
-                        />
-                    </div>
-                    <div className="flex justify-end">
-                        <button type="submit" disabled={saving || !reason.trim()} className={primaryBtn}>
-                            <Send size={16} /> Submit request
-                        </button>
-                    </div>
-                </form>
-            )}
+                            <Cluster justify="end">
+                                <Button type="submit" disabled={saving || !reason.trim()}>
+                                    <Send size={16} /> Submit request
+                                </Button>
+                            </Cluster>
+                        </Stack>
+                    </form>
+                )}
 
-            {corrections.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-500">
-                    No correction requests yet. Spotted a wrong or missing day? Request a correction.
-                </p>
-            ) : (
-                <ul className="divide-y divide-slate-800">
-                    {corrections.slice(0, 30).map(c => (
-                        <li key={c.id} className="px-4 py-2.5">
-                            <div className="flex items-center justify-between gap-3">
-                                <span className="text-sm text-slate-300">{c.attendance_date}</span>
-                                <span className="text-xs text-slate-500">
-                                    {[c.requested_check_in, c.requested_check_out].filter(Boolean).join(' – ') || c.requested_status || ''}
-                                </span>
-                                <StatusPill status={c.status} />
-                            </div>
-                            <p className="mt-0.5 text-xs text-slate-500">{c.reason}</p>
-                            {c.status === 'rejected' && c.review_note && (
-                                <p className="mt-0.5 text-xs text-rose-400">Rejected: {c.review_note}</p>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            )}
+                {corrections.length === 0 ? (
+                    <p className="text-nb-sm text-fg-subtle">
+                        No correction requests yet. Spotted a wrong or missing day? Request a correction.
+                    </p>
+                ) : (
+                    <Stack gap="default">
+                        {corrections.slice(0, 30).map(c => (
+                            <Stack key={c.id} gap="tight">
+                                <Cluster justify="between">
+                                    <span className="text-nb-sm text-fg">{c.attendance_date}</span>
+                                    <span className="text-nb-sm text-fg-subtle">
+                                        {[c.requested_check_in, c.requested_check_out].filter(Boolean).join(' – ') || c.requested_status || ''}
+                                    </span>
+                                    <StatusPill status={c.status} />
+                                </Cluster>
+                                <p className="text-nb-sm text-fg-subtle">{c.reason}</p>
+                                {c.status === 'rejected' && c.review_note && (
+                                    <p className="text-nb-sm text-danger">Rejected: {c.review_note}</p>
+                                )}
+                            </Stack>
+                        ))}
+                    </Stack>
+                )}
+            </Stack>
         </MyCard>
     );
 };

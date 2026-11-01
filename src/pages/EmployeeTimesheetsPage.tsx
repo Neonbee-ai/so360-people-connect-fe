@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, CheckCircle, Send, DollarSign, ExternalLink, Info } from 'lucide-react';
+import { Clock, CheckCircle, Send, DollarSign, ExternalLink } from 'lucide-react';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
-import PageHeader from '../components/PageHeader';
-import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import { toast } from '@so360/design-system';
+import { toast, Button, Banner, KpiCard, ListPageTemplate, DataTable, Stack, Cluster } from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';
 import type { TimesheetEntry, TimesheetUtilizationPerson } from '../services/timesheetApi';
@@ -124,165 +123,101 @@ const EmployeeTimesheetsPage: React.FC = () => {
 
     const formatCurrency = (amount: number) => formatters.formatCurrency(amount);
 
+    const columns: DataTableColumn<TimesheetEntry>[] = [
+        { key: 'entry_date', header: 'Date', render: (entry) => <span className="text-nb-sm text-fg">{entry.entry_date}</span> },
+        { key: 'description', header: 'Description', render: (entry) => <span className="text-nb-sm text-fg-muted truncate">{entry.description || '-'}</span> },
+        {
+            key: 'entity',
+            header: 'Entity / Project',
+            render: (entry) => (
+                <div className="min-w-0">
+                    <div className="text-nb-sm text-fg truncate">{entry.entity_name || '-'}</div>
+                    {entry.entity_type && <div className="text-nb-xs text-fg-subtle truncate">{entry.entity_type}</div>}
+                </div>
+            ),
+        },
+        { key: 'hours', header: 'Hours', align: 'right', render: (entry) => <span className="text-nb-sm font-medium text-fg">{entry.hours}h</span> },
+        {
+            key: 'is_billable',
+            header: 'Billable',
+            align: 'center',
+            render: (entry) => entry.is_billable
+                ? <span className="text-nb-xs text-success">Billable</span>
+                : <span className="text-nb-xs text-fg-subtle">-</span>,
+        },
+        { key: 'status', header: 'Status', align: 'center', render: (entry) => <StatusBadge status={entry.status} /> },
+        { key: 'cost', header: 'Cost', align: 'right', render: (entry) => <span className="text-nb-sm text-fg">{formatCurrency(entry.calculated_cost || 0)}</span> },
+    ];
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
-                title="Employee Timesheets"
-                subtitle="Read-only view of time logged in the Timesheets module"
-                actions={
-                    <button
-                        onClick={() => navigate('/timesheet/my-timesheet')}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                        <ExternalLink size={14} />
-                        Log time in Timesheets
-                    </button>
-                }
-            />
-
-            {/* Read-only notice */}
-            <div className="flex items-start gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-400">
-                <Info size={14} className="text-teal-400 mt-0.5 flex-shrink-0" />
-                <span>
-                    Time entries are created, submitted, and approved in the Timesheets module.
-                    This page is a consolidated read-only view for people managers.
-                </span>
-            </div>
-
-            {/* Summary (selected range) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label="Total Hours" value={`${totals.total.toFixed(1)}h`} icon={Clock} color="teal" />
-                <StatCard label="Approved Hours" value={`${totals.approved.toFixed(1)}h`} icon={CheckCircle} color="emerald" />
-                <StatCard label="Submitted Hours" value={`${totals.submitted.toFixed(1)}h`} icon={Send} color="blue" />
-                <StatCard label="Billable Hours" value={`${totals.billable.toFixed(1)}h`} icon={DollarSign} color="purple" />
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3">
-                <select
-                    aria-label="Person filter"
-                    value={personFilter}
-                    onChange={(e) => setPersonFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All People</option>
-                    {people.map(p => (
-                        <option key={p.id} value={p.id}>{p.full_name}</option>
-                    ))}
-                </select>
-                <select
-                    aria-label="Status filter"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="draft">Draft</option>
-                    <option value="submitted">Submitted</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                </select>
-                <input
-                    type="date"
-                    aria-label="From date"
-                    value={fromDate}
-                    max={toDate || undefined}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${
-                        dateRangeError ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'
-                    }`}
-                />
-                <span className="text-xs text-slate-500">to</span>
-                <input
-                    type="date"
-                    aria-label="To date"
-                    value={toDate}
-                    min={fromDate || undefined}
-                    onChange={(e) => setToDate(e.target.value)}
-                    className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${
-                        dateRangeError ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'
-                    }`}
-                />
-                {totals.cost > 0 && (
-                    <div className="ml-auto flex items-center gap-1 text-xs text-slate-400">
-                        <DollarSign size={12} />
-                        Approved cost: {formatCurrency(totals.cost)}
-                    </div>
-                )}
-            </div>
-
-            {dateRangeError && (
-                <p role="alert" className="text-xs text-rose-400">{dateRangeError}</p>
-            )}
-
-            {/* Entries Table */}
-            {dateRangeError ? (
+        <ListPageTemplate trail={[]}
+            title="Employee Timesheets"
+            description="Read-only view of time logged in the Timesheets module"
+            primaryAction={
+                <Button onClick={() => navigate('/timesheet/my-timesheet')}>
+                    <ExternalLink size={14} />
+                    Log time in Timesheets
+                </Button>
+            }
+            loading={loading && !dateRangeError}
+            isEmpty={!!dateRangeError || entries.length === 0}
+            empty={dateRangeError ? (
                 <EmptyState
                     icon={Clock}
                     title="Invalid date range"
                     description="End Date cannot be earlier than Start Date. Adjust the range to see timesheet entries."
                 />
-            ) : loading ? (
-                <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
-                    ))}
-                </div>
-            ) : entries.length === 0 ? (
+            ) : (
                 <EmptyState
                     icon={Clock}
                     title="No timesheet entries"
                     description="No time has been logged in the Timesheets module for the selected filters."
                 />
-            ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    {/* Table Header */}
-                    <div className="grid grid-cols-[100px_1fr_1fr_80px_80px_110px_100px] gap-4 px-5 py-3 bg-slate-800/50 text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        <div>Date</div>
-                        <div>Description</div>
-                        <div>Entity / Project</div>
-                        <div className="text-right">Hours</div>
-                        <div className="text-center">Billable</div>
-                        <div className="text-center">Status</div>
-                        <div className="text-right">Cost</div>
-                    </div>
-
-                    {/* Table Body */}
-                    <div className="divide-y divide-slate-800">
-                        {entries.map((entry) => (
-                            <div
-                                key={entry.id}
-                                className="grid grid-cols-[100px_1fr_1fr_80px_80px_110px_100px] gap-4 px-5 py-3 items-center hover:bg-slate-800/30 transition-colors"
-                            >
-                                <div className="text-sm text-slate-300">{entry.entry_date}</div>
-                                <div className="text-sm text-slate-400 truncate">{entry.description || '-'}</div>
-                                <div className="min-w-0">
-                                    <div className="text-sm text-slate-50 truncate">{entry.entity_name || '-'}</div>
-                                    {entry.entity_type && (
-                                        <div className="text-xs text-slate-600 truncate">{entry.entity_type}</div>
-                                    )}
-                                </div>
-                                <div className="text-right text-sm font-medium text-slate-50">{entry.hours}h</div>
-                                <div className="text-center text-xs">
-                                    {entry.is_billable ? (
-                                        <span className="text-emerald-400">Billable</span>
-                                    ) : (
-                                        <span className="text-slate-500">-</span>
-                                    )}
-                                </div>
-                                <div className="text-center">
-                                    <StatusBadge status={entry.status} />
-                                </div>
-                                <div className="text-right text-sm text-slate-300">
-                                    {formatCurrency(entry.calculated_cost || 0)}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
             )}
-
-        </div>
+            kpis={(
+                <Stack gap="default">
+                    <Banner variant="info">
+                        Time entries are created, submitted, and approved in the Timesheets module.
+                        This page is a consolidated read-only view for people managers.
+                    </Banner>
+                    {dateRangeError && <Banner variant="danger">{dateRangeError}</Banner>}
+                    {totals.cost > 0 && (
+                        <span className="flex items-center gap-nb-1 text-nb-xs text-fg-muted">
+                            <DollarSign size={12} />
+                            Approved cost: {formatCurrency(totals.cost)}
+                        </span>
+                    )}
+                    <div className="grid grid-cols-1 wc-medium:grid-cols-2 wc-expanded:grid-cols-4 gap-nb-4">
+                        <KpiCard label="Total Hours" value={`${totals.total.toFixed(1)}h`} icon={Clock} />
+                        <KpiCard label="Approved Hours" value={`${totals.approved.toFixed(1)}h`} icon={CheckCircle} />
+                        <KpiCard label="Submitted Hours" value={`${totals.submitted.toFixed(1)}h`} icon={Send} />
+                        <KpiCard label="Billable Hours" value={`${totals.billable.toFixed(1)}h`} icon={DollarSign} />
+                    </div>
+                </Stack>
+            )}
+            filterConfig={{
+                fields: [
+                    { key: 'person', label: 'Person', type: 'select', options: people.map((p) => ({ value: p.id, label: p.full_name })) },
+                    { key: 'status', label: 'Status', type: 'select', options: [{ value: 'draft', label: 'Draft' }, { value: 'submitted', label: 'Submitted' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }] },
+                    { key: 'dates', label: 'Dates', type: 'daterange' },
+                ],
+                values: {
+                    person: personFilter || undefined,
+                    status: statusFilter || undefined,
+                    dates: fromDate || toDate ? { start: fromDate, end: toDate } : undefined,
+                },
+                onChange: (v) => {
+                    setPersonFilter((v.person as string) || '');
+                    setStatusFilter((v.status as string) || '');
+                    const d = v.dates as { start?: string; end?: string } | undefined;
+                    setFromDate(d?.start || '');
+                    setToDate(d?.end || '');
+                },
+                onClear: () => { setPersonFilter(''); setStatusFilter(''); setFromDate(''); setToDate(''); },
+            }}
+        >
+            <DataTable name="employee-timesheets" columns={columns} rows={entries} rowKey={(entry) => entry.id} />
+        </ListPageTemplate>
     );
 };
 

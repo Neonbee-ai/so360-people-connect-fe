@@ -1,16 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  ClipboardCheck,
-  Plus,
-  Edit2,
-  Trash2,
-  ArrowUp,
-  ArrowDown,
-  Sparkles,
-  AlertTriangle,
-  Check,
-} from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { ClipboardCheck, Plus, Edit2, Trash2, ArrowUp, ArrowDown, Sparkles } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
 import {
   toast,
@@ -19,6 +8,20 @@ import {
   DataTable,
   DeleteConfirmDialog,
   type DataTableColumn,
+  ListPageTemplate,
+  Button,
+  IconButton,
+  Badge,
+  Alert,
+  Card,
+  Stack,
+  Cluster,
+  Grid,
+  Select,
+  TextField,
+  NumberInput,
+  Checkbox,
+  Skeleton,
 } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import {
@@ -124,10 +127,10 @@ const OnboardingTemplatesPage: React.FC = () => {
       key: 'name',
       header: 'Name',
       render: tpl => (
-        <div>
-          <span className="font-medium text-slate-50">{tpl.name}</span>
-          {tpl.description && <p className="text-xs text-slate-500">{tpl.description}</p>}
-        </div>
+        <Stack gap="tight">
+          <span className="text-nb-sm font-medium text-fg">{tpl.name}</span>
+          {tpl.description && <p className="text-nb-xs text-fg-subtle">{tpl.description}</p>}
+        </Stack>
       ),
     },
     {
@@ -135,18 +138,16 @@ const OnboardingTemplatesPage: React.FC = () => {
       header: 'Default',
       render: tpl =>
         tpl.is_default ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-teal-500/10 text-teal-400 border border-teal-500/20">
-            Default
-          </span>
+          <Badge tone="primary">Default</Badge>
         ) : (
-          <span className="text-xs text-slate-600">—</span>
+          <span className="text-nb-xs text-fg-subtle">—</span>
         ),
     },
     {
       key: 'is_active',
       header: 'Status',
       render: tpl => (
-        <span className={`text-xs ${tpl.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
+        <span className={`text-nb-xs ${tpl.is_active ? 'text-primary' : 'text-fg-subtle'}`}>
           {tpl.is_active ? 'Active' : 'Inactive'}
         </span>
       ),
@@ -156,69 +157,46 @@ const OnboardingTemplatesPage: React.FC = () => {
           key: 'actions',
           header: 'Actions',
           render: (tpl: OnboardingTemplate) => (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setEditing(tpl)}
-                className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
-                title="Edit"
-              >
-                <Edit2 size={14} />
-              </button>
-              <button
-                onClick={() => setConfirmDelete(tpl)}
-                className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
-                title="Delete"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
+            <Cluster gap="tight">
+              <IconButton name={`onboarding-edit-${tpl.id}`} variant="ghost" size="sm" label="Edit" icon={<Edit2 size={14} />} onClick={() => setEditing(tpl)} />
+              <IconButton name={`onboarding-delete-${tpl.id}`} variant="ghost" size="sm" label="Delete" icon={<Trash2 size={14} />} onClick={() => setConfirmDelete(tpl)} />
+            </Cluster>
           ),
         }]
       : []),
   ];
 
   return (
-    <div className="p-6 space-y-5">
-      <PageHeader
-        title="Onboarding Templates"
-        subtitle="Checklists that guide every new hire's first weeks"
-        actions={
-          canManage && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowCatalog(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors"
-              >
-                <Sparkles size={16} />
-                Standard Templates
-              </button>
-              <button
-                onClick={() => setShowDrawer(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                <Plus size={16} />
-                New Template
-              </button>
-            </div>
-          )
-        }
-      />
-
-      {missingDefault && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-4 py-3">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-400" />
-          <div className="text-sm text-amber-200">
-            <p className="font-medium">No default onboarding template</p>
-            <p className="mt-0.5 text-amber-200/75">
-              New hires won't get a checklist automatically, and{' '}
-              <span className="font-medium">Start onboarding</span> will ask for a template every
-              time. Edit a template below and tick{' '}
-              <span className="font-medium">Set as the organization default</span> to fix this.
-            </p>
-          </div>
-        </div>
-      )}
-
+    <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      title="Onboarding Templates"
+      description="Checklists that guide every new hire's first weeks"
+      headerSecondaryActions={
+        canManage ? [
+          <Button key="standard-templates" type="button" variant="secondary" onClick={() => setShowCatalog(true)}>
+            <Sparkles size={16} />
+            Standard Templates
+          </Button>
+        ] : undefined
+      }
+      primaryAction={
+        canManage ? (
+          <Button type="button" onClick={() => setShowDrawer(true)}>
+            <Plus size={16} />
+            New Template
+          </Button>
+        ) : undefined
+      }
+      toolbar={
+        missingDefault ? (
+          <Alert variant="warning" title="No default onboarding template">
+            New hires won't get a checklist automatically, and{' '}
+            <span className="font-medium">Start onboarding</span> will ask for a template every
+            time. Edit a template below and tick{' '}
+            <span className="font-medium">Set as the organization default</span> to fix this.
+          </Alert>
+        ) : undefined
+      }
+    >
       <DataTable
         columns={columns}
         rows={templates}
@@ -257,7 +235,7 @@ const OnboardingTemplatesPage: React.FC = () => {
         confirmText="Delete Template"
         isLoading={deleteBusy}
       />
-    </div>
+    </ListPageTemplate>
   );
 };
 
@@ -339,99 +317,70 @@ const StandardCatalogDrawer: React.FC<StandardCatalogDrawerProps> = ({ isOpen, o
       onClose={onClose}
       title="Standard Onboarding Templates"
       footer={
-        <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-slate-100 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSeed}
-            disabled={saving || loading || selected.length === 0}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-          >
+        <Cluster gap="tight" justify="end">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="button" onClick={handleSeed} disabled={saving || loading || selected.length === 0}>
             {saving
               ? 'Adding…'
               : `Add ${selected.length || ''} Template${selected.length === 1 ? '' : 's'}`.trim()}
-          </button>
-        </div>
+          </Button>
+        </Cluster>
       }
     >
-      <div className="space-y-4">
-        <p className="text-sm text-slate-400">
+      <Stack gap="default">
+        <p className="text-nb-sm text-fg-muted">
           Ready-made checklists you can use as-is or edit. They are copied into your organization,
           so any changes you make stay yours.
         </p>
 
         {loading ? (
-          <div className="space-y-2">
+          <Stack gap="tight">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-20 rounded-lg bg-slate-800/50 animate-pulse" />
+              <Skeleton key={i} />
             ))}
-          </div>
+          </Stack>
         ) : failed ? (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-6 text-center">
-            <p className="text-sm text-slate-400">Unable to load the standard templates.</p>
-            <button
-              onClick={() => void loadCatalog()}
-              className="mt-3 px-3 py-1.5 text-sm font-medium text-teal-400 hover:text-teal-300 transition-colors"
-            >
-              Try again
-            </button>
-          </div>
+          <Card>
+            <Stack gap="default" align="center">
+              <p className="text-nb-sm text-fg-muted">Unable to load the standard templates.</p>
+              <Button type="button" variant="ghost" size="sm" onClick={() => void loadCatalog()}>
+                Try again
+              </Button>
+            </Stack>
+          </Card>
         ) : available === 0 ? (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-6 text-center text-sm text-slate-400">
-            You've already added every standard template. Use{' '}
-            <span className="font-medium text-slate-300">New Template</span> to build your own.
-          </div>
+          <Card>
+            <p className="text-nb-sm text-fg-muted">
+              You've already added every standard template. Use{' '}
+              <span className="font-medium text-fg">New Template</span> to build your own.
+            </p>
+          </Card>
         ) : (
-          <div className="space-y-2">
+          <Stack gap="tight">
             {catalog.map(tpl => {
               const isSelected = selected.includes(tpl.key);
               return (
-                <button
-                  key={tpl.key}
-                  type="button"
-                  disabled={tpl.already_seeded}
-                  onClick={() => toggle(tpl.key)}
-                  className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-                    tpl.already_seeded
-                      ? 'cursor-not-allowed border-slate-800 bg-slate-900/50 opacity-60'
-                      : isSelected
-                        ? 'border-teal-500/40 bg-teal-500/10'
-                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-                  }`}
-                >
-                  <span
-                    className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                      tpl.already_seeded || isSelected
-                        ? 'border-teal-500 bg-teal-500'
-                        : 'border-slate-600'
-                    }`}
-                  >
-                    {(tpl.already_seeded || isSelected) && (
-                      <Check size={12} className="text-white" strokeWidth={3} />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-50">{tpl.name}</span>
-                      <span className="text-xs text-slate-500">{tpl.step_count} steps</span>
-                      {tpl.already_seeded && (
-                        <span className="rounded-md border border-slate-700 px-1.5 py-0.5 text-xs text-slate-400">
-                          Already added
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-slate-500">{tpl.description}</span>
-                  </span>
-                </button>
+                <Card key={tpl.key}>
+                  <Stack gap="tight">
+                    <Checkbox
+                      name={`standard-template-${tpl.key}`}
+                      label={tpl.name}
+                      checked={tpl.already_seeded || isSelected}
+                      disabled={tpl.already_seeded}
+                      onChange={() => toggle(tpl.key)}
+                    />
+                    <Cluster gap="tight">
+                      <span className="text-nb-xs text-fg-subtle">{tpl.step_count} steps</span>
+                      {tpl.already_seeded && <Badge tone="neutral">Already added</Badge>}
+                    </Cluster>
+                    <span className="text-nb-xs text-fg-subtle">{tpl.description}</span>
+                  </Stack>
+                </Card>
               );
             })}
-          </div>
+          </Stack>
         )}
-      </div>
+      </Stack>
     </Drawer>
   );
 };
@@ -567,11 +516,6 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
     }
   };
 
-  const inputCls =
-    'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500';
-  const smallInputCls =
-    'w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded text-xs text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500';
-
   return (
     <Drawer
       isOpen={isOpen}
@@ -579,217 +523,133 @@ const TemplateDrawer: React.FC<TemplateDrawerProps> = ({ isOpen, onClose, onSave
       title={template ? 'Edit Onboarding Template' : 'New Onboarding Template'}
       size="lg"
       footer={
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="onboarding-template-form"
-            disabled={saving || loadingItems}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-          >
+        <Cluster gap="default" justify="end">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="submit" form="onboarding-template-form" disabled={saving || loadingItems}>
             {saving ? 'Saving…' : template ? 'Save Changes' : 'Create Template'}
-          </button>
-        </div>
+          </Button>
+        </Cluster>
       }
     >
-      <form id="onboarding-template-form" onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">Name <span className="text-red-400">*</span></label>
-          <input
+      <form id="onboarding-template-form" onSubmit={handleSubmit}>
+        <Stack gap="default">
+          <TextField
+            name="onboarding-template-name"
+            label="Name"
             required
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="e.g. Engineering New Hire"
-            className={inputCls}
           />
-        </div>
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">Description</label>
-          <input
+          <TextField
+            name="onboarding-template-description"
+            label="Description"
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder="What this checklist covers"
-            className={inputCls}
           />
-        </div>
-        <div className="flex items-center gap-6">
-          <label className="flex items-center gap-2 text-sm text-slate-300">
-            <input
-              type="checkbox"
+          <Cluster gap="region">
+            <Checkbox
+              name="onboarding-template-default"
+              label="Default template"
               checked={isDefault}
               onChange={e => setIsDefault(e.target.checked)}
-              className="rounded border-slate-600"
             />
-            Default template
-          </label>
-          {template && (
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                type="checkbox"
+            {template && (
+              <Checkbox
+                name="onboarding-template-active"
+                label="Active"
                 checked={isActive}
                 onChange={e => setIsActive(e.target.checked)}
-                className="rounded border-slate-600"
               />
-              Active
-            </label>
-          )}
-        </div>
-        {isDefault && (
-          <p className="text-xs text-slate-500">
-            The default template starts automatically for every new hire. Only one template can be default — saving replaces any existing default.
-          </p>
-        )}
-
-        {/* Checklist items */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Checklist Items</label>
-            <button
-              type="button"
-              onClick={() => setItems(prev => [...prev, newRow()])}
-              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-slate-50 hover:border-slate-600 transition-colors"
-            >
-              <Plus size={12} /> Add Item
-            </button>
-          </div>
-
-          {loadingItems ? (
-            <div className="space-y-2">
-              <div className="h-20 animate-pulse rounded-lg bg-slate-800/50" />
-              <div className="h-20 animate-pulse rounded-lg bg-slate-800/50" />
-            </div>
-          ) : items.length === 0 ? (
-            <p className="py-4 text-sm text-slate-500 text-center border border-dashed border-slate-800 rounded-lg">
-              No items yet — add the first step of this checklist.
+            )}
+          </Cluster>
+          {isDefault && (
+            <p className="text-nb-xs text-fg-subtle">
+              The default template starts automatically for every new hire. Only one template can be default — saving replaces any existing default.
             </p>
-          ) : (
-            <div className="space-y-2">
-              {items.map((row, index) => (
-                <div key={row.key} className="bg-slate-800/60 border border-slate-700 rounded-lg p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 shrink-0 text-xs text-slate-500 text-center">{index + 1}</span>
-                    <input
-                      value={row.title}
-                      onChange={e => setItem(row.key, { title: e.target.value })}
-                      placeholder="Step title, e.g. Sign employment contract"
-                      aria-label={`Item ${index + 1} title`}
-                      className={smallInputCls}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => moveItem(row.key, -1)}
-                      disabled={index === 0}
-                      className="p-1 rounded text-slate-500 hover:text-teal-400 hover:bg-slate-700 disabled:opacity-30 transition-colors"
-                      title="Move up"
-                    >
-                      <ArrowUp size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveItem(row.key, 1)}
-                      disabled={index === items.length - 1}
-                      className="p-1 rounded text-slate-500 hover:text-teal-400 hover:bg-slate-700 disabled:opacity-30 transition-colors"
-                      title="Move down"
-                    >
-                      <ArrowDown size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(row.key)}
-                      className="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors"
-                      title="Remove item"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pl-7">
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Type</label>
-                      <select
-                        value={row.item_type}
-                        onChange={e => setItem(row.key, { item_type: e.target.value as OnboardingItemType })}
-                        aria-label={`Item ${index + 1} type`}
-                        className={smallInputCls}
-                      >
-                        {ONBOARDING_ITEM_TYPES.map(t => (
-                          <option key={t} value={t}>{ITEM_TYPE_LABELS[t]}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Assignee</label>
-                      <select
-                        value={row.assignee_role}
-                        onChange={e => setItem(row.key, { assignee_role: e.target.value as OnboardingAssigneeRole })}
-                        aria-label={`Item ${index + 1} assignee`}
-                        className={smallInputCls}
-                      >
-                        {ONBOARDING_ASSIGNEE_ROLES.map(r => (
-                          <option key={r} value={r}>{ASSIGNEE_LABELS[r]}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Due (days from start)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={row.due_days_offset ?? ''}
-                        onChange={e =>
-                          setItem(row.key, {
-                            due_days_offset: e.target.value === '' ? undefined : parseInt(e.target.value, 10),
-                          })
-                        }
-                        placeholder="None"
-                        aria-label={`Item ${index + 1} due days`}
-                        className={smallInputCls}
-                      />
-                    </div>
-                    <div className="flex items-end pb-1.5">
-                      <label className="flex items-center gap-1.5 text-xs text-slate-300">
-                        <input
-                          type="checkbox"
+          )}
+
+          {/* Checklist items */}
+          <Stack gap="tight">
+            <Cluster gap="tight" justify="between">
+              <span className="text-nb-sm font-semibold text-fg">Checklist Items</span>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setItems(prev => [...prev, newRow()])}>
+                <Plus size={12} /> Add Item
+              </Button>
+            </Cluster>
+
+            {loadingItems ? (
+              <Stack gap="tight">
+                <Skeleton />
+                <Skeleton />
+              </Stack>
+            ) : items.length === 0 ? (
+              <p className="p-nb-4 text-nb-sm text-fg-subtle text-center">
+                No items yet — add the first step of this checklist.
+              </p>
+            ) : (
+              <Stack gap="tight">
+                {items.map((row, index) => (
+                  <Card key={row.key}>
+                    <Stack gap="tight">
+                      <Cluster gap="tight">
+                        <span className="text-nb-xs text-fg-subtle">{index + 1}</span>
+                        <TextField
+                          name={`onboarding-item-title-${row.key}`}
+                          value={row.title}
+                          onChange={e => setItem(row.key, { title: e.target.value })}
+                          placeholder="Step title, e.g. Sign employment contract"
+                          aria-label={`Item ${index + 1} title`}
+                        />
+                        <IconButton name={`onboarding-item-up-${row.key}`} variant="ghost" size="sm" label="Move up" icon={<ArrowUp size={13} />} onClick={() => moveItem(row.key, -1)} disabled={index === 0} />
+                        <IconButton name={`onboarding-item-down-${row.key}`} variant="ghost" size="sm" label="Move down" icon={<ArrowDown size={13} />} onClick={() => moveItem(row.key, 1)} disabled={index === items.length - 1} />
+                        <IconButton name={`onboarding-item-remove-${row.key}`} variant="ghost" size="sm" label="Remove item" icon={<Trash2 size={13} />} onClick={() => removeItem(row.key)} />
+                      </Cluster>
+                      <Grid columns={4} gap="sm">
+                        <Select name={`onboarding-item-type-${row.key}`} label="Type" value={row.item_type} onChange={e => setItem(row.key, { item_type: e.target.value as OnboardingItemType })} aria-label={`Item ${index + 1} type`} options={[...ONBOARDING_ITEM_TYPES.map((t) => ({ value: t, label: ITEM_TYPE_LABELS[t] }))]} />
+                        <Select name={`onboarding-item-assignee-${row.key}`} label="Assignee" value={row.assignee_role} onChange={e => setItem(row.key, { assignee_role: e.target.value as OnboardingAssigneeRole })} aria-label={`Item ${index + 1} assignee`} options={[...ONBOARDING_ASSIGNEE_ROLES.map((r) => ({ value: r, label: ASSIGNEE_LABELS[r] }))]} />
+                        <NumberInput
+                          name={`onboarding-item-due-${row.key}`}
+                          label="Due (days from start)"
+                          min={0}
+                          value={row.due_days_offset ?? null}
+                          onChange={v => setItem(row.key, { due_days_offset: v == null ? undefined : Math.trunc(v) })}
+                          placeholder="None"
+                          aria-label={`Item ${index + 1} due days`}
+                        />
+                        <Checkbox
+                          name={`onboarding-item-required-${row.key}`}
+                          label="Required"
                           checked={row.is_required ?? true}
                           onChange={e => setItem(row.key, { is_required: e.target.checked })}
-                          className="rounded border-slate-600"
                         />
-                        Required
-                      </label>
-                    </div>
-                  </div>
-                  {row.item_type === 'document_upload' && (
-                    <div className="pl-7">
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Document type collected</label>
-                      <input
-                        value={row.document_type ?? ''}
-                        onChange={e => setItem(row.key, { document_type: e.target.value })}
-                        placeholder="e.g. passport, degree_certificate"
-                        className={smallInputCls}
-                      />
-                    </div>
-                  )}
-                  {row.item_type === 'e_sign' && (
-                    <div className="pl-7">
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Sign document reference</label>
-                      <input
-                        value={row.sign_document_ref ?? ''}
-                        onChange={e => setItem(row.key, { sign_document_ref: e.target.value })}
-                        placeholder="Sign template/document reference"
-                        className={smallInputCls}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                      </Grid>
+                      {row.item_type === 'document_upload' && (
+                        <TextField
+                          name={`onboarding-item-doctype-${row.key}`}
+                          label="Document type collected"
+                          value={row.document_type ?? ''}
+                          onChange={e => setItem(row.key, { document_type: e.target.value })}
+                          placeholder="e.g. passport, degree_certificate"
+                        />
+                      )}
+                      {row.item_type === 'e_sign' && (
+                        <TextField
+                          name={`onboarding-item-signref-${row.key}`}
+                          label="Sign document reference"
+                          value={row.sign_document_ref ?? ''}
+                          onChange={e => setItem(row.key, { sign_document_ref: e.target.value })}
+                          placeholder="Sign template/document reference"
+                        />
+                      )}
+                    </Stack>
+                  </Card>
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </Stack>
       </form>
     </Drawer>
   );

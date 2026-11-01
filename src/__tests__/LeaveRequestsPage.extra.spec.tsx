@@ -125,8 +125,9 @@ describe('LeaveRequestsPage — extra scenarios', () => {
 
     it('When page loads / Then shows status badges', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('pending')).toBeInTheDocument());
-      expect(screen.getByText('approved')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText('Pending')).toBeInTheDocument());
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+      expect(screen.queryByText('pending')).toBeNull();
     });
 
     it('When page loads / Then Request Leave button is visible', async () => {

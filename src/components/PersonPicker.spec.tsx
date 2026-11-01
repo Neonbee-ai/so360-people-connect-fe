@@ -146,7 +146,7 @@ describe('Given a PersonPicker with nothing selected', () => {
             fireEvent.focus(input());
             await waitFor(() => expect(screen.getByText(/Alice Anderson/)).toBeInTheDocument());
 
-            fireEvent.mouseDown(document.body);
+            fireEvent.blur(input());
 
             await waitFor(() => expect(screen.queryByText(/Alice Anderson/)).not.toBeInTheDocument());
         });
@@ -154,12 +154,11 @@ describe('Given a PersonPicker with nothing selected', () => {
 });
 
 describe('Given a PersonPicker with a person already selected', () => {
-    it('When rendered / Then the name is shown with a Clear control and no search box', () => {
+    it('When rendered / Then the name is shown in the field with a clear control', () => {
         renderPicker({ value: 'p1' });
 
-        expect(screen.getByText('Alice Anderson')).toBeInTheDocument();
-        expect(screen.getByText('Clear')).toBeInTheDocument();
-        expect(screen.getByTestId('picker').querySelector('input')).toBeNull();
+        expect(input()).toHaveValue('Alice Anderson');
+        expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
     });
 
     it('When rendered / Then it offers no Edit action on the person record', () => {
@@ -168,9 +167,9 @@ describe('Given a PersonPicker with a person already selected', () => {
         expect(screen.queryByText('Edit')).not.toBeInTheDocument();
     });
 
-    it('When Clear is clicked / Then the selection is emptied without touching the record', () => {
+    it('When the clear control is clicked / Then the selection is emptied without touching the record', () => {
         renderPicker({ value: 'p1' });
-        fireEvent.click(screen.getByText('Clear'));
+        fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
 
         expect(onChange).toHaveBeenCalledWith('');
     });

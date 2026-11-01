@@ -1,34 +1,34 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useShellBridge } from '@so360/shell-context';
-import { FeatureRoute as FeatureRouteBase } from '@so360/design-system';
+import { Button, CombScope, FeatureRoute as FeatureRouteBase } from '@so360/design-system';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FeatureRoute = FeatureRouteBase as any;
 import { peopleService } from './services/peopleService';
+import { ResolvingNotice } from './components/ResolvingNotice';
 
 /** Shown when a submodule is `locked` — a higher plan unlocks it. */
 const UpgradeLocked = () => {
     const navigate = useNavigate();
     return (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center px-4">
-            <h2 className="text-lg font-bold text-slate-300">This feature is part of a higher plan</h2>
-            <p className="text-slate-500 text-sm max-w-md">Upgrade your plan to unlock it.</p>
-            <button
+        <div className="flex flex-col items-center justify-center min-h-96 gap-4 text-center px-4">
+            <h2 className="text-lg font-bold text-fg">This feature is part of a higher plan</h2>
+            <p className="text-fg-subtle text-sm max-w-md">Upgrade your plan to unlock it.</p>
+            <Button
                 type="button"
                 onClick={() => navigate('/org/billing')}
-                className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
             >
                 Upgrade plan
-            </button>
+            </Button>
         </div>
     );
 };
 
 /** Shown when a submodule is `disabled`/`hidden` — turned off, no upgrade path. */
 const FeatureUnavailable = () => (
-    <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-center px-4">
-        <h2 className="text-lg font-bold text-slate-300">Feature Not Available</h2>
-        <p className="text-slate-500 text-sm max-w-md">This feature is not available for your organization. Contact your administrator.</p>
+    <div className="flex flex-col items-center justify-center min-h-96 gap-3 text-center px-4">
+        <h2 className="text-lg font-bold text-fg">Feature Not Available</h2>
+        <p className="text-fg-subtle text-sm max-w-md">This feature is not available for your organization. Contact your administrator.</p>
     </div>
 );
 
@@ -64,7 +64,7 @@ const FeatureGate = ({ flagKey, children }: { flagKey: string; children: React.R
 // wildcard-aware via the shell bridge, matching the backend resolver exactly.
 const PermissionGuard = ({ permission, children }: { permission: string | string[]; children: React.ReactNode }) => {
     const shell = useShellBridge();
-    if (!shell || !shell.permissionsLoaded) return null;
+    if (!shell || !shell.permissionsLoaded) return <ResolvingNotice />;
     const codes = Array.isArray(permission) ? permission : [permission];
     const allowed = shell.hasAnyPermission
         ? shell.hasAnyPermission(...codes)
@@ -72,8 +72,8 @@ const PermissionGuard = ({ permission, children }: { permission: string | string
     if (allowed) return <>{children}</>;
     return (
         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">You don&apos;t have access to this page</h2>
-            <p className="mt-2 max-w-md text-sm text-slate-600 dark:text-slate-400">
+            <h2 className="text-lg font-semibold text-fg-subtle dark:text-fg">You don&apos;t have access to this page</h2>
+            <p className="mt-2 max-w-md text-sm text-fg-subtle dark:text-fg-muted">
                 Your role doesn&apos;t include permission for this page. Ask an administrator if you need it.
             </p>
         </div>
@@ -125,12 +125,7 @@ const PeopleShellInitializer =({ children }: { children: React.ReactNode }) => {
     }, [shell?.currentTenant?.id, shell?.currentOrg?.id, shell?.accessToken, shell?.user]);
 
     if (!isSynced) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400 gap-4">
-                <div className="w-8 h-8 border-2 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
-                <p className="text-sm font-medium animate-pulse">Connecting to shell context...</p>
-            </div>
-        );
+        return <ResolvingNotice label="Connecting to shell context..." />;
     }
 
     return <>{children}</>;
@@ -203,13 +198,15 @@ const MyTaxDeclarationPage = lazy(() => import('./pages/payroll/MyTaxDeclaration
 const PayrollReportsPage = lazy(() => import('./pages/payroll/PayrollReportsPage'));
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
+    const navigate = useNavigate();
     return (
-        <div className="flex h-full bg-slate-950 text-slate-100">
+        <CombScope module="people" root={{ label: 'People', to: '/people' }} navigate={(to) => navigate(to)}>
+        <div className="flex h-full bg-bg text-fg">
             <main className="flex-1 overflow-auto">
                 <Suspense
                     fallback={
-                        <div className="flex items-center justify-center min-h-[300px]">
-                            <div className="w-6 h-6 border-2 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
+                        <div className="flex items-center justify-center min-h-72">
+                            <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
                         </div>
                     }
                 >
@@ -217,6 +214,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 </Suspense>
             </main>
         </div>
+        </CombScope>
     );
 };
 
@@ -234,7 +232,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 const ModuleLanding: React.FC = () => {
     const shell = useShellBridge() as any;
 
-    if (shell && shell.permissionsLoaded === false) return null;
+    if (shell && shell.permissionsLoaded === false) return <ResolvingNotice />;
 
     const isAdminViewer = shell?.hasPermission?.('employees.read')
         || shell?.hasPermission?.('departments.read')
@@ -289,7 +287,7 @@ const App = () => {
                     <Route path="leaves/requests" element={<PermissionGuard permission={['leave.read', 'leave.request']}><LeaveRequestsPage /></PermissionGuard>} />
                     <Route path="leaves/requests/:id" element={<PermissionGuard permission={['leave.read', 'leave.request', 'leave.approve']}><LeaveRequestDetailPage /></PermissionGuard>} />
                     <Route path="leaves/calendar" element={<PermissionGuard permission="leave.read"><LeaveCalendarPage /></PermissionGuard>} />
-                    <Route path="leaves/approvals" element={<PermissionGuard permission="leave.approve"><LeaveApprovalsPage /></PermissionGuard>} />
+                    <Route path="leaves/approvals" element={<PermissionGuard permission={['leave.approve', 'leave.read']}><LeaveApprovalsPage /></PermissionGuard>} />
                     <Route path="leaves/balances" element={<PermissionGuard permission="leave.read"><LeaveBalancesPage /></PermissionGuard>} />
                     {/* Alias of settings/holidays — same page, surfaced under Leave Management for discoverability. */}
                     <Route path="leaves/holidays" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate></PermissionGuard>} />
@@ -329,6 +327,9 @@ const App = () => {
                     <Route path="settings/work-locations" element={<PermissionGuard permission="employees.read"><WorkLocationsPage /></PermissionGuard>} />
                     <Route path="settings/holidays" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings/shifts" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:shifts"><ShiftsPage /></FeatureGate></PermissionGuard>} />
+                    {/* Industry-standard top-level URLs resolve to the real pages (otherwise the catch-all bounces to the landing page). */}
+                    <Route path="approvals" element={<Navigate to="/people/leaves/approvals" replace />} />
+                    <Route path="approval-chains" element={<Navigate to="/people/settings/approval-chains" replace />} />
                     <Route path="settings/approval-chains" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:approval_chains"><ApprovalChainsPage /></FeatureGate></PermissionGuard>} />
                     <Route path="settings/employment-policy" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:employment_policy"><EmploymentPolicyPage /></FeatureGate></PermissionGuard>} />
 
@@ -344,10 +345,16 @@ const App = () => {
                         to match the backend, which admits onboarding.read OR
                         onboarding.manage on the templates routes. */}
                     <Route path="settings/onboarding" element={<PermissionGuard permission={['onboarding.read', 'onboarding.manage']}><FeatureGate flagKey="submodule:people:onboarding"><OnboardingTemplatesPage /></FeatureGate></PermissionGuard>} />
-                    {/* <Route path="settings/notification-sender" element={<PermissionGuard permission="org_policy.read"><NotificationSenderPage /></PermissionGuard>} /> */}
+                    {/* Retired (0438d01): email-account designation lives in Connect.
+                        Old links and bookmarks go to the Settings hub instead of
+                        an unmatched route that rendered an empty main. */}
+                    <Route path="settings/notification-sender" element={<Navigate to="/settings" replace />} />
 
                     {/* Import/Export */}
                     <Route path="import-export" element={<PermissionGuard permission="employees.import"><ImportExportPage /></PermissionGuard>} />
+
+                    {/* Unknown path: fall back to the module landing rather than an empty main. */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
 
 
                 </Routes>

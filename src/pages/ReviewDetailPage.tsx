@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
-import { toast } from '@so360/design-system';
+import { useParams } from 'react-router-dom';
+import {
+    toast, DetailPageTemplate, Card, Stack, Cluster, Grid, Button, Badge, Rating,
+    TextField, Textarea, NumberInput, Checkbox, EmptyState,
+} from '@so360/design-system';
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview } from '../services/performanceReviewsService';
+import { peopleApi } from '../services/peopleService';
 import { reviewTemplatesApi, ReviewTemplate, ReviewTemplateSection } from '../services/reviewTemplatesService';
 import PerformanceEvidencePanel from '../components/PerformanceEvidencePanel';
 
@@ -27,102 +29,101 @@ const ReviewForm: React.FC<{
     };
 
     return (
-        <div className="space-y-6">
+        <Stack gap="region">
             {sections.map((section) => (
-                <div key={section.id} className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
-                    <h4 className="text-sm font-medium text-slate-50 mb-1">{section.title}</h4>
-                    {section.description && <p className="text-xs text-slate-400 mb-4">{section.description}</p>}
-                    {section.weight && <p className="text-xs text-teal-400 mb-3">Weight: {section.weight}%</p>}
+                <Card key={section.id} name={`review-section-${section.id}`}>
+                    <Stack gap="default">
+                        <div>
+                            <h4 className="text-nb-sm font-medium text-fg">{section.title}</h4>
+                            {section.description && <p className="text-nb-xs text-fg-muted">{section.description}</p>}
+                            {section.weight && <p className="text-nb-xs text-primary">Weight: {section.weight}%</p>}
+                        </div>
 
-                    <div className="space-y-4">
-                        {section.fields.map((field, fi) => (
-                            <div key={fi}>
-                                <label className="block text-xs text-slate-400 mb-1">
-                                    {field.label} {field.required && <span className="text-red-400">*</span>}
-                                </label>
-
-                                {field.type === 'rating' && (
-                                    <div className="flex items-center gap-1">
-                                        {Array.from({ length: field.max || ratingScale }).map((_, i) => (
-                                            <button
-                                                key={i}
-                                                type="button"
-                                                disabled={readOnly}
-                                                onClick={() => updateField(section.id, field.label, i + 1)}
-                                                className="p-0.5 disabled:cursor-default"
-                                            >
-                                                <Star
-                                                    size={20}
-                                                    className={
-                                                        (getFieldValue(section.id, field.label) as number || 0) > i
-                                                            ? 'fill-yellow-500 text-yellow-500'
-                                                            : 'text-slate-600 hover:text-slate-400'
-                                                    }
-                                                />
-                                            </button>
-                                        ))}
-                                        {getFieldValue(section.id, field.label) != null ? (
-                                            <span className="text-sm text-slate-50 ml-2">
-                                                {String(getFieldValue(section.id, field.label))} / {field.max || ratingScale}
-                                            </span>
-                                        ) : null}
-                                    </div>
-                                )}
-
-                                {field.type === 'textarea' && (
-                                    <textarea
-                                        value={(getFieldValue(section.id, field.label) as string) || ''}
-                                        onChange={(e) => updateField(section.id, field.label, e.target.value)}
-                                        disabled={readOnly}
-                                        rows={3}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
-                                    />
-                                )}
-
-                                {field.type === 'text' && (
-                                    <input
-                                        type="text"
-                                        value={(getFieldValue(section.id, field.label) as string) || ''}
-                                        onChange={(e) => updateField(section.id, field.label, e.target.value)}
-                                        disabled={readOnly}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
-                                    />
-                                )}
-
-                                {field.type === 'number' && (
-                                    <input
-                                        type="number"
-                                        value={(getFieldValue(section.id, field.label) as number) || ''}
-                                        onChange={(e) => updateField(section.id, field.label, parseFloat(e.target.value))}
-                                        disabled={readOnly}
-                                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 disabled:opacity-60"
-                                    />
-                                )}
-
-                                {field.type === 'checkbox' && (
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={!!getFieldValue(section.id, field.label)}
-                                            onChange={(e) => updateField(section.id, field.label, e.target.checked)}
-                                            disabled={readOnly}
-                                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600"
+                        {section.fields.map((field, fi) => {
+                            const fieldName = `${section.id}__${field.label}`;
+                            const value = getFieldValue(section.id, field.label);
+                            if (field.type === 'rating') {
+                                const max = field.max || ratingScale;
+                                return (
+                                    <Cluster key={fi} gap="default" align="center">
+                                        <Rating
+                                            name={fieldName}
+                                            label={field.label}
+                                            required={field.required}
+                                            value={(value as number) || 0}
+                                            max={max}
+                                            readOnly={readOnly}
+                                            onChange={(v: number) => updateField(section.id, field.label, v)}
                                         />
-                                        <span className="text-sm text-slate-300">Yes</span>
-                                    </label>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                                        {value != null ? (
+                                            <span className="text-nb-sm text-fg">{String(value)} / {max}</span>
+                                        ) : null}
+                                    </Cluster>
+                                );
+                            }
+                            if (field.type === 'textarea') {
+                                return (
+                                    <Textarea
+                                        key={fi}
+                                        name={fieldName}
+                                        label={field.label}
+                                        required={field.required}
+                                        rows={3}
+                                        value={(value as string) || ''}
+                                        onChange={(e) => updateField(section.id, field.label, e.target.value)}
+                                        disabled={readOnly}
+                                    />
+                                );
+                            }
+                            if (field.type === 'text') {
+                                return (
+                                    <TextField
+                                        key={fi}
+                                        name={fieldName}
+                                        label={field.label}
+                                        required={field.required}
+                                        value={(value as string) || ''}
+                                        onChange={(e) => updateField(section.id, field.label, e.target.value)}
+                                        disabled={readOnly}
+                                    />
+                                );
+                            }
+                            if (field.type === 'number') {
+                                return (
+                                    <NumberInput
+                                        key={fi}
+                                        name={fieldName}
+                                        label={field.label}
+                                        required={field.required}
+                                        value={(value as number) ?? null}
+                                        onChange={(n) => updateField(section.id, field.label, n)}
+                                        disabled={readOnly}
+                                    />
+                                );
+                            }
+                            if (field.type === 'checkbox') {
+                                return (
+                                    <Checkbox
+                                        key={fi}
+                                        name={fieldName}
+                                        label={`${field.label}${field.required ? ' *' : ''} - Yes`}
+                                        checked={!!value}
+                                        onChange={(e) => updateField(section.id, field.label, e.target.checked)}
+                                        disabled={readOnly}
+                                    />
+                                );
+                            }
+                            return null;
+                        })}
+                    </Stack>
+                </Card>
             ))}
-        </div>
+        </Stack>
     );
 };
 
 const ReviewDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const { recordActivity } = useActivity();
     const formatters = usePeopleFormatters();
     const [review, setReview] = useState<PerformanceReview | null>(null);
@@ -133,10 +134,16 @@ const ReviewDetailPage: React.FC = () => {
     const [managerFormData, setManagerFormData] = useState<Record<string, unknown>>({});
     const [overallRating, setOverallRating] = useState<number>(0);
     const [submitting, setSubmitting] = useState(false);
+    const [myPersonId, setMyPersonId] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) loadReview(id);
     }, [id]);
+
+    // Who is viewing decides which sections show (Pulse cac0fab5).
+    useEffect(() => {
+        peopleApi.getMe().then(me => setMyPersonId(me?.id ?? null)).catch(() => setMyPersonId(null));
+    }, []);
 
     const loadReview = async (reviewId: string) => {
         try {
@@ -244,30 +251,24 @@ const ReviewDetailPage: React.FC = () => {
         }
     };
 
-    const getStatusColor = (status: string) => {
+    const statusTone = (status: string): 'neutral' | 'primary' | 'warning' | 'success' => {
         switch (status) {
-            case 'draft': return 'bg-slate-600';
-            case 'self_review_pending': return 'bg-blue-600';
-            case 'manager_review_pending': return 'bg-yellow-600';
-            case 'completed': return 'bg-green-600';
-            default: return 'bg-slate-600';
+            case 'self_review_pending': return 'primary';
+            case 'manager_review_pending': return 'warning';
+            case 'completed': return 'success';
+            default: return 'neutral';
         }
     };
 
     if (loading) {
-        return (
-            <div className="p-6">
-                <div className="h-20 bg-slate-800/50 rounded-xl animate-pulse mb-5" />
-                <div className="h-96 bg-slate-800/50 rounded-xl animate-pulse" />
-            </div>
-        );
+        return <DetailPageTemplate trail={[{ label: 'Reviews', to: '/people/reviews' }]} title="Review" loading>{null}</DetailPageTemplate>;
     }
 
     if (!review) {
         return (
-            <div className="p-6">
-                <p className="text-slate-400">Review not found</p>
-            </div>
+            <DetailPageTemplate title="Review" trail={[{ label: 'Reviews', to: '/people/reviews' }]}>
+                <p className="text-nb-sm text-fg-muted">Review not found</p>
+            </DetailPageTemplate>
         );
     }
 
@@ -275,216 +276,164 @@ const ReviewDetailPage: React.FC = () => {
     const ratingScale = template?.rating_scale || 5;
     const selfSubmitted = !!review.self_review_submitted_at;
     const managerSubmitted = !!review.manager_review_submitted_at;
+    // Role-based sections: the subject sees Self, the reviewer sees Manager.
+    // An unresolved viewer fails open for display only; the API enforces.
+    const isSubject = !!myPersonId && myPersonId === review.person_id;
+    const isReviewer = !!myPersonId && myPersonId === review.reviewer_id;
+    const showSelfTab = !myPersonId || isSubject || selfSubmitted;
+    const showManagerTab = !myPersonId || !isSubject || isReviewer || review.status === 'completed';
+    const canSubmitSelf = !myPersonId || isSubject;
+    const canSubmitManager = !myPersonId || isReviewer || !isSubject;
+    const tab = activeTab === 'self' && !showSelfTab
+        ? (showManagerTab ? 'manager' : 'overall')
+        : activeTab === 'manager' && !showManagerTab ? 'overall' : activeTab;
+
+    let primaryAction: React.ReactNode;
+    if (review.status === 'self_review_pending' && !selfSubmitted && canSubmitSelf) {
+        primaryAction = (
+            <Button type="button" onClick={handleSubmitSelfReview} disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit Self Review'}
+            </Button>
+        );
+    } else if (review.status === 'manager_review_pending' && !managerSubmitted && canSubmitManager) {
+        primaryAction = (
+            <Button type="button" onClick={handleSubmitManagerReview} disabled={submitting || overallRating === 0}>
+                {submitting ? 'Submitting...' : 'Submit Manager Review'}
+            </Button>
+        );
+    } else if (review.status === 'manager_review_pending' && managerSubmitted) {
+        primaryAction = (
+            <Button type="button" onClick={handleCompleteReview} disabled={submitting}>
+                {submitting ? 'Completing...' : 'Complete Review'}
+            </Button>
+        );
+    }
 
     return (
-        <div className="p-6 space-y-5">
-            {/* Header with back button */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => navigate('/people/reviews')}
-                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                    <ArrowLeft size={20} className="text-slate-400" />
-                </button>
-                <PageHeader
-                    title={`${review.person?.full_name || 'Unknown'} - ${review.template?.name || 'Review'}`}
-                    subtitle={`Review Period: ${formatters.formatDate(review.review_period_start)} - ${formatters.formatDate(review.review_period_end)}`}
-                />
-            </div>
+        <DetailPageTemplate
+            title={`${review.person?.full_name || 'Unknown'} - ${review.template?.name || 'Review'}`}
+            meta={<span className="text-nb-sm text-fg-muted">{`Review Period: ${formatters.formatDate(review.review_period_start)} - ${formatters.formatDate(review.review_period_end)}`}</span>}
+            trail={[{ label: 'Reviews', to: '/people/reviews' }]}
+            primaryAction={primaryAction}
+            tabs={[
+                ...(showSelfTab ? [{ id: 'self', label: `Self Review${selfSubmitted ? ' \u2713' : ''}` }] : []),
+                ...(showManagerTab ? [{ id: 'manager', label: `Manager Review${managerSubmitted ? ' \u2713' : ''}` }] : []),
+                { id: 'overall', label: 'Overall' },
+            ]}
+            activeTab={tab}
+            onTabChange={(t: string) => setActiveTab(t as 'self' | 'manager' | 'overall')}
+        >
+            <Stack gap="region">
+                {/* Measured evidence from CRM, scoped to this review's period.
+                    Placed above the rating form on purpose: the reviewer should
+                    see the numbers before writing the assessment, not after. */}
+                <Card name="review-evidence">
+                    <PerformanceEvidencePanel
+                        personId={review.person_id}
+                        periodStart={review.review_period_start}
+                        periodEnd={review.review_period_end}
+                    />
+                </Card>
 
-            {/* Measured evidence from CRM, scoped to this review's period.
-                Placed above the rating form on purpose: the reviewer should
-                see the numbers before writing the assessment, not after. */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                <PerformanceEvidencePanel
-                    personId={review.person_id}
-                    periodStart={review.review_period_start}
-                    periodEnd={review.review_period_end}
-                />
-            </div>
+                <Card name="review-info">
+                    <Stack gap="region">
+                        <Grid columns={4} gap="lg">
+                            <div>
+                                <span className="text-nb-xs text-fg-muted">Reviewer</span>
+                                <p className="text-nb-sm text-fg">{review.reviewer?.full_name || '-'}</p>
+                            </div>
+                            <div>
+                                <span className="text-nb-xs text-fg-muted">Status</span>
+                                <div>
+                                    <Badge tone={statusTone(review.status)}>{review.status.replace(/_/g, ' ')}</Badge>
+                                </div>
+                            </div>
+                            <div>
+                                <span className="text-nb-xs text-fg-muted">Self Review Deadline</span>
+                                <p className="text-nb-sm text-fg">
+                                    {review.self_review_deadline ? formatters.formatDate(review.self_review_deadline) : '-'}
+                                </p>
+                            </div>
+                            <div>
+                                <span className="text-nb-xs text-fg-muted">Manager Review Deadline</span>
+                                <p className="text-nb-sm text-fg">
+                                    {review.manager_review_deadline ? formatters.formatDate(review.manager_review_deadline) : '-'}
+                                </p>
+                            </div>
+                        </Grid>
 
-            {/* Review Info Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                <div className="grid grid-cols-4 gap-6">
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Reviewer</label>
-                        <p className="text-sm text-slate-50">{review.reviewer?.full_name || '-'}</p>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Status</label>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(review.status)}`}>
-                            {review.status.replace(/_/g, ' ')}
-                        </span>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Self Review Deadline</label>
-                        <p className="text-sm text-slate-50">
-                            {review.self_review_deadline
-                                ? formatters.formatDate(review.self_review_deadline)
-                                : '-'}
-                        </p>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Manager Review Deadline</label>
-                        <p className="text-sm text-slate-50">
-                            {review.manager_review_deadline
-                                ? formatters.formatDate(review.manager_review_deadline)
-                                : '-'}
-                        </p>
-                    </div>
-                </div>
-
-                {review.overall_rating != null && review.overall_rating > 0 && (
-                    <div className="mt-6 pt-6 border-t border-slate-800">
-                        <label className="block text-xs text-slate-400 mb-2">Overall Rating</label>
-                        <div className="flex items-center gap-2">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                    key={i}
-                                    size={20}
-                                    className={i < Math.round(review.overall_rating!) ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600'}
-                                />
-                            ))}
-                            <span className="text-lg font-medium text-slate-50 ml-2">{review.overall_rating.toFixed(1)}</span>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-800">
-                <button
-                    onClick={() => setActiveTab('self')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'self' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    Self Review {selfSubmitted && <span className="text-green-400 ml-1">&#10003;</span>}
-                </button>
-                <button
-                    onClick={() => setActiveTab('manager')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'manager' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    Manager Review {managerSubmitted && <span className="text-green-400 ml-1">&#10003;</span>}
-                </button>
-                <button
-                    onClick={() => setActiveTab('overall')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'overall' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    Overall
-                </button>
-            </div>
-
-            {/* Review Form */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                {sections.length > 0 ? (
-                    <>
-                        {activeTab === 'self' && (
-                            <ReviewForm
-                                sections={sections}
-                                ratingScale={ratingScale}
-                                data={selfFormData}
-                                onChange={setSelfFormData}
-                                readOnly={selfSubmitted}
-                            />
+                        {review.overall_rating != null && review.overall_rating > 0 && (
+                            <Cluster gap="default" align="center">
+                                <Rating name="review-overall-display" label="Overall Rating" value={Math.round(review.overall_rating)} readOnly />
+                                <span className="text-nb-lg font-medium text-fg">{review.overall_rating.toFixed(1)}</span>
+                            </Cluster>
                         )}
-                        {activeTab === 'manager' && (
-                            <>
+                    </Stack>
+                </Card>
+
+                <Card name="review-form">
+                    {sections.length > 0 ? (
+                        <>
+                            {tab === 'self' && (
                                 <ReviewForm
                                     sections={sections}
                                     ratingScale={ratingScale}
-                                    data={managerFormData}
-                                    onChange={setManagerFormData}
-                                    readOnly={managerSubmitted}
+                                    data={selfFormData}
+                                    onChange={setSelfFormData}
+                                    readOnly={selfSubmitted}
                                 />
-                                {!managerSubmitted && review.status === 'manager_review_pending' && (
-                                    <div className="mt-6 pt-6 border-t border-slate-700">
-                                        <label className="block text-xs text-slate-400 mb-2">Overall Rating (1-5)</label>
-                                        <div className="flex items-center gap-1">
-                                            {Array.from({ length: 5 }).map((_, i) => (
-                                                <button
-                                                    key={i}
-                                                    type="button"
-                                                    onClick={() => setOverallRating(i + 1)}
-                                                    className="p-0.5"
-                                                >
-                                                    <Star
-                                                        size={24}
-                                                        className={overallRating > i ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600 hover:text-slate-400'}
-                                                    />
-                                                </button>
-                                            ))}
+                            )}
+                            {tab === 'manager' && (
+                                <Stack gap="region">
+                                    <ReviewForm
+                                        sections={sections}
+                                        ratingScale={ratingScale}
+                                        data={managerFormData}
+                                        onChange={setManagerFormData}
+                                        readOnly={managerSubmitted}
+                                    />
+                                    {!managerSubmitted && review.status === 'manager_review_pending' && (
+                                        <Cluster gap="default" align="center">
+                                            <Rating
+                                                name="overall_rating"
+                                                label="Overall Rating (1-5)"
+                                                value={overallRating}
+                                                max={5}
+                                                onChange={(v: number) => setOverallRating(v)}
+                                            />
                                             {overallRating > 0 && (
-                                                <span className="text-sm text-slate-50 ml-2">{overallRating} / 5</span>
+                                                <span className="text-nb-sm text-fg">{overallRating} / 5</span>
                                             )}
+                                        </Cluster>
+                                    )}
+                                </Stack>
+                            )}
+                            {tab === 'overall' && (
+                                <Stack gap="region">
+                                    {selfSubmitted && (
+                                        <div>
+                                            <h4 className="text-nb-sm font-medium text-fg">Self Review (Submitted {formatters.formatDate(review.self_review_submitted_at!)})</h4>
+                                            <ReviewForm sections={sections} ratingScale={ratingScale} data={selfFormData} onChange={() => {}} readOnly />
                                         </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                        {activeTab === 'overall' && (
-                            <div className="space-y-6">
-                                {selfSubmitted && (
-                                    <div>
-                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Self Review (Submitted {formatters.formatDate(review.self_review_submitted_at!)})</h4>
-                                        <ReviewForm sections={sections} ratingScale={ratingScale} data={selfFormData} onChange={() => {}} readOnly />
-                                    </div>
-                                )}
-                                {managerSubmitted && (
-                                    <div>
-                                        <h4 className="text-sm font-medium text-slate-50 mb-3">Manager Review (Submitted {formatters.formatDate(review.manager_review_submitted_at!)})</h4>
-                                        <ReviewForm sections={sections} ratingScale={ratingScale} data={managerFormData} onChange={() => {}} readOnly />
-                                    </div>
-                                )}
-                                {!selfSubmitted && !managerSubmitted && (
-                                    <p className="text-sm text-slate-400 text-center py-8">No reviews submitted yet.</p>
-                                )}
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="text-center py-8">
-                        <p className="text-sm text-slate-400">No template sections available. The review template may not have been configured.</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3">
-                {review.status === 'self_review_pending' && !selfSubmitted && (
-                    <button
-                        onClick={handleSubmitSelfReview}
-                        disabled={submitting}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                    >
-                        {submitting ? 'Submitting...' : 'Submit Self Review'}
-                    </button>
-                )}
-                {review.status === 'manager_review_pending' && !managerSubmitted && (
-                    <button
-                        onClick={handleSubmitManagerReview}
-                        disabled={submitting || overallRating === 0}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                    >
-                        {submitting ? 'Submitting...' : 'Submit Manager Review'}
-                    </button>
-                )}
-                {review.status === 'manager_review_pending' && managerSubmitted && (
-                    <button
-                        onClick={handleCompleteReview}
-                        disabled={submitting}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                    >
-                        {submitting ? 'Completing...' : 'Complete Review'}
-                    </button>
-                )}
-            </div>
-
-        </div>
+                                    )}
+                                    {managerSubmitted && (
+                                        <div>
+                                            <h4 className="text-nb-sm font-medium text-fg">Manager Review (Submitted {formatters.formatDate(review.manager_review_submitted_at!)})</h4>
+                                            <ReviewForm sections={sections} ratingScale={ratingScale} data={managerFormData} onChange={() => {}} readOnly />
+                                        </div>
+                                    )}
+                                    {!selfSubmitted && !managerSubmitted && (
+                                        <EmptyState title="No reviews submitted yet" />
+                                    )}
+                                </Stack>
+                            )}
+                        </>
+                    ) : (
+                        <p className="text-nb-sm text-fg-muted text-center">No template sections available. The review template may not have been configured.</p>
+                    )}
+                </Card>
+            </Stack>
+        </DetailPageTemplate>
     );
 };
 

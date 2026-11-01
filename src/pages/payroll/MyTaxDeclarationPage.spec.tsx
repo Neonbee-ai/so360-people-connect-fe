@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -121,10 +121,10 @@ describe('GIVEN an existing draft declaration', () => {
     await waitFor(() => expect(screen.getByText('Submit Tax Declaration')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Cancel'));
     await waitFor(() => expect(screen.queryByText('Submit Tax Declaration')).not.toBeInTheDocument());
-    // Reopen and close via the backdrop too
+    // Reopen and close via the close control too
     fireEvent.click(screen.getByText('Submit Declaration'));
     await waitFor(() => expect(screen.getByText('Submit Tax Declaration')).toBeInTheDocument());
-    fireEvent.click(document.querySelector('div.fixed.inset-0.bg-black\\/60') as Element);
+    fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]);
     await waitFor(() => expect(screen.queryByText('Submit Tax Declaration')).not.toBeInTheDocument());
     expect(mockApi.my.taxDeclarations.submit).not.toHaveBeenCalled();
   });

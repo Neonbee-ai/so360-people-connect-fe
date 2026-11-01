@@ -8,8 +8,8 @@ vi.mock('../services/feedbackService', () => ({
   CreateFeedbackPayload: {},
 }));
 
-vi.mock('../services/peopleService', () => ({
-  peopleApi: { getAll: vi.fn() },
+vi.mock('../services/meService', () => ({
+  meService: { directory: vi.fn() },
 }));
 
 vi.mock('../services/apiClient', () => ({
@@ -46,10 +46,10 @@ vi.mock('../utils/formatters', () => ({
 
 import FeedbackPage from '../pages/FeedbackPage';
 import { feedbackApi } from '../services/feedbackService';
-import { peopleApi } from '../services/peopleService';
+import { meService } from '../services/meService';
 
 const mockFeedback = feedbackApi as any;
-const mockPeople = peopleApi as any;
+const mockPeople = meService as any;
 
 const renderPage = () => render(<MemoryRouter><FeedbackPage /></MemoryRouter>);
 
@@ -128,7 +128,7 @@ describe('FeedbackPage', () => {
   describe('Given the Give Feedback button is clicked', () => {
     beforeEach(() => {
       mockFeedback.getAll.mockResolvedValue({ data: [] });
-      mockPeople.getAll.mockResolvedValue({ data: [{ id: 'p1', full_name: 'Alice' }] });
+      mockPeople.directory.mockResolvedValue({ data: [{ id: 'p1', full_name: 'Alice' }] });
     });
 
     it('When the button is clicked / Then the modal opens', async () => {

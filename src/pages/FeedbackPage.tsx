@@ -1,16 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { MessageSquare, Plus, Star, CheckCircle, Eye, EyeOff } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
+import { MessageSquare, Plus, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
-import Modal from '../components/Modal';
 import PersonPicker from '../components/PersonPicker';
-import { toast } from '@so360/design-system';
+import {
+    toast, Select, ListPageTemplate, DataTable, Modal, Button, Badge, Avatar, Rating,
+    Cluster, Stack, Grid, TextField, Textarea, Checkbox,
+} from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { feedbackApi, Feedback, CreateFeedbackPayload } from '../services/feedbackService';
-import { peopleApi } from '../services/peopleService';
+import { meService } from '../services/meService';
 import { apiContext } from '../services/apiClient';
-import type { Person } from '../types/people';
+import type { PickablePerson } from '../components/PersonPicker';
 
 const FeedbackPage: React.FC = () => {
     const { recordActivity } = useActivity();
@@ -32,6 +33,7 @@ const FeedbackPage: React.FC = () => {
             setFeedbacks(result.data || []);
         } catch (error) {
             console.error('Failed to load feedback:', error);
+            toast.error('Failed to load feedback');
         } finally {
             setLoading(false);
         }
@@ -63,135 +65,127 @@ const FeedbackPage: React.FC = () => {
         }
     };
 
-    const feedbackTypeColors: Record<string, string> = {
-        positive: 'bg-green-900/40 text-green-400',
-        constructive: 'bg-amber-900/40 text-amber-400',
-        general: 'bg-blue-900/40 text-blue-400',
-        '360_degree': 'bg-purple-900/40 text-purple-400',
+    const feedbackTypeTone: Record<string, 'success' | 'warning' | 'primary' | 'info'> = {
+        positive: 'success',
+        constructive: 'warning',
+        general: 'primary',
+        '360_degree': 'info',
     };
 
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
-                title="Feedback"
-                subtitle="Give and receive feedback across the team"
-                actions={
-                    canCreate && <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                        <Plus size={16} /> Give Feedback
-                    </button>
-                }
-            />
-
-            {/* Filters */}
-            <div className="flex items-center gap-3">
-                <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Types</option>
-                    <option value="positive">Positive</option>
-                    <option value="constructive">Constructive</option>
-                    <option value="general">General</option>
-                    <option value="360_degree">360 Degree</option>
-                </select>
-            </div>
-
-            {/* Feedback List */}
-            {loading ? (
-                <div className="space-y-3">
-                    {[1, 2, 3].map(i => <div key={i} className="h-28 bg-slate-800/50 rounded-xl animate-pulse" />)}
-                </div>
-            ) : feedbacks.length === 0 ? (
+        <>
+        <ListPageTemplate trail={[]}
+            title="Feedback"
+            description="Give and receive feedback across the team"
+            loading={loading}
+            isEmpty={feedbacks.length === 0}
+            primaryAction={canCreate ? (
+                <Button type="button" onClick={() => setShowCreateModal(true)}>
+                    <Plus className="w-4 h-4" /> Give Feedback
+                </Button>
+            ) : undefined}
+            filterConfig={{
+                fields: [{ key: 'type', label: 'Type', type: 'select', options: [
+                    { value: 'positive', label: 'Positive' },
+                    { value: 'constructive', label: 'Constructive' },
+                    { value: 'general', label: 'General' },
+                    { value: '360_degree', label: '360 Degree' },
+                ] }],
+                values: { type: typeFilter || undefined },
+                onChange: (v) => setTypeFilter((v.type as string) || ''),
+                onClear: () => setTypeFilter(''),
+            }}
+            empty={(
                 <EmptyState
                     icon={MessageSquare}
                     title="No feedback yet"
                     description="Start giving feedback to your team members."
                 />
-            ) : (
-                <div className="space-y-3">
-                    {feedbacks.map(fb => (
-                        <div key={fb.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                            <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-xs font-medium text-slate-50">
-                                        {fb.is_anonymous ? '?' : fb.provider?.full_name?.charAt(0) || '?'}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-slate-50 font-medium">
-                                            {fb.is_anonymous ? 'Anonymous' : fb.provider?.full_name || 'Unknown'}
-                                            <span className="text-slate-400 font-normal"> to </span>
-                                            {fb.person?.full_name || 'Unknown'}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium ${feedbackTypeColors[fb.feedback_type] || 'bg-slate-700 text-slate-300'}`}>
-                                                {fb.feedback_type.replace('_', ' ')}
-                                            </span>
-                                            {fb.provider_relationship && (
-                                                <span className="text-[10px] text-slate-500 capitalize">{fb.provider_relationship.replace('_', ' ')}</span>
-                                            )}
-                                            <span className="text-[10px] text-slate-500">
-                                                {formatters.formatDate(fb.created_at)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {fb.overall_rating && (
-                                        <div className="flex items-center gap-0.5">
-                                            {Array.from({ length: 5 }).map((_, i) => (
-                                                <Star key={i} size={12} className={i < fb.overall_rating! ? 'fill-yellow-500 text-yellow-500' : 'text-slate-700'} />
-                                            ))}
-                                        </div>
-                                    )}
-                                    {fb.is_visible_to_subject ? (
-                                        <span title="Visible to subject"><Eye size={14} className="text-slate-500" /></span>
-                                    ) : (
-                                        <span title="Hidden from subject"><EyeOff size={14} className="text-slate-500" /></span>
-                                    )}
-                                </div>
-                            </div>
-
-                            <p className="text-sm text-slate-300 mb-2">{fb.feedback_text}</p>
-
-                            {fb.strengths && (
-                                <p className="text-xs text-green-400 mb-1">Strengths: {fb.strengths}</p>
-                            )}
-                            {fb.areas_for_improvement && (
-                                <p className="text-xs text-amber-400 mb-1">Areas to improve: {fb.areas_for_improvement}</p>
-                            )}
-
-                            {!fb.acknowledged_at && (
-                                <div className="mt-3 pt-3 border-t border-slate-800">
-                                    <button
-                                        onClick={() => handleAcknowledge(fb.id)}
-                                        className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300"
-                                    >
-                                        <CheckCircle size={14} /> Acknowledge
-                                    </button>
-                                </div>
-                            )}
-                            {fb.acknowledged_at && (
-                                <p className="mt-2 text-[10px] text-slate-500">
-                                    Acknowledged on {formatters.formatDate(fb.acknowledged_at)}
-                                </p>
-                            )}
-                        </div>
-                    ))}
-                </div>
             )}
-
-            {/* Create Feedback Modal */}
-            <CreateFeedbackModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onCreate={handleCreate}
+        >
+            <DataTable<Feedback>
+                name="feedback"
+                rows={feedbacks}
+                rowKey={(fb) => fb.id}
+                columns={[
+                    {
+                        key: 'from_to',
+                        header: 'From / To',
+                        render: (fb) => (
+                            <Cluster gap="tight" align="center">
+                                <Avatar name={fb.is_anonymous ? undefined : fb.provider?.full_name} size="sm" />
+                                <div>
+                                    <p className="text-nb-sm text-fg font-medium">
+                                        {fb.is_anonymous ? 'Anonymous' : fb.provider?.full_name || 'Unknown'}
+                                        <span className="text-fg-muted font-normal"> to </span>
+                                        {fb.person?.full_name || 'Unknown'}
+                                    </p>
+                                    <Cluster gap="tight" align="center">
+                                        {fb.provider_relationship && (
+                                            <span className="text-nb-xs text-fg-subtle capitalize">{fb.provider_relationship.replace('_', ' ')}</span>
+                                        )}
+                                        <span className="text-nb-xs text-fg-subtle">{formatters.formatDate(fb.created_at)}</span>
+                                    </Cluster>
+                                </div>
+                            </Cluster>
+                        ),
+                    },
+                    {
+                        key: 'feedback_type',
+                        header: 'Type',
+                        render: (fb) => <Badge tone={feedbackTypeTone[fb.feedback_type] || 'neutral'}>{fb.feedback_type.replace('_', ' ')}</Badge>,
+                    },
+                    {
+                        key: 'feedback_text',
+                        header: 'Message',
+                        render: (fb) => (
+                            <Stack gap="tight">
+                                <p className="text-nb-sm text-fg">{fb.feedback_text}</p>
+                                {fb.strengths && <p className="text-nb-xs text-success">Strengths: {fb.strengths}</p>}
+                                {fb.areas_for_improvement && <p className="text-nb-xs text-warning">Areas to improve: {fb.areas_for_improvement}</p>}
+                            </Stack>
+                        ),
+                    },
+                    {
+                        key: 'overall_rating',
+                        header: 'Rating',
+                        render: (fb) => fb.overall_rating ? (
+                            <Rating name={`feedback-rating-${fb.id}`} value={fb.overall_rating} readOnly aria-label={`Rating ${fb.overall_rating} of 5`} />
+                        ) : null,
+                    },
+                    {
+                        key: 'visibility',
+                        header: 'Visibility',
+                        align: 'center',
+                        render: (fb) => fb.is_visible_to_subject ? (
+                            <span title="Visible to subject"><Eye className="w-4 h-4 text-fg-subtle" /></span>
+                        ) : (
+                            <span title="Hidden from subject"><EyeOff className="w-4 h-4 text-fg-subtle" /></span>
+                        ),
+                    },
+                    {
+                        key: 'acknowledged',
+                        header: 'Acknowledgement',
+                        interactive: true,
+                        render: (fb) => fb.acknowledged_at ? (
+                            <span className="text-nb-xs text-fg-subtle">Acknowledged on {formatters.formatDate(fb.acknowledged_at)}</span>
+                        ) : (
+                            <Button type="button" variant="ghost" size="sm" onClick={() => handleAcknowledge(fb.id)}>
+                                <CheckCircle className="w-4 h-4" /> Acknowledge
+                            </Button>
+                        ),
+                    },
+                ]}
             />
-
-        </div>
+        </ListPageTemplate>
+        {/* Sibling, not a template child: ListPageTemplate swaps children for the
+            loading/empty state, which unmounted the dialog (and blocked first-ever feedback). */}
+        <CreateFeedbackModal
+            isOpen={showCreateModal}
+            onClose={() => setShowCreateModal(false)}
+            onCreate={handleCreate}
+        />
+        </>
     );
 };
 
@@ -206,7 +200,8 @@ interface CreateFeedbackModalProps {
 }
 
 const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClose, onCreate }) => {
-    const [people, setPeople] = useState<Person[]>([]);
+    const [people, setPeople] = useState<PickablePerson[]>([]);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [formData, setFormData] = useState<CreateFeedbackPayload>({
         person_id: '',
         provider_id: apiContext.getUserId() || '',
@@ -218,9 +213,12 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
 
     useEffect(() => {
         if (isOpen) {
-            peopleApi.getAll({ status: 'active', limit: 200 }).then(res => {
-                setPeople(res.data || []);
-            }).catch(() => {});
+            setLoadError(null);
+            meService.directory().then(res => {
+                setPeople((res.data || []).map(d => ({ id: d.id, full_name: d.full_name, job_title: d.job_title || undefined })));
+            }).catch((err: any) => {
+                setLoadError(err?.message || 'Could not load people');
+            });
         }
     }, [isOpen]);
 
@@ -235,141 +233,97 @@ const CreateFeedbackModal: React.FC<CreateFeedbackModalProps> = ({ isOpen, onClo
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Give Feedback">
-            <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Person Selector */}
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Feedback For *</label>
-                    <PersonPicker
-                        options={people}
-                        value={formData.person_id}
-                        onChange={(id) => updateField('person_id', id)}
-                        placeholder="Search people..."
-                        emptyMessage="No people available"
-                        data-testid="feedback-person-picker"
-                    />
-                </div>
+        <Modal
+            open={isOpen}
+            onClose={onClose}
+            title="Give Feedback"
+            footer={(
+                <Cluster gap="default" justify="end">
+                    <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button type="submit" form="feedback-form" disabled={!formData.person_id || !formData.feedback_text}>Submit Feedback</Button>
+                </Cluster>
+            )}
+        >
+            <form id="feedback-form" onSubmit={handleSubmit}>
+                <Stack gap="region">
+                    <Stack gap="tight">
+                        <label htmlFor="feedback-person-input" className="text-nb-sm font-medium text-fg-muted">Feedback For *</label>
+                        <PersonPicker
+                            options={people}
+                            value={formData.person_id}
+                            onChange={(id) => updateField('person_id', id)}
+                            placeholder="Search people..."
+                            emptyMessage={loadError ? `Could not load people: ${loadError}` : 'No people available'}
+                            inputId="feedback-person-input"
+                            data-testid="feedback-person-picker"
+                        />
+                    </Stack>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Feedback Type *</label>
-                        <select
+                    <Grid columns={2} gap="lg">
+                        <Select
+                            name="feedback_type"
+                            label="Feedback Type *"
                             value={formData.feedback_type}
                             onChange={(e) => updateField('feedback_type', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="positive">Positive</option>
-                            <option value="constructive">Constructive</option>
-                            <option value="general">General</option>
-                            <option value="360_degree">360 Degree</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Relationship</label>
-                        <select
+                            options={[{ value: 'positive', label: 'Positive' }, { value: 'constructive', label: 'Constructive' }, { value: 'general', label: 'General' }, { value: '360_degree', label: '360 Degree' }]}
+                        />
+                        <Select
+                            name="provider_relationship"
+                            label="Relationship"
                             value={formData.provider_relationship || ''}
                             onChange={(e) => updateField('provider_relationship', e.target.value || undefined)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="">Select...</option>
-                            <option value="manager">Manager</option>
-                            <option value="peer">Peer</option>
-                            <option value="direct_report">Direct Report</option>
-                            <option value="cross_functional">Cross-Functional</option>
-                        </select>
-                    </div>
-                </div>
+                            options={[{ value: '', label: 'Select...' }, { value: 'manager', label: 'Manager' }, { value: 'peer', label: 'Peer' }, { value: 'direct_report', label: 'Direct Report' }, { value: 'cross_functional', label: 'Cross-Functional' }]}
+                        />
+                    </Grid>
 
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Feedback *</label>
-                    <textarea
+                    <Textarea
+                        name="feedback_text"
+                        label="Feedback *"
                         required
                         rows={4}
                         value={formData.feedback_text}
                         onChange={(e) => updateField('feedback_text', e.target.value)}
                         placeholder="Share your feedback..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     />
-                </div>
 
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Strengths</label>
-                    <input
-                        type="text"
+                    <TextField
+                        name="strengths"
+                        label="Strengths"
                         value={formData.strengths || ''}
                         onChange={(e) => updateField('strengths', e.target.value)}
                         placeholder="Highlight strengths..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     />
-                </div>
 
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Areas for Improvement</label>
-                    <input
-                        type="text"
+                    <TextField
+                        name="areas_for_improvement"
+                        label="Areas for Improvement"
                         value={formData.areas_for_improvement || ''}
                         onChange={(e) => updateField('areas_for_improvement', e.target.value)}
                         placeholder="Suggest improvements..."
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
                     />
-                </div>
 
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Overall Rating</label>
-                    <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map(r => (
-                            <button
-                                key={r}
-                                type="button"
-                                onClick={() => updateField('overall_rating', r)}
-                                className="p-0.5"
-                            >
-                                <Star
-                                    size={20}
-                                    className={(formData.overall_rating || 0) >= r ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600 hover:text-slate-400'}
-                                />
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                    <Rating
+                        name="overall_rating"
+                        label="Overall Rating"
+                        value={formData.overall_rating || 0}
+                        onChange={(v) => updateField('overall_rating', v)}
+                    />
 
-                <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
+                    <Cluster gap="region">
+                        <Checkbox
+                            name="is_anonymous"
+                            label="Submit anonymously"
                             checked={formData.is_anonymous}
                             onChange={(e) => updateField('is_anonymous', e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600"
                         />
-                        <span className="text-sm text-slate-300">Submit anonymously</span>
-                    </label>
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
+                        <Checkbox
+                            name="is_visible_to_subject"
+                            label="Visible to subject"
                             checked={formData.is_visible_to_subject !== false}
                             onChange={(e) => updateField('is_visible_to_subject', e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600"
                         />
-                        <span className="text-sm text-slate-300">Visible to subject</span>
-                    </label>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={!formData.person_id || !formData.feedback_text}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Submit Feedback
-                    </button>
-                </div>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );

@@ -28,13 +28,13 @@ describe('Given DepartmentSelector with departments loaded', () => {
   it('When rendered without value / Then placeholder is shown', async () => {
     render(<DepartmentSelector value="" onChange={() => {}} placeholder="Pick a dept" />);
     await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-    expect(screen.getByText('Pick a dept')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Pick a dept')).toBeInTheDocument();
   });
 
   it('When opened / Then all top-level departments are shown', async () => {
     render(<DepartmentSelector value="" onChange={() => {}} />);
     await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select department...'));
+    fireEvent.click(screen.getByPlaceholderText('Select department...'));
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
     expect(screen.getByText('Marketing')).toBeInTheDocument();
   });
@@ -43,7 +43,7 @@ describe('Given DepartmentSelector with departments loaded', () => {
     const onChange = vi.fn();
     render(<DepartmentSelector value="" onChange={onChange} />);
     await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select department...'));
+    fireEvent.click(screen.getByPlaceholderText('Select department...'));
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Engineering'));
     expect(onChange).toHaveBeenCalledWith('d1');
@@ -52,15 +52,15 @@ describe('Given DepartmentSelector with departments loaded', () => {
   it('When value is set / Then the selected department name is displayed', async () => {
     render(<DepartmentSelector value="d1" onChange={() => {}} />);
     await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Engineering'));
   });
 
   it('When allowClear is true and value is set / Then clear button clears the selection', async () => {
     const onChange = vi.fn();
     render(<DepartmentSelector value="d1" onChange={onChange} allowClear />);
     await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-    await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('×'));
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Engineering'));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
     expect(onChange).toHaveBeenCalledWith(null);
   });
 });
@@ -69,11 +69,36 @@ describe('Given DepartmentSelector with search', () => {
   it('When searching by name / Then list is filtered', async () => {
     render(<DepartmentSelector value="" onChange={() => {}} />);
     await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select department...'));
+    fireEvent.click(screen.getByPlaceholderText('Select department...'));
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-    fireEvent.change(screen.getByPlaceholderText('Select department...'), { target: { value: 'market' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'market' } });
     expect(screen.queryByText('Engineering')).not.toBeInTheDocument();
     expect(screen.getByText('Marketing')).toBeInTheDocument();
+  });
+});
+
+describe('Given DepartmentSelector with nested departments', () => {
+  it('When opened / Then a child shows its parent and code as description', async () => {
+    render(<DepartmentSelector value="" onChange={() => {}} />);
+    await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
+    fireEvent.click(screen.getByPlaceholderText('Select department...'));
+    await waitFor(() => expect(screen.getByText('FE · under Engineering')).toBeInTheDocument());
+  });
+
+  it('When searching by code / Then the matching department is kept', async () => {
+    render(<DepartmentSelector value="" onChange={() => {}} />);
+    await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
+    fireEvent.click(screen.getByPlaceholderText('Select department...'));
+    await waitFor(() => expect(screen.getByText('Marketing')).toBeInTheDocument());
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'mkt' } });
+    expect(screen.queryByText('Engineering')).not.toBeInTheDocument();
+    expect(screen.getByText('Marketing')).toBeInTheDocument();
+  });
+
+  it('When allowClear is not set and a value exists / Then no clear control is offered', async () => {
+    render(<DepartmentSelector value="d1" onChange={() => {}} />);
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Engineering'));
+    expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
   });
 });
 
@@ -82,7 +107,7 @@ describe('Given DepartmentSelector API failure', () => {
     mockApi.getTree.mockImplementation(async () => { throw new Error('Network error'); });
     render(<DepartmentSelector value="" onChange={() => {}} />);
     await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('Select department...'));
+    fireEvent.click(screen.getByPlaceholderText('Select department...'));
     await waitFor(() => expect(screen.getByText('No departments found')).toBeInTheDocument());
   });
 });

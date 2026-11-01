@@ -403,7 +403,7 @@ describe('Given the Leave Calendar is navigated between months', () => {
     await waitFor(() => expect(screen.getByText(THIS_MONTH)).toBeInTheDocument());
 
     const dateCell = screen.getByText('15');
-    expect(dateCell.className).toContain('text-sm');
+    expect(dateCell.className).toContain('text-nb-body');
     expect(dateCell.className).not.toContain('text-xs');
   });
 

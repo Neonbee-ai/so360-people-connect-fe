@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, toast } from '@so360/design-system';
-import { ClipboardCheck, Save } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Button, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Spinner, Stack, Switch, TextField, toast } from '@so360/design-system';
+import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
 
@@ -24,26 +23,6 @@ export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettingsValue = {
   geo_validation_enabled: false,
   ip_restriction_list: '',
 };
-
-const INPUT_CLASS =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-blue-600';
-
-const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = ({ checked, onChange }) => (
-  <button
-    type="button"
-    onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-blue-600' : 'bg-slate-700'}`}
-  >
-    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-1'}`} />
-  </button>
-);
-
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs text-slate-400">{label}</label>
-    {children}
-  </div>
-);
 
 const AttendanceSettingsPage: React.FC = () => {
   const shell = useShellBridge();
@@ -82,90 +61,80 @@ const AttendanceSettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <div className="p-6 text-slate-400 animate-pulse">Loading attendance settings...</div>;
-  }
+  const saveAction = canManage ? (
+    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
+      <Save className="w-4 h-4" />
+      {saving ? 'Saving...' : 'Save Changes'}
+    </Button>
+  ) : undefined;
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Attendance Settings"
-        subtitle="Grace periods, punch rules, and location validation"
-        actions={
-          canManage && (
-            <Button variant="primary" onClick={handleSave} disabled={saving} className="gap-2">
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )
-        }
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-            <ClipboardCheck className="w-4 h-4" /> Punch Rules
-          </h3>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Late Mark Grace (minutes)">
-              <input
-                type="number"
-                className={INPUT_CLASS}
-                value={value.late_mark_grace_minutes}
-                onChange={(e) => set('late_mark_grace_minutes', parseInt(e.target.value, 10) || 0)}
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      title="Attendance Settings"
+      description="Grace periods, punch rules, and location validation"
+      primaryAction={saveAction}
+    >
+      {loading ? (
+        <Spinner aria-label="Loading attendance settings..." />
+      ) : (
+        <Grid columns={2} gap="lg">
+          <SettingsCard title="Punch Rules">
+            <Stack gap="default">
+              <Grid columns={2} gap="md">
+                <NumberInput
+                  name="late_mark_grace_minutes"
+                  label="Late Mark Grace (minutes)"
+                  value={value.late_mark_grace_minutes}
+                  onChange={(n) => set('late_mark_grace_minutes', Math.trunc(n ?? 0))}
+                />
+                <NumberInput
+                  name="early_exit_grace_minutes"
+                  label="Early Exit Grace (minutes)"
+                  value={value.early_exit_grace_minutes}
+                  onChange={(n) => set('early_exit_grace_minutes', Math.trunc(n ?? 0))}
+                />
+              </Grid>
+              <TextField
+                name="missing_punch_policy"
+                label="Missing Punch Policy"
+                value={value.missing_punch_policy}
+                onChange={(e) => set('missing_punch_policy', e.target.value)}
               />
-            </Field>
-            <Field label="Early Exit Grace (minutes)">
-              <input
-                type="number"
-                className={INPUT_CLASS}
-                value={value.early_exit_grace_minutes}
-                onChange={(e) => set('early_exit_grace_minutes', parseInt(e.target.value, 10) || 0)}
+            </Stack>
+          </SettingsCard>
+
+          <SettingsCard title="Marking Methods & Validation">
+            <Stack gap="default">
+              <Switch
+                name="auto_attendance_enabled"
+                label="Auto Attendance (from timesheet/shift)"
+                checked={value.auto_attendance_enabled}
+                onCheckedChange={(v) => set('auto_attendance_enabled', v)}
               />
-            </Field>
-          </div>
-
-          <Field label="Missing Punch Policy">
-            <input
-              type="text"
-              className={INPUT_CLASS}
-              value={value.missing_punch_policy}
-              onChange={(e) => set('missing_punch_policy', e.target.value)}
-            />
-          </Field>
-        </div>
-
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Marking Methods &amp; Validation</h3>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Auto Attendance (from timesheet/shift)</span>
-            <Toggle checked={value.auto_attendance_enabled} onChange={(v) => set('auto_attendance_enabled', v)} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Manual Attendance Allowed</span>
-            <Toggle checked={value.manual_attendance_allowed} onChange={(v) => set('manual_attendance_allowed', v)} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Geo Validation</span>
-            <Toggle checked={value.geo_validation_enabled} onChange={(v) => set('geo_validation_enabled', v)} />
-          </div>
-
-          <Field label="IP Restriction (comma-separated IP/CIDR list)">
-            <input
-              type="text"
-              className={INPUT_CLASS}
-              value={value.ip_restriction_list}
-              onChange={(e) => set('ip_restriction_list', e.target.value)}
-              placeholder="e.g. 192.168.1.0/24, 10.0.0.5"
-            />
-          </Field>
-        </div>
-      </div>
-    </div>
+              <Switch
+                name="manual_attendance_allowed"
+                label="Manual Attendance Allowed"
+                checked={value.manual_attendance_allowed}
+                onCheckedChange={(v) => set('manual_attendance_allowed', v)}
+              />
+              <Switch
+                name="geo_validation_enabled"
+                label="Geo Validation"
+                checked={value.geo_validation_enabled}
+                onCheckedChange={(v) => set('geo_validation_enabled', v)}
+              />
+              <TextField
+                name="ip_restriction_list"
+                label="IP Restriction (comma-separated IP/CIDR list)"
+                value={value.ip_restriction_list}
+                onChange={(e) => set('ip_restriction_list', e.target.value)}
+                placeholder="e.g. 192.168.1.0/24, 10.0.0.5"
+              />
+            </Stack>
+          </SettingsCard>
+        </Grid>
+      )}
+    </SettingsPageTemplate>
   );
 };
 

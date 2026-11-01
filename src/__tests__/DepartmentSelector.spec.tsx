@@ -34,7 +34,7 @@ describe('DepartmentSelector', () => {
     it('When the dropdown is opened / Then it shows all departments', async () => {
       render(<DepartmentSelector value="" onChange={() => {}} />);
       await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select department...'));
+      fireEvent.click(screen.getByPlaceholderText('Select department...'));
       await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
       expect(screen.getByText('Frontend')).toBeInTheDocument();
       expect(screen.getByText('Marketing')).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('DepartmentSelector', () => {
       const onChange = vi.fn();
       render(<DepartmentSelector value="" onChange={onChange} />);
       await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select department...'));
+      fireEvent.click(screen.getByPlaceholderText('Select department...'));
       await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
       fireEvent.click(screen.getByText('Engineering'));
       expect(onChange).toHaveBeenCalledWith('d1');
@@ -53,13 +53,13 @@ describe('DepartmentSelector', () => {
     it('When a value is set / Then the selected department name is shown', async () => {
       render(<DepartmentSelector value="d1" onChange={() => {}} />);
       await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-      await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Engineering'));
     });
 
     it('When searching / Then the list is filtered by name', async () => {
       render(<DepartmentSelector value="" onChange={() => {}} />);
       await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select department...'));
+      fireEvent.click(screen.getByPlaceholderText('Select department...'));
       await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
       fireEvent.change(screen.getByPlaceholderText('Select department...'), { target: { value: 'market' } });
       expect(screen.queryByText('Engineering')).not.toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('DepartmentSelector', () => {
     it('When searching by code / Then the list is filtered by code', async () => {
       render(<DepartmentSelector value="" onChange={() => {}} />);
       await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select department...'));
+      fireEvent.click(screen.getByPlaceholderText('Select department...'));
       await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
       fireEvent.change(screen.getByPlaceholderText('Select department...'), { target: { value: 'FE' } });
       expect(screen.getByText('Frontend')).toBeInTheDocument();
@@ -79,15 +79,15 @@ describe('DepartmentSelector', () => {
       const onChange = vi.fn();
       render(<DepartmentSelector value="d1" onChange={onChange} allowClear />);
       await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-      await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('×'));
+      await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('Engineering'));
+      fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
       expect(onChange).toHaveBeenCalledWith(null);
     });
 
     it('When departments have codes / Then codes are displayed', async () => {
       render(<DepartmentSelector value="" onChange={() => {}} />);
       await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select department...'));
+      fireEvent.click(screen.getByPlaceholderText('Select department...'));
       await waitFor(() => expect(screen.getByText('ENG')).toBeInTheDocument());
       expect(screen.getByText('MKT')).toBeInTheDocument();
     });
@@ -98,7 +98,7 @@ describe('DepartmentSelector', () => {
       mockApi.getTree.mockImplementation(async () => { throw new Error('fail'); });
       render(<DepartmentSelector value="" onChange={() => {}} />);
       await waitFor(() => expect(mockApi.getTree).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Select department...'));
+      fireEvent.click(screen.getByPlaceholderText('Select department...'));
       await waitFor(() => expect(screen.getByText('No departments found')).toBeInTheDocument());
     });
   });

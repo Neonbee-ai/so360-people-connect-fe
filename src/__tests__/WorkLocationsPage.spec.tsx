@@ -54,7 +54,7 @@ describe('WorkLocationsPage', () => {
       renderPage();
       // wl2 is inactive and must still be rendered by the management table.
       await waitFor(() => expect(screen.getByText('Factory A')).toBeInTheDocument());
-      expect(screen.getByTitle('Activate')).toBeInTheDocument();
+      expect(screen.getByRole('switch', { name: 'Activate' })).toBeInTheDocument();
     });
 
     it('When Add Location is clicked / Then the modal opens', async () => {

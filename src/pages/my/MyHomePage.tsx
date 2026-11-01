@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Target, Users, Inbox } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
+import { Cluster, DashboardPageTemplate, Grid, Stack } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance, MyGoal, WhosOutEntry } from '../../services/meService';
 import type { LeaveRequest } from '../../services/leaveRequestsService';
@@ -56,127 +56,109 @@ const MyHomePage: React.FC = () => {
 
     const pending = requests.filter(r => r.status === 'pending');
 
+    const muted = 'text-nb-sm text-fg-subtle';
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader title="My Work" subtitle="Your leave, goals and team at a glance" />
+        <DashboardPageTemplate
+            title="My Work"
+            description="Your leave, goals and team at a glance"
+            kpis={
+                /* Only renders while an onboarding instance is active — fetches
+                   independently so it can never degrade the panels below. */
+                <MyOnboardingCard />
+            }
+            primary={
+                loading ? (
+                    <Grid columns={2}>
+                        <Skeleton rows={2} />
+                        <Skeleton rows={2} />
+                    </Grid>
+                ) : (
+                    <Grid columns={2}>
+                        <MyCard
+                            title="My leave balance"
+                            icon={<CalendarDays size={14} />}
+                            to="/people/my/leave"
+                        >
+                            {balances.length === 0 ? (
+                                <p className={muted}>No leave balances have been set up for you yet.</p>
+                            ) : (
+                                <Stack gap="tight">
+                                    {balances.map(b => (
+                                        <Cluster key={b.id} justify="between">
+                                            <span className="text-nb-sm text-fg">{b.leave_type?.name ?? 'Leave'}</span>
+                                            <span className="text-nb-sm font-semibold text-fg">{b.available} days</span>
+                                        </Cluster>
+                                    ))}
+                                </Stack>
+                            )}
+                        </MyCard>
 
-            {/* Only renders while an onboarding instance is active — fetches
-                independently so it can never degrade the panels below. */}
-            <MyOnboardingCard />
-
-            {loading ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                    <Skeleton rows={2} />
-                    <Skeleton rows={2} />
-                </div>
-            ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                    <MyCard
-                        title="My leave balance"
-                        icon={<CalendarDays size={14} />}
-                        to="/people/my/leave"
-                    >
-                        {balances.length === 0 ? (
-                            <p className="text-sm text-slate-500">
-                                No leave balances have been set up for you yet.
-                            </p>
-                        ) : (
-                            <ul className="space-y-2.5">
-                                {balances.map(b => (
-                                    <li key={b.id} className="flex items-center justify-between">
-                                        <span className="text-sm text-slate-300">
-                                            {b.leave_type?.name ?? 'Leave'}
-                                        </span>
-                                        <span className="text-sm font-semibold text-slate-50">
-                                            {b.available} days
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </MyCard>
-
-                    <MyCard
-                        title="My requests"
-                        icon={<Inbox size={14} />}
-                        to="/people/my/leave"
-                    >
-                        {requests.length === 0 ? (
-                            <p className="text-sm text-slate-500">
-                                You haven&apos;t requested any leave yet.
-                            </p>
-                        ) : (
-                            <>
-                                {pending.length > 0 && (
-                                    <p className="mb-2.5 text-xs text-amber-400">
-                                        {pending.length} awaiting approval
-                                    </p>
-                                )}
-                                <ul className="space-y-2.5">
+                        <MyCard title="My requests" icon={<Inbox size={14} />} to="/people/my/leave">
+                            {requests.length === 0 ? (
+                                <p className={muted}>You haven&apos;t requested any leave yet.</p>
+                            ) : (
+                                <Stack gap="tight">
+                                    {pending.length > 0 && (
+                                        <p className="text-nb-sm text-warning">{pending.length} awaiting approval</p>
+                                    )}
                                     {requests.slice(0, 4).map(r => (
-                                        <li key={r.id} className="flex items-center justify-between gap-3">
-                                            <span className="text-sm text-slate-300">
+                                        <Cluster key={r.id} justify="between">
+                                            <span className="text-nb-sm text-fg">
                                                 {r.start_date} → {r.end_date}
                                             </span>
                                             <StatusPill status={r.status} />
-                                        </li>
+                                        </Cluster>
                                     ))}
-                                </ul>
-                            </>
-                        )}
-                    </MyCard>
+                                </Stack>
+                            )}
+                        </MyCard>
 
-                    <MyCard title="My goals" icon={<Target size={14} />} to="/people/my/goals">
-                        {goals.length === 0 ? (
-                            <p className="text-sm text-slate-500">No active goals.</p>
-                        ) : (
-                            <ul className="space-y-3">
-                                {goals.slice(0, 4).map(g => (
-                                    <li key={g.id}>
-                                        <div className="mb-1 flex items-center justify-between gap-3">
-                                            <span className="truncate text-sm text-slate-300">{g.title}</span>
-                                            <span className="text-xs text-slate-500">
-                                                {g.progress_percentage ?? 0}%
-                                            </span>
-                                        </div>
-                                        <ProgressBar percent={g.progress_percentage ?? 0} />
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </MyCard>
+                        <MyCard title="My goals" icon={<Target size={14} />} to="/people/my/goals">
+                            {goals.length === 0 ? (
+                                <p className={muted}>No active goals.</p>
+                            ) : (
+                                <Stack gap="default">
+                                    {goals.slice(0, 4).map(g => (
+                                        <Stack key={g.id} gap="tight">
+                                            <Cluster justify="between">
+                                                <span className="truncate text-nb-sm text-fg">{g.title}</span>
+                                                <span className={muted}>{g.progress_percentage ?? 0}%</span>
+                                            </Cluster>
+                                            <ProgressBar percent={g.progress_percentage ?? 0} />
+                                        </Stack>
+                                    ))}
+                                </Stack>
+                            )}
+                        </MyCard>
 
-                    <MyCard title="Who's out this week" icon={<Users size={14} />}>
-                        {whosOut.length === 0 ? (
-                            <p className="text-sm text-slate-500">
-                                Nobody is scheduled to be away.
-                            </p>
-                        ) : (
-                            <ul className="space-y-2.5">
-                                {whosOut.slice(0, 6).map(w => (
-                                    <li
-                                        key={`${w.person_id}-${w.start_date}`}
-                                        className="flex items-center justify-between gap-3"
-                                    >
-                                        <span className="flex min-w-0 items-center gap-2.5">
-                                            <Avatar name={w.full_name} />
-                                            <span className="truncate text-sm text-slate-300">
-                                                {w.full_name ?? 'A colleague'}
+                        <MyCard title="Who's out this week" icon={<Users size={14} />}>
+                            {whosOut.length === 0 ? (
+                                <p className={muted}>Nobody is scheduled to be away.</p>
+                            ) : (
+                                <Stack gap="tight">
+                                    {whosOut.slice(0, 6).map(w => (
+                                        <Cluster key={`${w.person_id}-${w.start_date}`} justify="between">
+                                            <Cluster>
+                                                <Avatar name={w.full_name} />
+                                                <span className="truncate text-nb-sm text-fg">
+                                                    {w.full_name ?? 'A colleague'}
+                                                </span>
+                                            </Cluster>
+                                            <span className={muted}>
+                                                {w.start_date === w.end_date
+                                                    ? w.start_date
+                                                    : `${w.start_date} → ${w.end_date}`}
                                             </span>
-                                        </span>
-                                        <span className="shrink-0 text-xs text-slate-500">
-                                            {w.start_date === w.end_date
-                                                ? w.start_date
-                                                : `${w.start_date} → ${w.end_date}`}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </MyCard>
-                </div>
-            )}
-        </div>
+                                        </Cluster>
+                                    ))}
+                                </Stack>
+                            )}
+                        </MyCard>
+                    </Grid>
+                )
+            }
+        />
     );
 };
 

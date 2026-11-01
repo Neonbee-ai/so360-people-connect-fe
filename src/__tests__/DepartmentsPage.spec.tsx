@@ -80,6 +80,37 @@ describe('DepartmentsPage', () => {
       fireEvent.click(screen.getByText('Create Department'));
       await waitFor(() => expect(screen.getByPlaceholderText('ENG')).toBeInTheDocument());
     });
+
+    it('Given a valid create form / When Create is double-clicked while the request is in flight / Then create is called once and the button is disabled (Pulse 29889378)', async () => {
+      let resolveCreate: (v: any) => void = () => {};
+      mockApi.create.mockReturnValue(new Promise(r => { resolveCreate = r; }));
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Create Department'));
+      await waitFor(() => expect(screen.getByPlaceholderText('ENG')).toBeInTheDocument());
+      fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'OPS' } });
+      fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'Operations' } });
+      const btn = screen.getByRole('button', { name: /^Create$/ });
+      fireEvent.click(btn);
+      fireEvent.click(btn);
+      await waitFor(() => expect(screen.getByRole('button', { name: /Saving/ })).toBeDisabled());
+      expect(mockApi.create).toHaveBeenCalledTimes(1);
+      resolveCreate({ id: 'd9' });
+    });
+
+    it('Given the server rejects with an archived-code message / When Create is submitted / Then the message is surfaced', async () => {
+      const { toast } = await import('@so360/design-system');
+      const errSpy = vi.spyOn(toast, 'error');
+      mockApi.create.mockRejectedValue(new Error("Department code 'OPS' is used by an archived department."));
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Create Department'));
+      await waitFor(() => expect(screen.getByPlaceholderText('ENG')).toBeInTheDocument());
+      fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'OPS' } });
+      fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'Operations' } });
+      fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+      await waitFor(() => expect(errSpy).toHaveBeenCalledWith(expect.stringMatching(/archived department/)));
+    });
   });
 
   describe('Given no departments exist', () => {

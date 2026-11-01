@@ -3,8 +3,8 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
-vi.mock('../services/peopleService', () => ({
-  peopleApi: { getAll: vi.fn().mockResolvedValue({ data: [], total: 0 }) },
+vi.mock('../services/meService', () => ({
+  meService: { directory: vi.fn().mockResolvedValue({ data: [] }) },
 }));
 
 vi.mock('../services/feedbackService', () => ({
@@ -42,10 +42,10 @@ vi.mock('../utils/formatters', () => ({
 
 import FeedbackPage from './FeedbackPage';
 import { feedbackApi } from '../services/feedbackService';
-import { peopleApi } from '../services/peopleService';
+import { meService } from '../services/meService';
 
 const mockApi = feedbackApi as any;
-const mockPeopleApi = peopleApi as any;
+const mockPeopleApi = meService as any;
 
 const renderPage = () => render(<MemoryRouter><FeedbackPage /></MemoryRouter>);
 
@@ -64,8 +64,8 @@ const mockFeedback = {
 beforeEach(() => {
   vi.resetAllMocks();
   // Re-initialize after resetAllMocks so the modal's people selector doesn't
-  // get undefined.data when FeedbackPage calls peopleApi.getAll().
-  mockPeopleApi.getAll.mockResolvedValue({ data: [], total: 0 });
+  // get undefined.data when FeedbackPage calls meService.directory().
+  mockPeopleApi.directory.mockResolvedValue({ data: [] });
 });
 
 describe('Given FeedbackPage loads successfully', () => {
@@ -137,7 +137,7 @@ describe('Given the Give Feedback modal person selector', () => {
 
   const openModal = async () => {
     mockApi.getAll.mockResolvedValue({ data: [mockFeedback], total: 1 });
-    mockPeopleApi.getAll.mockResolvedValue({ data: PEOPLE, total: 2 });
+    mockPeopleApi.directory.mockResolvedValue({ data: PEOPLE });
     renderPage();
     await waitFor(() => expect(screen.getByText('Give Feedback')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Give Feedback'));
@@ -174,10 +174,19 @@ describe('Given the Give Feedback modal person selector', () => {
     fireEvent.focus(pickerInput());
     fireEvent.click(await screen.findByText(/Alice Anderson/));
 
-    await waitFor(() =>
-      expect(screen.getByTestId('feedback-person-picker').textContent).toContain('Alice Anderson'),
-    );
-    expect(screen.getByText('Clear')).toBeInTheDocument();
+    await waitFor(() => expect(pickerInput()).toHaveValue('Alice Anderson'));
+    expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
     expect(screen.getByTestId('feedback-person-picker').textContent).not.toContain('Edit');
+  });
+
+  it('When the directory fails to load / Then the picker shows the error instead of an empty list', async () => {
+    mockApi.getAll.mockResolvedValue({ data: [mockFeedback], total: 1 });
+    mockPeopleApi.directory.mockRejectedValue(new Error('Forbidden'));
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Give Feedback')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Give Feedback'));
+    await waitFor(() => expect(screen.getByTestId('feedback-person-picker')).toBeInTheDocument());
+    fireEvent.focus(pickerInput());
+    await waitFor(() => expect(screen.getByText(/Could not load people: Forbidden/)).toBeInTheDocument());
   });
 });

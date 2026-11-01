@@ -1,9 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, UserCog } from 'lucide-react';
-import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
-import { Alert, toast, getErrorMessage } from '@so360/design-system';
+import {
+  Alert,
+  Badge,
+  Button,
+  Cluster,
+  DataTable,
+  FieldGrid,
+  IconButton,
+  ListPageTemplate,
+  NumberInput,
+  Stack,
+  Switch,
+  TextField,
+  toast,
+  getErrorMessage,
+  type DataTableColumn,
+} from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import {
   laborCategoriesApi,
@@ -107,142 +122,106 @@ const LaborCategoriesPage: React.FC = () => {
     (r) => r.is_active && !(Number(r.base_hourly_rate) > 0),
   ).length;
 
+  const columns: DataTableColumn<LaborCategory>[] = [
+    { key: 'name', header: 'Name', render: (row) => <span className="font-medium text-fg">{row.name}</span> },
+    { key: 'code', header: 'Code', render: (row) => <span className="text-fg-muted font-mono text-nb-caption">{row.code}</span> },
+    {
+      key: 'base_hourly_rate',
+      header: 'Hourly Rate',
+      render: (row) =>
+        Number(row.base_hourly_rate) > 0 ? (
+          <span className="text-fg">{Number(row.base_hourly_rate).toFixed(2)}</span>
+        ) : (
+          <span className="text-warning">Not set</span>
+        ),
+    },
+    {
+      key: 'overtime_multiplier',
+      header: 'Overtime',
+      render: (row) => <span className="text-fg-muted">&times;{Number(row.overtime_multiplier || 1.5)}</span>,
+    },
+    {
+      key: 'is_active',
+      header: 'Active',
+      interactive: true,
+      render: (row) =>
+        canManage ? (
+          <Switch
+            name={`lc-active-${row.id}`}
+            label={row.is_active ? 'Deactivate' : 'Activate'}
+            hideLabel
+            checked={row.is_active}
+            onCheckedChange={() => handleUpdate(row.id, { is_active: !row.is_active })}
+          />
+        ) : (
+          <Badge tone={row.is_active ? 'primary' : 'neutral'}>{row.is_active ? 'Active' : 'Inactive'}</Badge>
+        ),
+    },
+  ];
+  if (canManage) {
+    columns.push({
+      key: 'actions',
+      header: 'Actions',
+      interactive: true,
+      render: (row) => (
+        <Cluster gap="tight">
+          <IconButton label={`Edit ${row.name}`} icon={<Edit2 size={14} />} size="sm" onClick={() => setEditing(row)} />
+          <IconButton
+            label={`Delete ${row.name}`}
+            icon={<Trash2 size={14} />}
+            size="sm"
+            variant="danger"
+            onClick={() => handleDelete(row)}
+          />
+        </Cluster>
+      ),
+    } as DataTableColumn<LaborCategory>);
+  }
+
+  const emptyNode = loadError ? (
+    <EmptyState
+      icon={UserCog}
+      title="Couldn't load labor categories"
+      description="Something went wrong fetching this list. Try refreshing the page."
+    />
+  ) : (
+    <EmptyState
+      icon={UserCog}
+      title="No labor categories"
+      description="Add your first labor category so time entries can be costed."
+      action={canManage ? { label: 'Add Labor Category', onClick: () => setShowModal(true) } : undefined}
+    />
+  );
+
   return (
-    <div className="p-6 space-y-5">
-      <PageHeader
+    <>
+      <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title="Labor Categories"
-        subtitle="Labor classifications and the standard rates used to cost time entries"
-        actions={
-          canManage && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-            >
+        description="Labor classifications and the standard rates used to cost time entries"
+        primaryAction={
+          canManage ? (
+            <Button onClick={() => setShowModal(true)}>
               <Plus size={16} />
               Add Labor Category
-            </button>
-          )
+            </Button>
+          ) : undefined
         }
-      />
-
-      {/* A category with no rate looks configured but cannot cost anyone, so say so. */}
-      {!loading && !loadError && unpricedCount > 0 && (
-        <Alert variant="warning" title="Rates not set">
-          {unpricedCount === 1
-            ? '1 active category has no hourly rate, so it cannot cost an employee who has no rate of their own.'
-            : `${unpricedCount} active categories have no hourly rate, so they cannot cost employees who have no rate of their own.`}
-        </Alert>
-      )}
-
-      {loading ? (
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
-          ))}
-        </div>
-      ) : loadError ? (
-        <EmptyState
-          icon={UserCog}
-          title="Couldn't load labor categories"
-          description="Something went wrong fetching this list. Try refreshing the page."
-        />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          icon={UserCog}
-          title="No labor categories"
-          description="Add your first labor category so time entries can be costed."
-          action={
-            canManage
-              ? { label: 'Add Labor Category', onClick: () => setShowModal(true) }
-              : undefined
-          }
-        />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-800">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-800/50 text-left">
-                {['Name', 'Code', 'Hourly Rate', 'Overtime', 'Active'].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
-                {canManage && (
-                  <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Actions
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {rows.map((row) => {
-                const priced = Number(row.base_hourly_rate) > 0;
-                return (
-                  <tr key={row.id} className="bg-slate-900 hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-50">{row.name}</td>
-                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">{row.code}</td>
-                    <td className="px-4 py-3">
-                      {priced ? (
-                        <span className="text-slate-300">
-                          {Number(row.base_hourly_rate).toFixed(2)}
-                        </span>
-                      ) : (
-                        <span className="text-amber-400">Not set</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-400">
-                      &times;{Number(row.overtime_multiplier || 1.5)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {canManage ? (
-                        <button
-                          onClick={() => handleUpdate(row.id, { is_active: !row.is_active })}
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${row.is_active ? 'bg-teal-600' : 'bg-slate-700'}`}
-                          title={row.is_active ? 'Deactivate' : 'Activate'}
-                          aria-label={row.is_active ? 'Deactivate' : 'Activate'}
-                        >
-                          <span
-                            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${row.is_active ? 'translate-x-5' : 'translate-x-1'}`}
-                          />
-                        </button>
-                      ) : (
-                        <span className={`text-xs ${row.is_active ? 'text-teal-400' : 'text-slate-500'}`}>
-                          {row.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      )}
-                    </td>
-                    {canManage && (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setEditing(row)}
-                            className="p-1.5 rounded text-slate-400 hover:text-teal-400 hover:bg-slate-800 transition-colors"
-                            title="Edit"
-                            aria-label={`Edit ${row.name}`}
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(row)}
-                            className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
-                            title="Delete"
-                            aria-label={`Delete ${row.name}`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+        loading={loading}
+        isEmpty={loadError || rows.length === 0}
+        empty={emptyNode}
+        kpis={
+          // A category with no rate looks configured but cannot cost anyone, so say so.
+          !loading && !loadError && unpricedCount > 0 ? (
+            <Alert variant="warning" title="Rates not set">
+              {unpricedCount === 1
+                ? '1 active category has no hourly rate, so it cannot cost an employee who has no rate of their own.'
+                : `${unpricedCount} active categories have no hourly rate, so they cannot cost employees who have no rate of their own.`}
+            </Alert>
+          ) : undefined
+        }
+      >
+        <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />
+      </ListPageTemplate>
 
       <LaborCategoryFormModal
         isOpen={showModal || !!editing}
@@ -254,7 +233,7 @@ const LaborCategoriesPage: React.FC = () => {
         onUpdate={handleUpdate}
         row={editing}
       />
-    </div>
+    </>
   );
 };
 
@@ -307,115 +286,76 @@ const LaborCategoryFormModal: React.FC<FormModalProps> = ({
     }
   };
 
-  const input =
-    'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
-
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={row ? 'Edit Labor Category' : 'Add Labor Category'}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-name">
-              Name *
-            </label>
-            <input
+      <form onSubmit={handleSubmit}>
+        <Stack gap="default">
+          <FieldGrid columns={2}>
+            <TextField
+              name="lc-name"
               id="lc-name"
-              type="text"
+              label="Name *"
               required
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
-              className={input}
             />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-code">
-              Code *
-            </label>
-            <input
+            <TextField
+              name="lc-code"
               id="lc-code"
-              type="text"
+              label="Code *"
               required
               disabled={!!row}
               value={form.code}
               onChange={(e) => set('code', e.target.value)}
-              className={`${input} disabled:opacity-60 disabled:cursor-not-allowed`}
+              hint={row ? 'Code cannot be changed after creation.' : undefined}
             />
-            {row && (
-              <p className="mt-1 text-xs text-slate-500">
-                Code cannot be changed after creation.
-              </p>
-            )}
-          </div>
-        </div>
+          </FieldGrid>
 
-        <div>
-          <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-description">
-            Description
-          </label>
-          <input
+          <TextField
+            name="lc-description"
             id="lc-description"
-            type="text"
+            label="Description"
             value={form.description || ''}
             onChange={(e) => set('description', e.target.value)}
-            className={input}
           />
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-rate">
-              Hourly Rate
-            </label>
-            <input
+          <FieldGrid columns={2}>
+            <NumberInput
+              name="lc-rate"
               id="lc-rate"
-              type="number"
-              min="0"
-              step="0.01"
+              label="Hourly Rate"
+              min={0}
+              step={0.01}
               value={form.base_hourly_rate}
-              onChange={(e) => set('base_hourly_rate', parseFloat(e.target.value) || 0)}
-              className={input}
+              onChange={(v) => set('base_hourly_rate', v ?? 0)}
+              hint={
+                !(Number(form.base_hourly_rate) > 0)
+                  ? 'Leave at 0 only if this category should not price time.'
+                  : undefined
+              }
             />
-            {!(Number(form.base_hourly_rate) > 0) && (
-              <p className="mt-1 text-xs text-amber-400">
-                Leave at 0 only if this category should not price time.
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1" htmlFor="lc-ot">
-              Overtime Multiplier
-            </label>
-            <input
+            <NumberInput
+              name="lc-ot"
               id="lc-ot"
-              type="number"
-              min="1"
-              step="0.1"
+              label="Overtime Multiplier"
+              min={1}
+              step={0.1}
               value={form.overtime_multiplier}
-              onChange={(e) => set('overtime_multiplier', parseFloat(e.target.value) || 1.5)}
-              className={input}
+              onChange={(v) => set('overtime_multiplier', v || 1.5)}
             />
-          </div>
-        </div>
+          </FieldGrid>
 
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-300 hover:text-slate-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            {row ? 'Save Changes' : 'Create'}
-          </button>
-        </div>
+          <Cluster justify="end" gap="tight">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">{row ? 'Save Changes' : 'Create'}</Button>
+          </Cluster>
+        </Stack>
       </form>
     </Modal>
   );

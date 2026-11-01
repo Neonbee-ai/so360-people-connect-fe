@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Users, CalendarRange } from 'lucide-react';
-import { toast, getErrorMessage } from '@so360/design-system';
+import {
+    toast, getErrorMessage, Button, Cluster, DataTable, DateInput, FieldGrid, FormActions, Grid, NumberInput, Select, Skeleton, Stack, TextField, Textarea, Checkbox,
+} from '@so360/design-system';
+import type { DataTableColumn } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import Modal from '../../Modal';
@@ -14,9 +17,6 @@ const PAY_FREQUENCIES: { value: PayFrequency; label: string }[] = [
     { value: 'bi_weekly', label: 'Bi-weekly — every 14 days' },
     { value: 'weekly', label: 'Weekly — every 7 days' },
 ];
-
-const inputCls = 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500';
-const labelCls = 'block text-xs text-slate-400 mb-1';
 
 const GroupsPeriodsTab: React.FC = () => {
     const { settings } = useBusinessSettings();
@@ -105,20 +105,27 @@ const GroupsPeriodsTab: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />;
+    if (loading) return <Skeleton variant="text" lines={6} />;
+
+    const periodColumns: DataTableColumn<PayrollPeriod>[] = [
+        {
+            key: 'period',
+            header: 'Period',
+            render: period => <>{formatters.formatDate(period.period_start)} – {formatters.formatDate(period.period_end)}</>,
+        },
+        { key: 'pay_date', header: 'Pay Date', render: period => <span className="text-fg-muted">{formatters.formatDate(period.pay_date)}</span> },
+        { key: 'status', header: 'Status', align: 'center', render: period => <StatusChip status={period.status} /> },
+    ];
 
     return (
-        <div className="space-y-5">
+        <Stack>
             {/* Groups */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-50">Payroll Groups</h3>
-                <button
-                    onClick={() => { setEditingGroup(null); setShowGroupModal(true); }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-medium rounded-lg transition-colors"
-                >
+            <Cluster justify="between">
+                <h3 className="text-nb-section-title text-fg">Payroll Groups</h3>
+                <Button size="sm" onClick={() => { setEditingGroup(null); setShowGroupModal(true); }}>
                     <Plus size={13} /> New Group
-                </button>
-            </div>
+                </Button>
+            </Cluster>
             {groups.length === 0 ? (
                 <EmptyState
                     icon={Users}
@@ -127,77 +134,53 @@ const GroupsPeriodsTab: React.FC = () => {
                     action={{ label: 'New Group', onClick: () => setShowGroupModal(true) }}
                 />
             ) : (
-                <div className="grid grid-cols-3 gap-3">
+                <Grid columns={3} gap="md">
                     {groups.map(group => (
-                        <button
-                            key={group.id}
-                            onClick={() => setSelectedGroupId(group.id)}
-                            className={`text-left p-4 rounded-xl border transition-colors ${
-                                selectedGroupId === group.id
-                                    ? 'bg-teal-500/10 border-teal-500/40'
-                                    : 'bg-slate-900 border-slate-800 hover:border-slate-700'
-                            }`}
-                        >
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-slate-50">{group.name}</span>
-                                {group.is_default && <StatusChip status="active" label="Default" />}
-                            </div>
-                            <div className="text-xs text-slate-400 mt-1">{group.code}</div>
-                            <span
-                                role="button"
-                                tabIndex={0}
-                                onClick={e => { e.stopPropagation(); setEditingGroup(group); setShowGroupModal(true); }}
-                                onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setEditingGroup(group); setShowGroupModal(true); } }}
-                                className="inline-block mt-2 text-xs text-teal-400 hover:text-teal-300"
+                        <Stack key={group.id} gap="tight">
+                            <Button
+                                variant={selectedGroupId === group.id ? 'secondary' : 'ghost'}
+                                onClick={() => setSelectedGroupId(group.id)}
+                            >
+                                <Stack gap="tight">
+                                    <Cluster justify="between">
+                                        <span className="text-nb-body text-fg">{group.name}</span>
+                                        {group.is_default && <StatusChip status="active" label="Default" />}
+                                    </Cluster>
+                                    <span className="text-nb-caption text-fg-muted">{group.code}</span>
+                                </Stack>
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => { setEditingGroup(group); setShowGroupModal(true); }}
+                                onKeyDown={e => { if (e.key === 'Enter') { setEditingGroup(group); setShowGroupModal(true); } }}
                             >
                                 Edit
-                            </span>
-                        </button>
+                            </Button>
+                        </Stack>
                     ))}
-                </div>
+                </Grid>
             )}
 
             {/* Periods */}
             {selectedGroupId && (
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-slate-50">Pay Periods</h3>
-                        <button
-                            onClick={() => setShowGenerateDialog(true)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium rounded-lg transition-colors"
-                        >
+                <Stack>
+                    <Cluster justify="between">
+                        <h3 className="text-nb-section-title text-fg">Pay Periods</h3>
+                        <Button variant="secondary" size="sm" onClick={() => setShowGenerateDialog(true)}>
                             <CalendarRange size={13} /> Generate periods
-                        </button>
-                    </div>
+                        </Button>
+                    </Cluster>
                     {periods.length === 0 ? (
-                        <p className="text-sm text-slate-400 py-6 text-center bg-slate-900 border border-slate-800 rounded-xl">
-                            No periods yet for this group. Generate periods to start running payroll.
-                        </p>
+                        <EmptyState
+                            icon={CalendarRange}
+                            title="No periods yet for this group."
+                            description="Generate periods to start running payroll."
+                        />
                     ) : (
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                            <table className="w-full">
-                                <thead className="bg-slate-800/50 border-b border-slate-800">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Period</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Pay Date</th>
-                                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800">
-                                    {periods.map(period => (
-                                        <tr key={period.id} className="hover:bg-slate-800/50 transition-colors">
-                                            <td className="px-4 py-3 text-sm text-slate-50">
-                                                {formatters.formatDate(period.period_start)} – {formatters.formatDate(period.period_end)}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-slate-400">{formatters.formatDate(period.pay_date)}</td>
-                                            <td className="px-4 py-3 text-center"><StatusChip status={period.status} /></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        <DataTable columns={periodColumns} rows={periods} rowKey={p => p.id} name="pay-periods" />
                     )}
-                </div>
+                </Stack>
             )}
 
             <GroupModal
@@ -211,7 +194,7 @@ const GroupsPeriodsTab: React.FC = () => {
                 onClose={() => setShowGenerateDialog(false)}
                 onGenerate={handleGenerate}
             />
-        </div>
+        </Stack>
     );
 };
 
@@ -231,42 +214,22 @@ const GroupModal: React.FC<{
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={group ? 'Edit Payroll Group' : 'New Payroll Group'}>
-            <form onSubmit={e => { e.preventDefault(); if (form.name && form.code) onSave(form); }} className="space-y-4">
-                <div>
-                    <label className={labelCls}>Name *</label>
-                    <input type="text" required value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inputCls} placeholder="Monthly Staff" />
-                </div>
-                <div>
-                    <label className={labelCls}>Code *</label>
-                    <input type="text" required value={form.code || ''} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} className={inputCls} placeholder="MONTHLY" />
-                </div>
-                <div>
-                    <label className={labelCls}>Pay Frequency</label>
-                    <select
+            <form onSubmit={e => { e.preventDefault(); if (form.name && form.code) onSave(form); }}>
+                <Stack>
+                    <TextField name="group-name" label="Name" required value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Monthly Staff" />
+                    <TextField name="group-code" label="Code" required value={form.code || ''} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="MONTHLY" />
+                    <Select
+                        name="group-pay-frequency"
+                        label="Pay Frequency"
+                        hint="Decides how generated periods are split."
                         value={form.pay_frequency || 'monthly'}
                         onChange={e => setForm(f => ({ ...f, pay_frequency: e.target.value as PayFrequency }))}
-                        className={inputCls}
-                    >
-                        {PAY_FREQUENCIES.map(({ value, label }) => (
-                            <option key={value} value={value}>{label}</option>
-                        ))}
-                    </select>
-                    <p className="mt-1 text-xs text-slate-500">Decides how generated periods are split.</p>
-                </div>
-                <div>
-                    <label className={labelCls}>Description</label>
-                    <textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className={inputCls} rows={2} />
-                </div>
-                <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={!!form.is_default} onChange={e => setForm(f => ({ ...f, is_default: e.target.checked }))} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500" />
-                    <span className="text-sm text-slate-300">Default group for new employees</span>
-                </label>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">
-                        {group ? 'Update' : 'Create'}
-                    </button>
-                </div>
+                        options={PAY_FREQUENCIES}
+                    />
+                    <Textarea name="group-description" label="Description" rows={2} value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                    <Checkbox name="group-default" label="Default group for new employees" checked={!!form.is_default} onChange={e => setForm(f => ({ ...f, is_default: e.target.checked }))} />
+                    <FormActions divider onCancel={onClose} submitLabel={group ? 'Update' : 'Create'} />
+                </Stack>
             </form>
         </Modal>
     );
@@ -286,29 +249,24 @@ const GeneratePeriodsDialog: React.FC<{
         <Modal isOpen={isOpen} onClose={onClose} title="Generate Pay Periods" size="sm">
             {/* The picker is a calendar day for familiarity, but only its month
                 reaches the API — sending the day failed DTO validation. */}
-            <form onSubmit={e => { e.preventDefault(); if (fromMonth) onGenerate(fromMonth, count); }} className="space-y-4">
-                <p className="text-xs text-slate-400">
-                    Periods are generated ahead using this group's pay day rule. Existing periods are never overwritten.
-                </p>
-                <div>
-                    <label className={labelCls}>Start From *</label>
-                    <input type="date" required value={from} onChange={e => setFrom(e.target.value)} className={inputCls} />
+            <form onSubmit={e => { e.preventDefault(); if (fromMonth) onGenerate(fromMonth, count); }}>
+                <Stack>
+                    <p className="text-nb-caption text-fg-muted">
+                        Periods are generated ahead using this group's pay day rule. Existing periods are never overwritten.
+                    </p>
                     {/* Only the month is used — say so, rather than letting the
                         day silently disappear into the request. */}
-                    {fromMonth && (
-                        <p className="mt-1 text-xs text-slate-500">
-                            Periods start from {fromMonth} — the day you pick is ignored.
-                        </p>
-                    )}
-                </div>
-                <div>
-                    <label className={labelCls}>Number of Periods</label>
-                    <input type="number" min={1} max={24} value={count} onChange={e => setCount(parseInt(e.target.value) || 1)} className={inputCls} />
-                </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors">Generate</button>
-                </div>
+                    <DateInput
+                        name="generate-from"
+                        label="Start From"
+                        required
+                        value={from}
+                        onChange={v => setFrom(v)}
+                        hint={fromMonth ? `Periods start from ${fromMonth} — the day you pick is ignored.` : undefined}
+                    />
+                    <NumberInput name="generate-count" label="Number of Periods" min={1} max={24} value={count} onChange={v => setCount(v || 1)} />
+                    <FormActions divider onCancel={onClose} submitLabel="Generate" />
+                </Stack>
             </form>
         </Modal>
     );

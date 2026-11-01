@@ -1,222 +1,74 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, useLocation, useHref } from 'react-router-dom';
-import { Users, UserPlus, Search, Filter, Mail, Phone, Briefcase, Upload, Download, ChevronDown, ChevronRight, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle, X } from 'lucide-react';
-import PageHeader from '../components/PageHeader';
-import StatusBadge from '../components/StatusBadge';
-import EmptyState from '../components/EmptyState';
-import Modal from '../components/Modal';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Users, UserPlus, Briefcase, Mail, Upload, Download, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
 import { peopleApi } from '../services/peopleService';
-import type { Person, CreatePersonPayload, PersonStatus, AccessStatus, InvitationStatus, LaborCategoryOption } from '../types/people';
-import DepartmentSelector from '../components/DepartmentSelector';
-import UserSelector from '../components/UserSelector';
+import type { Person, CreatePersonPayload, PersonStatus } from '../types/people';
+import { departmentsApi, type Department } from '../services/departmentsService';
 import { usePeopleContext } from '../hooks/useShellContext';
 import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { QuotaBar, QuotaGate, toast, Drawer } from '@so360/design-system';
-import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
+import {
+    QuotaBar, QuotaGate, toast, ListPageTemplate, DataTable, SearchInput, Button, IconButton,
+    Menu, ConfirmDialog, Modal, TextField, Badge, StatusBadge, Avatar, EmptyState, Banner, Cluster, Stack,
+} from '@so360/design-system';
 import { mastersApi, MasterRow } from '../services/mastersService';
 import { buildAtomicCreatePayload, inviteFailed } from './people/createPersonFlow';
-import {
-    customFieldDefsApi,
-    personCustomFieldsApi,
-    CustomFieldDef,
-    PersonCustomFieldValue,
-    CHOICE_FIELD_TYPES,
-} from '../services/customFieldsService';
+import { personCustomFieldsApi } from '../services/customFieldsService';
 import { usePeopleFormatters } from '../utils/formatters';
-import PersonLeaveConfigSection, { type PendingLeaveOverride } from '../components/leave/PersonLeaveConfigSection';
-import { fetchOrgBaseCurrency } from '../services/settingsService';
-import { validatePersonName, validateEmail, validatePhone, sanitizePhoneInput, focusFirstInvalid } from '../utils/validation';
-import { useRefreshOnReturn } from '../hooks/useRefreshOnReturn';
-import { personTypeForEmploymentType, personTypeLabel, typeToSendOnEdit } from '../utils/personType';
+import { DEFAULT_CURRENCIES, resolveAccessBadge, INVITATION_LABEL, resolveInviteRoleId } from './people/shared';
+import { CreatePersonModal } from './people/CreatePersonDrawer';
+import { EditPersonModal } from './people/EditPersonDrawer';
 
-const DEFAULT_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
+// Re-exported so specs (and any caller) keep importing it from the page module.
+export { resolveInviteRoleId } from './people/shared';
 
-// Access-status badge — mirrors the StatusBadge colour vocabulary used across
-// this module (emerald=ok, amber=pending, slate=neutral, rose=blocked). A
-// 'blocked' login_status always wins over access_status.
-const ACCESS_BADGE: Record<string, { label: string; className: string }> = {
-    active: { label: 'Has Access', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
-    pending: { label: 'Invitation Pending', className: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
-    no_access: { label: 'No Access', className: 'bg-slate-500/10 text-slate-400 border-slate-500/30' },
-    blocked: { label: 'Blocked', className: 'bg-rose-500/10 text-rose-400 border-rose-500/30' },
+type ConfirmAction =
+    | { type: 'delete'; person: Person }
+    | { type: 'deactivate'; person: Person }
+    | { type: 'archive'; person: Person }
+    | { type: 'cancel-invite'; person: Person };
+
+const ACCESS_TONE: Record<string, 'success' | 'warning' | 'neutral' | 'danger'> = {
+    'Has Access': 'success',
+    'Invitation Pending': 'warning',
+    'No Access': 'neutral',
+    Blocked: 'danger',
 };
 
-const resolveAccessBadge = (person: Pick<Person, 'access_status' | 'login_status'>) => {
-    // Blocked is a hard override regardless of access_status.
-    if (person.login_status === 'blocked') return ACCESS_BADGE.blocked;
-    const key: AccessStatus = person.access_status ?? 'no_access';
-    return ACCESS_BADGE[key] ?? ACCESS_BADGE.no_access;
-};
-
-// =============================================================================
-// Custom Fields Section — renders one input per active custom field
-// definition (org-defined via Settings > Employee Custom Fields). Shared by
-// both the Create and Edit Person modals so the field-type -> input mapping
-// lives in exactly one place.
-// =============================================================================
-
-interface RenderableCustomField {
-    field_def_id: string;
-    label: string;
-    field_type: 'text' | 'number' | 'dropdown' | 'date' | 'checkbox' | 'multi_select';
-    options?: string[] | null;
-    is_required?: boolean;
-}
-
-interface CustomFieldsSectionProps {
-    fields: RenderableCustomField[];
-    values: Record<string, unknown>;
-    onChange: (fieldDefId: string, value: unknown) => void;
-    loadError?: boolean;
-}
-
-const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({ fields, values, onChange, loadError }) => {
-    if (loadError) {
-        return (
-            <div>
-                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Custom Fields</h4>
-                <p className="text-xs text-rose-400">Couldn't load custom fields. Try reopening this form.</p>
-            </div>
-        );
+const CONFIRM_COPY = (a: ConfirmAction) => {
+    const name = a.person.full_name;
+    switch (a.type) {
+        case 'delete':
+            return {
+                title: 'Delete Employee', confirmLabel: 'Delete Employee',
+                message: `Permanently delete ${name}? This cannot be undone.`,
+                detail: 'Their employee record and platform access are removed. If they have linked records (timesheets, leave, allocations, reviews, goals, feedback, attendance), history is protected: they are deactivated instead and the blocking records are listed.',
+            };
+        case 'archive':
+            return {
+                title: 'Archive Employee', confirmLabel: 'Archive',
+                message: `Archive ${name}? They will be removed from active use and lose platform access.`,
+                detail: 'All historical records are preserved and they can be reactivated later.',
+            };
+        case 'cancel-invite':
+            return {
+                title: 'Cancel Invitation', confirmLabel: 'Cancel Invitation',
+                message: `Cancel the pending invitation for ${name}? They will not be able to use the invite link afterward.`,
+                detail: undefined as string | undefined,
+            };
+        default:
+            return {
+                title: 'Deactivate Employee', confirmLabel: 'Deactivate',
+                message: `Deactivate ${name}? They will immediately lose access to the platform.`,
+                detail: 'Their records are preserved; access is restored if you reactivate them.',
+            };
     }
-
-    if (fields.length === 0) return null;
-
-    return (
-        <div data-testid="custom-fields-section">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Custom Fields</h4>
-            <div className="grid grid-cols-2 gap-4">
-                {fields.map(field => {
-                    const value = values[field.field_def_id];
-                    const inputClass = "w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500";
-                    return (
-                        <div key={field.field_def_id} data-testid={`custom-field-${field.field_def_id}`}>
-                            <label className="block text-xs text-slate-400 mb-1">
-                                {field.label}{field.is_required && <span className="text-red-400"> *</span>}
-                            </label>
-                            {field.field_type === 'text' && (
-                                <input
-                                    type="text"
-                                    value={(value as string) || ''}
-                                    required={!!field.is_required}
-                                    onChange={e => onChange(field.field_def_id, e.target.value)}
-                                    className={inputClass}
-                                />
-                            )}
-                            {field.field_type === 'number' && (
-                                <input
-                                    type="number"
-                                    value={value === undefined || value === null ? '' : (value as number)}
-                                    required={!!field.is_required}
-                                    onChange={e => onChange(field.field_def_id, e.target.value === '' ? null : parseFloat(e.target.value))}
-                                    className={inputClass}
-                                />
-                            )}
-                            {field.field_type === 'date' && (
-                                <input
-                                    type="date"
-                                    value={(value as string) || ''}
-                                    required={!!field.is_required}
-                                    onChange={e => onChange(field.field_def_id, e.target.value)}
-                                    className={inputClass}
-                                />
-                            )}
-                            {field.field_type === 'checkbox' && (
-                                <label className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={!!value}
-                                        onChange={e => onChange(field.field_def_id, e.target.checked)}
-                                        className="text-teal-500 focus:ring-teal-500"
-                                    />
-                                    <span className="text-xs text-slate-400">Yes</span>
-                                </label>
-                            )}
-                            {field.field_type === 'dropdown' && (
-                                <select
-                                    value={(value as string) || ''}
-                                    required={!!field.is_required}
-                                    onChange={e => onChange(field.field_def_id, e.target.value || undefined)}
-                                    className={inputClass}
-                                >
-                                    <option value="">Select {field.label}</option>
-                                    {(field.options || []).map(opt => (
-                                        <option key={opt} value={opt}>{opt}</option>
-                                    ))}
-                                </select>
-                            )}
-                            {field.field_type === 'multi_select' && (
-                                <div className="flex flex-wrap gap-2">
-                                    {(field.options || []).map(opt => {
-                                        const selected = Array.isArray(value) && (value as string[]).includes(opt);
-                                        return (
-                                            <button
-                                                key={opt}
-                                                type="button"
-                                                onClick={() => {
-                                                    const current: string[] = Array.isArray(value) ? [...(value as string[])] : [];
-                                                    const next = current.includes(opt)
-                                                        ? current.filter(v => v !== opt)
-                                                        : [...current, opt];
-                                                    onChange(field.field_def_id, next);
-                                                }}
-                                                className={`px-2 py-1 rounded-full text-xs border transition-colors ${selected ? 'bg-teal-600 border-teal-600 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-teal-500'}`}
-                                            >
-                                                {opt}
-                                            </button>
-                                        );
-                                    })}
-                                    {(field.options || []).length === 0 && (
-                                        <span className="text-xs text-slate-500">No options configured for this field.</span>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-};
-
-const INVITATION_LABEL: Record<InvitationStatus, string> = {
-    pending: 'Pending',
-    accepted: 'Accepted',
-    expired: 'Expired',
-};
-
-/**
- * Pick the org role an invite (or re-invite) should carry.
- *
- * Both invite actions previously used `roles.data[0].id` — the first row the API
- * happened to return. Two things went wrong with that. The role handed to a new
- * user was effectively arbitrary (Guest for some orgs, Admin for others), and
- * because the backend upserts invites on (org_id, email), hitting "Resend"
- * silently OVERWROTE the role an administrator had deliberately chosen.
- *
- * So: keep the person's existing role when they already have one, otherwise use
- * the canonical Employee role. Never guess — returning null surfaces a real error
- * rather than quietly granting the wrong level of access.
- */
-export const resolveInviteRoleId = (
-    person: Person,
-    roles?: Array<{ id: string; name: string }>,
-): string | undefined => {
-    if (!roles?.length) return undefined;
-
-    const byName = (name?: string | null) =>
-        name
-            ? roles.find(r => r.name?.toLowerCase().trim() === name.toLowerCase().trim())
-            : undefined;
-
-    return (byName(person.system_role) ?? byName('Employee'))?.id;
 };
 
 const PeoplePage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { orgId, tenantId } = usePeopleContext();
+    const { orgId } = usePeopleContext();
     // Compensation privacy tier — rate columns hidden without compensation.read.
     const canViewCompensation = useCanViewCompensation();
     const { recordActivity } = useActivity();
@@ -233,6 +85,7 @@ const PeoplePage: React.FC = () => {
     const { isSandboxMode, sandboxEntryLimit, limitItems, isLimited } = useSandboxLimit();
     const [people, setPeople] = useState<Person[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
     const [search, setSearch] = useState('');
     // Debounced copy of `search` that actually drives the list query. The input
     // stays bound to raw `search` (instant typing); only the fetch waits for a
@@ -250,6 +103,20 @@ const PeoplePage: React.FC = () => {
     const [employmentTypeOptions, setEmploymentTypeOptions] = useState<MasterRow[]>([]);
     const [joiningFromFilter, setJoiningFromFilter] = useState<string>('');
     const [joiningToFilter, setJoiningToFilter] = useState<string>('');
+    const [departmentOptions, setDepartmentOptions] = useState<{ value: string; label: string }[]>([]);
+    useEffect(() => {
+        let cancelled = false;
+        departmentsApi.getTree()
+            .then((res) => {
+                const tree: Department[] = Array.isArray(res) ? res : (res as any)?.data || [];
+                const out: { value: string; label: string }[] = [];
+                const walk = (nodes: Department[]) => nodes.forEach((n) => { out.push({ value: n.id, label: n.name }); if (n.children?.length) walk(n.children); });
+                walk(tree);
+                if (!cancelled) setDepartmentOptions(out);
+            })
+            .catch(() => { if (!cancelled) setDepartmentOptions([]); });
+        return () => { cancelled = true; };
+    }, []);
     // From > To is invalid input, not "zero matches" — surfaced inline instead
     // of silently querying and showing a misleading "No people found".
     const joinedRangeInvalid = !!(joiningFromFilter && joiningToFilter && joiningFromFilter > joiningToFilter);
@@ -266,7 +133,6 @@ const PeoplePage: React.FC = () => {
     const [invitingId, setInvitingId] = useState<string | null>(null);
     // Row Actions (⋮) menu — which person's menu is open, the person queued
     // for edit, and any pending confirm-dialog action.
-    const [openActionsId, setOpenActionsId] = useState<string | null>(null);
     const [editPerson, setEditPerson] = useState<Person | null>(null);
     const [confirmAction, setConfirmAction] = useState<
         | { type: 'delete'; person: Person }
@@ -367,7 +233,7 @@ const PeoplePage: React.FC = () => {
         }
     }, [shell?.businessSettings]);
 
-    const handleCreate = async (data: CreatePersonPayload): Promise<boolean> => {
+    const handleCreate = async (data: CreatePersonPayload) => {
         try {
             // One atomic request: the person, custom fields and leave overrides
             // are saved together or not at all (the backend rolls back and names
@@ -555,436 +421,292 @@ const PeoplePage: React.FC = () => {
         }
     };
 
+    const visiblePeople = isSandboxMode ? people.slice(0, sandboxEntryLimit) : people;
+
+    const rowMenuItems = (person: Person) => {
+        const isPendingInvite = person.invitation_status === 'pending' || person.access_status === 'pending';
+        const items: { label: string; onSelect: () => void; icon: React.ReactNode; danger?: boolean }[] = [];
+        if (canEditEmployee) items.push({ label: 'Edit Employee', icon: <Pencil size={14} />, onSelect: () => setEditPerson(person) });
+        if (canEditEmployee && isPendingInvite) {
+            items.push({ label: 'Resend Invitation', icon: <Send size={14} />, onSelect: () => { handleResendInvite(person); } });
+            items.push({ label: 'Cancel Invitation', icon: <XCircle size={14} />, onSelect: () => setConfirmAction({ type: 'cancel-invite', person }) });
+        }
+        if (canEditEmployee && person.status !== 'active') items.push({ label: 'Activate', icon: <UserCheck size={14} />, onSelect: () => { handleSetStatus(person, 'active'); } });
+        if (canEditEmployee && person.status === 'active') items.push({ label: 'Deactivate', icon: <UserMinus size={14} />, onSelect: () => setConfirmAction({ type: 'deactivate', person }) });
+        if (canEditEmployee && person.status !== 'archived') items.push({ label: 'Archive', icon: <Archive size={14} />, onSelect: () => setConfirmAction({ type: 'archive', person }) });
+        if (canDeleteEmployee) items.push({ label: 'Delete Employee', icon: <Trash2 size={14} />, danger: true, onSelect: () => setConfirmAction({ type: 'delete', person }) });
+        return items;
+    };
+
+    const columns = [
+        {
+            key: 'person',
+            header: 'Person',
+            render: (person: Person) => (
+                <Cluster gap="default" className="min-w-0 max-w-full">
+                    <Avatar name={person.full_name} src={person.avatar_url || undefined} />
+                    <Stack gap="none" className="min-w-0 max-w-full">
+                        <span className="text-nb-body font-medium text-fg truncate" title={person.full_name}>{person.full_name}</span>
+                        <Cluster gap="default" className="min-w-0 max-w-full">
+                            {person.job_title && (
+                                <span className="inline-flex min-w-0 max-w-full items-center gap-nb-1 break-words text-nb-caption text-fg-muted"><Briefcase size={12} />{person.job_title}</span>
+                            )}
+                            {person.email && (
+                                <span className="inline-flex min-w-0 max-w-full items-center gap-nb-1 break-all text-nb-caption text-fg-muted"><Mail size={12} className="shrink-0" />{person.email}</span>
+                            )}
+                            {(person.department_info?.name || person.department) && (
+                                <span className="min-w-0 break-words text-nb-caption text-fg-muted">{person.department_info?.name || person.department}</span>
+                            )}
+                            {person.work_location && (
+                                <span className="text-nb-caption text-fg-muted">{(person.work_location as any).name}</span>
+                            )}
+                        </Cluster>
+                    </Stack>
+                </Cluster>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (person: Person) => (
+                <Cluster gap="tight">
+                    <StatusBadge status={person.type} />
+                    <StatusBadge status={person.status} />
+                </Cluster>
+            ),
+        },
+        ...(canViewCompensation ? [{
+            key: 'cost',
+            header: 'Cost',
+            align: 'right' as const,
+            render: (person: Person) => (
+                <Stack gap="none">
+                    <span className="text-nb-body font-medium text-fg">{formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}</span>
+                    {person.billing_rate && person.billing_rate > 0 && (
+                        <span className="text-nb-caption text-fg-muted">Bill: {formatters.formatCurrency(person.billing_rate)}/{person.cost_rate_unit}</span>
+                    )}
+                </Stack>
+            ),
+        }] : []),
+        {
+            key: 'access',
+            header: 'System access',
+            hideBelow: 'medium' as const,
+            render: (person: Person) => {
+                const accessBadge = resolveAccessBadge(person);
+                const invitation = person.invitation_status ? (INVITATION_LABEL[person.invitation_status] ?? '—') : '—';
+                return (
+                    <div role="group" aria-label="System access"><Stack gap="none">
+                        <Badge tone={ACCESS_TONE[accessBadge.label] ?? 'neutral'} aria-label="Access status">{accessBadge.label}</Badge>
+                        <span className="text-nb-caption text-fg-muted truncate" aria-label="System role" title={person.system_role || undefined}>Role: {person.system_role || '—'}</span>
+                        <span className="text-nb-caption text-fg-muted" aria-label="Invitation status">Invite: {invitation}</span>
+                    </Stack></div>
+                );
+            },
+        },
+        {
+            key: 'skills',
+            header: 'Skills',
+            hideBelow: 'expanded' as const,
+            render: (person: Person) => (
+                <Cluster gap="tight">
+                    {person.people_roles?.slice(0, 2).map((skill) => (
+                        <Badge key={skill.id} tone="neutral">{skill.role_name}</Badge>
+                    ))}
+                    {person.people_roles && person.people_roles.length > 2 && (
+                        <span className="text-nb-caption text-fg-muted">+{person.people_roles.length - 2}</span>
+                    )}
+                </Cluster>
+            ),
+        },
+        {
+            key: 'invite',
+            header: 'Invite',
+            interactive: true,
+            hideBelow: 'medium' as const,
+            render: (person: Person) => {
+                const isPending = person.access_status === 'pending' || person.invitation_status === 'pending';
+                // Hide the control once the person already has access; otherwise
+                // show Invite (no_access) or a disabled "Invited" (pending).
+                if (person.access_status === 'active') return null;
+                return (
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); if (!isPending) handleInvite(person); }}
+                        disabled={isPending || invitingId === person.id}
+                        title={isPending ? 'Invitation already sent' : 'Invite to a user account'}
+                    >
+                        <UserPlus size={14} />
+                        {isPending ? 'Invited' : (invitingId === person.id ? 'Inviting…' : 'Invite')}
+                    </Button>
+                );
+            },
+        },
+        ...((canEditEmployee || canDeleteEmployee) ? [{
+            key: 'actions',
+            header: '',
+            interactive: true,
+            align: 'right' as const,
+            render: (person: Person) => (
+                <Menu
+                    trigger={<IconButton label="Employee actions" icon={<MoreHorizontal size={16} />} variant="ghost" />}
+                    items={rowMenuItems(person)}
+                />
+            ),
+        }] : []),
+    ];
+
+    // Direct CSV download of the current (filtered) registry, like HubSpot/BambooHR list exports.
+    const handleExportCsv = async () => {
+        setIsExporting(true);
+        try {
+            const blob = await peopleApi.export('csv', {
+                search: debouncedSearch || undefined,
+                status: statusFilter || undefined,
+                type: typeFilter || undefined,
+                department_id: departmentFilter || undefined,
+                employment_type: employmentTypeFilter || undefined,
+                date_of_joining_from: joiningFromFilter || undefined,
+                date_of_joining_to: joiningToFilter || undefined,
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'people-export.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            toast.success('Exported successfully as CSV');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export people');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const confirmCopy = confirmAction ? CONFIRM_COPY(confirmAction) : null;
+
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
+        <>
+            <ListPageTemplate trail={[]}
                 title="People Registry"
-                subtitle="Manage people as costed, allocatable resources"
-                actions={
-                    <div className="flex items-center gap-2">
-                        {/* Import Button */}
-                        {canImportEmployees && (
-                        <button
-                            // Land directly on the Import tab — clicking Import must
-                            // never drop the user on the Export section.
-                            onClick={() => navigate('/people/import-export?tab=import')}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
-                        >
+                description="Manage people as costed, allocatable resources"
+                headerSecondaryActions={[
+                    ...(canImportEmployees ? [
+                        // Land directly on the Import tab — clicking Import must
+                        // never drop the user on the Export section.
+                        <Button key="import" variant="secondary" onClick={() => navigate('/people/import-export?tab=import')}>
                             <Upload size={16} />
                             Import
-                        </button>
-                        )}
-
-                        {/* Export Button */}
-                        {canExportEmployees && (
-                        <button
-                            // Land directly on the Export tab, mirroring the Import
-                            // button — clicking Export must never require a second click.
-                            onClick={() => navigate('/people/import-export?tab=export')}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-50 text-sm font-medium rounded-lg transition-colors"
-                        >
+                        </Button>,
+                    ] : []),
+                    ...(canExportEmployees ? [
+                        // Downloads the filtered registry as CSV directly (Excel/format choice lives on Data Management).
+                        <Button key="export" variant="secondary" onClick={handleExportCsv} disabled={isExporting}>
                             <Download size={16} />
                             Export
-                        </button>
-                        )}
-
-                        {/* Add Person Button */}
-                        {canAddEmployee && (
-                        <QuotaGate
-                            quotaKey="max_employees"
-                            moduleCode="people"
-                            used={quotaData?.current_usage ?? 0}
-                            limit={quotaData?.limit ?? 0}
-                            isUnlimited={quotaData?.is_unlimited}
-                            disableOnExceeded
-                        >
-                        <button
+                        </Button>,
+                    ] : []),
+                ]}
+                primaryAction={canAddEmployee ? (
+                    <QuotaGate
+                        quotaKey="max_employees"
+                        moduleCode="people"
+                        used={quotaData?.current_usage ?? 0}
+                        limit={quotaData?.limit ?? 0}
+                        isUnlimited={quotaData?.is_unlimited}
+                        disableOnExceeded
+                    >
+                        <Button
+                            variant="primary"
                             onClick={() => setShowCreateModal(true)}
                             disabled={isSandboxMode}
                             title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
-                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                         >
                             <UserPlus size={16} />
                             Add Person
-                        </button>
-                        </QuotaGate>
-                        )}
-                    </div>
-                }
-            />
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                        type="text"
+                        </Button>
+                    </QuotaGate>
+                ) : undefined}
+                search={
+                    <SearchInput
+                        name="people-search"
                         placeholder="Search by name, email, or title..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-9 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                        onChange={setSearch}
+                        onClear={() => setSearch('')}
                     />
-                    {search && (
-                        <button
-                            type="button"
-                            onClick={() => setSearch('')}
-                            aria-label="Clear search"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-colors"
-                        >
-                            <X size={14} />
-                        </button>
-                    )}
-                </div>
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="on_leave">On Leave</option>
-                    <option value="terminated">Terminated</option>
-                    <option value="archived">Archived</option>
-                </select>
-                <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Types</option>
-                    <option value="employee">Employee</option>
-                    <option value="contractor">Contractor</option>
-                </select>
-
-                {/* Department Filter */}
-                <DepartmentSelector
-                    value={departmentFilter}
-                    onChange={(id: string | null) => setDepartmentFilter(id || '')}
-                    orgId={orgId}
-                    tenantId={tenantId}
-                    placeholder="All Departments"
-                    className="w-48"
-                    allowClear
-                />
-
-                {/* Employment Type Filter */}
-                <select
-                    value={employmentTypeFilter}
-                    onChange={(e) => setEmploymentTypeFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Employment Types</option>
-                    {employmentTypeOptions.map(t => (
-                        <option key={t.id} value={t.code}>{t.name}</option>
-                    ))}
-                </select>
-
-                {/* Date of Joining Filter */}
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="joined-from" className="text-xs text-slate-400">Joined:</label>
-                        <input
-                            id="joined-from"
-                            type="date"
-                            aria-label="Joined from"
-                            aria-invalid={joinedRangeInvalid}
-                            max={joiningToFilter || undefined}
-                            value={joiningFromFilter}
-                            onChange={(e) => setJoiningFromFilter(e.target.value)}
-                            className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 ${joinedRangeInvalid ? 'border-red-500' : 'border-slate-700'}`}
-                        />
-                        <span className="text-slate-600">-</span>
-                        <input
-                            type="date"
-                            aria-label="Joined to"
-                            aria-invalid={joinedRangeInvalid}
-                            min={joiningFromFilter || undefined}
-                            value={joiningToFilter}
-                            onChange={(e) => setJoiningToFilter(e.target.value)}
-                            className={`px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500 ${joinedRangeInvalid ? 'border-red-500' : 'border-slate-700'}`}
-                        />
-                        {(joiningFromFilter || joiningToFilter) && (
-                            <button
-                                type="button"
-                                onClick={() => { setJoiningFromFilter(''); setJoiningToFilter(''); }}
-                                aria-label="Clear joined date range"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
-                            >
-                                <X size={14} />
-                            </button>
-                        )}
-                    </div>
-                    {joinedRangeInvalid && (
-                        <span role="alert" className="text-xs text-red-400">From Date cannot be later than To Date.</span>
-                    )}
-                </div>
-
-                {/* Reset everything at once — previously the only way back to the
-                    default view was clearing six controls by hand or reloading. */}
-                {hasActiveFilters && (
-                    <button
-                        type="button"
-                        onClick={handleClearFilters}
-                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-300 hover:text-slate-50 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors"
-                    >
-                        <X size={14} />
-                        Clear Filters
-                    </button>
+                }
+                filterConfig={{
+                    fields: [
+                        { key: 'status', label: 'Status', type: 'select', options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }, { value: 'on_leave', label: 'On Leave' }, { value: 'terminated', label: 'Terminated' }, { value: 'archived', label: 'Archived' }] },
+                        { key: 'type', label: 'Type', type: 'select', options: [{ value: 'employee', label: 'Employee' }, { value: 'contractor', label: 'Contractor' }] },
+                        { key: 'department', label: 'Department', type: 'select', options: departmentOptions },
+                        { key: 'employmentType', label: 'Employment Type', type: 'select', options: employmentTypeOptions.map((t) => ({ value: t.code, label: t.name })) },
+                        { key: 'joined', label: 'Joined', type: 'daterange' },
+                    ],
+                    values: {
+                        status: statusFilter || undefined,
+                        type: typeFilter || undefined,
+                        department: departmentFilter || undefined,
+                        employmentType: employmentTypeFilter || undefined,
+                        joined: joiningFromFilter || joiningToFilter ? { start: joiningFromFilter, end: joiningToFilter } : undefined,
+                    },
+                    onChange: (v) => {
+                        setStatusFilter((v.status as string) || '');
+                        setTypeFilter((v.type as string) || '');
+                        setDepartmentFilter((v.department as string) || '');
+                        setEmploymentTypeFilter((v.employmentType as string) || '');
+                        const joined = v.joined as { start?: string; end?: string } | undefined;
+                        setJoiningFromFilter(joined?.start || '');
+                        setJoiningToFilter(joined?.end || '');
+                    },
+                    onClear: handleClearFilters,
+                }}
+                isFilteredEmpty={hasActiveFilters && people.length === 0}
+                onClearFilters={handleClearFilters}
+                kpis={
+                    <>
+                {quotaData && (
+                    <QuotaBar
+                        label="Employees"
+                        used={quotaData.current_usage}
+                        limit={quotaData.limit}
+                        isUnlimited={quotaData.is_unlimited}
+                    />
                 )}
-            </div>
 
-            {quotaData && (
-                <QuotaBar
-                    label="Employees"
-                    used={quotaData.current_usage}
-                    limit={quotaData.limit}
-                    isUnlimited={quotaData.is_unlimited}
+                {joinedRangeInvalid && (
+                    <Banner variant="danger">From Date cannot be later than To Date.</Banner>
+                )}
+
+                {isSandboxMode && isLimited(people.length) && (
+                    <Banner variant="warning">
+                        Sandbox: Showing {sandboxEntryLimit} of {people.length} records. Switch to Production to view all.
+                    </Banner>
+                )}
+                    </>
+                }
+                loading={loading && people.length === 0}
+                isEmpty={people.length === 0}
+                empty={
+                    <EmptyState
+                        icon={Users}
+                        title="No people found"
+                        description="Add people to start tracking resource allocation and utilization."
+                        action={{ label: 'Add First Person', onClick: () => setShowCreateModal(true) }}
+                    />
+                }
+            >
+                <DataTable<Person>
+                    columns={columns}
+                    rows={visiblePeople}
+                    rowKey={(p) => p.id}
+                    onRowClick={(p) => navigate(`/people/people/${p.id}`)}
                 />
-            )}
-
-            {isSandboxMode && isLimited(people.length) && (
-                <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/25 rounded-lg text-amber-400 text-sm">
-                    <span className="font-semibold">Sandbox:</span>
-                    <span>Showing {sandboxEntryLimit} of {people.length} records. Switch to Production to view all.</span>
-                </div>
-            )}
-
-            {/* People List */}
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-20 bg-slate-800/50 rounded-xl animate-pulse" />
-                    ))}
-                </div>
-            ) : people.length === 0 ? (
-                <EmptyState
-                    icon={Users}
-                    title="No people found"
-                    description="Add people to start tracking resource allocation and utilization."
-                    action={{ label: 'Add First Person', onClick: () => setShowCreateModal(true) }}
-                />
-            ) : (
-                <div className="space-y-2">
-                    {(isSandboxMode ? people.slice(0, sandboxEntryLimit) : people).map((person) => (
-                        <div
-                            key={person.id}
-                            onClick={() => navigate(`/people/people/${person.id}`)}
-                            className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 hover:bg-slate-800/50 cursor-pointer transition-all"
-                        >
-                            {/* Every trailing section lives in a fixed-width cell, so
-                                the columns line up across rows no matter how long a
-                                name/role is or which optional controls a row has. */}
-                            <div className="flex items-center gap-4">
-                                {/* Avatar */}
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
-                                    {person.avatar_url ? (
-                                        <img src={person.avatar_url} alt="" className="w-10 h-10 rounded-full" />
-                                    ) : (
-                                        <span className="text-sm font-medium text-teal-400">
-                                            {person.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Info */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-0.5 min-w-0">
-                                        <span className="text-sm font-medium text-slate-50 truncate">{person.full_name}</span>
-                                        <div className="flex items-center gap-2 flex-shrink-0">
-                                            <StatusBadge status={person.type} />
-                                            <StatusBadge status={person.status} />
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-xs text-slate-500 min-w-0 truncate">
-                                        {person.job_title && (
-                                            <span className="flex items-center gap-1">
-                                                <Briefcase size={12} />
-                                                {person.job_title}
-                                            </span>
-                                        )}
-                                        {person.email && (
-                                            <span className="flex items-center gap-1">
-                                                <Mail size={12} />
-                                                {person.email}
-                                            </span>
-                                        )}
-                                        {(person.department_info?.name || person.department) && (
-                                            <span className="text-slate-600">{person.department_info?.name || person.department}</span>
-                                        )}
-                                        {person.work_location && (
-                                            <span className="flex items-center gap-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                                {(person.work_location as any).name}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Cost Info — compensation-gated */}
-                                {canViewCompensation && (
-                                    <div className="w-28 text-right flex-shrink-0">
-                                        <div className="text-sm font-medium text-slate-50 truncate">
-                                            {formatters.formatCurrency(person.cost_rate)}/{person.cost_rate_unit}
-                                        </div>
-                                        {person.billing_rate && person.billing_rate > 0 && (
-                                            <div className="text-xs text-slate-500">
-                                                Bill: {formatters.formatCurrency(person.billing_rate)}/{person.cost_rate_unit}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* System Access (access status / system role / invitation) */}
-                                {(() => {
-                                    const accessBadge = resolveAccessBadge(person);
-                                    const invitation = person.invitation_status
-                                        ? (INVITATION_LABEL[person.invitation_status] ?? '—')
-                                        : '—';
-                                    return (
-                                        <div className="hidden md:flex flex-col items-end gap-1 flex-shrink-0 w-36" aria-label="System access">
-                                            {/* Access Status */}
-                                            <span
-                                                aria-label="Access status"
-                                                className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${accessBadge.className}`}
-                                            >
-                                                {accessBadge.label}
-                                            </span>
-                                            {/* System Role (Core login role — distinct from skill/people_roles) */}
-                                            <span className="text-xs text-slate-500 truncate max-w-full" aria-label="System role" title={person.system_role || undefined}>
-                                                Role: {person.system_role || '—'}
-                                            </span>
-                                            {/* Invitation Status */}
-                                            <span className="text-xs text-slate-600" aria-label="Invitation status">
-                                                Invite: {invitation}
-                                            </span>
-                                        </div>
-                                    );
-                                })()}
-
-                                {/* Invite action — primarily for people without access.
-                                    The cell is always rendered (even when the person
-                                    already has access) so the columns after it stay put. */}
-                                <div className="hidden sm:flex w-24 justify-end flex-shrink-0">
-                                {(() => {
-                                    const isPending = person.access_status === 'pending' || person.invitation_status === 'pending';
-                                    const hasAccess = person.access_status === 'active';
-                                    // Hide the control once the person already has access;
-                                    // otherwise show Invite (no_access) or a disabled
-                                    // "Invited" (pending).
-                                    if (hasAccess) return null;
-                                    return (
-                                        <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); if (!isPending) handleInvite(person); }}
-                                            disabled={isPending || invitingId === person.id}
-                                            title={isPending ? 'Invitation already sent' : 'Invite to a user account'}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 flex-shrink-0 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 text-slate-50 text-xs font-medium rounded-lg transition-colors"
-                                        >
-                                            <UserPlus size={14} />
-                                            {isPending ? 'Invited' : (invitingId === person.id ? 'Inviting…' : 'Invite')}
-                                        </button>
-                                    );
-                                })()}
-                                </div>
-
-                                {/* Skills — capability tags (distinct from the System Role shown above) */}
-                                <div className="hidden lg:flex items-center justify-end gap-1 w-32 flex-shrink-0 overflow-hidden">
-                                    {person.people_roles?.slice(0, 2).map((skill) => (
-                                        <span key={skill.id} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-400 truncate">
-                                            {skill.role_name}
-                                        </span>
-                                    ))}
-                                    {person.people_roles && person.people_roles.length > 2 && (
-                                        <span className="text-xs text-slate-600 flex-shrink-0">+{person.people_roles.length - 2}</span>
-                                    )}
-                                </div>
-
-                                {/* Actions (⋮) — Edit / Deactivate / Archive / Delete / Resend / Cancel */}
-                                {(canEditEmployee || canDeleteEmployee) && (
-                                    <div className="relative flex-shrink-0 w-8 flex justify-end">
-                                        <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); setOpenActionsId(openActionsId === person.id ? null : person.id); }}
-                                            aria-label="Employee actions"
-                                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-50 hover:bg-slate-800 transition-colors"
-                                        >
-                                            <MoreHorizontal size={16} />
-                                        </button>
-                                        {openActionsId === person.id && (
-                                            <>
-                                                {/* Backdrop to close the menu on outside click */}
-                                                <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setOpenActionsId(null); }} />
-                                                <div
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-20 py-1"
-                                                >
-                                                    {canEditEmployee && (
-                                                        <button
-                                                            onClick={() => { setEditPerson(person); setOpenActionsId(null); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700"
-                                                        >
-                                                            <Pencil size={14} /> Edit Employee
-                                                        </button>
-                                                    )}
-                                                    {canEditEmployee && (person.invitation_status === 'pending' || person.access_status === 'pending') && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => { setOpenActionsId(null); handleResendInvite(person); }}
-                                                                className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-50 hover:bg-slate-700"
-                                                            >
-                                                                <Send size={14} /> Resend Invitation
-                                                            </button>
-                                                            <button
-                                                                onClick={() => { setConfirmAction({ type: 'cancel-invite', person }); setOpenActionsId(null); }}
-                                                                className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-amber-400 hover:bg-slate-700"
-                                                            >
-                                                                <XCircle size={14} /> Cancel Invitation
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    {canEditEmployee && person.status !== 'active' && (
-                                                        <button
-                                                            onClick={() => { setOpenActionsId(null); handleSetStatus(person, 'active'); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-emerald-400 hover:bg-slate-700"
-                                                        >
-                                                            <UserCheck size={14} /> Activate
-                                                        </button>
-                                                    )}
-                                                    {canEditEmployee && person.status === 'active' && (
-                                                        <button
-                                                            onClick={() => { setConfirmAction({ type: 'deactivate', person }); setOpenActionsId(null); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-amber-400 hover:bg-slate-700"
-                                                        >
-                                                            <UserMinus size={14} /> Deactivate
-                                                        </button>
-                                                    )}
-                                                    {canEditEmployee && person.status !== 'archived' && (
-                                                        <button
-                                                            onClick={() => { setConfirmAction({ type: 'archive', person }); setOpenActionsId(null); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
-                                                        >
-                                                            <Archive size={14} /> Archive
-                                                        </button>
-                                                    )}
-                                                    {canDeleteEmployee && (
-                                                        <button
-                                                            onClick={() => { setConfirmAction({ type: 'delete', person }); setOpenActionsId(null); }}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-rose-400 hover:bg-slate-700 border-t border-slate-700 mt-1 pt-2"
-                                                        >
-                                                            <Trash2 size={14} /> Delete Employee
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            </ListPageTemplate>
 
             {/* Create Modal */}
             <CreatePersonModal
@@ -996,44 +718,35 @@ const PeoplePage: React.FC = () => {
             />
 
             {/* Invite link — shown after inviting so the admin can copy/share it if email is unreliable */}
-            {inviteResult && (
-                <Modal isOpen={true} onClose={() => setInviteResult(null)} title="Invitation ready" size="md">
-                    <div className="space-y-4">
-                        <p className="text-sm text-slate-300">
+            <Modal
+                open={!!inviteResult}
+                onClose={() => setInviteResult(null)}
+                title="Invitation ready"
+                size="md"
+                footer={<Button variant="ghost" onClick={() => setInviteResult(null)}>Done</Button>}
+            >
+                {inviteResult && (
+                    <Stack gap="default">
+                        <p className="text-nb-body text-fg">
                             {inviteResult.emailSent
-                                ? <>We've emailed the invitation to <span className="text-slate-100 font-medium">{inviteResult.email}</span>. If it doesn't arrive, copy and share this link directly:</>
+                                ? <>We've emailed the invitation to <span className="font-medium">{inviteResult.email}</span>. If it doesn't arrive, copy and share this link directly:</>
                                 : inviteResult.emailRequested
-                                    ? <>The invitation for <span className="text-slate-100 font-medium">{inviteResult.email}</span> was created, but the email could not be sent. Share this link with them directly:</>
-                                    : <>Share this invite link with <span className="text-slate-100 font-medium">{inviteResult.email}</span> so they can set a password and sign in:</>}
+                                    ? <>The invitation for <span className="font-medium">{inviteResult.email}</span> was created, but the email could not be sent. Share this link with them directly:</>
+                                    : <>Share this invite link with <span className="font-medium">{inviteResult.email}</span> so they can set a password and sign in:</>}
                         </p>
-                        <div className="flex gap-2">
-                            <input
+                        <Cluster gap="tight">
+                            <TextField
+                                name="invite-link"
                                 readOnly
                                 value={inviteResult.link}
-                                onFocus={(e) => e.currentTarget.select()}
-                                className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-teal-500"
+                                onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select()}
                             />
-                            <button
-                                type="button"
-                                onClick={handleCopyInvite}
-                                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
-                            >
-                                Copy link
-                            </button>
-                        </div>
-                        <p className="text-xs text-slate-500">This link lets the invitee set a password. It expires according to your security settings.</p>
-                        <div className="flex justify-end pt-2 border-t border-slate-800">
-                            <button
-                                type="button"
-                                onClick={() => setInviteResult(null)}
-                                className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-                            >
-                                Done
-                            </button>
-                        </div>
-                    </div>
-                </Modal>
-            )}
+                            <Button variant="primary" onClick={handleCopyInvite}>Copy link</Button>
+                        </Cluster>
+                        <p className="text-nb-caption text-fg-muted">This link lets the invitee set a password. It expires according to your security settings.</p>
+                    </Stack>
+                )}
+            </Modal>
 
             {/* Edit Modal */}
             <EditPersonModal
@@ -1046,1498 +759,28 @@ const PeoplePage: React.FC = () => {
             />
 
             {/* Deactivate / Archive / Delete / Cancel-invite confirmation */}
-            {confirmAction && (
-                <ConfirmDialog
-                    title={
-                        confirmAction.type === 'delete' ? 'Delete Employee'
-                            : confirmAction.type === 'archive' ? 'Archive Employee'
-                                : confirmAction.type === 'cancel-invite' ? 'Cancel Invitation'
-                                    : 'Deactivate Employee'
-                    }
-                    message={
-                        // One sentence each; consequences live in `detail`
-                        // behind a disclosure (UX guide: one-sentence confirms,
-                        // progressive disclosure for the fine print).
-                        confirmAction.type === 'delete'
-                            ? `Permanently delete ${confirmAction.person.full_name}? This cannot be undone.`
-                            : confirmAction.type === 'archive'
-                                ? `Archive ${confirmAction.person.full_name}? They will be removed from active use and lose platform access.`
-                                : confirmAction.type === 'cancel-invite'
-                                    ? `Cancel the pending invitation for ${confirmAction.person.full_name}? They will not be able to use the invite link afterward.`
-                                    : `Deactivate ${confirmAction.person.full_name}? They will immediately lose access to the platform.`
-                    }
-                    detail={
-                        confirmAction.type === 'delete'
-                            ? 'Their employee record and platform access are removed. If they have linked records (timesheets, leave, allocations, reviews, goals, feedback, attendance), history is protected: they are deactivated instead and the blocking records are listed.'
-                            : confirmAction.type === 'archive'
-                                ? 'All historical records are preserved and they can be reactivated later.'
-                                : confirmAction.type === 'deactivate'
-                                    ? 'Their records are preserved; access is restored if you reactivate them.'
-                                    : undefined
-                    }
-                    confirmLabel={confirmAction.type === 'delete' ? 'Delete Employee' : confirmAction.type === 'archive' ? 'Archive' : confirmAction.type === 'cancel-invite' ? 'Cancel Invitation' : 'Deactivate'}
-                    danger={confirmAction.type === 'delete' || confirmAction.type === 'cancel-invite'}
-                    busy={actionBusy}
-                    onCancel={() => setConfirmAction(null)}
-                    onConfirm={() => {
-                        if (confirmAction.type === 'delete') handleDeleteConfirmed(confirmAction.person);
-                        else if (confirmAction.type === 'archive') handleSetStatus(confirmAction.person, 'archived');
-                        else if (confirmAction.type === 'deactivate') handleSetStatus(confirmAction.person, 'inactive');
-                        else if (confirmAction.type === 'cancel-invite') handleCancelInvite(confirmAction.person);
-                    }}
-                />
-            )}
-
-        </div>
-    );
-};
-
-// =============================================================================
-// Work Location field help — shared by the Create and Edit Person modals
-// =============================================================================
-
-/**
- * The "Manage Work Locations" link leaves this form for a different page, which
- * silently discards anything already typed. Rather than stack a confirm modal
- * on top of the person modal, the warning replaces this line in place: one tap
- * to leave, one to stay. A pristine form navigates straight through, since
- * there is nothing to lose.
- */
-const WorkLocationFieldHelp: React.FC<{
-    hasError: boolean;
-    isEmpty: boolean;
-    isDirty: boolean;
-    /**
-     * When provided, offers an in-drawer quick-add that replaces the drawer
-     * content (no navigation, nothing typed is at risk). The full management
-     * page link stays for heavier work.
-     */
-    onQuickAdd?: () => void;
-}> = ({ hasError, isEmpty, isDirty, onQuickAdd }) => {
-    const navigate = useNavigate();
-    const [confirmingLeave, setConfirmingLeave] = useState(false);
-
-    const go = () => navigate('/people/settings/work-locations');
-
-    if (confirmingLeave) {
-        return (
-            <p className="text-xs text-amber-400 mt-1">
-                Leaving discards what you&apos;ve entered.{' '}
-                <button
-                    type="button"
-                    onClick={go}
-                    className="text-amber-300 hover:text-amber-200 underline"
-                >
-                    Leave anyway
-                </button>
-                {' · '}
-                <button
-                    type="button"
-                    onClick={() => setConfirmingLeave(false)}
-                    className="text-slate-400 hover:text-slate-200 underline"
-                >
-                    Stay
-                </button>
-            </p>
-        );
-    }
-
-    return (
-        <p className="text-xs text-slate-500 mt-1">
-            {hasError
-                ? <span className="text-rose-400">Couldn&apos;t load work locations. </span>
-                : isEmpty
-                    ? 'No work locations configured. '
-                    : null}
-            {onQuickAdd && (
-                <>
-                    <button
-                        type="button"
-                        onClick={onQuickAdd}
-                        className="text-teal-400 hover:text-teal-300 underline"
-                    >
-                        + New Location
-                    </button>
-                    {' · '}
-                </>
-            )}
-            <button
-                type="button"
-                onClick={() => (isDirty ? setConfirmingLeave(true) : go())}
-                className="text-teal-400 hover:text-teal-300 underline"
-            >
-                Manage Work Locations
-            </button>
-        </p>
-    );
-};
-
-// =============================================================================
-// Collapsible form section — progressive disclosure (UX guide: complete the
-// common task with a handful of fields; everything else behind Advanced).
-// =============================================================================
-
-const Section: React.FC<{
-    title: string;
-    defaultOpen?: boolean;
-    children: React.ReactNode;
-}> = ({ title, defaultOpen = false, children }) => {
-    const [open, setOpen] = useState(defaultOpen);
-    return (
-        <div className="border border-slate-800 rounded-lg">
-            <button
-                type="button"
-                onClick={() => setOpen(o => !o)}
-                aria-expanded={open}
-                className="w-full flex items-center justify-between px-4 py-3 text-left"
-            >
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</span>
-                <ChevronDown size={14} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
-            </button>
-            {open && <div className="px-4 pb-4 space-y-5">{children}</div>}
-        </div>
-    );
-};
-
-// =============================================================================
-// Quick-add Work Location panel — replaces the person drawer's content (never
-// stacks a second surface); Back returns to the form with the new location
-// selected.
-// =============================================================================
-
-const QuickAddLocationPanel: React.FC<{
-    onCreated: (loc: WorkLocation) => void;
-}> = ({ onCreated }) => {
-    const [name, setName] = useState('');
-    const [locationType, setLocationType] = useState<'office' | 'factory' | 'store' | 'remote'>('office');
-    const [busy, setBusy] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!name.trim() || busy) return;
-        setBusy(true);
-        try {
-            const loc = await workLocationsApi.create({ name: name.trim(), location_type: locationType });
-            toast.success(`Work location "${loc.name}" created`);
-            onCreated(loc);
-        } catch (err) {
-            toast.error((err as Error)?.message || 'Failed to create work location');
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    return (
-        <form id="quick-add-location-form" onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label htmlFor="quick-location-name" className="block text-xs text-slate-400 mb-1">Name <span className="text-red-400">*</span></label>
-                <input
-                    id="quick-location-name"
-                    autoFocus
-                    required
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="e.g. Main Factory, Head Office"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 placeholder-slate-500 focus:outline-none focus:border-teal-500"
-                />
-            </div>
-            <div>
-                <label htmlFor="quick-location-type" className="block text-xs text-slate-400 mb-1">Type</label>
-                <select
-                    id="quick-location-type"
-                    value={locationType}
-                    onChange={e => setLocationType(e.target.value as typeof locationType)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="office">Office</option>
-                    <option value="factory">Factory</option>
-                    <option value="store">Store</option>
-                    <option value="remote">Remote</option>
-                </select>
-            </div>
-            <p className="text-xs text-slate-500">
-                Address and status can be set later from Work Locations.
-            </p>
-        </form>
-    );
-};
-
-// =============================================================================
-// Create Person Modal
-// =============================================================================
-
-interface CreatePersonModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onCreate: (data: CreatePersonPayload) => Promise<boolean>;
-    currencies?: string[];
-    // Org's configured base currency; pre-selected as the default. Falls back to
-    // 'USD' only when no org currency is configured.
-    defaultCurrency?: string;
-}
-
-const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, onClose, onCreate, currencies = DEFAULT_CURRENCIES, defaultCurrency }) => {
-    // This modal is a SIBLING of the page component, so it cannot see the
-    // page's formatters — it needs its own hook to reach the org timezone.
-    const formatters = usePeopleFormatters();
-    const { orgId, tenantId } = usePeopleContext();
-    const navigate = useNavigate();
-    const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
-    const [workLocationsError, setWorkLocationsError] = useState(false);
-    const [designations, setDesignations] = useState<MasterRow[]>([]);
-    const [designationsError, setDesignationsError] = useState(false);
-    const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
-    const [employmentTypesError, setEmploymentTypesError] = useState(false);
-    // "Create Employment Type" opens in a new tab so a half-filled form is kept;
-    // the list is re-read once, when the user comes back from that tab.
-    const employmentTypesHref = useHref('/people/settings/employment-types');
-    const markEmploymentTypesPending = useRefreshOnReturn(isOpen, () => {
-        mastersApi.getAll('employment_type')
-            .then(r => { setEmploymentTypes(r.data ?? []); setEmploymentTypesError(false); })
-            .catch(() => {});
-    });
-    const [orgRoles, setOrgRoles] = useState<Array<{ id: string; name: string }>>([]);
-    const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
-    const [customFieldsError, setCustomFieldsError] = useState(false);
-    const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
-    // Employee-level leave deviations, staged here and applied after the person
-    // row exists (overrides are keyed by person_id).
-    const [leaveOverrides, setLeaveOverrides] = useState<PendingLeaveOverride[]>([]);
-    const shell = useShellBridge() as any;
-    // Creating a person and managing their leave are separate permissions: an
-    // HR assistant may hold the first and not the second, in which case they see
-    // the inherited structure read-only. Fails open while permissions resolve.
-    const canManageLeave = !shell?.permissionsLoaded
-        ? true
-        : (shell?.hasPermission?.('leave.update') ?? true);
-    // Creating org-wide leave types from inside the form. Mirrors the Leave
-    // Types page guard (leave.configure) and the create endpoint's own guard
-    // (leave.create). Fails closed: offering a create that then 403s is worse
-    // than not offering it until permissions resolve.
-    const canCreateLeaveTypes = !!shell?.permissionsLoaded
-        && !!shell?.hasPermission?.('leave.configure')
-        && !!shell?.hasPermission?.('leave.create');
-    // Holds the resolved org currency. Initialized from the shell prop when available;
-    // falls back to a direct Core BE fetch to avoid the shell's async race condition.
-    const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || 'USD');
-
-    useEffect(() => {
-        if (!isOpen) return;
-        setLeaveOverrides([]);
-        setWorkLocationsError(false);
-        workLocationsApi.getAll()
-            .then(r => setWorkLocations(r.data ?? []))
-            .catch(() => setWorkLocationsError(true));
-        setDesignationsError(false);
-        mastersApi.getAll('designation')
-            .then(r => setDesignations(r.data ?? []))
-            .catch(() => setDesignationsError(true));
-        setEmploymentTypesError(false);
-        mastersApi.getAll('employment_type')
-            .then(r => setEmploymentTypes(r.data ?? []))
-            .catch(() => setEmploymentTypesError(true));
-        peopleApi.getOrgRoles().then(r => setOrgRoles(r.data ?? [])).catch(() => {});
-        setCustomFieldsError(false);
-        setCustomFieldValues({});
-        customFieldDefsApi.getAll()
-            .then(r => setCustomFieldDefs(r.data ?? []))
-            .catch(() => setCustomFieldsError(true));
-    }, [isOpen]);
-
-    const updateCustomFieldValue = (fieldDefId: string, value: unknown) => {
-        setCustomFieldValues(prev => ({ ...prev, [fieldDefId]: value }));
-    };
-
-    // When the shell hasn't pre-loaded businessSettings yet (defaultCurrency is empty),
-    // fetch org currency directly from Core BE so the field is never stuck on USD.
-    useEffect(() => {
-        if (!isOpen || !orgId || defaultCurrency) return;
-        fetchOrgBaseCurrency(orgId).then(currency => {
-            if (currency) setResolvedCurrency(currency);
-        }).catch(() => {});
-    }, [isOpen, orgId, defaultCurrency]);
-
-    // Keep in sync if the shell prop arrives after the modal is already mounted.
-    useEffect(() => {
-        if (defaultCurrency) setResolvedCurrency(defaultCurrency);
-    }, [defaultCurrency]);
-
-    const [formData, setFormData] = useState<CreatePersonPayload & {
-        userLinkageMode?: 'none' | 'link' | 'invite';
-        existingUserId?: string;
-        inviteEmail?: string;
-        inviteRole?: string;
-        sendInviteEmail?: boolean;
-    }>({
-        full_name: '',
-        email: '',
-        phone: '',
-        type: 'employee',
-        department_id: '',
-        job_title: '',
-        cost_rate: 0,
-        cost_rate_unit: 'hour',
-        currency: resolvedCurrency,
-        billing_rate: 0,
-        available_hours_per_day: 8,
-        available_days_per_week: 5,
-        start_date: formatters.businessToday(),
-        userLinkageMode: 'invite',
-        sendInviteEmail: true,
-    });
-
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const formRef = useRef<HTMLFormElement>(null);
-    // Submit-order of the validated fields — drives which field gets scrolled
-    // to and focused when a submit is rejected.
-    const FIELD_ORDER = ['full_name', 'email', 'phone', 'inviteEmail', 'inviteRole'];
-
-    // The form stores employment_type as a CODE; leave configuration is keyed by
-    // the master row's id, so resolve one to the other here rather than in the
-    // section (which would have to re-fetch the master list to do it).
-    // MUST stay below the formData declaration — reading it above is a temporal
-    // dead zone error that crashes the whole modal at render, and tsc cannot see it.
-    const selectedEmploymentType = employmentTypes.find(
-        et => et.code === (formData as any).employment_type,
-    );
-
-    // Sync form currency whenever the resolved currency updates or the modal opens.
-    useEffect(() => {
-        if (isOpen) {
-            setErrors({});
-            setFormData(prev => ({ ...prev, currency: resolvedCurrency }));
-        }
-    }, [isOpen, resolvedCurrency]);
-
-    const validate = (data: typeof formData): Record<string, string> => {
-        const next: Record<string, string> = {};
-        const nameError = validatePersonName(data.full_name);
-        if (nameError) next.full_name = nameError;
-        const emailError = validateEmail(data.email);
-        if (emailError) next.email = emailError;
-        const phoneError = validatePhone(data.phone);
-        if (phoneError) next.phone = phoneError;
-        if (data.userLinkageMode === 'invite') {
-            // The Identity email IS the invitation email (the invite field is a
-            // read-only mirror), so validate that one and point the admin back to it.
-            const inviteEmailError = validateEmail(data.email, true);
-            if (inviteEmailError) {
-                next.inviteEmail = data.email
-                    ? inviteEmailError
-                    : 'Add an email in the Identity section — the invitation is sent to that address.';
-            }
-            if (!data.inviteRole) next.inviteRole = 'Select a role for the invited user.';
-        }
-        if (data.userLinkageMode === 'link' && !data.existingUserId) {
-            next.existingUserId = 'Select the user account to link.';
-        }
-        return next;
-    };
-
-    // Live validity — the primary action stays disabled until the form can
-    // actually be submitted, instead of firing a browser validation bubble
-    // anchored to a field the user may have scrolled past.
-    const isFormValid = Object.keys(validate(formData)).length === 0;
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const validationErrors = validate(formData);
-        if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors);
-            focusFirstInvalid(formRef.current, [...FIELD_ORDER, 'existingUserId'], validationErrors);
-            return;
-        }
-        // Omit an unselected department so the backend @IsUUID validation is not
-        // triggered by an empty string.
-        const payload: any = { ...formData, full_name: formData.full_name.trim() };
-        payload.department_id = payload.department_id || undefined;
-        payload.type = personTypeForEmploymentType(payload.employment_type);
-        // The invitation always goes to the Identity email — never carry a separate value.
-        payload.inviteEmail = payload.email;
-        if (Object.keys(customFieldValues).length > 0) {
-            payload.customFieldValues = customFieldValues;
-        }
-        // Applied by handleCreate once the person id exists. Only sent when the
-        // user actually deviated from the inherited defaults — an untouched
-        // Leave Configuration section writes nothing at all.
-        if (leaveOverrides.length > 0) {
-            payload.leaveOverrides = leaveOverrides;
-        }
-        // Keep the admin's input when creation fails (nothing was saved) so
-        // they can retry; reset only after a successful create.
-        const created = await onCreate(payload);
-        if (!created) return;
-        setCustomFieldValues({});
-        setLeaveOverrides([]);
-        // Reset form
-        setFormData({
-            full_name: '', email: '', phone: '', type: 'employee',
-            department_id: '', job_title: '', cost_rate: 0, cost_rate_unit: 'hour',
-            currency: resolvedCurrency, billing_rate: 0, available_hours_per_day: 8,
-            available_days_per_week: 5, start_date: formatters.businessToday(),
-            userLinkageMode: 'invite', sendInviteEmail: true,
-        });
-        setErrors({});
-    };
-
-    const updateField = (field: string, value: unknown) => {
-        // Functional update: `currency` is resolved asynchronously from org
-        // settings, so merging into a captured snapshot could revert it.
-        setFormData(prev => ({ ...prev, [field]: value }));
-        // Re-validate the touched field so a correction clears immediately.
-        // Validation only reads user-entered fields, so the snapshot is safe.
-        const nextData = { ...formData, [field]: value } as typeof formData;
-        const fieldErrors = validate(nextData);
-        setErrors(prev => ({
-            ...prev,
-            [field]: fieldErrors[field] || '',
-            // Switching linkage mode changes which invite fields are required.
-            ...(field === 'userLinkageMode'
-                ? { inviteEmail: fieldErrors.inviteEmail || '', inviteRole: fieldErrors.inviteRole || '', existingUserId: fieldErrors.existingUserId || '' }
-                : {}),
-            // The invite email defaults to the identity email — keep them in sync.
-            ...(field === 'email' ? { inviteEmail: fieldErrors.inviteEmail || '' } : {}),
-        }));
-    };
-
-    // Summarises what is still missing when more than one field is invalid.
-    const errorCount = Object.values(errors).filter(Boolean).length;
-
-    // Drawer content view — 'newLocation' replaces the form with the quick-add
-    // location panel (UX guide: replace drawer content, never stack surfaces).
-    // Form state lives here, not in the form DOM, so nothing typed is lost.
-    const [view, setView] = useState<'form' | 'newLocation'>('form');
-    useEffect(() => { if (isOpen) setView('form'); }, [isOpen]);
-
-    const handleLocationCreated = (loc: WorkLocation) => {
-        setWorkLocations(prev => [...prev, loc].sort((a, b) => a.name.localeCompare(b.name)));
-        updateField('work_location_id', loc.id);
-        setView('form');
-    };
-
-    return (
-        <Drawer
-            isOpen={isOpen}
-            onClose={onClose}
-            title={view === 'form' ? 'Add Person' : 'New Work Location'}
-            size="lg"
-            onBack={view === 'newLocation' ? () => setView('form') : undefined}
-            footer={
-                view === 'form' ? (
-                    <div className="flex justify-end gap-3">
-                        <button
-                            type="button" onClick={onClose}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            form="create-person-form"
-                            disabled={!isFormValid}
-                            title={isFormValid ? undefined : 'Complete all required fields with valid values.'}
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Add Person
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex justify-end gap-3">
-                        <button
-                            type="button" onClick={() => setView('form')}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-                        >
-                            Back
-                        </button>
-                        <button
-                            type="submit"
-                            form="quick-add-location-form"
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                        >
-                            Add Location
-                        </button>
-                    </div>
-                )
-            }
-        >
-            {view === 'newLocation' && <QuickAddLocationPanel onCreated={handleLocationCreated} />}
-            {/* noValidate: browser-native bubbles anchor to the offending field even
-                when it is scrolled out of view, so a user at the bottom of this
-                modal saw nothing happen. Inline messages + scroll-to-first-invalid
-                replace them. */}
-            <form ref={formRef} id="create-person-form" onSubmit={handleSubmit} noValidate className={`space-y-5 ${view === 'newLocation' ? 'hidden' : ''}`}>
-                {/* Basic Info */}
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Identity</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                            <label htmlFor="person-full-name" className="block text-xs text-slate-400 mb-1">Full Name *</label>
-                            <input
-                                id="person-full-name"
-                                data-field="full_name"
-                                type="text" value={formData.full_name}
-                                onChange={(e) => updateField('full_name', e.target.value)}
-                                aria-invalid={!!errors.full_name}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.full_name ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                                placeholder="John Doe"
-                            />
-                            {errors.full_name && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.full_name}</p>}
-                        </div>
-                        <div>
-                            <label htmlFor="person-email" className="block text-xs text-slate-400 mb-1">Email</label>
-                            <input
-                                id="person-email"
-                                data-field="email"
-                                type="text" value={formData.email || ''}
-                                onChange={(e) => updateField('email', e.target.value)}
-                                aria-invalid={!!errors.email}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.email ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                                placeholder="john@company.com"
-                            />
-                            {errors.email && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.email}</p>}
-                        </div>
-                        <div>
-                            <label htmlFor="person-phone" className="block text-xs text-slate-400 mb-1">Phone</label>
-                            <input
-                                id="person-phone"
-                                data-field="phone"
-                                type="text" inputMode="tel" value={formData.phone || ''}
-                                onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))}
-                                maxLength={20}
-                                aria-invalid={!!errors.phone}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                                placeholder="+1-555-0100"
-                            />
-                            {errors.phone && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Classification — the ≤5-field primary screen: Type, Department,
-                    Work Location. Designation/employment type/joining date and the
-                    cost/availability numbers live behind the sections below
-                    (progressive disclosure), all pre-filled with sensible defaults. */}
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Classification</h4>
-                    <div className="grid grid-cols-3 gap-4">
-                        {/* The single classification input. Employee vs Contractor is
-                            derived from it (see utils/personType) — there is no separate
-                            Type field that could contradict it. */}
-                        <div>
-                            <label htmlFor="create-employment-type" className="block text-xs text-slate-400 mb-1">Employment Type</label>
-                            <select
-                                id="create-employment-type"
-                                value={(formData as any).employment_type || ''}
-                                onChange={(e) => updateField('employment_type', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Employment Type</option>
-                                {employmentTypes.map(et => (
-                                    <option key={et.id} value={et.code}>{et.name}</option>
-                                ))}
-                            </select>
-                            {employmentTypesError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load employment types. Try reopening this form.</p>
-                            ) : employmentTypes.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
-                                    No employment types configured.{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => { markEmploymentTypesPending(); window.open(employmentTypesHref, '_blank', 'noopener'); }}
-                                        className="text-teal-400 hover:text-teal-300 underline"
-                                    >
-                                        Create Employment Type
-                                    </button>
-                                </p>
-                            ) : (
-                                <p className="text-xs text-slate-500 mt-1" data-testid="derived-person-type">
-                                    Recorded as {personTypeLabel(personTypeForEmploymentType((formData as any).employment_type))}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Department</label>
-                            <DepartmentSelector
-                                value={formData.department_id || ''}
-                                onChange={(id) => updateField('department_id', id || undefined)}
-                                placeholder="Select department..."
-                                allowClear
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Work Location</label>
-                            <select
-                                value={(formData as any).work_location_id || ''}
-                                onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Work Location</option>
-                                {workLocations.map(loc => (
-                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                ))}
-                            </select>
-                            {/* The manage link is unconditional. It used to render only
-                                when zero locations existed, so it vanished the moment the
-                                first one was created — leaving no route to the management
-                                page from here. */}
-                            <WorkLocationFieldHelp
-                                hasError={workLocationsError}
-                                isEmpty={workLocations.length === 0}
-                                isDirty={!!(formData.full_name?.trim() || formData.email?.trim() || formData.phone?.trim())}
-                                onQuickAdd={() => setView('newLocation')}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Employment details — Advanced */}
-                <Section title="Employment Details">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Job Title (Designation)</label>
-                            <select
-                                value={formData.job_title || ''}
-                                onChange={(e) => updateField('job_title', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Designation</option>
-                                {designations.map(d => (
-                                    <option key={d.id} value={d.name}>{d.name}</option>
-                                ))}
-                            </select>
-                            {designationsError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load designations. Try reopening this form.</p>
-                            ) : designations.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
-                                    No designations configured.{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/people/settings/designations')}
-                                        className="text-teal-400 hover:text-teal-300 underline"
-                                    >
-                                        Create Designation
-                                    </button>
-                                </p>
-                            ) : null}
-                        </div>
-                    </div>
-                </Section>
-
-                {/* Placed directly after Employment Details — the employment type
-                    chosen above is what determines the defaults shown here. */}
-                <Section title="Leave Configuration">
-                    <PersonLeaveConfigSection
-                        employmentTypeMasterId={selectedEmploymentType?.id ?? ''}
-                        employmentTypeName={selectedEmploymentType?.name}
-                        overrides={leaveOverrides}
-                        onOverridesChange={setLeaveOverrides}
-                        canManageLeave={canManageLeave}
-                        canCreateLeaveTypes={canCreateLeaveTypes}
-                    />
-                </Section>
-
-                {/* Cost — Advanced (defaults: 0 @ hourly in the org currency) */}
-                <Section title="Cost & Billing">
-                    <div className="grid grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Cost Rate *</label>
-                            <input
-                                type="number" min="0" step="0.01" value={formData.cost_rate}
-                                onChange={(e) => updateField('cost_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Rate Unit</label>
-                            <select
-                                value={formData.cost_rate_unit}
-                                onChange={(e) => updateField('cost_rate_unit', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="hour">Per Hour</option>
-                                <option value="day">Per Day</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Billing Rate</label>
-                            <input
-                                type="number" min="0" step="0.01" value={formData.billing_rate || 0}
-                                onChange={(e) => updateField('billing_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Currency</label>
-                            <select
-                                value={formData.currency}
-                                onChange={(e) => updateField('currency', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                {currencies.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                </Section>
-
-                {/* Availability — Advanced (defaults: 8h × 5d, starting today) */}
-                <Section title="Availability">
-                    <div className="grid grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Hours/Day</label>
-                            <input
-                                type="number" min="1" max="24" value={formData.available_hours_per_day}
-                                onChange={(e) => updateField('available_hours_per_day', parseFloat(e.target.value) || 8)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Days/Week</label>
-                            <input
-                                type="number" min="1" max="7" value={formData.available_days_per_week}
-                                onChange={(e) => updateField('available_days_per_week', parseInt(e.target.value) || 5)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Start Date</label>
-                            <input
-                                type="date" value={formData.start_date || ''}
-                                onChange={(e) => updateField('start_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                    </div>
-                </Section>
-
-                {/* Custom Fields */}
-                <CustomFieldsSection
-                    fields={customFieldDefs.map(d => ({ field_def_id: d.id, label: d.label, field_type: d.field_type, options: d.options, is_required: d.is_required }))}
-                    values={customFieldValues}
-                    onChange={updateCustomFieldValue}
-                    loadError={customFieldsError}
-                />
-
-                {/* User Linkage */}
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                        User Account Linkage
-                    </h4>
-                    <div className="space-y-3">
-                        <label className="flex items-center gap-2 p-3 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:border-teal-500">
-                            <input
-                                type="radio"
-                                name="userLinkage"
-                                value="none"
-                                checked={formData.userLinkageMode === 'none'}
-                                onChange={() => updateField('userLinkageMode', 'none')}
-                                className="text-teal-500 focus:ring-teal-500"
-                            />
-                            <div>
-                                <div className="text-sm font-medium text-slate-50">Employee Only (No System Access)</div>
-                                <div className="text-xs text-slate-500">Person will not have access to Neonbee</div>
-                            </div>
-                        </label>
-
-                        <label className="flex items-center gap-2 p-3 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:border-teal-500">
-                            <input
-                                type="radio"
-                                name="userLinkage"
-                                value="link"
-                                checked={formData.userLinkageMode === 'link'}
-                                onChange={() => updateField('userLinkageMode', 'link')}
-                                className="text-teal-500 focus:ring-teal-500"
-                            />
-                            <div className="flex-1">
-                                <div className="text-sm font-medium text-slate-50">Link to Existing User</div>
-                                <div className="text-xs text-slate-500 mb-2">Select an existing user account to link</div>
-                                {formData.userLinkageMode === 'link' && (
-                                    <div data-field="existingUserId" tabIndex={-1}>
-                                        <UserSelector
-                                            value={formData.existingUserId}
-                                            onChange={(userId: string | null) => updateField('existingUserId', userId)}
-                                            orgId={orgId}
-                                            tenantId={tenantId}
-                                            placeholder="Select user..."
-                                        />
-                                        {errors.existingUserId && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.existingUserId}</p>}
-                                    </div>
-                                )}
-                            </div>
-                        </label>
-
-                        <label className="flex items-center gap-2 p-3 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:border-teal-500">
-                            <input
-                                type="radio"
-                                name="userLinkage"
-                                value="invite"
-                                checked={formData.userLinkageMode === 'invite'}
-                                onChange={() => updateField('userLinkageMode', 'invite')}
-                                className="text-teal-500 focus:ring-teal-500"
-                            />
-                            <div className="flex-1">
-                                <div className="text-sm font-medium text-slate-50">Invite as New User (Recommended)</div>
-                                <div className="text-xs text-slate-500 mb-2">Send invitation email to create user account</div>
-                                {formData.userLinkageMode === 'invite' && (
-                                    <div className="space-y-2">
-                                        {/* Read-only mirror of the Identity email — the single source of
-                                            truth for the invitation. It used to be editable with an
-                                            `inviteEmail || email` fallback, which forked the two values on
-                                            the first keystroke: the invite went to one address while the
-                                            person record carried another, and Core's ensurePersonLink (which
-                                            matches people by email) then created a SECOND, duplicate person
-                                            for the invitee instead of linking the one just added. */}
-                                        <input
-                                            data-field="inviteEmail"
-                                            type="text"
-                                            readOnly
-                                            aria-label="Email for invitation"
-                                            aria-readonly="true"
-                                            value={formData.email || ''}
-                                            aria-invalid={!!errors.inviteEmail}
-                                            className={`w-full px-3 py-2 bg-slate-900 border rounded-lg text-sm text-slate-400 cursor-not-allowed focus:outline-none ${errors.inviteEmail ? 'border-rose-500' : 'border-slate-700'}`}
-                                            placeholder="Email for invitation"
-                                        />
-                                        {errors.inviteEmail
-                                            ? <p role="alert" className="text-xs text-rose-400">{errors.inviteEmail}</p>
-                                            : <p className="text-xs text-slate-500">
-                                                The invitation will be emailed to <span className="text-slate-300">{formData.email}</span>. To change it, edit the Email field in the Identity section.
-                                            </p>}
-                                        <select
-                                            data-field="inviteRole"
-                                            aria-label="Invitation role"
-                                            value={formData.inviteRole || ''}
-                                            onChange={(e) => updateField('inviteRole', e.target.value)}
-                                            aria-invalid={!!errors.inviteRole}
-                                            className={`w-full px-3 py-2 bg-slate-900 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.inviteRole ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                                        >
-                                            <option value="">Select role...</option>
-                                            {orgRoles.map(role => (
-                                                <option key={role.id} value={role.id}>{role.name}</option>
-                                            ))}
-                                        </select>
-                                        {errors.inviteRole && <p role="alert" className="text-xs text-rose-400">{errors.inviteRole}</p>}
-                                        <label className="flex items-center gap-2 text-xs text-slate-400">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.sendInviteEmail !== false}
-                                                onChange={(e) => updateField('sendInviteEmail', e.target.checked)}
-                                                className="text-teal-500 focus:ring-teal-500"
-                                            />
-                                            Send invitation email immediately
-                                        </label>
-                                    </div>
-                                )}
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                {/* Validation summary — visible wherever the user has scrolled to. */}
-                {errorCount > 1 && (
-                    <div role="alert" className="px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-sm text-rose-400">
-                        {errorCount} fields need attention before this person can be added.
-                    </div>
-                )}
-            </form>
-        </Drawer>
-    );
-};
-
-// =============================================================================
-// Confirm Dialog — mirrors the delete-confirmation pattern used in CRM
-// (so360-crm-fe LeadsPage) for visual consistency across the platform.
-// =============================================================================
-
-interface ConfirmDialogProps {
-    title: string;
-    message: string;
-    /** Fine print behind a "What happens?" disclosure — keeps `message` to one sentence. */
-    detail?: string;
-    confirmLabel: string;
-    danger?: boolean;
-    busy?: boolean;
-    onCancel: () => void;
-    onConfirm: () => void;
-}
-
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ title, message, detail, confirmLabel, danger, busy, onCancel, onConfirm }) => (
-    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div className="bg-slate-900 border border-slate-700/50 rounded-lg shadow-2xl w-full max-w-md p-6">
-            <h2 className="text-xl font-semibold text-slate-100 mb-2">{title}</h2>
-            <p className="text-slate-400 mb-6">{message}</p>
-            {detail && (
-                <details className="-mt-4 mb-6">
-                    <summary className="text-sm text-slate-500 hover:text-slate-300 cursor-pointer select-none">
-                        What happens?
-                    </summary>
-                    <p className="text-sm text-slate-500 mt-2">{detail}</p>
-                </details>
-            )}
-            <div className="flex justify-end gap-3">
-                <button
-                    onClick={onCancel}
-                    disabled={busy}
-                    className="px-4 py-2 text-slate-300 hover:text-slate-50 transition-colors disabled:opacity-50"
-                >
-                    Cancel
-                </button>
-                <button
-                    onClick={onConfirm}
-                    disabled={busy}
-                    className={`px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-70 ${danger ? 'bg-red-600 hover:bg-red-700 disabled:bg-red-800' : 'bg-teal-600 hover:bg-teal-500 disabled:bg-teal-800'}`}
-                >
-                    {busy && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
-                    {confirmLabel}
-                </button>
-            </div>
-        </div>
-    </div>
-);
-
-// =============================================================================
-// Edit Person Modal
-// =============================================================================
-
-interface EditPersonModalProps {
-    person: Person | null;
-    isOpen: boolean;
-    onClose: () => void;
-    onSave: (id: string, data: Partial<Person>) => void;
-    currencies?: string[];
-    busy?: boolean;
-}
-
-const EditPersonModal: React.FC<EditPersonModalProps> = ({ person, isOpen, onClose, onSave, currencies = DEFAULT_CURRENCIES, busy }) => {
-    const navigate = useNavigate();
-    const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
-    const [workLocationsError, setWorkLocationsError] = useState(false);
-    const [designations, setDesignations] = useState<MasterRow[]>([]);
-    const [designationsError, setDesignationsError] = useState(false);
-    const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
-    const [employmentTypesError, setEmploymentTypesError] = useState(false);
-    // "Create Employment Type" opens in a new tab so a half-filled form is kept;
-    // the list is re-read once, when the user comes back from that tab.
-    const employmentTypesHref = useHref('/people/settings/employment-types');
-    const markEmploymentTypesPending = useRefreshOnReturn(isOpen, () => {
-        mastersApi.getAll('employment_type')
-            .then(r => { setEmploymentTypes(r.data ?? []); setEmploymentTypesError(false); })
-            .catch(() => {});
-    });
-    const [formData, setFormData] = useState<Partial<Person>>({});
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const formRef = useRef<HTMLFormElement>(null);
-    const [customFields, setCustomFields] = useState<PersonCustomFieldValue[]>([]);
-    const [customFieldsError, setCustomFieldsError] = useState(false);
-    const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
-
-    useEffect(() => {
-        if (!isOpen) return;
-        setWorkLocationsError(false);
-        workLocationsApi.getAll()
-            .then(r => setWorkLocations(r.data ?? []))
-            .catch(() => setWorkLocationsError(true));
-        setDesignationsError(false);
-        mastersApi.getAll('designation')
-            .then(r => setDesignations(r.data ?? []))
-            .catch(() => setDesignationsError(true));
-        setEmploymentTypesError(false);
-        mastersApi.getAll('employment_type')
-            .then(r => setEmploymentTypes(r.data ?? []))
-            .catch(() => setEmploymentTypesError(true));
-    }, [isOpen]);
-
-    // Reload the form whenever a different person is opened for edit.
-    useEffect(() => {
-        if (!person) return;
-        setErrors({});
-        setFormData({
-            full_name: person.full_name,
-            email: person.email,
-            phone: person.phone,
-            job_title: person.job_title,
-            department_id: person.department_id,
-            type: person.type,
-            employee_id: person.employee_id,
-            employment_type: person.employment_type,
-            cost_rate: person.cost_rate,
-            cost_rate_unit: person.cost_rate_unit,
-            currency: person.currency,
-            billing_rate: person.billing_rate,
-            available_hours_per_day: person.available_hours_per_day,
-            start_date: person.start_date,
-            work_location_id: person.work_location_id,
-            default_labor_category_id: person.default_labor_category_id,
-            billing_type: person.billing_type,
-        });
-    }, [person]);
-
-    // Load this person's current custom field values (merged with every
-    // active field def) whenever the edit modal opens for a given person.
-    useEffect(() => {
-        if (!isOpen || !person) return;
-        setCustomFieldsError(false);
-        personCustomFieldsApi.getForPerson(person.id)
-            .then(r => {
-                const rows = r.data ?? [];
-                setCustomFields(rows);
-                const initial: Record<string, unknown> = {};
-                rows.forEach(row => { initial[row.field_def_id] = row.value; });
-                setCustomFieldValues(initial);
-            })
-            .catch(() => setCustomFieldsError(true));
-    }, [isOpen, person?.id]);
-
-    // Same identity rules as Add Person — the backend applies them on update
-    // too, so without this an edit would fail with a raw 400.
-    const validate = (data: Partial<Person>): Record<string, string> => {
-        const next: Record<string, string> = {};
-        const nameError = validatePersonName(data.full_name);
-        if (nameError) next.full_name = nameError;
-        const emailError = validateEmail(data.email);
-        if (emailError) next.email = emailError;
-        const phoneError = validatePhone(data.phone);
-        if (phoneError) next.phone = phoneError;
-        return next;
-    };
-
-    const isFormValid = Object.keys(validate(formData)).length === 0;
-
-    const updateField = (field: string, value: unknown) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        if (field === 'full_name' || field === 'email' || field === 'phone') {
-            const fieldErrors = validate({ ...formData, [field]: value });
-            setErrors(prev => ({ ...prev, [field]: fieldErrors[field] || '' }));
-        }
-    };
-
-    const updateCustomFieldValue = (fieldDefId: string, value: unknown) => {
-        setCustomFieldValues(prev => ({ ...prev, [fieldDefId]: value }));
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!person) return;
-        const validationErrors = validate(formData);
-        if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors);
-            focusFirstInvalid(formRef.current, ['full_name', 'email', 'phone'], validationErrors);
-            return;
-        }
-        const payload: any = { ...formData, full_name: (formData.full_name || '').trim() };
-        // `type` is only sent when the user changed the Employment Type and it
-        // implies a different type. An unrelated edit (e.g. the phone) must not
-        // rewrite a stored type — it drives the party:contractor/party:employee
-        // role — and a consultant must not be converted to a contractor.
-        const nextType = typeToSendOnEdit(person.employment_type, payload.employment_type, person.type);
-        if (nextType) payload.type = nextType;
-        else delete payload.type;
-        // Empty select value means "clear it". Send null rather than '' so the
-        // backend @IsUUID / @IsEnum validators are not tripped by an empty string.
-        payload.default_labor_category_id = payload.default_labor_category_id || null;
-        payload.billing_type = payload.billing_type || null;
-        if (Object.keys(customFieldValues).length > 0) {
-            payload.customFieldValues = customFieldValues;
-        }
-        onSave(person.id, payload);
-    };
-
-    // Timesheet costing defaults. These feed the Log Time precheck: an employee
-    // without a usable rate is blocked from logging time entirely.
-    const [showCosting, setShowCosting] = useState(false);
-    const [laborCategories, setLaborCategories] = useState<LaborCategoryOption[]>([]);
-
-    useEffect(() => {
-        if (!isOpen) return;
-        peopleApi.getLaborCategoryOptions()
-            .then((rows) => setLaborCategories(rows ?? []))
-            // The catalog is optional — an org with none simply relies on per-person
-            // rates, so a failure here must not break the form.
-            .catch(() => setLaborCategories([]));
-    }, [isOpen]);
-
-    const resolvedCostCenter = person?.department_info?.name
-        ? `Via ${person.department_info.name}`
-        : null;
-
-    // Surfaced on the collapsed disclosure so missing config is never hidden AND forgotten.
-    const missingCostingCount =
-        (formData.default_labor_category_id ? 0 : 1) + (formData.billing_type ? 0 : 1);
-
-    // Auto-expand when something is unset, so the section is not a place config goes to hide.
-    useEffect(() => {
-        if (isOpen && missingCostingCount > 0) setShowCosting(true);
-    }, [isOpen, missingCostingCount]);
-
-    // Quick-add work location replaces the drawer content (never a stacked
-    // surface); the form stays mounted so nothing being edited is lost.
-    const [editView, setEditView] = useState<'form' | 'newLocation'>('form');
-    useEffect(() => { if (isOpen) setEditView('form'); }, [isOpen]);
-
-    const handleEditLocationCreated = (loc: WorkLocation) => {
-        setWorkLocations(prev => [...prev, loc].sort((a, b) => a.name.localeCompare(b.name)));
-        updateField('work_location_id', loc.id);
-        setEditView('form');
-    };
-
-    if (!person) return null;
-
-    return (
-        <Drawer
-            isOpen={isOpen}
-            onClose={onClose}
-            title={editView === 'form' ? `Edit ${person.full_name}` : 'New Work Location'}
-            size="lg"
-            onBack={editView === 'newLocation' ? () => setEditView('form') : undefined}
-            footer={
-                editView === 'form' ? (
-                    <div className="flex justify-end gap-3">
-                        <button
-                            type="button" onClick={onClose} disabled={busy}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit" form="edit-person-form" disabled={busy || !isFormValid}
-                            title={isFormValid ? undefined : 'Fix the highlighted fields before saving.'}
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-                        >
-                            {busy && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
-                            Save Changes
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex justify-end gap-3">
-                        <button
-                            type="button" onClick={() => setEditView('form')}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-                        >
-                            Back
-                        </button>
-                        <button
-                            type="submit"
-                            form="quick-add-location-form"
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                        >
-                            Add Location
-                        </button>
-                    </div>
-                )
-            }
-        >
-            {editView === 'newLocation' && <QuickAddLocationPanel onCreated={handleEditLocationCreated} />}
-            <form ref={formRef} id="edit-person-form" onSubmit={handleSubmit} noValidate className={`space-y-5 ${editView === 'newLocation' ? 'hidden' : ''}`}>
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Identity</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                            <label htmlFor="edit-person-full-name" className="block text-xs text-slate-400 mb-1">Full Name *</label>
-                            <input
-                                id="edit-person-full-name"
-                                data-field="full_name"
-                                type="text" value={formData.full_name || ''}
-                                onChange={(e) => updateField('full_name', e.target.value)}
-                                aria-invalid={!!errors.full_name}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.full_name ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                            />
-                            {errors.full_name && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.full_name}</p>}
-                        </div>
-                        <div>
-                            <label htmlFor="edit-person-email" className="block text-xs text-slate-400 mb-1">Email</label>
-                            <input
-                                id="edit-person-email"
-                                data-field="email"
-                                type="text" value={formData.email || ''}
-                                onChange={(e) => updateField('email', e.target.value)}
-                                aria-invalid={!!errors.email}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.email ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                            />
-                            {errors.email && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.email}</p>}
-                        </div>
-                        <div>
-                            <label htmlFor="edit-person-phone" className="block text-xs text-slate-400 mb-1">Phone</label>
-                            <input
-                                id="edit-person-phone"
-                                data-field="phone"
-                                type="text" inputMode="tel" value={formData.phone || ''}
-                                onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))}
-                                maxLength={20}
-                                aria-invalid={!!errors.phone}
-                                className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${errors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-teal-500'}`}
-                            />
-                            {errors.phone && <p role="alert" className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Employee ID</label>
-                            <input
-                                type="text" value={formData.employee_id || ''}
-                                onChange={(e) => updateField('employee_id', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Classification</h4>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div>
-                            <label htmlFor="edit-employment-type" className="block text-xs text-slate-400 mb-1">Employment Type</label>
-                            <select
-                                id="edit-employment-type"
-                                value={formData.employment_type || ''}
-                                onChange={(e) => updateField('employment_type', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Not set</option>
-                                {employmentTypes.map(et => (
-                                    <option key={et.id} value={et.code}>{et.name}</option>
-                                ))}
-                            </select>
-                            {employmentTypesError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load employment types. Try reopening this form.</p>
-                            ) : employmentTypes.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
-                                    No employment types configured.{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => { markEmploymentTypesPending(); window.open(employmentTypesHref, '_blank', 'noopener'); }}
-                                        className="text-teal-400 hover:text-teal-300 underline"
-                                    >
-                                        Create Employment Type
-                                    </button>
-                                </p>
-                            ) : (
-                                <p className="text-xs text-slate-500 mt-1" data-testid="derived-person-type">
-                                    Recorded as {personTypeLabel(person ? (typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) ?? person.type) : personTypeForEmploymentType(formData.employment_type))}
-                                </p>
-                            )}
-                            {person && typeToSendOnEdit(person.employment_type, formData.employment_type, person.type) && (
-                                <p role="status" className="text-xs text-amber-400 mt-1" data-testid="person-type-change-notice">
-                                    Saving will change this person's type from {personTypeLabel(person.type)} to {personTypeLabel(typeToSendOnEdit(person.employment_type, formData.employment_type, person.type)!)}.
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Department</label>
-                            <DepartmentSelector
-                                value={formData.department_id || ''}
-                                onChange={(id) => updateField('department_id', id || undefined)}
-                                placeholder="Select department..."
-                                allowClear
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Job Title (Designation)</label>
-                            <select
-                                value={formData.job_title || ''}
-                                onChange={(e) => updateField('job_title', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Designation</option>
-                                {designations.map(d => (
-                                    <option key={d.id} value={d.name}>{d.name}</option>
-                                ))}
-                            </select>
-                            {designationsError ? (
-                                <p className="text-xs text-rose-400 mt-1">Couldn't load designations. Try reopening this form.</p>
-                            ) : designations.length === 0 ? (
-                                <p className="text-xs text-slate-500 mt-1">
-                                    No designations configured.{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/people/settings/designations')}
-                                        className="text-teal-400 hover:text-teal-300 underline"
-                                    >
-                                        Create Designation
-                                    </button>
-                                </p>
-                            ) : null}
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Work Location</label>
-                            <select
-                                value={formData.work_location_id || ''}
-                                onChange={(e) => updateField('work_location_id', e.target.value || undefined)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="">Select Work Location</option>
-                                {/* The dropdown only lists active locations, so an existing
-                                    assignment to a since-deactivated location would silently
-                                    reset to blank on the next save. Keep it selectable for
-                                    the person who already has it, flagged as inactive. */}
-                                {formData.work_location_id
-                                    && !workLocations.some(loc => loc.id === formData.work_location_id) && (
-                                    <option value={formData.work_location_id}>
-                                        {(person as any)?.work_location?.name
-                                            ? `${(person as any).work_location.name} (inactive)`
-                                            : 'Current location (inactive)'}
-                                    </option>
-                                )}
-                                {workLocations.map(loc => (
-                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                ))}
-                            </select>
-                            {/* Edit form is prefilled, so a cheap dirty check can't
-                                tell edits from initial values — always guard the exit. */}
-                            <WorkLocationFieldHelp
-                                hasError={workLocationsError}
-                                isEmpty={workLocations.length === 0}
-                                isDirty
-                                onQuickAdd={() => setEditView('newLocation')}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Joining Date</label>
-                            <input
-                                type="date" value={formData.start_date ? formData.start_date.slice(0, 10) : ''}
-                                onChange={(e) => updateField('start_date', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Cost & Billing</h4>
-                    <div className="grid grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Cost Rate</label>
-                            <input
-                                type="number" min="0" step="0.01" value={formData.cost_rate ?? 0}
-                                onChange={(e) => updateField('cost_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Rate Unit</label>
-                            <select
-                                value={formData.cost_rate_unit || 'hour'}
-                                onChange={(e) => updateField('cost_rate_unit', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                <option value="hour">Per Hour</option>
-                                <option value="day">Per Day</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Billing Rate</label>
-                            <input
-                                type="number" min="0" step="0.01" value={formData.billing_rate ?? 0}
-                                onChange={(e) => updateField('billing_rate', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Currency</label>
-                            <select
-                                value={formData.currency || currencies[0]}
-                                onChange={(e) => updateField('currency', e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            >
-                                {currencies.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Hours/Day</label>
-                            <input
-                                type="number" min="1" max="24" value={formData.available_hours_per_day ?? 8}
-                                onChange={(e) => updateField('available_hours_per_day', parseFloat(e.target.value) || 8)}
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Timesheet costing defaults — progressive disclosure. Collapsed
-                        when complete so the rate fields above stay the focus; the count
-                        badge means it is never hidden AND forgotten. */}
-                    <button
-                        type="button"
-                        onClick={() => setShowCosting((v) => !v)}
-                        className="mt-4 flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300"
-                        aria-expanded={showCosting}
-                    >
-                        {showCosting ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        Timesheet &amp; costing defaults
-                        {missingCostingCount > 0 && (
-                            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px] font-semibold">
-                                {missingCostingCount} missing
-                            </span>
-                        )}
-                    </button>
-
-                    {showCosting && (
-                        <div className="mt-3 grid grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Default Labor Category</label>
-                                <select
-                                    value={formData.default_labor_category_id || ''}
-                                    onChange={(e) => updateField('default_labor_category_id', e.target.value || null)}
-                                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                                    aria-label="Default Labor Category"
-                                >
-                                    <option value="">Not set</option>
-                                    {laborCategories.map((c) => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name}{c.rate_configured ? '' : ' (no rate)'}
-                                        </option>
-                                    ))}
-                                </select>
-                                {laborCategories.length === 0 && (
-                                    <p className="mt-1 text-xs text-slate-500">
-                                        No labor categories configured. The employee&apos;s own cost rate will be used.
-                                    </p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Billing Type</label>
-                                <select
-                                    value={formData.billing_type || ''}
-                                    onChange={(e) => updateField('billing_type', e.target.value || null)}
-                                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                                    aria-label="Billing Type"
-                                >
-                                    <option value="">Not set</option>
-                                    <option value="billable">Billable</option>
-                                    <option value="non_billable">Non-billable</option>
-                                    <option value="internal">Internal</option>
-                                </select>
-                            </div>
-
-                            {/* Read-only: cost centres are owned by Accounting and inherited
-                                via the employee's department. Editing them here would fork
-                                the org's chart of cost centres. */}
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Cost Center</label>
-                                <div className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-400">
-                                    {resolvedCostCenter || 'Inherited from department — not set'}
-                                </div>
-                                <p className="mt-1 text-xs text-slate-500">
-                                    Set on the department, not the employee.
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Custom Fields */}
-                <CustomFieldsSection
-                    fields={customFields.map(f => ({ field_def_id: f.field_def_id, label: f.label, field_type: f.field_type, options: f.options, is_required: f.is_required }))}
-                    values={customFieldValues}
-                    onChange={updateCustomFieldValue}
-                    loadError={customFieldsError}
-                />
-
-                <p className="text-xs text-slate-500">
-                    Role &amp; System Permissions are managed from the employee's detail page.
-                </p>
-            </form>
-        </Drawer>
+            <ConfirmDialog
+                open={!!confirmAction}
+                title={confirmCopy?.title ?? ''}
+                message={confirmCopy ? (
+                    <>
+                        {confirmCopy.message}
+                        {confirmCopy.detail && <span className="block mt-nb-2 text-nb-caption text-fg-muted">{confirmCopy.detail}</span>}
+                    </>
+                ) : ''}
+                confirmLabel={confirmCopy?.confirmLabel ?? 'Confirm'}
+                intent={confirmAction && (confirmAction.type === 'delete' || confirmAction.type === 'cancel-invite') ? 'danger' : 'default'}
+                onCancel={() => setConfirmAction(null)}
+                onClose={() => setConfirmAction(null)}
+                onConfirm={() => {
+                    if (!confirmAction || actionBusy) return;
+                    if (confirmAction.type === 'delete') handleDeleteConfirmed(confirmAction.person);
+                    else if (confirmAction.type === 'archive') handleSetStatus(confirmAction.person, 'archived');
+                    else if (confirmAction.type === 'deactivate') handleSetStatus(confirmAction.person, 'inactive');
+                    else if (confirmAction.type === 'cancel-invite') handleCancelInvite(confirmAction.person);
+                }}
+            />
+        </>
     );
 };
 

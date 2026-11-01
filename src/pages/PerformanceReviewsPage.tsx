@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { TrendingUp, Star } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import PageHeader from '../components/PageHeader';
-import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import Modal from '../components/Modal';
 import PersonPicker, { PickablePerson } from '../components/PersonPicker';
-import { toast, getErrorMessage } from '@so360/design-system';
+import {
+    toast, getErrorMessage, Select, ListPageTemplate, DataTable, Modal, Button, Tabs, Badge, Avatar, Rating,
+    Cluster, Stack, Grid, Card, Alert, DateInput,
+} from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { performanceReviewsApi, PerformanceReview, CreatePerformanceReviewPayload, EligibleReviewer } from '../services/performanceReviewsService';
@@ -66,198 +66,129 @@ const PerformanceReviewsPage: React.FC = () => {
         }
     };
 
-    const getStatusColor = (status: string) => {
+    const statusTone = (status: string): 'neutral' | 'primary' | 'warning' | 'success' => {
         switch (status) {
-            case 'draft': return 'bg-slate-600';
-            case 'self_review_pending': return 'bg-blue-600';
-            case 'manager_review_pending': return 'bg-yellow-600';
-            case 'completed': return 'bg-green-600';
-            case 'cancelled': return 'bg-slate-500';
-            default: return 'bg-slate-600';
+            case 'self_review_pending': return 'primary';
+            case 'manager_review_pending': return 'warning';
+            case 'completed': return 'success';
+            default: return 'neutral';
         }
     };
 
-    const renderRatingStars = (rating?: number) => {
-        if (!rating) return null;
-        return (
-            <div className="flex items-center gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                        key={i}
-                        size={12}
-                        className={i < Math.round(rating) ? 'fill-yellow-500 text-yellow-500' : 'text-slate-600'}
-                    />
-                ))}
-            </div>
-        );
-    };
+    const openReview = (id: string) => navigate(`/people/reviews/${id}`);
 
     return (
-        <div className="p-6 space-y-5">
-            <PageHeader
-                title="Performance Reviews"
-                subtitle="Track employee performance evaluations"
-                actions={canCreateReview ? (
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                        <TrendingUp size={16} />
-                        Create Review
-                    </button>
-                ) : undefined}
-            />
-
-            {/* Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-800">
-                <button
-                    onClick={() => setActiveTab('all')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'all'
-                            ? 'text-teal-400 border-b-2 border-teal-400'
-                            : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    All Reviews
-                </button>
-                <button
-                    onClick={() => setActiveTab('my')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'my'
-                            ? 'text-teal-400 border-b-2 border-teal-400'
-                            : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    My Reviews
-                </button>
-                <button
-                    onClick={() => setActiveTab('team')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        activeTab === 'team'
-                            ? 'text-teal-400 border-b-2 border-teal-400'
-                            : 'text-slate-400 hover:text-slate-300'
-                    }`}
-                >
-                    My Team
-                </button>
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-3">
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="draft">Draft</option>
-                    <option value="self_review_pending">Self Review Pending</option>
-                    <option value="manager_review_pending">Manager Review Pending</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
-            </div>
-
-            {/* Reviews Table */}
-            {loading ? (
-                <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-20 bg-slate-800/50 rounded-xl animate-pulse" />
-                    ))}
-                </div>
-            ) : reviews.length === 0 ? (
+        <>
+        <ListPageTemplate trail={[]}
+            title="Performance Reviews"
+            description="Track employee performance evaluations"
+            loading={loading}
+            isEmpty={reviews.length === 0}
+            primaryAction={canCreateReview ? (
+                <Button type="button" onClick={() => setShowCreateModal(true)}>
+                    <TrendingUp className="w-4 h-4" />
+                    Create Review
+                </Button>
+            ) : undefined}
+            views={(
+                <Tabs
+                    name="performance-reviews-scope"
+                    items={[
+                        { id: 'all', label: 'All Reviews' },
+                        { id: 'my', label: 'My Reviews' },
+                        { id: 'team', label: 'My Team' },
+                    ]}
+                    value={activeTab}
+                    onChange={(id) => setActiveTab(id as 'all' | 'my' | 'team')}
+                />
+            )}
+            filterConfig={{
+                fields: [{ key: 'status', label: 'Status', type: 'select', options: [
+                    { value: 'draft', label: 'Draft' },
+                    { value: 'self_review_pending', label: 'Self Review Pending' },
+                    { value: 'manager_review_pending', label: 'Manager Review Pending' },
+                    { value: 'completed', label: 'Completed' },
+                    { value: 'cancelled', label: 'Cancelled' },
+                ] }],
+                values: { status: statusFilter || undefined },
+                onChange: (v) => setStatusFilter((v.status as string) || ''),
+                onClear: () => setStatusFilter(''),
+            }}
+            empty={(
                 <EmptyState
                     icon={TrendingUp}
                     title="No performance reviews found"
                     description="Create performance reviews to track employee development."
                     action={canCreateReview ? { label: 'Create Review', onClick: () => setShowCreateModal(true) } : undefined}
                 />
-            ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-slate-800/50 border-b border-slate-800">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Person</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Template</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Review Period</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Overall Rating</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800">
-                            {reviews.map(review => (
-                                <tr
-                                    key={review.id}
-                                    onClick={() => navigate(`/people/reviews/${review.id}`)}
-                                    className="hover:bg-slate-800/50 cursor-pointer transition-colors"
-                                >
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500/20 to-blue-500/20 border border-slate-700 flex items-center justify-center flex-shrink-0">
-                                                {review.person?.avatar_url ? (
-                                                    <img src={review.person.avatar_url} alt="" className="w-8 h-8 rounded-full" />
-                                                ) : (
-                                                    <span className="text-xs font-medium text-teal-400">
-                                                        {review.person?.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-medium text-slate-50">{review.person?.full_name}</div>
-                                                <div className="text-xs text-slate-500">{review.person?.job_title}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="text-sm text-slate-50">{review.template?.name}</div>
-                                        <div className="text-xs text-slate-500 capitalize">
-                                            {review.template?.review_type.replace('_', ' ')}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-400">
-                                        {formatters.formatDate(review.review_period_start)} -{' '}
-                                        {formatters.formatDate(review.review_period_end)}
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full text-slate-50 ${getStatusColor(review.status)}`}>
-                                            {review.status.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-center gap-2">
-                                            {renderRatingStars(review.overall_rating)}
-                                            {review.overall_rating && (
-                                                <span className="text-xs text-slate-400">{review.overall_rating.toFixed(1)}</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(`/people/reviews/${review.id}`);
-                                            }}
-                                            className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
-                                        >
-                                            View
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
             )}
-
-            {/* Create Modal */}
-            <CreateReviewModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onCreate={handleCreate}
+        >
+            <DataTable<PerformanceReview>
+                name="performance-reviews"
+                rows={reviews}
+                rowKey={(r) => r.id}
+                onRowClick={(r) => openReview(r.id)}
+                columns={[
+                    {
+                        key: 'person',
+                        header: 'Person',
+                        render: (r) => (
+                            <Cluster gap="tight" align="center">
+                                <Avatar src={r.person?.avatar_url} name={r.person?.full_name} size="sm" />
+                                <div>
+                                    <div className="text-nb-sm font-medium text-fg">{r.person?.full_name}</div>
+                                    <div className="text-nb-xs text-fg-subtle">{r.person?.job_title}</div>
+                                </div>
+                            </Cluster>
+                        ),
+                    },
+                    {
+                        key: 'template',
+                        header: 'Template',
+                        render: (r) => (
+                            <div>
+                                <div className="text-nb-sm text-fg">{r.template?.name}</div>
+                                <div className="text-nb-xs text-fg-subtle capitalize">{r.template?.review_type.replace('_', ' ')}</div>
+                            </div>
+                        ),
+                    },
+                    {
+                        key: 'period',
+                        header: 'Review Period',
+                        render: (r) => (
+                            <span className="text-nb-sm text-fg-muted">
+                                {formatters.formatDate(r.review_period_start)} -{' '}
+                                {formatters.formatDate(r.review_period_end)}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'status',
+                        header: 'Status',
+                        align: 'center',
+                        render: (r) => <Badge tone={statusTone(r.status)}>{r.status.replace('_', ' ')}</Badge>,
+                    },
+                    {
+                        key: 'rating',
+                        header: 'Overall Rating',
+                        align: 'center',
+                        render: (r) => r.overall_rating ? (
+                            <Cluster gap="tight" align="center" justify="center">
+                                <Rating name={`review-rating-${r.id}`} value={Math.round(r.overall_rating)} readOnly aria-label={`Overall rating ${r.overall_rating.toFixed(1)}`} />
+                                <span className="text-nb-xs text-fg-muted">{r.overall_rating.toFixed(1)}</span>
+                            </Cluster>
+                        ) : null,
+                    },
+                ]}
             />
-
-        </div>
+        </ListPageTemplate>
+        {/* Sibling of the template: children are replaced by the empty state when the list is empty. */}
+        <CreateReviewModal
+            isOpen={showCreateModal}
+            onClose={() => setShowCreateModal(false)}
+            onCreate={handleCreate}
+        />
+        </>
     );
 };
 
@@ -270,6 +201,37 @@ interface CreateReviewModalProps {
     onClose: () => void;
     onCreate: (data: CreatePerformanceReviewPayload) => void;
 }
+
+/** Read-only outline of the selected review template (Pulse cac0fab5). */
+export const TemplatePreview: React.FC<{ template?: ReviewTemplate }> = ({ template }) => {
+    if (!template) return null;
+    const sections = template.sections || [];
+    const meta = [
+        `${template.rating_scale}-point scale`,
+        template.requires_self_review ? 'employee self-assessment' : '',
+        template.requires_manager_review ? 'manager assessment' : '',
+    ].filter(Boolean).join(' · ');
+    return (
+        <Card title="Template preview" data-testid="template-preview">
+            <Stack gap="tight">
+                {template.description && <p className="text-nb-sm text-fg-muted">{template.description}</p>}
+                <p className="text-nb-caption text-fg-muted">{meta}</p>
+                {sections.length === 0 ? (
+                    <p className="text-nb-caption text-fg-muted">This template has no sections yet.</p>
+                ) : (
+                    sections.map((sec) => (
+                        <Stack key={sec.id} gap="tight">
+                            <p className="text-nb-sm font-medium text-fg">{sec.title}{sec.weight ? ` (${sec.weight}%)` : ''}</p>
+                            {(sec.fields || []).map((f, i) => (
+                                <p key={i} className="text-nb-caption text-fg-muted">{f.label}</p>
+                            ))}
+                        </Stack>
+                    ))
+                )}
+            </Stack>
+        </Card>
+    );
+};
 
 const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, onCreate }) => {
     // This modal is a SIBLING of the page component, so it cannot see the
@@ -422,149 +384,113 @@ const CreateReviewModal: React.FC<CreateReviewModalProps> = ({ isOpen, onClose, 
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Create Performance Review">
-            <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Person Selector */}
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Person Being Reviewed *</label>
-                    <PersonPicker
-                        options={people}
-                        value={formData.person_id}
-                        onChange={(id) => updateField('person_id', id)}
-                        placeholder="Search people..."
-                        emptyMessage="No active people found"
-                        data-testid="person-picker"
-                    />
-                </div>
+        <Modal open={isOpen} onClose={onClose} title="Create Performance Review" size="lg">
+            <form onSubmit={handleSubmit}>
+                <Stack gap="region">
+                    <Stack gap="tight">
+                        <label htmlFor="review-person-picker" className="text-nb-sm font-medium text-fg-muted">Person Being Reviewed *</label>
+                        <PersonPicker
+                            options={people}
+                            value={formData.person_id}
+                            onChange={(id) => updateField('person_id', id)}
+                            placeholder="Search people..."
+                            emptyMessage="No active people found"
+                            inputId="review-person-picker"
+                            data-testid="person-picker"
+                        />
+                    </Stack>
 
-                {/* Reviewer Selector — restricted to managers eligible for this person */}
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Reviewer (Manager) *</label>
-                    <PersonPicker
-                        options={reviewerOptions}
-                        value={formData.reviewer_id}
-                        onChange={(id) => updateField('reviewer_id', id)}
-                        placeholder={unrestrictedReviewers ? 'Search people...' : 'Search eligible managers...'}
-                        emptyMessage="No people available"
-                        loading={reviewersLoading}
-                        disabled={!formData.person_id}
-                        disabledMessage="Select the person being reviewed first."
-                        data-testid="reviewer-picker"
-                    />
-                    {formData.person_id && unrestrictedReviewers && (
-                        <p className="mt-1 text-xs text-amber-400">
-                            No department heads are configured, so any employee can be selected as
-                            reviewer. Assign a department head in People Connect → Departments to
-                            restrict this list to managers.
-                        </p>
-                    )}
-                    {eligibleReviewers.some(r => r.is_direct_manager && r.id === formData.reviewer_id) && (
-                        <p className="mt-1 text-xs text-slate-500">Their reporting manager.</p>
-                    )}
-                </div>
+                    {/* Reviewer Selector - restricted to managers eligible for this person */}
+                    <Stack gap="tight">
+                        <label htmlFor="review-reviewer-picker" className="text-nb-sm font-medium text-fg-muted">Reviewer (Manager) *</label>
+                        <PersonPicker
+                            options={reviewerOptions}
+                            value={formData.reviewer_id}
+                            onChange={(id) => updateField('reviewer_id', id)}
+                            placeholder={unrestrictedReviewers ? 'Search people...' : 'Search eligible managers...'}
+                            emptyMessage="No people available"
+                            loading={reviewersLoading}
+                            disabled={!formData.person_id}
+                            disabledMessage="Select the person being reviewed first."
+                            inputId="review-reviewer-picker"
+                            data-testid="reviewer-picker"
+                        />
+                        {formData.person_id && unrestrictedReviewers && (
+                            <Alert variant="warning">
+                                No department heads are configured, so any employee can be selected as
+                                reviewer. Assign a department head in People Connect → Departments to
+                                restrict this list to managers.
+                            </Alert>
+                        )}
+                        {eligibleReviewers.some(r => r.is_direct_manager && r.id === formData.reviewer_id) && (
+                            <p className="text-nb-xs text-fg-subtle">Their reporting manager.</p>
+                        )}
+                    </Stack>
 
-                <div>
-                    <label className="block text-xs text-slate-400 mb-1">Review Template *</label>
                     {templatesLoaded && templates.length === 0 ? (
-                        <div className="px-3 py-3 bg-slate-800 border border-dashed border-slate-700 rounded-lg text-sm text-slate-400">
-                            <p className="mb-2 text-slate-300">No review templates found.</p>
-                            <button
-                                type="button"
-                                onClick={handleSeedDefaults}
-                                disabled={seedingTemplates}
-                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition-colors"
-                            >
-                                {seedingTemplates ? 'Creating…' : 'Create default templates'}
-                            </button>
-                        </div>
+                        <Stack gap="tight">
+                            <span className="text-nb-sm font-medium text-fg-muted">Review Template *</span>
+                            <Card>
+                                <Stack gap="tight">
+                                    <p className="text-nb-sm text-fg">No review templates found.</p>
+                                    <Cluster>
+                                        <Button type="button" size="sm" onClick={handleSeedDefaults} disabled={seedingTemplates}>
+                                            {seedingTemplates ? 'Creating…' : 'Create default templates'}
+                                        </Button>
+                                    </Cluster>
+                                </Stack>
+                            </Card>
+                        </Stack>
                     ) : (
-                        <select
+                        <Select
+                            name="review_template_id"
+                            label="Review Template"
                             required
                             value={formData.template_id}
                             onChange={(e) => updateField('template_id', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
-                        >
-                            <option value="">Select template</option>
-                            {templates.map(template => (
-                                <option key={template.id} value={template.id}>
-                                    {template.name} ({template.review_type})
-                                </option>
-                            ))}
-                        </select>
+                            options={[{ value: '', label: 'Select template' }, ...templates.map((template) => ({ value: template.id, label: `${template.name} (${template.review_type})` }))]}
+                        />
                     )}
-                </div>
+                    <TemplatePreview template={templates.find((t) => t.id === formData.template_id)} />
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Review Period Start *</label>
-                        <input
-                            type="date"
+                    <Grid columns={2} gap="lg">
+                        <DateInput
+                            name="review_period_start"
+                            label="Review Period Start"
                             required
                             value={formData.review_period_start}
-                            onChange={(e) => updateField('review_period_start', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            onChange={(v) => updateField('review_period_start', v)}
                         />
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Review Period End *</label>
-                        <input
-                            type="date"
+                        <DateInput
+                            name="review_period_end"
+                            label="Review Period End"
                             required
-                            // Blocks earlier dates in the picker; the explicit
-                            // check below still catches typed-in values, which
-                            // `min` does not prevent.
+                            // Blocks earlier dates in the picker; the explicit check
+                            // below still catches typed-in values.
                             min={formData.review_period_start || undefined}
-                            aria-invalid={periodInvalid}
                             value={formData.review_period_end}
-                            onChange={(e) => updateField('review_period_end', e.target.value)}
-                            className={`w-full px-3 py-2 bg-slate-800 border rounded-lg text-sm text-slate-50 focus:outline-none ${
-                                periodInvalid
-                                    ? 'border-red-500 focus:border-red-500'
-                                    : 'border-slate-700 focus:border-teal-500'
-                            }`}
+                            onChange={(v) => updateField('review_period_end', v)}
+                            error={periodInvalid ? 'Review Period End date cannot be earlier than Review Period Start date.' : undefined}
                         />
-                        {periodInvalid && (
-                            <p role="alert" className="mt-1 text-xs text-red-400">
-                                Review Period End date cannot be earlier than Review Period Start date.
-                            </p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Self Review Deadline</label>
-                        <input
-                            type="date"
+                        <DateInput
+                            name="self_review_deadline"
+                            label="Self Review Deadline"
                             value={formData.self_review_deadline || ''}
-                            onChange={(e) => updateField('self_review_deadline', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            onChange={(v) => updateField('self_review_deadline', v)}
                         />
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Manager Review Deadline</label>
-                        <input
-                            type="date"
+                        <DateInput
+                            name="manager_review_deadline"
+                            label="Manager Review Deadline"
                             value={formData.manager_review_deadline || ''}
-                            onChange={(e) => updateField('manager_review_deadline', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-50 focus:outline-none focus:border-teal-500"
+                            onChange={(v) => updateField('manager_review_deadline', v)}
                         />
-                    </div>
-                </div>
+                    </Grid>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={!canSubmit}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Create Review
-                    </button>
-                </div>
+                    <Cluster gap="default" justify="end">
+                        <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+                        <Button type="submit" disabled={!canSubmit}>Create Review</Button>
+                    </Cluster>
+                </Stack>
             </form>
         </Modal>
     );

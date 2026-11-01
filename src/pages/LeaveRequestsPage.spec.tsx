@@ -249,7 +249,7 @@ describe('Given LeaveRequestsPage status filter', () => {
   it('When status filter changes / Then API is called with new status', async () => {
     renderPage();
     await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
-    fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'approved' } });
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'approved' } });
     await waitFor(() =>
       expect(mockLeaveApi.getAll).toHaveBeenCalledWith(expect.objectContaining({ status: 'approved' }))
     );
@@ -280,7 +280,7 @@ describe('Given LeaveRequestsPage tab bar removal', () => {
 
   it('When page loads / Then status filter is still present', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByDisplayValue('All Statuses')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('Status')).toBeInTheDocument());
   });
 });
 

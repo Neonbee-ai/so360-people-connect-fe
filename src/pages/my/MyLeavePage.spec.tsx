@@ -36,7 +36,7 @@ vi.mock('../../services/peopleService', () => ({
 
 vi.mock('@so360/design-system', async () => {
     const React = (await import('react')).default;
-    return {
+    return { ...(await import('../../test/__mocks__/design-system')), 
         toast: { success: vi.fn(), error: vi.fn() },
         // Faithful-enough Drawer: renders only when open, children + footer
         // present — mirrors src/test/__mocks__/design-system.ts.
@@ -164,6 +164,7 @@ describe('Given an employee requesting leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
         await waitFor(() => expect(meService.requestLeave).toHaveBeenCalled());
@@ -203,6 +204,7 @@ describe('Given an employee requesting leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
         await waitFor(() =>
@@ -216,6 +218,7 @@ describe('Given an employee requesting leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
         await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Leave requested'));
@@ -249,6 +252,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /^Arjun Prince/ }));
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
@@ -260,6 +264,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
     it('When no manager is selected / Then submit still routes via the department-head fallback (empty list)', async () => {
         await openForm();
 
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
@@ -270,6 +275,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
         await openForm();
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
         fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /^Bhaskar R N/ }));
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
@@ -286,6 +292,7 @@ describe('Given an employee selecting a manager to approve their leave', () => {
             suggested_approver_id: 'mgr-1',
         });
         await openForm();
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Trip' } });
 
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
@@ -345,7 +352,7 @@ describe('Given the request form is dismissed', () => {
         expect(payload.reason).toBe('Family event');
     });
 
-    it('When no reason is typed / Then the field is omitted rather than sent empty', async () => {
+    it('When no reason is typed / Then submit is refused before hitting the API (Pulse cc9733eb)', async () => {
         renderPage();
         await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
@@ -354,8 +361,36 @@ describe('Given the request form is dismissed', () => {
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
         fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
 
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Enter a reason for your leave'));
+        expect(meService.requestLeave).not.toHaveBeenCalled();
+    });
+
+    it('When the reason is only whitespace / Then it is refused', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Leave type/i)).toBeInTheDocument());
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '   ' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(meService.requestLeave).not.toHaveBeenCalled();
+    });
+
+    it('When the reason has padding / Then the trimmed value is sent', async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Leave type/i)).toBeInTheDocument());
+
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '  Medical  ' } });
+        fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+
         await waitFor(() => expect(meService.requestLeave).toHaveBeenCalled());
-        expect((meService.requestLeave as any).mock.calls[0][0].reason).toBeUndefined();
+        expect((meService.requestLeave as any).mock.calls[0][0].reason).toBe('Medical');
     });
 });
 
@@ -372,5 +407,49 @@ describe('Given no balances have been set up', () => {
         renderPage();
 
         await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+    });
+});
+
+describe('Given an employee requesting more days than their balance (Pulse 78626df8)', () => {
+    const openForm = async () => {
+        renderPage();
+        await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument());
+        fireEvent.click(screen.getByRole('button', { name: /request leave/i }));
+        await waitFor(() => expect(screen.getByText(/Leave type/i)).toBeInTheDocument());
+    };
+    const setRange = (start: string, end: string) => {
+        const dates = screen.getAllByDisplayValue(new Date().toISOString().slice(0, 10));
+        fireEvent.change(dates[1], { target: { value: end } });
+        fireEvent.change(dates[0], { target: { value: start } });
+    };
+
+    it('When the weekdays in the range exceed the remaining balance / Then an inline error shows and submit is blocked', async () => {
+        await openForm();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        setRange('2026-12-01', '2026-12-31'); // 23 weekdays > 12 available
+        await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/exceeds your remaining balance of 12/));
+        expect(screen.getByTestId('my-leave-total-days')).toHaveTextContent('23');
+        expect(screen.getByRole('button', { name: /submit request/i })).toBeDisabled();
+        expect(meService.requestLeave).not.toHaveBeenCalled();
+    });
+
+    it('When the range fits the balance / Then no balance error shows and submit stays enabled', async () => {
+        await openForm();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        setRange('2026-12-01', '2026-12-03');
+        await waitFor(() => expect(screen.getByTestId('my-leave-total-days')).toHaveTextContent('3'));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /submit request/i })).not.toBeDisabled();
+    });
+
+    it('When the leave type has no accrual / Then the balance never blocks the request', async () => {
+        (leaveTypesApi.getAll as any).mockResolvedValue({
+            data: [{ id: 'lt-1', name: 'Annual Leave', code: 'AL', is_active: true, accrual_type: 'none' }],
+        });
+        await openForm();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'lt-1' } });
+        setRange('2026-12-01', '2026-12-31');
+        await waitFor(() => expect(screen.getByTestId('my-leave-total-days')).toHaveTextContent('23'));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 });
