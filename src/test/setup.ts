@@ -1,4 +1,9 @@
 import { configure } from '@testing-library/react';
+
+// apiClient resolves its base URL at import time. Without one it falls back to the
+// relative '/people-api', which jsdom's fetch cannot parse ("Invalid URL"). Give the
+// test runtime an absolute base, as the Shell does in the browser.
+(window as any).VITE_SO360_PEOPLE_CONNECT_API ??= 'http://localhost/people-api';
 import '@testing-library/jest-dom/vitest';
 
 import { cleanup } from '@testing-library/react';

@@ -79,13 +79,16 @@ describe('GoalsPage', () => {
 
     it('When the page loads / Then it shows goal type badges', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('company')).toBeInTheDocument());
-      expect(screen.getByText('development')).toBeInTheDocument();
+      // Badges are title-cased (enumLabel); ignore same-text <option>s in the create form.
+      const badge = (text: string) => screen.queryAllByText(text).find((el) => el.tagName !== 'OPTION');
+      await waitFor(() => expect(badge('Company')).toBeInTheDocument());
+      expect(badge('Development')).toBeInTheDocument();
     });
 
     it('When the page loads / Then it shows priority labels', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('high')).toBeInTheDocument());
+      const badge = (text: string) => screen.queryAllByText(text).find((el) => el.tagName !== 'OPTION');
+      await waitFor(() => expect(badge('High')).toBeInTheDocument());
     });
 
     it('When the status filter is changed / Then goals are re-fetched', async () => {

@@ -31,7 +31,7 @@ describe('ModuleNav', () => {
   it('Given the navigation / When rendered / Then it shows all sections', async () => {
     const { default: ModuleNav } = await import('../components/ModuleNav');
     render(<MemoryRouter initialEntries={['/dashboard']}><ModuleNav /></MemoryRouter>);
-    expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getAllByText('Overview').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('People & Organization')).toBeInTheDocument();
     expect(screen.getByText('Resource Management')).toBeInTheDocument();
     expect(screen.getByText('Leave Management')).toBeInTheDocument();

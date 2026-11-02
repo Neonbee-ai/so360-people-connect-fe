@@ -110,7 +110,10 @@ const DeclarationReviewDrawer: React.FC<{
     const [approvedAmounts, setApprovedAmounts] = useState<Record<string, string>>({});
     const [busy, setBusy] = useState(false);
 
-    useEffect(() => { setNotes(''); setApprovedAmounts({}); }, [declaration?.id]);
+    // Reset per declaration during render, not in an effect: a deferred effect
+    // could run after the reviewer's first keystroke and wipe the typed amount.
+    const [shownId, setShownId] = useState(declaration?.id);
+    if (shownId !== declaration?.id) { setShownId(declaration?.id); setNotes(''); setApprovedAmounts({}); }
 
     if (!declaration) return null;
 

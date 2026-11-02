@@ -148,8 +148,8 @@ const EmploymentPolicyPage: React.FC = () => {
             variant="secondary"
             type="button"
             onClick={() => setPolicy({ daily_threshold: 8, weekly_threshold: 40, premium_multiplier: 1.5 })}
-            leadingIcon={<RefreshCw className="w-4 h-4" />}
           >
+            <RefreshCw className="w-4 h-4" />
             Reset to Defaults
           </Button>
         )}

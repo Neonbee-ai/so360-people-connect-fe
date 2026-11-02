@@ -47,8 +47,13 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Could not load users (${res.status})`);
+      .then(async (res) => {
+        // A 401/403/500 body is not a member list — surface the server's reason
+        // (permission/auth) instead of hiding it behind "No users found".
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.message || `Could not load users (${res.status})`);
+        }
         return res.json();
       })
       .then((data) => {
@@ -95,7 +100,14 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
       value={value || null}
       placeholder={placeholder}
       clearable
-      emptyText={loading ? 'Loading users...' : error ?? 'No users found'}
+      emptyText={
+        loading
+          ? 'Loading users...'
+          : error
+            ?? (users.length === 0
+              ? 'No users in this organization yet. Use "Invite as New User" instead.'
+              : 'No users match. Search by name or email.')
+      }
       filter={(o: { label: string; description?: string }, q: string) => {
         const lower = q.trim().toLowerCase();
         return o.label.toLowerCase().includes(lower) || !!o.description?.toLowerCase().includes(lower);
