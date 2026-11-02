@@ -18,6 +18,8 @@ export interface MasterRow {
   name: string;
   level?: string | null;
   grade?: string | null;
+  /** Employment types only: counts as a contractor (effective value, org override or code default). */
+  is_contractor?: boolean | null;
   is_active: boolean;
   sort_order: number;
   created_at: string;
@@ -31,6 +33,7 @@ export interface CreateMasterPayload {
   grade?: string;
   is_active?: boolean;
   sort_order?: number;
+  is_contractor?: boolean | null;
 }
 
 // One generic client reused by all five master-data lists — parameterize by

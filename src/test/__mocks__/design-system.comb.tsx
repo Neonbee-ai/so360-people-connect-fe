@@ -6,6 +6,7 @@
  * Add new stubs by appending below (grep first: a duplicate export name breaks the build).
  */
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const tid = (p: any) => p['data-testid'];
 
@@ -114,8 +115,8 @@ export const FormField = ({ label, children, hint, error }: any) => (
   </div>
 );
 
-export const Card = ({ title, actions, footer, children, 'data-testid': testId }: any) => (
-  <section data-testid={testId}>
+export const Card = ({ title, actions, footer, children, onClick, 'data-testid': testId }: any) => (
+  <section data-testid={testId} onClick={onClick} role={onClick ? 'button' : undefined}>
     {title ? <h2>{title}</h2> : null}
     {actions}
     {children}
@@ -277,9 +278,10 @@ export const FormActions = ({ submitLabel = 'Save', onSubmit, submitting, submit
 // ---- page header + floorplans -----------------------------------------
 const Header = ({ title, description, count, status, meta, onBack, backLabel, trail, primaryAction, secondaryActions, headerSecondaryActions, overflowActions, collapsibleActions, metaItems, breadcrumbs, actions }: any) => (
   <header data-slot="header">
+    <CombRootCrumb trail={trail} />
     {onBack ? <button type="button" aria-label={backLabel ?? 'Back'} onClick={onBack} /> : null}
     {Array.isArray(trail) && trail.length > 0 ? (
-      <button type="button" aria-label={`Back to ${trail[trail.length - 1].label}`} onClick={trail[trail.length - 1].onClick} />
+      <TrailBack item={trail[trail.length - 1]} />
     ) : null}
     {Array.isArray(trail) ? trail.map((t: any) => <span key={t.label}>{t.label}</span>) : null}
     <h1>{title}</h1>
@@ -402,7 +404,7 @@ export const DetailPageTemplate = (p: any) => (
 
 export const FormPageTemplate = (p: any) => (
   <section data-template="form" data-testid="form-page-template">
-    <Header {...p} />
+    <Header {...p} primaryAction={undefined} />
     {p.children}
     <footer data-slot="footer">
       {p.onCancel ? <button type="button" onClick={p.onCancel}>{p.cancelLabel ?? 'Cancel'}</button> : null}
@@ -480,3 +482,51 @@ export const Rating = ({ value = 0, onChange, max = 5, readOnly, label, name, 'a
       ))}
     </div>
   );
+
+/** Module-level trail/navigation context provider; stub is a passthrough. */
+const CombScopeCtx = React.createContext<any>(null);
+export const CombScope = ({ module, root, navigate, children }: any) => (
+  <CombScopeCtx.Provider value={{ module, root, navigate }}>{children}</CombScopeCtx.Provider>
+);
+/** Module root crumb the real header prepends to the trail (e.g. "People"). */
+const CombRootCrumb = ({ trail }: any) => {
+  const scope = React.useContext(CombScopeCtx);
+  return scope?.root && Array.isArray(trail) ? <span>{scope.root.label}</span> : null;
+};
+
+/** Last trail crumb as a Back button; like the real header it navigates to `to` via the router when no onClick is given. */
+const TrailBack = ({ item }: any) => {
+  let nav: any = null;
+  try { nav = useNavigate(); } catch { /* rendered outside a router */ }
+  return (
+    <button
+      type="button"
+      aria-label={`Back to ${item.label}`}
+      onClick={item.onClick ?? (item.to && nav ? () => nav(item.to) : undefined)}
+    />
+  );
+};
+
+export const EventCalendar = ({ events = [], onEventClick, name, 'data-testid': testId }: any) => (
+  <div data-testid={testId} data-name={name} role="grid" aria-label="Calendar">
+    {events.map((e: any) => (
+      <button key={e.id} type="button" data-start={e.start} data-tone={e.tone} onClick={() => onEventClick?.(e)}>{e.title}</button>
+    ))}
+  </div>
+);
+const ChoiceCtx = React.createContext<{ value?: string; onChange?: (v: string) => void } | null>(null);
+export const ChoiceCardGrid = ({ value, onChange, children, name: _n, columns: _c, multiple: _m, ...rest }: any) => (
+  <ChoiceCtx.Provider value={{ value, onChange }}>
+    <div role="radiogroup" aria-label={rest['aria-label']} data-testid={rest['data-testid']}>{children}</div>
+  </ChoiceCtx.Provider>
+);
+export const SelectableCard = ({ title, description, value, selected, onSelect, disabled, tags, 'data-testid': testId }: any) => {
+  const ctx = React.useContext(ChoiceCtx);
+  const isOn = selected ?? (ctx && value !== undefined ? ctx.value === value : false);
+  return (
+    <button type="button" role="radio" aria-checked={!!isOn} disabled={disabled} data-testid={testId}
+      onClick={() => (onSelect ? onSelect() : value !== undefined && ctx?.onChange?.(value))}>
+      <span>{title}</span>{description ? <span>{description}</span> : null}{tags}
+    </button>
+  );
+};

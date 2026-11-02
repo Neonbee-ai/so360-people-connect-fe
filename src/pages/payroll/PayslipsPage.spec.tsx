@@ -38,7 +38,7 @@ describe('GIVEN the admin payslips page', () => {
   it('WHEN the page loads THEN payslip rows show number, employee, period, net pay and visibility', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('PS-202608-0042')).toBeInTheDocument());
-    expect(screen.getByText('Asha Nair')).toBeInTheDocument();
+    expect(screen.getByText('Asha Nair', { selector: 'span' })).toBeInTheDocument();
     expect(screen.getByText('$45,000.00')).toBeInTheDocument();
     expect(screen.getByText('Published')).toBeInTheDocument();
     expect(mockPeople.getAll).toHaveBeenCalledWith({ status: 'active', limit: 200 });

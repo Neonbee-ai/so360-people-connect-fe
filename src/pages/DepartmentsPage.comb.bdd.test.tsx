@@ -31,7 +31,7 @@ const renderPage = () => render(
   <MemoryRouter initialEntries={['/departments']}>
     <Routes>
       <Route path="/departments" element={<DepartmentsPage />} />
-      <Route path="/departments/:id" element={<div>Department Detail</div>} />
+      <Route path="/people/departments/:id" element={<div>Department Detail</div>} />
     </Routes>
   </MemoryRouter>,
 );

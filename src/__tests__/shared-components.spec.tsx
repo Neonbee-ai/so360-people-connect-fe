@@ -171,7 +171,7 @@ describe('StatusBadge', () => {
 
     it('When rendered / Then applies success token styling', () => {
       render(<StatusBadge status="active" />);
-      expect(screen.getByText('Active').className).toContain('text-success');
+      expect(screen.getByText('Active').closest('[data-tone]')).toHaveAttribute('data-tone', 'success');
     });
   });
 
@@ -185,14 +185,14 @@ describe('StatusBadge', () => {
   describe('Given status: rejected', () => {
     it('When rendered / Then applies danger token styling', () => {
       render(<StatusBadge status="rejected" />);
-      expect(screen.getByText('Rejected').className).toContain('text-danger');
+      expect(screen.getByText('Rejected').closest('[data-tone]')).toHaveAttribute('data-tone', 'danger');
     });
   });
 
   describe('Given status: submitted', () => {
     it('When rendered / Then applies primary token styling', () => {
       render(<StatusBadge status="submitted" />);
-      expect(screen.getByText('Submitted').className).toContain('text-primary');
+      expect(screen.getByText('Submitted').closest('[data-tone]')).toHaveAttribute('data-tone', 'primary');
     });
   });
 

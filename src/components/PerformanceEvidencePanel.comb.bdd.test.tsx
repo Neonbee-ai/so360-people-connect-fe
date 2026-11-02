@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 
-const list = vi.fn();
+const list = vi.hoisted(() => vi.fn());
 vi.mock('../services/performanceBlocksService', () => ({ performanceBlocksApi: { list } }));
 
 import PerformanceEvidencePanel from './PerformanceEvidencePanel';

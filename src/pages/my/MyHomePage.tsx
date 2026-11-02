@@ -60,7 +60,7 @@ const MyHomePage: React.FC = () => {
 
     return (
         <DashboardPageTemplate
-            title="My Work"
+            title="Overview"
             description="Your leave, goals and team at a glance"
             kpis={
                 /* Only renders while an onboarding instance is active — fetches

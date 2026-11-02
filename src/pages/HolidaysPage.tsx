@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { CalendarDays, Edit2, Trash2 } from 'lucide-react';
+import { CalendarDays, Edit2, Trash2, Copy, List as ListIcon } from 'lucide-react';
+import { filterHolidaysBySearch, duplicateSeed, holidayEvents } from '../utils/holidayView';
 import EmptyState from '../components/EmptyState';
-import { toast, useConfirm, Select, Button, IconButton, Badge, ListPageTemplate, DataTable, Modal, TextField, DateInput, Switch, Stack, Cluster } from '@so360/design-system';
+import { toast, useConfirm, Select, Button, IconButton, Badge, ListPageTemplate, DataTable, Modal, TextField, DateInput, Switch, Stack, Cluster, SearchInput, EventCalendar } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import {
@@ -65,6 +66,9 @@ const HolidaysPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Holiday | null>(null);
   const [copying, setCopying] = useState(false);
+  const [search, setSearch] = useState('');
+  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [duplicating, setDuplicating] = useState<Holiday | null>(null);
 
   const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
   const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
@@ -100,12 +104,18 @@ const HolidaysPage: React.FC = () => {
     [employmentTypes],
   );
 
-  const monthGroups = useMemo(() => groupByMonth(holidays), [holidays]);
+  const visible = useMemo(() => filterHolidaysBySearch(holidays, search), [holidays, search]);
+  const monthGroups = useMemo(() => groupByMonth(visible), [visible]);
+  const calendarEvents = useMemo(
+    () => holidayEvents(visible, h => HOLIDAY_TYPE_TONE[h.holiday_type] || 'neutral'),
+    [visible],
+  );
 
   const handleCreate = async (data: CreateHolidayPayload) => {
     try {
       await holidaysApi.create(data);
       setShowModal(false);
+      setDuplicating(null);
       toast.success(`Holiday "${data.name}" created`);
       load();
     } catch (err: any) {
@@ -194,6 +204,7 @@ const HolidaysPage: React.FC = () => {
           render: (h: Holiday) => (
             <Cluster gap="tight" align="center">
               <IconButton label="Edit" icon={<Edit2 size={14} />} variant="ghost" size="sm" onClick={() => setEditing(h)} />
+              <IconButton label={`Duplicate ${h.name}`} icon={<Copy size={14} />} variant="ghost" size="sm" onClick={() => setDuplicating(duplicateSeed(h))} />
               <IconButton label="Delete" icon={<Trash2 size={14} />} variant="ghost" size="sm" onClick={() => handleDelete(h.id)} />
             </Cluster>
           ),
@@ -209,7 +220,27 @@ const HolidaysPage: React.FC = () => {
         description="Manage the organization's holiday list by year"
         loading={loading}
         isEmpty={holidays.length === 0}
+        isFilteredEmpty={holidays.length > 0 && visible.length === 0}
         primaryAction={canManage ? <Button onClick={() => setShowModal(true)}>Add Holiday</Button> : undefined}
+        search={
+          <SearchInput
+            name="holidays-search"
+            value={search}
+            onChange={setSearch}
+            onClear={() => setSearch('')}
+            placeholder="Search holidays"
+            aria-label="Search holidays"
+          />
+        }
+        viewSwitcher={{
+          'aria-label': 'Holiday view',
+          value: view,
+          onChange: v => setView(v === 'calendar' ? 'calendar' : 'list'),
+          options: [
+            { value: 'list', label: 'List', icon: ListIcon },
+            { value: 'calendar', label: 'Calendar', icon: CalendarDays },
+          ],
+        }}
         toolbarEnd={
           <Cluster gap="tight" align="center">
             <Select name="holidays-select-44" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} options={[{ value: '', label: 'All Types' }, ...HOLIDAY_TYPE_OPTIONS.map((t) => ({ value: t.value, label: t.label }))]} />
@@ -235,6 +266,20 @@ const HolidaysPage: React.FC = () => {
           />
         }
       >
+        {view === 'calendar' ? (
+          <EventCalendar
+            key={year}
+            name="holidays-calendar"
+            data-testid="holiday-calendar"
+            events={calendarEvents}
+            defaultView="month"
+            defaultDate={Number(year) === currentYear ? new Date() : new Date(Number(year), 0, 1)}
+            onEventClick={ev => {
+              const h = visible.find(x => x.id === ev.id);
+              if (h && canManage) setEditing(h);
+            }}
+          />
+        ) : (
         <Stack gap="region">
           {monthGroups.map(group => (
             <Stack key={group.month} gap="tight">
@@ -243,11 +288,13 @@ const HolidaysPage: React.FC = () => {
             </Stack>
           ))}
         </Stack>
+        )}
       </ListPageTemplate>
 
       <HolidayModal
-        isOpen={showModal || !!editing}
-        onClose={() => { setShowModal(false); setEditing(null); }}
+        isOpen={showModal || !!editing || !!duplicating}
+        onClose={() => { setShowModal(false); setEditing(null); setDuplicating(null); }}
+        seed={duplicating}
         onCreate={handleCreate}
         onUpdate={handleUpdate}
         holiday={editing}
@@ -268,6 +315,8 @@ interface HolidayModalProps {
   onCreate: (data: CreateHolidayPayload) => void;
   onUpdate: (id: string, data: Partial<CreateHolidayPayload>) => void;
   holiday: Holiday | null;
+  /** Create-mode prefill (Duplicate); ignored when `holiday` is set. */
+  seed?: Holiday | null;
   workLocations: WorkLocation[];
   employmentTypes: MasterRow[];
 }
@@ -278,28 +327,29 @@ const BLANK: CreateHolidayPayload = {
 };
 
 const HolidayModal: React.FC<HolidayModalProps> = ({
-  isOpen, onClose, onCreate, onUpdate, holiday, workLocations, employmentTypes,
+  isOpen, onClose, onCreate, onUpdate, holiday, seed, workLocations, employmentTypes,
 }) => {
   const [form, setForm] = useState<CreateHolidayPayload>(BLANK);
 
   useEffect(() => {
-    if (holiday) {
+    const src = holiday ?? seed ?? null;
+    if (src) {
       setForm({
-        name: holiday.name,
-        holiday_date: holiday.holiday_date,
-        holiday_type: holiday.holiday_type || 'national',
-        state: holiday.state || '',
-        country: holiday.country || '',
-        region: holiday.region || '',
-        is_optional: holiday.is_optional,
-        is_mandatory: holiday.is_mandatory,
-        work_location_id: holiday.work_location_id || '',
-        employment_type_master_id: holiday.employment_type_master_id || '',
+        name: src.name,
+        holiday_date: src.holiday_date,
+        holiday_type: src.holiday_type || 'national',
+        state: src.state || '',
+        country: src.country || '',
+        region: src.region || '',
+        is_optional: src.is_optional,
+        is_mandatory: src.is_mandatory,
+        work_location_id: src.work_location_id || '',
+        employment_type_master_id: src.employment_type_master_id || '',
       });
     } else {
       setForm(BLANK);
     }
-  }, [holiday]);
+  }, [holiday, seed]);
 
   const set = (field: keyof CreateHolidayPayload, value: unknown) =>
     setForm(prev => ({ ...prev, [field]: value }));

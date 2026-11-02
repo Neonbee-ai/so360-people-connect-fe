@@ -139,7 +139,7 @@ describe('Given MasterListPage generic behavior', () => {
       renderPage(<MasterListPage masterType="skill" label="Skill" />);
       await waitFor(() => expect(screen.getByText('React')).toBeInTheDocument());
 
-      fireEvent.click(screen.getByTitle('Deactivate'));
+      fireEvent.click(screen.getByRole('switch', { name: 'Deactivate' }));
 
       await waitFor(() =>
         expect(mockApi.update).toHaveBeenCalledWith('skill', 'm1', { is_active: false }),

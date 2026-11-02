@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Badge, Banner, Button, Cluster, DataTable, EmptyState, ListPageTemplate, Modal, SearchInput, Stack, useConfirm,
+  Alert, Badge, Banner, Button, Cluster, DataTable, EmptyState, ListPageTemplate, Modal, SearchInput, Stack, useConfirm,
 } from '@so360/design-system';
 import { UserPlus, Trash2, Loader2, User } from 'lucide-react';
 import { orgPolicyApi, ApprovalChain, CreateApprovalChainPayload } from '../../services/orgPolicyService';
@@ -303,9 +303,9 @@ const ApprovalChainsPage: React.FC = () => {
             }
           />
 
-          <Banner variant="info" title="Policy Enforcement">
+          <Alert variant="info" name="policy_enforcement" title="Policy Enforcement">
             Approval chains apply across Timesheet, Leave, and Expense submissions. Employees without a chain are routed to the Org Administrator by default.
-          </Banner>
+          </Alert>
         </Stack>
       </ListPageTemplate>
 

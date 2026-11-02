@@ -629,7 +629,6 @@ const DepartmentDetailPage: React.FC = () => {
                                         icon={Shield}
                                         title="No one has scoped access to this department"
                                         description="Everyone's visibility is governed by their normal role permissions. Grant access to restrict someone to just this department (+ its sub-departments)."
-                                        action={{ label: 'Grant Access', onClick: () => setShowGrantAccessModal(true) }}
                                     />
                                 ) : (
                                     <Stack gap="tight">

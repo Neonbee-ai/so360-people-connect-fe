@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, X, Clock, MinusCircle } from 'lucide-react';
+import { Alert } from '@so360/design-system';
 import type { LeaveRequestApproval } from '../../services/leaveRequestsService';
 
 interface ApprovalProgressProps {
@@ -8,6 +9,12 @@ interface ApprovalProgressProps {
   submittedAt?: string | null;
   submittedByName?: string | null;
   formatDateTime?: (iso: string) => string;
+  /**
+   * Request-level rejection reason. Shown on the rejecting approver only when
+   * that approval row has no notes of its own (requests rejected before
+   * per-approver notes were stored), so old rejections still show a reason.
+   */
+  fallbackRejectionReason?: string | null;
 }
 
 const STATUS_META: Record<
@@ -36,8 +43,19 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
   submittedAt,
   submittedByName,
   formatDateTime,
+  fallbackRejectionReason,
 }) => {
-  if (!approvals || approvals.length === 0) return null;
+  if (!approvals || approvals.length === 0) {
+    // Old rejections have no approval rows: keep their reason visible.
+    if (fallbackRejectionReason) {
+      return (
+        <Alert name="leave-rejection-reason" variant="error" title="Rejected">
+          {fallbackRejectionReason}
+        </Alert>
+      );
+    }
+    return null;
+  }
 
   const fmt = (iso?: string | null) => {
     if (!iso) return '';
@@ -100,9 +118,9 @@ const ApprovalProgress: React.FC<ApprovalProgressProps> = ({
                 {a.responded_at && fmt(a.responded_at) && (
                   <span className="block text-nb-caption text-fg-subtle">{fmt(a.responded_at)}</span>
                 )}
-                {a.decision_notes && (
+                {(a.decision_notes || (a.status === 'rejected' && fallbackRejectionReason)) && (
                   <span className="mt-nb-1 block rounded border border-line-strong bg-surface/60 px-nb-2 py-nb-1 text-nb-caption text-fg-muted">
-                    {a.decision_notes}
+                    {a.decision_notes || fallbackRejectionReason}
                   </span>
                 )}
               </span>

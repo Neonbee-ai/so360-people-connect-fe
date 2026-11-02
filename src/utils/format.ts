@@ -13,6 +13,12 @@ import { parseUtcDate } from './datetime';
  * @param locale   - BCP 47 locale string (default: 'en-US'). Pass the org's
  *                   document_language from business settings wherever available.
  */
+/** Display label for a snake/lower-case enum value: "on_leave" -> "On Leave"; empty when missing. */
+export function enumLabel(value?: string | null): string {
+    if (!value) return '';
+    return value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 export function formatCurrency(amount: number, currency: string = 'USD', locale: string = 'en-US'): string {
     return new Intl.NumberFormat(locale, {
         style: 'currency',

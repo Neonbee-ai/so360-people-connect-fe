@@ -71,11 +71,10 @@ describe('UtilizationPage', () => {
       expect(screen.getAllByText('Bob').length).toBeGreaterThan(0);
     });
 
-    it('When Table View is clicked / Then it switches to table view', async () => {
+    it('When the page loads / Then the table with its totals line is shown', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Table View')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Table View'));
       await waitFor(() => expect(screen.getByText('Totals (2 people)')).toBeInTheDocument());
+      expect(screen.getAllByRole('row').length).toBe(3);
     });
 
     it('When there are idle people / Then it shows idle cost signal', async () => {
@@ -83,11 +82,14 @@ describe('UtilizationPage', () => {
       await waitFor(() => expect(screen.getByText('Idle cost signal')).toBeInTheDocument());
     });
 
-    it('When sort by name is clicked / Then it re-sorts', async () => {
+    it('When sort by name is chosen / Then it re-sorts', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Name')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Name'));
-      await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Totals (2 people)')).toBeInTheDocument());
+      // default: utilization desc -> Alice (80%) first
+      expect(screen.getAllByRole('row')[1]).toHaveTextContent('Alice');
+      fireEvent.change(screen.getByLabelText('Sort by'), { target: { value: 'name' } });
+      // name desc -> Bob first
+      await waitFor(() => expect(screen.getAllByRole('row')[1]).toHaveTextContent('Bob'));
     });
 
     it('When the previous week button is clicked / Then it loads previous week data', async () => {

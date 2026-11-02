@@ -27,11 +27,7 @@ vi.mock('@so360/shell-context', () => ({
   }),
 }));
 
-vi.mock('@so360/design-system', async () => ({ ...(({ Select, Modal, useConfirm }) => ({ Select, Modal, useConfirm }))(await import('../test/__mocks__/design-system')), 
-  Button: ({ children, onClick, disabled, type }: any) => (
-    <button onClick={onClick} disabled={disabled} type={type}>{children}</button>
-  ),
-}));
+vi.mock('@so360/design-system', async () => await import('../test/__mocks__/design-system'));
 
 import { orgPolicyApi } from '../services/orgPolicyService';
 import ApprovalChainsPage from '../pages/settings/ApprovalChainsPage';
@@ -93,8 +89,7 @@ describe('Given ApprovalChainsPage — remove mapping confirmation', () => {
     mockOrgPolicyApi.deleteApprovalChain.mockResolvedValue({});
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    const trash = screen.getAllByRole('button').find((b) => (b.textContent ?? '').trim() === '') as HTMLElement;
-    fireEvent.click(trash);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     return screen.findByRole('dialog');
   };
 

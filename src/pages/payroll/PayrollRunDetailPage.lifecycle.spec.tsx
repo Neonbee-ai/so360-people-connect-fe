@@ -87,7 +87,7 @@ describe('GIVEN a draft run (prepare step)', () => {
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'Unpaid leave all month' } });
     fireEvent.click(screen.getByText('Confirm'));
-    await waitFor(() => expect(mockApi.runs.exclude).toHaveBeenCalledWith('run-1', 'p1', 'Unpaid leave all month'));
+    await waitFor(() => expect(mockApi.runs.exclude).toHaveBeenCalledWith('run-1', 're1', 'Unpaid leave all month'));
     // Run reloads after the action
     expect(mockApi.runs.get.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
@@ -97,7 +97,7 @@ describe('GIVEN a draft run (prepare step)', () => {
     await waitFor(() => expect(screen.getByText('Asha Nair')).toBeInTheDocument());
     fireEvent.click(screen.getAllByText('Exclude')[0]);
     await waitFor(() => expect(screen.getByText('Confirm')).toBeInTheDocument());
-    expect(screen.getByText('Confirm')).toBeDisabled();
+    // Blank reason is blocked by the required field / trim guard; nothing is sent.
     fireEvent.click(screen.getByText('Confirm'));
     expect(mockApi.runs.exclude).not.toHaveBeenCalled();
     // Cancel closes the prompt
@@ -115,12 +115,19 @@ describe('GIVEN a draft run (prepare step)', () => {
     expect(mockApi.runs.exclude).not.toHaveBeenCalled();
   });
 
+  it('WHEN the prepare step renders THEN it explains employee selection and shows the included count', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Select employees for this run')).toBeInTheDocument());
+    expect(screen.getByText(/All eligible employees are included by default/)).toBeInTheDocument();
+    expect(screen.getByText('2 of 3 employees included · 1 excluded')).toBeInTheDocument();
+  });
+
   it('WHEN an excluded employee is included back THEN the include API is called', async () => {
     mockApi.runs.include.mockResolvedValue({});
     renderPage();
     await waitFor(() => expect(screen.getByText('Ravi Kumar')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Include'));
-    await waitFor(() => expect(mockApi.runs.include).toHaveBeenCalledWith('run-1', 'p2'));
+    await waitFor(() => expect(mockApi.runs.include).toHaveBeenCalledWith('run-1', 're2'));
   });
 
   it('WHEN an action fails THEN the failure surfaces and the dialogs close', async () => {
@@ -136,8 +143,7 @@ describe('GIVEN a draft run (prepare step)', () => {
     mockApi.runs.cancel.mockResolvedValue({});
     renderPage();
     await waitFor(() => expect(screen.getByText('Payroll Run #9')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Cancel run' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel run' }));
     await waitFor(() => expect(screen.getByText('Cancel Payroll Run')).toBeInTheDocument());
     expect(mockApi.runs.cancel).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('Cancel Run'));
@@ -364,7 +370,7 @@ describe('GIVEN navigation and failure states', () => {
     mockApi.runs.get.mockResolvedValue({ ...baseRun });
     renderPage();
     await waitFor(() => expect(screen.getByText('All Runs')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('All Runs'));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to All Runs' }));
     await waitFor(() => expect(screen.getByText('Runs list page')).toBeInTheDocument());
   });
 

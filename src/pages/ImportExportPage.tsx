@@ -166,7 +166,7 @@ const ImportExportPage: React.FC = () => {
                         </Button>
                     </Cluster>
                     <div className="border border-line rounded-nb px-nb-4 py-nb-5 text-center">
-                        <input
+                        <input // comb-exception: hidden file input driven by the label
                             type="file"
                             name="import-file"
                             accept=".csv,.xlsx,.xls"

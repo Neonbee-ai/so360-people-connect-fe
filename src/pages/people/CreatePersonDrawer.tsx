@@ -8,7 +8,7 @@ import UserSelector from '../../components/UserSelector';
 import { usePeopleContext } from '../../hooks/useShellContext';
 import { useCanViewCompensation } from '../../hooks/useCanViewCompensation';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import { toast, Alert, Drawer, Select, TextField, NumberInput, DateInput, Checkbox, RadioGroup, Button, Stack, FieldGrid, FieldGridItem, FormSection, Cluster } from '@so360/design-system';
+import { toast, getErrorMessage, Alert, Drawer, Select, TextField, NumberInput, DateInput, Checkbox, RadioGroup, Button, Stack, FieldGrid, FieldGridItem, FormSection, Cluster } from '@so360/design-system';
 import { workLocationsApi, WorkLocation } from '../../services/workLocationsService';
 import { mastersApi, MasterRow } from '../../services/mastersService';
 import {
@@ -36,7 +36,8 @@ import { WorkLocationFieldHelp, Section, QuickAddLocationPanel } from './WorkLoc
 export interface CreatePersonModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreate: (data: CreatePersonPayload) => void;
+    /** Resolve `false` when nothing was saved so the form keeps the admin's input for a retry. */
+    onCreate: (data: CreatePersonPayload) => void | boolean | Promise<void | boolean>;
     currencies?: string[];
     // Org's configured base currency; pre-selected as the default. Falls back to
     // 'USD' only when no org currency is configured.
@@ -53,6 +54,9 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
     const [workLocationsError, setWorkLocationsError] = useState(false);
     const [designations, setDesignations] = useState<MasterRow[]>([]);
     const [designationsError, setDesignationsError] = useState(false);
+    const [addingDesignation, setAddingDesignation] = useState(false);
+    const [newDesignation, setNewDesignation] = useState('');
+    const [savingDesignation, setSavingDesignation] = useState(false);
     const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
     const [employmentTypesError, setEmploymentTypesError] = useState(false);
     // "Create Employment Type" opens in a new tab so a half-filled form is kept;
@@ -88,6 +92,9 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
     const canCreateLeaveTypes = !!shell?.permissionsLoaded
         && !!shell?.hasPermission?.('leave.configure')
         && !!shell?.hasPermission?.('leave.create');
+    // Inline "add designation" — the masters API requires employees.create, so
+    // offer it only to callers who hold it (fails closed until perms resolve).
+    const canAddDesignation = !!shell?.permissionsLoaded && !!shell?.hasPermission?.('employees.create');
     // Holds the resolved org currency. Initialized from the shell prop when available;
     // falls back to a direct Core BE fetch to avoid the shell's async race condition.
     const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || 'USD');
@@ -210,7 +217,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
     // anchored to a field the user may have scrolled past.
     const isFormValid = Object.keys(validate(formData)).length === 0;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const validationErrors = validate(formData);
         if (Object.keys(validationErrors).length > 0) {
@@ -222,7 +229,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
         // triggered by an empty string.
         const payload: any = { ...formData, full_name: formData.full_name.trim() };
         payload.department_id = payload.department_id || undefined;
-        payload.type = personTypeForEmploymentType(payload.employment_type);
+        payload.type = personTypeForEmploymentType(payload.employment_type, 'employee', employmentTypes);
         // The invitation always goes to the Identity email — never carry a separate value.
         payload.inviteEmail = payload.email;
         if (Object.keys(customFieldValues).length > 0) {
@@ -234,7 +241,9 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
         if (leaveOverrides.length > 0) {
             payload.leaveOverrides = leaveOverrides;
         }
-        onCreate(payload);
+        const saved = await onCreate(payload);
+        // Backend rolled back: keep the form as-is so the admin can retry.
+        if (saved === false) return;
         setCustomFieldValues({});
         setLeaveOverrides([]);
         // Reset form
@@ -276,6 +285,28 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
     // Form state lives here, not in the form DOM, so nothing typed is lost.
     const [view, setView] = useState<'form' | 'newLocation'>('form');
     useEffect(() => { if (isOpen) setView('form'); }, [isOpen]);
+
+    const handleAddDesignation = async () => {
+        const name = newDesignation.trim();
+        if (!name) return;
+        if (designations.some(d => d.name.trim().toLowerCase() === name.toLowerCase())) {
+            toast.error(`Designation "${name}" already exists.`);
+            return;
+        }
+        setSavingDesignation(true);
+        try {
+            const created = await mastersApi.create('designation', { name });
+            setDesignations(prev => [...prev, created]);
+            updateField('job_title', created.name);
+            setNewDesignation('');
+            setAddingDesignation(false);
+            toast.success(`Designation "${created.name}" added.`);
+        } catch (err) {
+            toast.error(getErrorMessage(err));
+        } finally {
+            setSavingDesignation(false);
+        }
+    };
 
     const handleLocationCreated = (loc: WorkLocation) => {
         setWorkLocations(prev => [...prev, loc].sort((a, b) => a.name.localeCompare(b.name)));
@@ -383,7 +414,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
                             </p>
                         ) : (
                             <p className="text-nb-caption text-fg-subtle" data-testid="derived-person-type">
-                                Recorded as {personTypeLabel(personTypeForEmploymentType((formData as any).employment_type))}
+                                Recorded as {personTypeLabel(personTypeForEmploymentType((formData as any).employment_type, 'employee', employmentTypes))}
                             </p>
                         )}
                     </Stack>
@@ -419,11 +450,33 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
                             <Select label="Job Title (Designation)" name="people-select-65" value={formData.job_title || ''} onChange={(e) => updateField('job_title', e.target.value || undefined)} options={[{ value: "", label: "Select Designation" }, ...designations.map((d) => ({ value: d.name, label: d.name }))]} />
                             {designationsError ? (
                                 <p className="text-nb-caption text-danger">Couldn't load designations. Try reopening this form.</p>
-                            ) : designations.length === 0 ? (
+                            ) : canAddDesignation && addingDesignation ? (
+                                <Cluster gap="tight" data-testid="add-designation-row">
+                                    <TextField
+                                        name="new-designation"
+                                        label="New designation name"
+                                        value={newDesignation}
+                                        onChange={(e) => setNewDesignation(e.target.value)}
+                                        maxLength={100}
+                                        placeholder="e.g. Telecaller"
+                                    />
+                                    <Button size="sm" onClick={handleAddDesignation} disabled={savingDesignation || !newDesignation.trim()}>
+                                        {savingDesignation ? 'Adding...' : 'Add'}
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => { setAddingDesignation(false); setNewDesignation(''); }}>
+                                        Cancel
+                                    </Button>
+                                </Cluster>
+                            ) : (canAddDesignation || designations.length === 0) ? (
                                 <p className="text-nb-caption text-fg-subtle">
-                                    No designations configured.{' '}
+                                    {designations.length === 0 ? 'No designations configured. ' : 'Not in the list? '}
+                                    {canAddDesignation && (
+                                        <Button variant="ghost" size="sm" onClick={() => setAddingDesignation(true)}>
+                                            Add new designation
+                                        </Button>
+                                    )}
                                     <Button variant="ghost" size="sm" onClick={() => navigate('/people/settings/designations')}>
-                                        Create Designation
+                                        {designations.length === 0 ? 'Create Designation' : 'Manage designations'}
                                     </Button>
                                 </p>
                             ) : null}

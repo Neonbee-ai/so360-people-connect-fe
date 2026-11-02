@@ -47,8 +47,8 @@ describe('GIVEN self-service payslip failure paths', () => {
   it('WHEN the payslip detail fails THEN no modal opens', async () => {
     mockApi.my.payslip.mockRejectedValue(new Error('nope'));
     renderPage();
-    await waitFor(() => expect(screen.getByText('View')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
+    await waitFor(() => expect(screen.getByText(/Your .* payslip/)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Your .* payslip/));
     await waitFor(() => expect(mockApi.my.payslip).toHaveBeenCalledWith('ps1'));
     expect(screen.queryByText('Payslip PS-202608-0042')).not.toBeInTheDocument();
   });
@@ -56,8 +56,8 @@ describe('GIVEN self-service payslip failure paths', () => {
   it('WHEN the view modal is dismissed THEN it closes', async () => {
     mockApi.my.payslip.mockResolvedValue({ ...payslip, lines: [] });
     renderPage();
-    await waitFor(() => expect(screen.getByText('View')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('View'));
+    await waitFor(() => expect(screen.getByText(/Your .* payslip/)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Your .* payslip/));
     await waitFor(() => expect(screen.getByText('Payslip PS-202608-0042')).toBeInTheDocument());
     fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]);
     await waitFor(() => expect(screen.queryByText('Payslip PS-202608-0042')).not.toBeInTheDocument());

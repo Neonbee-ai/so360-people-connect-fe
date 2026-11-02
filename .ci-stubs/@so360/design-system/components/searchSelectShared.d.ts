@@ -50,6 +50,8 @@ export interface OptionListProps<T> {
     multiselectable?: boolean;
     onPick: (row: ListRow<T>) => void;
     onActive?: (id: string) => void;
+    /** Results are being (re)loaded: sets aria-busy on the listbox. */
+    busy?: boolean;
     className?: string;
 }
-export declare function OptionList<T>({ rows, activeId, listboxId, label, multiselectable, onPick, onActive, className, }: OptionListProps<T>): React.JSX.Element;
+export declare function OptionList<T>({ rows, activeId, listboxId, label, multiselectable, onPick, onActive, busy, className, }: OptionListProps<T>): import("react/jsx-runtime").JSX.Element;

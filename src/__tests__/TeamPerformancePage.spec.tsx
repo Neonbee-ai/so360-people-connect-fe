@@ -61,7 +61,7 @@ describe('TeamPerformancePage', () => {
     it('When the page loads / Then it shows goals summary', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Goals Summary')).toBeInTheDocument());
-      expect(screen.getByText('In Progress')).toBeInTheDocument();
+      expect(screen.getByText('In Progress (1)')).toBeInTheDocument();
     });
 
     it('When the page loads / Then it shows review pipeline', async () => {

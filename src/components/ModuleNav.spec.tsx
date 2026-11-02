@@ -21,7 +21,7 @@ const renderNav = (initialPath = '/dashboard') =>
 describe('Given ModuleNav is rendered', () => {
   it('When rendered / Then it shows the Overview section', () => {
     renderNav();
-    expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getAllByText('Overview').length).toBeGreaterThanOrEqual(1);
   });
 
   it('When rendered / Then it shows People & Organization section', () => {
@@ -271,8 +271,9 @@ describe('Given the My Work section', () => {
     it('When the self-service flag is enabled / Then all six employee items render for a non-admin', () => {
         mockShell = { effectiveFlagsLoaded: true, permissionsLoaded: true, hasPermission: () => false, hasAnyPermission: () => true, isFeatureEnabled: () => true, isAdmin: false };
         renderNav();
-        // 'My Work' is both the section header and the home item's label.
-        expect(screen.getAllByText('My Work').length).toBeGreaterThanOrEqual(2);
+        // 'My Work' is the section header; the home item is labelled 'Overview'.
+        expect(screen.getAllByText('My Work').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Overview').length).toBeGreaterThanOrEqual(1);
         expect(screen.getByText('My Time')).toBeInTheDocument();
         expect(screen.getByText('My Leave')).toBeInTheDocument();
         expect(screen.getByText('My Goals')).toBeInTheDocument();

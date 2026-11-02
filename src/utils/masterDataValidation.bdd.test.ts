@@ -35,8 +35,12 @@ describe('Given the Full Name field on Add Person', () => {
     expect(validatePersonName('2John Doe')).toBeTruthy();
   });
 
-  it('When a name mixes digits with symbols / Then it is rejected', () => {
-    expect(validatePersonName('John+46 Doe')).toBeTruthy();
+  it('When a name has symbols after the first character / Then it is accepted (matches BE, fe5e09e)', () => {
+    expect(validatePersonName('John+46 Doe')).toBeNull();
+  });
+
+  it('When a name starts with + / Then it is rejected', () => {
+    expect(validatePersonName('+46 John')).toBeTruthy();
   });
 
   it('When the field is empty or whitespace / Then a required message is returned', () => {
@@ -66,7 +70,7 @@ describe('Given the Email field on Add Person', () => {
   it('When the reported junk value "henry@gmail.com74166^(*)_)" is entered / Then it is rejected', () => {
     expect(validateEmail('henry@gmail.com74166^(*)_)')).toBe(
       'Please enter a valid email address (e.g., name@example.com). ' +
-        'Username may contain letters (A–Z, a–z), numbers (0–9), periods (.), underscores (_), hyphens (-), and plus signs (+). ' +
+        'Username may contain letters (A–Z, a–z), numbers (0–9), periods (.), underscores (_), hyphens (-), percent signs (%), and plus signs (+). ' +
         'Domain must contain valid letters or numbers, may include single hyphens (-), and cannot contain consecutive hyphens (--), ' +
         'consecutive periods (..), spaces, or start/end with a hyphen or period.'
     );
@@ -104,8 +108,8 @@ describe('Given the Phone field on Add Person', () => {
   });
 
   it('When there are too few or too many digits / Then it is rejected', () => {
-    expect(validatePhone('12345')).toContain('7 and 15');
-    expect(validatePhone('1234567890123456')).toContain('7 and 15');
+    expect(validatePhone('12345')).toContain('at least 7 digits');
+    expect(validatePhone('1234567890123456')).toContain('at most 15 digits');
   });
 
   it('When the field is empty and optional / Then it is accepted', () => {

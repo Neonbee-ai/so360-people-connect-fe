@@ -134,7 +134,7 @@ describe('Given the Allocations list page', () => {
     mockAllocApi.cancel.mockRejectedValue(new Error('boom'));
     renderPage();
     await waitFor(() => expect(screen.getByText('Website')).toBeInTheDocument());
-    fireEvent.click(screen.getByLabelText('Cancel allocation'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel allocation' }));
     fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel allocation' }));
     await waitFor(() => expect(err).toHaveBeenCalledWith('Failed to cancel allocation'));
   });

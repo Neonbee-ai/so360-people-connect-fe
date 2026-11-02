@@ -118,7 +118,7 @@ describe('Given AttendanceRegisterPage KPI cards', () => {
     await waitFor(() => expect(screen.getByText('Total Employees')).toBeInTheDocument());
     expect(screen.getByText('2')).toBeInTheDocument(); // Total Employees
     expect(screen.getByText('1')).toBeInTheDocument(); // Present
-    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(3); // Absent, On Leave
+    expect(screen.getAllByText('0')).toHaveLength(2); // Absent, On Leave
     expect(screen.getByText('Present')).toBeInTheDocument();
     expect(screen.getByText('Absent')).toBeInTheDocument();
     expect(screen.getByText('On Leave')).toBeInTheDocument();

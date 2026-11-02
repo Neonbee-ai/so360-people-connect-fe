@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Receipt, FileDown } from 'lucide-react';
-import { toast, Button, IconButton, ListPageTemplate, Card, Stack, Cluster } from '@so360/design-system';
+import { toast, IconButton, ListPageTemplate, Card, Stack, Cluster } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import EmptyState from '../../components/EmptyState';
@@ -74,7 +74,7 @@ const MyPayslipsPage: React.FC = () => {
             >
                 <Stack gap="default">
                     {payslips.map(payslip => (
-                        <Card key={payslip.id} name={`payslip-${payslip.id}`} padding="md">
+                        <Card key={payslip.id} name={`payslip-${payslip.id}`} padding="md" onClick={() => openPayslip(payslip)}>
                             <Cluster gap="default" justify="between" align="center">
                                 <Cluster gap="default" align="center">
                                     <Receipt size={16} className="text-primary" />
@@ -88,8 +88,7 @@ const MyPayslipsPage: React.FC = () => {
                                     </Stack>
                                 </Cluster>
                                 <Cluster gap="tight" align="center">
-                                    <Button variant="ghost" size="sm" onClick={() => openPayslip(payslip)}>View</Button>
-                                    <IconButton icon={<FileDown size={14} />} label={`Download ${payslip.payslip_number}`} onClick={() => download(payslip)} />
+                                    <IconButton icon={<FileDown size={14} />} label={`Download ${payslip.payslip_number}`} onClick={(e) => { e.stopPropagation(); download(payslip); }} />
                                 </Cluster>
                             </Cluster>
                         </Card>

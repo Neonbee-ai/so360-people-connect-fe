@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart3, Download, FileSpreadsheet } from 'lucide-react';
-import { toast, Select, Button, Cluster, Stack, Grid, GridItem, Skeleton, DataTable, DateInput, DashboardPageTemplate } from '@so360/design-system';
+import { toast, Select, Button, Cluster, ChoiceCardGrid, SelectableCard, Skeleton, DataTable, DateInput, DashboardPageTemplate } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import EmptyState from '../../components/EmptyState';
 import { payrollApi, ReportResult, PayrollGroup } from '../../services/payrollApi';
@@ -16,6 +16,22 @@ const REPORTS: { key: string; label: string; description: string }[] = [
     { key: 'variance', label: 'Variance', description: 'Pay changes between consecutive runs, per employee.' },
     { key: 'history', label: 'Payroll History', description: 'Every closed run with totals over time.' },
 ];
+
+/**
+ * Older backends return `{ key, rows }` with no `columns`; rendering
+ * `result.columns.map` then crashed the page ("a.columns is undefined").
+ * Always hand the table arrays: derive columns from row keys when absent.
+ */
+export function normalizeReport(report: Partial<ReportResult> | null | undefined): ReportResult {
+    const rows = Array.isArray(report?.rows) ? report!.rows : [];
+    const columns = Array.isArray(report?.columns) && report!.columns.length
+        ? report!.columns
+        : [...new Set(rows.flatMap(r => Object.keys(r ?? {})))].map(key => ({
+            key,
+            label: key.split('_').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+        }));
+    return { ...report, columns, rows } as ReportResult;
+}
 
 const PayrollReportsPage: React.FC = () => {
     const [selectedReport, setSelectedReport] = useState<string>('');
@@ -41,7 +57,7 @@ const PayrollReportsPage: React.FC = () => {
                 group_id: filters.group_id || undefined,
                 department_id: filters.department_id || undefined,
             });
-            setResult(report);
+            setResult(normalizeReport(report));
         } catch {
             toast.error('Failed to run report');
             setResult(null);
@@ -73,8 +89,8 @@ const PayrollReportsPage: React.FC = () => {
         header: column.label,
         render: (row: ReportRow) => (
             row.__totals
-                ? <span className="text-fg">{result?.totals && result.totals[column.key] !== undefined ? String(result.totals[column.key]) : ''}</span>
-                : <span className="text-fg">{String(row[column.key] ?? '—')}</span>
+                ? <span className="break-words text-fg">{result?.totals && result.totals[column.key] !== undefined ? String(result.totals[column.key]) : ''}</span>
+                : <span className="break-words text-fg">{String(row[column.key] ?? '—')}</span>
         ),
     }));
     const tableRows: ReportRow[] = result
@@ -114,22 +130,22 @@ const PayrollReportsPage: React.FC = () => {
                 </Cluster>
             }
             primary={
-                <Grid columns="auto" gap="md">
+                <ChoiceCardGrid
+                    name="payroll-reports"
+                    aria-label="Payroll reports"
+                    value={selectedReport || undefined}
+                    onChange={(key: string) => runReport(key)}
+                >
                     {REPORTS.map(report => (
-                        <GridItem key={report.key} span={3}>
-                            <Button
-                                variant={selectedReport === report.key ? 'secondary' : 'ghost'}
-                                onClick={() => runReport(report.key)}
-                            >
-                                <Stack gap="tight">
-                                    <FileSpreadsheet size={16} className={selectedReport === report.key ? 'text-primary' : 'text-fg-subtle'} />
-                                    <span className="text-nb-body text-fg">{report.label}</span>
-                                    <span className="text-nb-caption text-fg-muted">{report.description}</span>
-                                </Stack>
-                            </Button>
-                        </GridItem>
+                        <SelectableCard
+                            key={report.key}
+                            value={report.key}
+                            icon={FileSpreadsheet}
+                            title={report.label}
+                            description={report.description}
+                        />
                     ))}
-                </Grid>
+                </ChoiceCardGrid>
             }
             bottom={
                 loading ? (
@@ -139,7 +155,9 @@ const PayrollReportsPage: React.FC = () => {
                 ) : !result || result.rows.length === 0 ? (
                     <EmptyState icon={BarChart3} title="No data" description="No rows match the selected filters." />
                 ) : (
-                    <DataTable name="payroll-report" columns={tableColumns} rows={tableRows} rowKey={(row) => String(tableRows.indexOf(row))} />
+                    <div className="min-w-0 max-w-full overflow-x-auto">
+                        <DataTable name="payroll-report" columns={tableColumns} rows={tableRows} rowKey={(row) => String(tableRows.indexOf(row))} />
+                    </div>
                 )
             }
         />

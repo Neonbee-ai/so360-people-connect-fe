@@ -15,6 +15,7 @@ vi.mock('../services/performanceReviewsService', () => ({
   performanceReviewsApi: { getById: vi.fn(), submitSelfReview: vi.fn(), submitManagerReview: vi.fn(), complete: vi.fn() },
 }));
 vi.mock('../services/performanceBlocksService', () => ({ performanceBlocksApi: { list: vi.fn().mockResolvedValue([]) } }));
+vi.mock('../services/peopleService', () => ({ peopleApi: { getMe: () => Promise.resolve(null) } }));
 vi.mock('../services/reviewTemplatesService', () => ({ reviewTemplatesApi: { getById: vi.fn() } }));
 vi.mock('@so360/shell-context', () => ({
   useActivity: () => ({ recordActivity: async () => {} }),
@@ -70,7 +71,7 @@ describe('ReviewDetailPage (Comb)', () => {
   it('Given the header / When Back is clicked / Then it navigates inside the module', async () => {
     renderPage();
     await screen.findByRole('heading', { name: /Alice/ });
-    fireEvent.click(screen.getAllByRole('button')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Reviews' }));
     expect(mockNavigate).toHaveBeenCalledWith('/people/reviews');
   });
 

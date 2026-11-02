@@ -233,7 +233,7 @@ describe('GIVEN the structure builder', () => {
     await openBuilder();
     fireEvent.click(screen.getByText('Save Lines'));
     await waitFor(() => expect(mockApi.structures.saveLines).toHaveBeenCalled());
-    expect(screen.getByText('Save Lines')).toBeInTheDocument();
+    expect(await screen.findByText('Save Lines')).toBeInTheDocument();
   });
 
   it('WHEN components fail to load THEN the builder still renders its lines', async () => {

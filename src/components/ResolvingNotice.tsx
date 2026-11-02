@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Button } from '@so360/design-system';
 
 /** How long shell context may take before we stop spinning and offer a retry. */
 export const RESOLVE_TIMEOUT_MS = 20000;
@@ -24,23 +25,22 @@ export const ResolvingNotice: React.FC<{ label?: string; timeoutMs?: number }> =
 
     if (timedOut) {
         return (
-            <div role="alert" className="flex flex-col items-center justify-center min-h-[300px] gap-3 text-center px-4">
+            <div role="alert" className="flex flex-col items-center justify-center min-h-72 gap-3 text-center px-4">
                 <h2 className="text-lg font-semibold text-fg">This is taking longer than expected</h2>
                 <p className="text-sm text-fg-subtle max-w-md">We could not load your workspace context. Check your connection and try again.</p>
-                <button
+                <Button
                     type="button"
                     onClick={() => window.location.reload()}
-                    className="px-4 py-2 rounded bg-primary hover:bg-primary-hover text-primary-fg text-sm font-medium transition-colors"
                 >
                     Retry
-                </button>
+                </Button>
             </div>
         );
     }
 
     return (
-        <div role="status" className="flex flex-col items-center justify-center min-h-[300px] gap-3 text-fg-muted">
-            <div className="w-6 h-6 border-2 border-primary/20 border-t-teal-500 rounded-full animate-spin" />
+        <div role="status" className="flex flex-col items-center justify-center min-h-72 gap-3 text-fg-muted">
+            <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
             <p className="text-sm">{label}</p>
         </div>
     );

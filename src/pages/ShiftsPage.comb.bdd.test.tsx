@@ -50,6 +50,7 @@ describe('ShiftsPage (Comb)', () => {
     renderPage();
     await waitFor(() => screen.getByText('Morning'));
     fireEvent.click(screen.getByText('Add Shift'));
+    expect(screen.getByPlaceholderText('e.g. Morning Shift')).toHaveAttribute('maxlength', '100');
     fireEvent.change(screen.getByPlaceholderText('e.g. Morning Shift'), { target: { value: 'Evening' } });
     fireEvent.click(screen.getByText('Add Shift', { selector: 'button[type="submit"]' }));
     await waitFor(() => expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Evening', start_time: '09:00', end_time: '18:00', grace_period_minutes: 0 })));
@@ -62,7 +63,7 @@ describe('ShiftsPage (Comb)', () => {
     await waitFor(() => screen.getByText('Morning'));
     expect(screen.queryByText('Add Shift')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Delete')).not.toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Active', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('Given the load fails / When rendered / Then an error toast is shown', async () => {

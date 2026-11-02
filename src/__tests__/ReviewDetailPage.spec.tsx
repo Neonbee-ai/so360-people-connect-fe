@@ -100,7 +100,8 @@ describe('ReviewDetailPage', () => {
     it('When the page loads / Then it renders the template form', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Core Competencies')).toBeInTheDocument());
-      expect(screen.getByText('Technical Skills')).toBeInTheDocument();
+      // Rating fields are Comb Rating groups, named via aria-label rather than visible text.
+      expect(screen.getByLabelText('Technical Skills')).toBeInTheDocument();
     });
 
     it('When the page loads / Then it shows Submit Self Review button', async () => {
@@ -175,17 +176,18 @@ describe('ReviewDetailPage', () => {
 
     it('When the page loads / Then it renders all field types', async () => {
       renderPage('r3');
-      await waitFor(() => expect(screen.getByText('Technical Skills')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByLabelText('Technical Skills')).toBeInTheDocument());
       expect(screen.getByText('Comments')).toBeInTheDocument();
       expect(screen.getByText('Summary')).toBeInTheDocument();
       expect(screen.getByText('Score')).toBeInTheDocument();
-      expect(screen.getByText('Recommend')).toBeInTheDocument();
+      expect(screen.getByText('Recommend - Yes')).toBeInTheDocument();
     });
 
     it('When self review tab is clicked / Then it shows self review data in read-only', async () => {
       renderPage('r3');
-      await waitFor(() => expect(screen.getByText('Self Review')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Self Review'));
+      // The tab carries a check mark once the self review has been submitted.
+      await waitFor(() => expect(screen.getByRole('tab', { name: /^Self Review/ })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('tab', { name: /^Self Review/ }));
       await waitFor(() => expect(screen.getByText('Core Competencies')).toBeInTheDocument());
     });
   });

@@ -18,6 +18,7 @@ import UserSelector from '../components/UserSelector';
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    ok: true,
     json: () => Promise.resolve({
       members: [
         { user_id: 'u1', email: 'alice@test.com', full_name: 'Alice Smith', avatar_url: null },
@@ -79,13 +80,14 @@ describe('UserSelector', () => {
       render(<UserSelector value={null} onChange={() => {}} />);
       await waitFor(() => expect(fetch).toHaveBeenCalled());
       fireEvent.click(screen.getByPlaceholderText('Select user...'));
-      await waitFor(() => expect(screen.getByText('No users found')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('fail')).toBeInTheDocument());
     });
   });
 
   describe('Given the API returns array format', () => {
     it('When the response is a plain array / Then it maps users correctly', async () => {
       (fetch as any).mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve([
           { id: 'u3', email: 'charlie@test.com', name: 'Charlie' },
         ]),

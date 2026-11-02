@@ -37,7 +37,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, autoCloseMs = 400
         <div
             role="status"
             aria-live="polite"
-            className={`fixed bottom-nb-6 right-nb-6 z-50 flex items-start gap-nb-2 rounded-nb border px-nb-4 py-nb-3 text-nb-sm shadow-lg ${STYLES[type]}`}
+            className={`fixed bottom-nb-6 right-nb-6 z-50 flex items-start gap-nb-2 rounded-nb border px-nb-4 py-nb-3 text-nb-sm shadow-overlay ${STYLES[type]}`}
         >
             <Icon size={16} className="mt-0.5 shrink-0" />
             <span className="max-w-xs">{message}</span>

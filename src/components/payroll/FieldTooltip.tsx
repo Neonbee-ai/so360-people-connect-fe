@@ -29,7 +29,7 @@ const FieldTooltip: React.FC<FieldTooltipProps> = ({ text }) => {
             {open && (
                 <span
                     role="tooltip"
-                    className="absolute left-1/2 -translate-x-1/2 bottom-full mb-nb-2 z-menu w-64 px-nb-3 py-nb-2 rounded-nb bg-surface-raised border border-line-strong text-nb-caption text-fg shadow-xl"
+                    className="absolute left-1/2 -translate-x-1/2 bottom-full mb-nb-2 z-menu w-64 px-nb-3 py-nb-2 rounded-nb bg-surface-raised border border-line-strong text-nb-caption text-fg shadow-overlay"
                 >
                     {text}
                 </span>

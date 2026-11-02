@@ -26,6 +26,23 @@ export const CONTRACTOR_EMPLOYMENT_TYPE_CODES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * The org's Employment Type masters, or any rows carrying `code` and the
+ * per-org `is_contractor` flag. A boolean flag wins; null/missing falls back
+ * to CONTRACTOR_EMPLOYMENT_TYPE_CODES (same rule as the backend).
+ */
+export type EmploymentTypeFlagRow = { code: string; is_contractor?: boolean | null };
+
+export const isContractorEmploymentType = (
+  employmentTypeCode: string,
+  masters?: readonly EmploymentTypeFlagRow[],
+): boolean => {
+  const code = employmentTypeCode.toLowerCase();
+  const row = masters?.find(m => m.code?.toLowerCase() === code);
+  if (typeof row?.is_contractor === 'boolean') return row.is_contractor;
+  return CONTRACTOR_EMPLOYMENT_TYPE_CODES.has(code);
+};
+
+/**
  * The person type implied by an employment type code. With no employment type
  * selected, `fallback` is kept: 'employee' for a new person, the stored value
  * when editing, so clearing the field never flips an existing record.
@@ -33,9 +50,10 @@ export const CONTRACTOR_EMPLOYMENT_TYPE_CODES: ReadonlySet<string> = new Set([
 export const personTypeForEmploymentType = (
   employmentTypeCode: string | null | undefined,
   fallback: PersonType = 'employee',
+  masters?: readonly EmploymentTypeFlagRow[],
 ): PersonType => {
   if (!employmentTypeCode) return fallback;
-  return CONTRACTOR_EMPLOYMENT_TYPE_CODES.has(employmentTypeCode.toLowerCase()) ? 'contractor' : 'employee';
+  return isContractorEmploymentType(employmentTypeCode, masters) ? 'contractor' : 'employee';
 };
 
 const norm = (code: string | null | undefined) => (code ? code.toLowerCase() : '');
@@ -49,10 +67,11 @@ export const typeToSendOnEdit = (
   originalCode: string | null | undefined,
   currentCode: string | null | undefined,
   storedType: PersonType,
+  masters?: readonly EmploymentTypeFlagRow[],
 ): PersonType | undefined => {
   if (norm(originalCode) === norm(currentCode)) return undefined;
   if (!currentCode) return undefined; // cleared: keep the stored type
-  const next = personTypeForEmploymentType(currentCode, storedType);
+  const next = personTypeForEmploymentType(currentCode, storedType, masters);
   return next === storedType ? undefined : next;
 };
 

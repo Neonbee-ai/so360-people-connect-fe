@@ -65,7 +65,7 @@ describe('LeaveApprovalsPage', () => {
     it('When the page loads / Then it renders the approvals table', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-      expect(screen.getByText('Annual Leave')).toBeInTheDocument();
+      expect(screen.getByText('Annual Leave', { selector: 'span' })).toBeInTheDocument();
     });
 
     it('When Reject is clicked / Then the reject modal opens', async () => {

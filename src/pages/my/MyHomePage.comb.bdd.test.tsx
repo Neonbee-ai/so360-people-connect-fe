@@ -30,9 +30,9 @@ beforeEach(() => {
 });
 
 describe('Given MyHomePage on the Comb dashboard template', () => {
-    it('When it renders / Then the My Work heading shows', async () => {
+    it('When it renders / Then the Overview heading shows', async () => {
         renderPage();
-        expect(screen.getByRole('heading', { name: 'My Work' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Overview' })).toBeInTheDocument();
         await waitFor(() => expect(meService.whosOut).toHaveBeenCalled());
     });
 

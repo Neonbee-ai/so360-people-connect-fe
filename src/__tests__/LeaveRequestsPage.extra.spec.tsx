@@ -125,8 +125,10 @@ describe('LeaveRequestsPage — extra scenarios', () => {
 
     it('When page loads / Then shows status badges', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('pending')).toBeInTheDocument());
-      expect(screen.getByText('approved')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText('Pending')).toBeInTheDocument());
+      // 'Approved' is also a status-filter <option>; assert the row badge itself.
+      expect(screen.getByTestId('status-approved')).toHaveTextContent('Approved');
+      expect(screen.queryByText('pending')).toBeNull();
     });
 
     it('When page loads / Then Request Leave button is visible', async () => {

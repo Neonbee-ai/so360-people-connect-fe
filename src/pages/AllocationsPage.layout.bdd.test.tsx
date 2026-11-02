@@ -93,10 +93,11 @@ describe('Given allocations rendered as a DataTable', () => {
     expect(screen.getAllByRole('columnheader').length).toBeGreaterThanOrEqual(5);
   });
 
-  it('When rows render / Then each row carries a compact progress bar', async () => {
+  it('When rows render / Then each active row carries a compact progress bar (others show a dash)', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    expect(screen.getAllByRole('progressbar').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByRole('progressbar')).toHaveLength(1);
+    expect(screen.getByRole('progressbar', { name: /^Capacity \d+%$/ })).toBeInTheDocument();
   });
 
   it('When a row is cancelled or completed / Then it offers no row actions', async () => {

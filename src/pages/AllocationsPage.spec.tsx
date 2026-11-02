@@ -362,9 +362,9 @@ describe('AllocationsPage — error handling', () => {
     await waitFor(() => expect(screen.getByRole('option', { name: /Alice/ })).toBeInTheDocument());
 
     fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: 'p1' } });
-    fireEvent.click(screen.getByText('Select project...'));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Project X' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Project X' }));
+    fireEvent.click(screen.getByLabelText('Select project...'));
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Project X' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('option', { name: 'Project X' }));
 
     const container = document.querySelector('form')!;
     const dateInputs = container.querySelectorAll('input[type="date"]');
@@ -453,9 +453,9 @@ describe('AllocationsPage — create form validation', () => {
   };
 
   const pickEntity = async () => {
-    fireEvent.click(screen.getByText('Select project...'));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+    fireEvent.click(screen.getByLabelText('Select project...'));
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Website Redesign' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('option', { name: 'Website Redesign' }));
   };
 
   it('When no entity is selected / Then a validation error is shown and create is not called', async () => {
@@ -564,9 +564,9 @@ describe('Given the Create Allocation form is open', () => {
 
   const completeForm = async (container: HTMLElement) => {
     fireEvent.change(screen.getByDisplayValue('Select a person...'), { target: { value: PERSON_UUID } });
-    fireEvent.click(screen.getByText('Select project...'));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Website Redesign' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Website Redesign' }));
+    fireEvent.click(screen.getByLabelText('Select project...'));
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Website Redesign' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('option', { name: 'Website Redesign' }));
     fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2027-06-30' } });
     fireEvent.change(container.querySelector('input[type="number"]')!, { target: { value: '60' } });
   };

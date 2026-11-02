@@ -59,8 +59,10 @@ const PayrollRunsPage: React.FC = () => {
             key: 'actions',
             header: 'Actions',
             align: 'right',
+            sticky: 'right',
+            alwaysVisible: true,
             render: run => (
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/people/payroll/runs/${run.id}`)}>Open</Button>
+                <Button variant="secondary" size="sm" onClick={() => navigate(`/people/payroll/runs/${run.id}`)}>Open</Button>
             ),
         },
     ];
@@ -167,6 +169,11 @@ const NewRunDialog: React.FC<{
                             onChange={e => setPeriodId(e.target.value)}
                             options={[{ value: '', label: 'Select an open period…' }, ...periods.map(period => ({ value: period.id, label: `${period.period_start} – ${period.period_end}` }))]}
                         />
+                    )}
+                    {periods.length > 0 && (
+                        <p className="text-nb-caption text-fg-subtle">
+                            Next step: choose which employees are included in this run before calculating.
+                        </p>
                     )}
                 </Stack>
             </form>
