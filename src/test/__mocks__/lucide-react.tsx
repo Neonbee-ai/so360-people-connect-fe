@@ -54,6 +54,7 @@ export const DollarSign = createIcon('DollarSign');
 export const BarChart2 = createIcon('BarChart2');
 export const BarChart3 = createIcon('BarChart3');
 export const Archive = createIcon('Archive');
+export const ArchiveRestore = createIcon('ArchiveRestore');
 export const BookOpen = createIcon('BookOpen');
 export const FileText = createIcon('FileText');
 export const Receipt = createIcon('Receipt');

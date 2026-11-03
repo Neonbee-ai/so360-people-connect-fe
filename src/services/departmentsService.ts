@@ -62,7 +62,7 @@ export interface DepartmentEmployeesResponse {
 // =============================================================================
 
 export const departmentsApi = {
-  getAll: async (params?: { is_active?: boolean; page?: number; limit?: number }): Promise<PaginatedResponse<Department>> => {
+  getAll: async (params?: { is_active?: boolean; status?: 'active' | 'inactive'; page?: number; limit?: number }): Promise<PaginatedResponse<Department>> => {
     return api.get<PaginatedResponse<Department>>('/departments', params);
   },
 
