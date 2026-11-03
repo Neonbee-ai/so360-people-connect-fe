@@ -50,6 +50,9 @@ const DepartmentsPage: React.FC = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const [showArchived, setShowArchived] = useState(false);
+    const [archived, setArchived] = useState<Department[]>([]);
+    const [archivedLoading, setArchivedLoading] = useState(false);
 
     const loadDepartments = useCallback(async () => {
         try {
@@ -70,6 +73,22 @@ const DepartmentsPage: React.FC = () => {
     useEffect(() => {
         loadDepartments();
     }, [loadDepartments]);
+
+    useEffect(() => {
+        if (!showArchived) return;
+        let cancelled = false;
+        setArchivedLoading(true);
+        departmentsApi.getAll({ status: 'inactive', limit: 200 })
+            .then(res => { if (!cancelled) setArchived(res.data ?? []); })
+            .catch(() => {
+                if (!cancelled) {
+                    setArchived([]);
+                    toast.error('Failed to load archived departments');
+                }
+            })
+            .finally(() => { if (!cancelled) setArchivedLoading(false); });
+        return () => { cancelled = true; };
+    }, [showArchived]);
 
     const [submitting, setSubmitting] = useState(false);
     const submittingRef = useRef(false);
@@ -224,7 +243,15 @@ const DepartmentsPage: React.FC = () => {
                     ) : undefined
                 }
                 loading={loading}
-                isEmpty={departments.length === 0}
+                isEmpty={departments.length === 0 && !showArchived}
+                toolbar={
+                    <Checkbox
+                        name="departments-show-archived"
+                        label="Show archived"
+                        checked={showArchived}
+                        onChange={(e) => setShowArchived(e.target.checked)}
+                    />
+                }
                 empty={
                     <EmptyState
                         icon={Building2}
@@ -256,6 +283,34 @@ const DepartmentsPage: React.FC = () => {
             >
                 {/* Departments Tree */}
                 <Stack gap="tight">{visibleDepartments.map(dept => renderDepartment(dept))}</Stack>
+
+                {showArchived && (
+                    <Stack gap="tight">
+                        <h2 className="text-nb-h3 text-fg">Archived departments</h2>
+                        {archivedLoading ? (
+                            <p className="text-nb-caption text-fg-muted">Loading…</p>
+                        ) : archived.length === 0 ? (
+                            <p className="text-nb-caption text-fg-muted">No archived departments.</p>
+                        ) : (
+                            archived.map(dept => (
+                                <Card key={dept.id} padding="sm" name={`archived-department-${dept.id}`}>
+                                    <Cluster gap="default" justify="between">
+                                        <div className="min-w-0">
+                                            <Cluster>
+                                                <span className="text-nb-sm font-medium text-fg truncate">{dept.name}</span>
+                                                <span className="text-nb-caption text-fg-subtle">{dept.code}</span>
+                                                <StatusBadge status="inactive" />
+                                            </Cluster>
+                                        </div>
+                                        <Button variant="ghost" size="sm" onClick={() => navigate(`/people/departments/${dept.id}`)}>
+                                            View / Restore
+                                        </Button>
+                                    </Cluster>
+                                </Card>
+                            ))
+                        )}
+                    </Stack>
+                )}
             </ListPageTemplate>
 
             {/* Create/Edit Modal */}
