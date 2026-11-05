@@ -75,6 +75,12 @@ const mockTypesApi = leaveTypesApi as any;
 const ANNUAL = { id: 'lt1', name: 'Annual Leave', code: 'AL', is_active: true, allow_backdated_requests: false, accrual_type: 'annual' };
 const SICK = { id: 'lt2', name: 'Sick Leave', code: 'SL', is_active: true, allow_backdated_requests: true, accrual_type: 'none' };
 
+// Pinned to Monday 3 June 2030: Total Days counts working days (Mon-Fri,
+// like the server), so "today" must be a known weekday for exact totals.
+const PINNED_NOW = new Date('2030-06-03T09:00:00');
+vi.useFakeTimers({ toFake: ['Date'] });
+vi.setSystemTime(PINNED_NOW);
+
 const today = todayIso();
 const plusDays = (days: number) => {
   const d = new Date(`${today}T00:00:00`);
@@ -103,6 +109,8 @@ const fillRequiredFields = async (leaveTypeId = ANNUAL.id) => {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(PINNED_NOW);
   // resetAllMocks also clears implementations declared in the vi.mock factory,
   // so the logged-in person must be re-stubbed here or the form self-disables.
   mockPeopleApi.getMe.mockResolvedValue({ id: 'p1', full_name: 'Test User' });
