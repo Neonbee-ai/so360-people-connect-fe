@@ -1,6 +1,6 @@
 import { api } from './apiClient';
 
-export type HolidayType = 'national' | 'company' | 'regional' | 'optional' | 'custom';
+export type HolidayType = 'national' | 'public' | 'company' | 'regional' | 'optional' | 'festival' | 'custom';
 
 export interface Holiday {
   id: string;
@@ -16,6 +16,10 @@ export interface Holiday {
   is_mandatory: boolean;
   work_location_id?: string | null;
   employment_type_master_id?: string | null;
+  /** NULL = all departments. */
+  department_id?: string | null;
+  /** false = switched off; applies to nobody. Missing on pre-migration rows = active. */
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +35,8 @@ export interface CreateHolidayPayload {
   is_mandatory?: boolean;
   work_location_id?: string | null;
   employment_type_master_id?: string | null;
+  department_id?: string | null;
+  is_active?: boolean;
 }
 
 export interface HolidayFilters {
@@ -40,6 +46,8 @@ export interface HolidayFilters {
   holiday_type?: string;
   work_location_id?: string;
   employment_type_master_id?: string;
+  department_id?: string;
+  is_active?: string;
   [key: string]: string | undefined;
 }
 

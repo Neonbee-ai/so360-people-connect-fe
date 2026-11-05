@@ -1,16 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Plus } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
-import { Alert, Button, Cluster, DashboardPageTemplate, DateInput, Drawer, Grid, Select, Stack, Textarea, toast } from '@so360/design-system';
+import { Button, Cluster, DashboardPageTemplate, Grid, Stack, toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance } from '../../services/meService';
 import { leaveRequestsApi } from '../../services/leaveRequestsService';
-import type { LeaveRequest } from '../../services/leaveRequestsService';
-import { leaveTypesApi, LeaveType } from '../../services/leaveTypesService';
-import { peopleApi } from '../../services/peopleService';
-import ApproverSelector from '../../components/leave/ApproverSelector';
+import type { CreateLeaveRequestPayload, LeaveRequest } from '../../services/leaveRequestsService';
+import LeaveRequestFormModal from '../../components/leave/LeaveRequestFormModal';
 import { MyCard, StatTile, StatusPill, Skeleton } from './myUi';
-import { balanceError, minWorkingDays } from '../../utils/leaveBalance';
 
 /**
  * My Leave — the employee's own balances, history and request form.
@@ -21,28 +18,18 @@ import { balanceError, minWorkingDays } from '../../utils/leaveBalance';
  * person_id it did not reliably know, producing "No employee profile found for
  * your account". Here the person is never named by the client at all — the
  * backend takes it from the session.
+ *
+ * The request form is the same LeaveRequestFormModal the admin page uses
+ * (Pulse 78626df8), so labels, half-day options, totals and validation match.
+ * Only the save goes through /me, and balances come from /me/leave/balances.
  */
-
-const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const MyLeavePage: React.FC = () => {
     const [balances, setBalances] = useState<MyLeaveBalance[]>([]);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
-    const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-    // Needed only to scope the approver picker to this employee's eligible
-    // population; every other call on this page resolves the person server-side.
-    const [myPersonId, setMyPersonId] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [formOpen, setFormOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-
-    const [form, setForm] = useState({
-        leave_type_id: '',
-        start_date: todayIso(),
-        end_date: todayIso(),
-        reason: '',
-        approver_ids: [] as string[],
-    });
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -57,76 +44,26 @@ const MyLeavePage: React.FC = () => {
 
     useEffect(() => { void load(); }, [load]);
 
-    useEffect(() => {
-        leaveTypesApi
-            .getAll({ is_active: true })
-            .then(res => setLeaveTypes(res.data))
-            .catch(() => undefined);
-    }, []);
+    // The employee's own balances, read through /me: the admin balances
+    // endpoint needs a leave-read grant employees do not have.
+    const loadMyBalances = useCallback(
+        async () => (await meService.myLeaveBalances(new Date().getFullYear())).data || [],
+        [],
+    );
 
-    // Replaces a client-side fetch of up to 200 people that was then filtered in
-    // the browser: the picker now asks the server, which ranks the reporting
-    // manager first and caps the window.
-    useEffect(() => {
-        peopleApi
-            .getMe()
-            .then(person => setMyPersonId(person?.id ?? ''))
-            .catch(() => undefined);
-    }, []);
-
-    const setApproverIds = (ids: string[]) =>
-        setForm(f => ({ ...f, approver_ids: ids }));
-
-    // Same early over-balance warning the admin form gives (Pulse 78626df8).
-    // Leave types without accrual have no balance to exceed; the server stays
-    // authoritative either way.
-    const requestedDays = minWorkingDays(form.start_date, form.end_date);
-    const selectedType = leaveTypes.find(t => t.id === form.leave_type_id);
-    const balanceBlock = selectedType?.accrual_type === 'none'
-        ? ''
-        : balanceError(balances.find(b => b.leave_type_id === form.leave_type_id)?.available, requestedDays);
-
-    const submit = async () => {
-        if (!form.leave_type_id) {
-            toast.error('Choose a leave type');
-            return;
-        }
-        if (form.end_date < form.start_date) {
-            toast.error('The end date cannot be before the start date');
-            return;
-        }
-
-        const reason = form.reason.trim();
-        if (!reason) {
-            toast.error('Enter a reason for your leave');
-            return;
-        }
-        if (balanceBlock) {
-            toast.error(balanceBlock);
-            return;
-        }
-
+    const handleCreate = async (data: CreateLeaveRequestPayload, approverIds: string[]) => {
+        if (submitting) return;
         setSubmitting(true);
         try {
-            // No person_id: the backend resolves it from the session. Created as
-            // a draft, then submitted for approval routed to the selected
-            // manager(s) — or the org's department-head chain when none chosen.
-            const created = await meService.requestLeave({
-                leave_type_id: form.leave_type_id,
-                start_date: form.start_date,
-                end_date: form.end_date,
-                reason,
-            });
-            await leaveRequestsApi.submit(created.id, form.approver_ids);
+            // person_id is dropped: the backend resolves it from the session.
+            // Created as a draft, then submitted to the selected approver(s) —
+            // or the department-head chain when none are chosen.
+            const { person_id: _ignored, ...payload } = data;
+            void _ignored;
+            const created = await meService.requestLeave(payload);
+            await leaveRequestsApi.submit(created.id, approverIds);
             toast.success('Leave requested');
             setFormOpen(false);
-            setForm({
-                leave_type_id: '',
-                start_date: todayIso(),
-                end_date: todayIso(),
-                reason: '',
-                approver_ids: [],
-            });
             await load();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Could not submit your request');
@@ -142,7 +79,7 @@ const MyLeavePage: React.FC = () => {
                 description="Your balances and requests"
                 primaryAction={
                     <Button onClick={() => setFormOpen(true)}>
-                        <Plus size={16} /> Request leave
+                        <Plus size={16} /> Request Leave
                     </Button>
                 }
                 kpis={
@@ -190,75 +127,13 @@ const MyLeavePage: React.FC = () => {
                 }
             />
 
-            <Drawer
+            <LeaveRequestFormModal
                 isOpen={formOpen}
+                submitting={submitting}
                 onClose={() => setFormOpen(false)}
-                title="Request leave"
-                size="sm"
-                footer={
-                    <Cluster justify="end">
-                        <Button variant="secondary" onClick={() => setFormOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button onClick={submit} disabled={submitting || !!balanceBlock}>
-                            {submitting ? 'Submitting…' : 'Submit request'}
-                        </Button>
-                    </Cluster>
-                }
-            >
-                <Stack gap="default">
-                    <Select
-                        name="leave_type_id"
-                        label="Leave type"
-                        value={form.leave_type_id}
-                        onChange={e => setForm({ ...form, leave_type_id: e.target.value })}
-                        options={[{ value: '', label: 'Select…' }, ...leaveTypes.map(t => ({ value: t.id, label: t.name }))]}
-                    />
-
-                    <Grid columns={2}>
-                        <DateInput
-                            name="start_date"
-                            label="From"
-                            value={form.start_date}
-                            onChange={iso => setForm({ ...form, start_date: iso })}
-                        />
-                        <DateInput
-                            name="end_date"
-                            label="To"
-                            value={form.end_date}
-                            onChange={iso => setForm({ ...form, end_date: iso })}
-                        />
-                    </Grid>
-
-                    <p className="text-nb-caption text-fg-muted" data-testid="my-leave-total-days">
-                        Total days: <span className="font-medium text-primary">{requestedDays ?? '—'}</span>
-                    </p>
-                    {balanceBlock && (
-                        <Alert name="leave-balance-error" variant="error">
-                            {balanceBlock}
-                        </Alert>
-                    )}
-
-                    <Textarea
-                        name="reason"
-                        label="Reason *"
-                        required
-                        value={form.reason}
-                        onChange={e => setForm({ ...form, reason: e.target.value })}
-                        rows={3}
-                    />
-
-                    {myPersonId && (
-                        <ApproverSelector
-                            personId={myPersonId}
-                            value={form.approver_ids}
-                            onChange={setApproverIds}
-                            disabled={submitting}
-                            helpText="Leave blank to route to your department's configured head."
-                        />
-                    )}
-                </Stack>
-            </Drawer>
+                onCreate={handleCreate}
+                loadBalances={loadMyBalances}
+            />
         </>
     );
 };
