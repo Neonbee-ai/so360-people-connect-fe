@@ -14,6 +14,7 @@ import {
 } from '../services/holidaysService';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import { mastersApi, MasterRow } from '../services/mastersService';
+import { departmentsApi, Department } from '../services/departmentsService';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -22,17 +23,21 @@ const MONTH_NAMES = [
 
 const HOLIDAY_TYPE_OPTIONS: Array<{ value: HolidayType; label: string }> = [
   { value: 'national', label: 'National' },
+  { value: 'public', label: 'Public' },
   { value: 'company', label: 'Company' },
   { value: 'regional', label: 'Regional' },
   { value: 'optional', label: 'Optional' },
+  { value: 'festival', label: 'Festival' },
   { value: 'custom', label: 'Custom' },
 ];
 
 const HOLIDAY_TYPE_TONE: Record<HolidayType, 'primary' | 'info' | 'neutral' | 'warning'> = {
   national: 'primary',
+  public: 'primary',
   company: 'info',
   regional: 'neutral',
   optional: 'warning',
+  festival: 'info',
   custom: 'neutral',
 };
 
@@ -72,6 +77,7 @@ const HolidaysPage: React.FC = () => {
 
   const [workLocations, setWorkLocations] = useState<WorkLocation[]>([]);
   const [employmentTypes, setEmploymentTypes] = useState<MasterRow[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -93,6 +99,7 @@ const HolidaysPage: React.FC = () => {
   useEffect(() => {
     workLocationsApi.getAll().then(r => setWorkLocations(r.data ?? [])).catch(() => setWorkLocations([]));
     mastersApi.getAll('employment_type').then(r => setEmploymentTypes(r.data ?? [])).catch(() => setEmploymentTypes([]));
+    departmentsApi.getAll({ is_active: true }).then(r => setDepartments(r.data ?? [])).catch(() => setDepartments([]));
   }, []);
 
   const workLocationName = useCallback(
@@ -102,6 +109,10 @@ const HolidaysPage: React.FC = () => {
   const employmentTypeName = useCallback(
     (id?: string | null) => employmentTypes.find(m => m.id === id)?.name,
     [employmentTypes],
+  );
+  const departmentName = useCallback(
+    (id?: string | null) => departments.find(d => d.id === id)?.name,
+    [departments],
   );
 
   const visible = useMemo(() => filterHolidaysBySearch(holidays, search), [holidays, search]);
@@ -128,6 +139,18 @@ const HolidaysPage: React.FC = () => {
       await holidaysApi.update(id, data);
       setEditing(null);
       toast.success('Holiday updated');
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update holiday');
+    }
+  };
+
+  // Switching a holiday off keeps it for history but stops it counting as a
+  // non-working day in attendance and leave day counts (Pulse 8df0cba8).
+  const handleToggleActive = async (h: Holiday, active: boolean) => {
+    try {
+      await holidaysApi.update(h.id, { is_active: active });
+      toast.success(`Holiday "${h.name}" ${active ? 'activated' : 'deactivated'}`);
       load();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to update holiday');
@@ -170,7 +193,16 @@ const HolidaysPage: React.FC = () => {
 
   const columns: DataTableColumn<Holiday>[] = [
     { key: 'holiday_date', header: 'Date', render: h => <span className="text-fg">{h.holiday_date}</span> },
-    { key: 'name', header: 'Name', render: h => <span className="font-medium text-fg">{h.name}</span> },
+    {
+      key: 'name',
+      header: 'Name',
+      render: h => (
+        <Cluster gap="tight" align="center">
+          <span className="font-medium text-fg">{h.name}</span>
+          {h.is_active === false && <Badge tone="neutral">Inactive</Badge>}
+        </Cluster>
+      ),
+    },
     {
       key: 'location',
       header: 'Location',
@@ -193,6 +225,7 @@ const HolidaysPage: React.FC = () => {
           {[
             h.work_location_id ? workLocationName(h.work_location_id) : null,
             h.employment_type_master_id ? employmentTypeName(h.employment_type_master_id) : null,
+            h.department_id ? departmentName(h.department_id) : null,
           ].filter(Boolean).join(' · ') || 'Org-wide'}
         </span>
       ),
@@ -203,6 +236,7 @@ const HolidaysPage: React.FC = () => {
           header: 'Actions',
           render: (h: Holiday) => (
             <Cluster gap="tight" align="center">
+              <Switch name={`holiday-active-${h.id}`} label="Active" checked={h.is_active !== false} onCheckedChange={(v: boolean) => handleToggleActive(h, v)} />
               <IconButton label="Edit" icon={<Edit2 size={14} />} variant="ghost" size="sm" onClick={() => setEditing(h)} />
               <IconButton label={`Duplicate ${h.name}`} icon={<Copy size={14} />} variant="ghost" size="sm" onClick={() => setDuplicating(duplicateSeed(h))} />
               <IconButton label="Delete" icon={<Trash2 size={14} />} variant="ghost" size="sm" onClick={() => handleDelete(h.id)} />
@@ -300,6 +334,7 @@ const HolidaysPage: React.FC = () => {
         holiday={editing}
         workLocations={workLocations}
         employmentTypes={employmentTypes}
+        departments={departments}
       />
     </>
   );
@@ -319,15 +354,17 @@ interface HolidayModalProps {
   seed?: Holiday | null;
   workLocations: WorkLocation[];
   employmentTypes: MasterRow[];
+  departments: Department[];
 }
 
 const BLANK: CreateHolidayPayload = {
   name: '', holiday_date: '', holiday_type: 'national', state: '', country: '', region: '',
   is_optional: false, is_mandatory: true, work_location_id: '', employment_type_master_id: '',
+  department_id: '', is_active: true,
 };
 
 const HolidayModal: React.FC<HolidayModalProps> = ({
-  isOpen, onClose, onCreate, onUpdate, holiday, seed, workLocations, employmentTypes,
+  isOpen, onClose, onCreate, onUpdate, holiday, seed, workLocations, employmentTypes, departments,
 }) => {
   const [form, setForm] = useState<CreateHolidayPayload>(BLANK);
 
@@ -345,6 +382,8 @@ const HolidayModal: React.FC<HolidayModalProps> = ({
         is_mandatory: src.is_mandatory,
         work_location_id: src.work_location_id || '',
         employment_type_master_id: src.employment_type_master_id || '',
+        department_id: src.department_id || '',
+        is_active: src.is_active !== false,
       });
     } else {
       setForm(BLANK);
@@ -361,6 +400,7 @@ const HolidayModal: React.FC<HolidayModalProps> = ({
       ...form,
       work_location_id: form.work_location_id || null,
       employment_type_master_id: form.employment_type_master_id || null,
+      department_id: form.department_id || null,
     };
     if (holiday) {
       onUpdate(holiday.id, payload);
@@ -400,12 +440,14 @@ const HolidayModal: React.FC<HolidayModalProps> = ({
             <Select name="holidays-select-47" label="Work Location" value={form.work_location_id || ''} onChange={e => set('work_location_id', e.target.value)} options={[{ value: '', label: 'All Locations' }, ...workLocations.map((l) => ({ value: l.id, label: l.name }))]} />
             <Select name="holidays-select-48" label="Employment Type" value={form.employment_type_master_id || ''} onChange={e => set('employment_type_master_id', e.target.value)} options={[{ value: '', label: 'All Employment Types' }, ...employmentTypes.map((m) => ({ value: m.id, label: m.name }))]} />
           </div>
+          <Select name="holiday-department" label="Department" value={form.department_id || ''} onChange={e => set('department_id', e.target.value)} options={[{ value: '', label: 'All Departments' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]} />
           <div className="grid grid-cols-1 wc-medium:grid-cols-3 gap-nb-3">
             <TextField name="holiday-region" label="Region" value={form.region} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set('region', e.target.value)} />
             <TextField name="holiday-state" label="State" value={form.state} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set('state', e.target.value)} />
             <TextField name="holiday-country" label="Country" value={form.country} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set('country', e.target.value)} />
           </div>
           <Switch name="holiday-is-optional" label="Optional holiday" checked={!!form.is_optional} onCheckedChange={(v: boolean) => set('is_optional', v)} />
+          <Switch name="holiday-is-active" label="Active" checked={form.is_active !== false} onCheckedChange={(v: boolean) => set('is_active', v)} />
         </Stack>
       </form>
     </Modal>
