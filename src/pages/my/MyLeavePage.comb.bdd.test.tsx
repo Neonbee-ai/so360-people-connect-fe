@@ -6,9 +6,8 @@ import React from 'react';
 vi.mock('../../services/meService', () => ({
     meService: { myLeaveBalances: vi.fn(), myLeaveRequests: vi.fn(), requestLeave: vi.fn() },
 }));
-vi.mock('../../services/leaveTypesService', () => ({
-    leaveTypesApi: { getAll: vi.fn() },
-    LeaveType: {},
+vi.mock('../../services/leaveConfigService', () => ({
+    leaveConfigApi: { getApplicable: vi.fn().mockResolvedValue({ leave_types: [] }) },
 }));
 vi.mock('../../services/leaveRequestsService', () => ({
     leaveRequestsApi: { submit: vi.fn(), getEligibleApprovers: vi.fn().mockResolvedValue({ data: [], total: 0, suggested_approver_id: null }) },
@@ -19,7 +18,6 @@ vi.mock('../../services/peopleService', () => ({
 
 import MyLeavePage from './MyLeavePage';
 import { meService } from '../../services/meService';
-import { leaveTypesApi } from '../../services/leaveTypesService';
 
 const renderPage = () => render(<MemoryRouter><MyLeavePage /></MemoryRouter>);
 
@@ -32,7 +30,6 @@ beforeEach(() => {
         data: [{ id: 'r1', status: 'pending', start_date: '2026-09-01', end_date: '2026-09-02', total_days: 2, leave_type: { id: 'lt-1', name: 'Annual Leave' } }],
         total: 1,
     });
-    (leaveTypesApi.getAll as any).mockResolvedValue({ data: [{ id: 'lt-1', name: 'Annual Leave', code: 'AL', is_active: true }] });
 });
 
 describe('Given MyLeavePage on the Comb dashboard template', () => {

@@ -75,6 +75,12 @@ const mockTypesApi = leaveTypesApi as any;
 const ANNUAL = { id: 'lt1', name: 'Annual Leave', code: 'AL', is_active: true, allow_backdated_requests: false };
 const SICK = { id: 'lt2', name: 'Sick Leave', code: 'SL', is_active: true, allow_backdated_requests: true };
 
+// Pinned to Monday 3 June 2030: Total Days counts working days (Mon-Fri,
+// like the server), so "today" must be a known weekday for exact totals.
+const PINNED_NOW = new Date('2030-06-03T09:00:00');
+vi.useFakeTimers({ toFake: ['Date'] });
+vi.setSystemTime(PINNED_NOW);
+
 const today = todayIso();
 const plusDays = (days: number) => {
   const d = new Date(`${today}T00:00:00`);
@@ -103,6 +109,8 @@ const fillRequiredFields = async (leaveTypeId = ANNUAL.id) => {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(PINNED_NOW);
   // resetAllMocks also clears implementations declared in the vi.mock factory,
   // so the logged-in person must be re-stubbed here or the form self-disables.
   mockPeopleApi.getMe.mockResolvedValue({ id: 'p1', full_name: 'Test User' });
@@ -247,15 +255,15 @@ describe('Given the Request Leave date fields', () => {
     expect(mockLeaveApi.submit).not.toHaveBeenCalled();
   });
 
-  it('When a month-end / leap-year window is chosen / Then the day count is exact', async () => {
+  it('When a month-end / leap-year window is chosen / Then the working-day count is exact', async () => {
     await openModal();
     await fillRequiredFields(SICK.id); // backdating allowed, so fixed dates are usable
 
     fireEvent.change(startDate(), { target: { value: '2028-02-27' } });
     fireEvent.change(endDate(), { target: { value: '2028-03-01' } });
 
-    // 27, 28, 29 (leap day), 1 March = 4 days
-    await waitFor(() => expect(screen.getByText('4')).toBeInTheDocument());
+    // Sun 27 is a weekend; Mon 28, Tue 29 (leap day), Wed 1 March = 3 working days
+    await waitFor(() => expect(screen.getByText('3')).toBeInTheDocument());
   });
 
   it('When the reason is left empty / Then submit stays disabled', async () => {
