@@ -458,6 +458,19 @@ export const ColorPicker = ({ label, name, value, onChange, 'data-testid': testI
   </div>
 );
 
+// DateTimePicker mirrors Comb DateTimePicker: one 'YYYY-MM-DDTHH:mm' value.
+export const DateTimePicker = ({ label, name, value, onChange, hint, error, required, disabled, 'data-testid': testId }: any) => (
+  <div>
+    {label ? <label htmlFor={name}>{label}</label> : null}
+    <input
+      type="datetime-local" id={name} name={name} value={value ?? ''} required={required} disabled={disabled}
+      data-testid={testId} onChange={(e: any) => onChange?.(e.target.value)}
+    />
+    {hint ? <p>{hint}</p> : null}
+    {error ? <p role="alert">{error}</p> : null}
+  </div>
+);
+
 // TimePicker mirrors Comb TimePicker: label + time input, onChange gets 'HH:mm'.
 export const TimePicker = ({ label, name, value, onChange, hint, error, required, disabled, placeholder, 'data-testid': testId, 'aria-label': ariaLabel }: any) => (
   <div>
