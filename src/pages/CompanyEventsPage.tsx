@@ -398,7 +398,7 @@ export const CompanyEventDrawer: React.FC<DrawerProps> = ({ isOpen, onClose, onS
         </Cluster>
       }
     >
-      <form id="company-event-form" onSubmit={handleSubmit}>
+      <form id="company-event-form" onSubmit={handleSubmit} noValidate>
         <Stack gap="default">
           {error && <Banner variant="danger">{error}</Banner>}
           <TextField name="ce-title" id="ce-title" label="Title *" required value={form.title}
