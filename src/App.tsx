@@ -164,6 +164,8 @@ const ImportExportPage = lazy(() => import('./pages/ImportExportPage'));
 const WorkLocationsPage = lazy(() => import('./pages/WorkLocationsPage'));
 const HolidaysPage = lazy(() => import('./pages/HolidaysPage'));
 const CompanyEventsPage = lazy(() => import('./pages/CompanyEventsPage'));
+const TrainingSectionPage = lazy(() => import('./pages/training/TrainingSectionPage'));
+import { TRAINING_SECTIONS } from './pages/training/sections';
 const ShiftsPage = lazy(() => import('./pages/ShiftsPage'));
 const ApprovalChainsPage = lazy(() => import('./pages/settings/ApprovalChainsPage'));
 const EmploymentPolicyPage = lazy(() => import('./pages/settings/EmploymentPolicyPage'));
@@ -275,6 +277,12 @@ const App = () => {
                     {/* Departments */}
                     <Route path="departments" element={<PermissionGuard permission="departments.read"><DepartmentsPage /></PermissionGuard>} />
                     <Route path="departments/:id" element={<PermissionGuard permission="departments.read"><DepartmentDetailPage /></PermissionGuard>} />
+
+                    {/* Training & Competency (scaffold) */}
+                    <Route path="training" element={<PermissionGuard permission="training.read"><FeatureGate flagKey="submodule:people:training"><TrainingSectionPage /></FeatureGate></PermissionGuard>} />
+                    {TRAINING_SECTIONS.map((s) => (
+                      <Route key={s.slug} path={`training/${s.slug}`} element={<PermissionGuard permission="training.read"><FeatureGate flagKey="submodule:people:training"><TrainingSectionPage section={s.slug} /></FeatureGate></PermissionGuard>} />
+                    ))}
 
                     {/* Allocations & Time */}
                     <Route path="allocations" element={<PermissionGuard permission="allocations.read"><FeatureGate flagKey="submodule:people:allocations"><AllocationsPage /></FeatureGate></PermissionGuard>} />
