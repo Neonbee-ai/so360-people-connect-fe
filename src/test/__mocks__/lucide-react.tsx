@@ -134,3 +134,4 @@ export const Banknote = createIcon('Banknote');
 export const Timer = createIcon('Timer');
 export const Pause = createIcon('Pause');
 export const ArrowUpDown = createIcon('ArrowUpDown');
+export const GraduationCap = createIcon('GraduationCap');

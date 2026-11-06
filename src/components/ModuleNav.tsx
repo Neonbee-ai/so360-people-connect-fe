@@ -27,6 +27,7 @@ import {
     Play,
     Receipt,
     BarChart3,
+    GraduationCap,
 } from 'lucide-react';
 
 interface NavItem {
@@ -117,6 +118,12 @@ const navigationItems: NavSection[] = [
             { path: '/goals', label: 'Goals', icon: Target, permKey: 'goals.read' },
             { path: '/team-performance', label: 'Team Performance', icon: Users, permKey: ['reviews.read', 'utilization.read'] },
             { path: '/reviews/templates', label: 'Review Templates', icon: FileText, adminOnly: true, flagKey: 'submodule:people:reviews', permKey: 'reviews.create' },
+        ]
+    },
+    {
+        section: 'Training',
+        items: [
+            { path: '/training', label: 'Training & Competency', icon: GraduationCap, flagKey: 'submodule:people:training', permKey: 'training.read' },
         ]
     },
     {
