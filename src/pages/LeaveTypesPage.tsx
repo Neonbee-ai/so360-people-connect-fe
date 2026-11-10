@@ -22,7 +22,8 @@ const LeaveTypesPage: React.FC = () => {
     const loadLeaveTypes = useCallback(async () => {
         try {
             setLoading(true);
-            const result = await leaveTypesApi.getAll();
+            // The API lists active types by default; the admin catalog also manages inactive ones.
+            const result = await leaveTypesApi.getAll({ include_inactive: true });
             setLeaveTypes(result.data);
         } catch (error) {
             console.error('Failed to load leave types:', error);
