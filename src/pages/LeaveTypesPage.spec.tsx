@@ -57,6 +57,11 @@ describe('Given LeaveTypesPage loads with leave types', () => {
     await waitFor(() => expect(screen.getByText('Leave Types')).toBeInTheDocument());
   });
 
+  it('When page loads / Then it asks the API for inactive types too (API default is active only)', async () => {
+    renderPage();
+    await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledWith({ include_inactive: true }));
+  });
+
   it('When leave types are fetched / Then leave type name is displayed', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
