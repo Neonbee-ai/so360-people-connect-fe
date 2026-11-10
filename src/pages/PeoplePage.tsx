@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Users, UserPlus, Briefcase, Mail, Upload, Download, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
 import { peopleApi } from '../services/peopleService';
@@ -169,7 +169,11 @@ const PeoplePage: React.FC = () => {
         setJoiningToFilter('');
     };
 
+    // Latest-wins: a slow response for an older filter must not overwrite (or end
+    // the spinner of) the response for the filters the user has now.
+    const loadSeq = useRef(0);
     const loadPeople = useCallback(async () => {
+        const seq = ++loadSeq.current;
         if (joinedRangeInvalid) {
             // Invalid filter input, not a real empty result — don't query and
             // don't clear the previously loaded list out from under the user.
@@ -187,12 +191,14 @@ const PeoplePage: React.FC = () => {
                 date_of_joining_from: joiningFromFilter || undefined,
                 date_of_joining_to: joiningToFilter || undefined,
             });
+            if (seq !== loadSeq.current) return;
             setPeople(result.data);
         } catch (error) {
+            if (seq !== loadSeq.current) return;
             console.error('Failed to load people:', error);
             toast.error('Failed to load people');
         } finally {
-            setLoading(false);
+            if (seq === loadSeq.current) setLoading(false);
         }
     }, [debouncedSearch, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter, joinedRangeInvalid]);
 
