@@ -57,7 +57,7 @@ export interface CreateLeaveTypePayload {
 // =============================================================================
 
 export const leaveTypesApi = {
-  getAll: async (params?: { is_active?: boolean; page?: number; limit?: number }): Promise<PaginatedResponse<LeaveType>> => {
+  getAll: async (params?: { is_active?: boolean; include_inactive?: boolean; page?: number; limit?: number }): Promise<PaginatedResponse<LeaveType>> => {
     return api.get<PaginatedResponse<LeaveType>>('/leave-types', params);
   },
 
