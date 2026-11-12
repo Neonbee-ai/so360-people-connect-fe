@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import React from 'react';
 
@@ -137,11 +137,12 @@ describe('Given the Comb PersonDetailPage', () => {
     expect(screen.getByText(/Loading/)).toBeInTheDocument();
   });
 
-  it('When the person does not exist / Then a Person not found empty state offers Back to list', async () => {
+  it('When the person does not exist / Then a Record not found empty state offers Back to People', async () => {
     mockPeopleApi.getById.mockResolvedValue(null);
     renderPage();
-    await waitFor(() => expect(screen.getByText('Person not found.')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Back to list' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Record not found')).toBeInTheDocument());
+    // The empty state's own action (the page trail also renders a Back to People control).
+    expect(within(screen.getByText('Record not found').parentElement as HTMLElement).getByRole('button', { name: 'Back to People' })).toBeInTheDocument();
   });
 
   it('When Edit then Save is clicked / Then the same update payload is sent to the API', async () => {
