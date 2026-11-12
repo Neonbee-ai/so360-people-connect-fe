@@ -221,7 +221,7 @@ describe('ReviewDetailPage', () => {
 
     it('When loading fails / Then it shows review not found', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Review not found')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Record not found')).toBeInTheDocument());
     });
   });
 });
