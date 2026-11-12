@@ -178,6 +178,9 @@ const PeoplePage: React.FC = () => {
     // Latest-wins: a slow response for an older filter must not overwrite (or end
     // the spinner of) the response for the filters the user has now.
     const loadSeq = useRef(0);
+    // In local-paging mode the backend ignored page/limit: the full list is already loaded,
+    // so page clicks must not refetch it.
+    const pageParam = localPaging ? 1 : page;
     const loadPeople = useCallback(async () => {
         const seq = ++loadSeq.current;
         if (joinedRangeInvalid) {
@@ -196,7 +199,7 @@ const PeoplePage: React.FC = () => {
                 employment_type: employmentTypeFilter || undefined,
                 date_of_joining_from: joiningFromFilter || undefined,
                 date_of_joining_to: joiningToFilter || undefined,
-                page,
+                page: pageParam,
                 limit: pageSize,
             });
             if (seq !== loadSeq.current) return;
@@ -216,7 +219,7 @@ const PeoplePage: React.FC = () => {
         } finally {
             if (seq === loadSeq.current) setLoading(false);
         }
-    }, [debouncedSearch, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter, joinedRangeInvalid, page, pageSize]);
+    }, [debouncedSearch, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter, joinedRangeInvalid, pageParam, pageSize]);
 
     useEffect(() => {
         loadPeople();
@@ -723,9 +726,9 @@ const PeoplePage: React.FC = () => {
                     <Banner variant="danger">From Date cannot be later than To Date.</Banner>
                 )}
 
-                {isSandboxMode && isLimited(people.length) && (
+                {isSandboxMode && isLimited(totalPeople) && (
                     <Banner variant="warning">
-                        Sandbox: Showing {sandboxEntryLimit} of {people.length} records. Switch to Production to view all.
+                        Sandbox: Showing {sandboxEntryLimit} of {totalPeople} records. Switch to Production to view all.
                     </Banner>
                 )}
                     </>
