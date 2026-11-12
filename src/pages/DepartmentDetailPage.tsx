@@ -3,16 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Building2, Users, UserCheck, User,
     Calendar, Edit2, UserPlus, Archive, BarChart2,
-    Mail, Briefcase, Shield, X,
+    Mail, Briefcase, Shield, X, ArchiveRestore,
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
 import {
-    toast, Select, DataTable, type DataTableColumn,
+    toast, Select, DataTable, useConfirm, type DataTableColumn,
     Alert, Avatar, Button, Card, Checkbox, Cluster, DetailPageTemplate, FieldGrid, Grid, KpiCard,
     PageContainer, Stack, TextField, Textarea,
 } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
+import PersonPicker from '../components/PersonPicker';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { departmentsApi, Department, DepartmentEmployee } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
@@ -137,23 +138,22 @@ interface AssignManagerModalProps {
 const AssignManagerModal: React.FC<AssignManagerModalProps> = ({ isOpen, onClose, currentHeadId, onAssign }) => {
     const [people, setPeople] = useState<Person[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [selectedId, setSelectedId] = useState(currentHeadId || '');
-    const [search, setSearch] = useState('');
 
     useEffect(() => {
         if (!isOpen) return;
         setSelectedId(currentHeadId || '');
-        setSearch('');
+        setLoadError(null);
         setLoading(true);
         peopleApi.getAll({ status: 'active', limit: 200 })
             .then(res => setPeople(res.data ?? []))
-            .catch(() => setPeople([]))
+            .catch((err: any) => {
+                setPeople([]);
+                setLoadError(err?.message || 'Could not load people');
+            })
             .finally(() => setLoading(false));
     }, [isOpen, currentHeadId]);
-
-    const filtered = search
-        ? people.filter(p => p.full_name.toLowerCase().includes(search.toLowerCase()))
-        : people;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -166,18 +166,19 @@ const AssignManagerModal: React.FC<AssignManagerModalProps> = ({ isOpen, onClose
             <form onSubmit={handleSubmit}>
                 <Stack gap="default">
                     <p className="text-nb-body text-fg-muted">Select a person from the People Registry to assign as Department Head.</p>
-                    <TextField
-                        name="dept-manager-search"
-                        label="Search"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder="Search by name..."
-                    />
-                    {loading ? (
-                        <p className="text-nb-caption text-fg-muted">Loading…</p>
-                    ) : (
-                        <Select name="departmentdetail-select-32" label="Select Manager *" required value={selectedId} onChange={e => setSelectedId(e.target.value)} options={[{ value: "", label: "Select a person" }, ...filtered.map((p) => ({ value: p.id, label: `${p.full_name}${p.job_title ? ` — $${p.job_title}` : ''}` }))]} />
-                    )}
+                    <Stack gap="tight">
+                        <label htmlFor="dept-manager-input" className="text-nb-sm font-medium text-fg-muted">Select Manager *</label>
+                        <PersonPicker
+                            options={people}
+                            value={selectedId}
+                            onChange={setSelectedId}
+                            loading={loading}
+                            placeholder="Search by name..."
+                            emptyMessage={loadError ? `Could not load people: ${loadError}` : 'No people available'}
+                            inputId="dept-manager-input"
+                            data-testid="dept-manager-picker"
+                        />
+                    </Stack>
                     <Cluster justify="end" gap="tight">
                         <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
                         <Button type="submit" disabled={!selectedId}>Assign Manager</Button>
@@ -253,7 +254,7 @@ const GrantAccessModal: React.FC<GrantAccessModalProps> = ({ isOpen, onClose, on
                     ) : filtered.length === 0 ? (
                         <p className="text-nb-caption text-fg-muted">No people with a linked login found.</p>
                     ) : (
-                        <Select name="departmentdetail-select-33" label="Select Person *" required value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} options={[{ value: "", label: "Select a person" }, ...filtered.map((p) => ({ value: p.linked_user_id as string, label: `${p.full_name}${p.job_title ? ` — $${p.job_title}` : ''}` }))]} />
+                        <Select name="departmentdetail-select-33" label="Select Person *" required value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} options={[{ value: "", label: "Select a person" }, ...filtered.map((p) => ({ value: p.linked_user_id as string, label: `${p.full_name}${p.job_title ? ` — ${p.job_title}` : ''}` }))]} />
                     )}
                     <Checkbox
                         name="include_descendants"
@@ -294,6 +295,7 @@ const DepartmentDetailPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<'not_found' | 'load_failed' | null>(null);
     const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'access'>('overview');
+    const [confirm, confirmDialog] = useConfirm();
     const [showEditModal, setShowEditModal] = useState(false);
     const [showAssignManagerModal, setShowAssignManagerModal] = useState(false);
     const [showGrantAccessModal, setShowGrantAccessModal] = useState(false);
@@ -433,6 +435,24 @@ const DepartmentDetailPage: React.FC = () => {
         }
     };
 
+    const handleRestore = async () => {
+        if (!id || !department) return;
+        const ok = await confirm({
+            title: 'Restore department',
+            message: `Restore "${department.name}" (${department.code})? It will reappear in the department list with its existing code, head and members.`,
+            confirmLabel: 'Restore',
+        });
+        if (!ok) return;
+        try {
+            await departmentsApi.update(id, { is_active: true });
+            setDepartment(prev => prev ? { ...prev, is_active: true } : prev);
+            toast.success('Department restored successfully');
+            recordActivity({ eventType: 'people.department.restored', eventCategory: 'identity', description: `Department ${department.name} was restored`, resourceType: 'department', resourceId: id }).catch(() => {});
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to restore department');
+        }
+    };
+
     const goBack = () => navigate('/people/departments');
     const backButton = (
         <Button variant="ghost" onClick={goBack}>
@@ -537,6 +557,13 @@ const DepartmentDetailPage: React.FC = () => {
                             <Button key="assign" variant="secondary" onClick={() => setShowAssignManagerModal(true)}>
                                 <UserPlus size={13} /> Assign Manager
                             </Button>,
+                            ...(!department.is_active && canArchive
+                                ? [
+                                    <Button key="restore" variant="secondary" onClick={handleRestore}>
+                                        <ArchiveRestore size={13} /> Restore
+                                    </Button>,
+                                ]
+                                : []),
                         ]
                         : undefined
                 }
@@ -685,6 +712,7 @@ const DepartmentDetailPage: React.FC = () => {
                 onClose={() => setShowGrantAccessModal(false)}
                 onGrant={handleGrantAccess}
             />
+            {confirmDialog}
         </>
     );
 };

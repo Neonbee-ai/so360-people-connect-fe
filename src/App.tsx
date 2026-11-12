@@ -163,6 +163,9 @@ const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
 const ImportExportPage = lazy(() => import('./pages/ImportExportPage'));
 const WorkLocationsPage = lazy(() => import('./pages/WorkLocationsPage'));
 const HolidaysPage = lazy(() => import('./pages/HolidaysPage'));
+const CompanyEventsPage = lazy(() => import('./pages/CompanyEventsPage'));
+const TrainingSectionPage = lazy(() => import('./pages/training/TrainingSectionPage'));
+import { TRAINING_SECTIONS } from './pages/training/sections';
 const ShiftsPage = lazy(() => import('./pages/ShiftsPage'));
 const ApprovalChainsPage = lazy(() => import('./pages/settings/ApprovalChainsPage'));
 const EmploymentPolicyPage = lazy(() => import('./pages/settings/EmploymentPolicyPage'));
@@ -275,6 +278,12 @@ const App = () => {
                     <Route path="departments" element={<PermissionGuard permission="departments.read"><DepartmentsPage /></PermissionGuard>} />
                     <Route path="departments/:id" element={<PermissionGuard permission="departments.read"><DepartmentDetailPage /></PermissionGuard>} />
 
+                    {/* Training & Competency (scaffold) */}
+                    <Route path="training" element={<PermissionGuard permission="training.read"><FeatureGate flagKey="submodule:people:training"><TrainingSectionPage /></FeatureGate></PermissionGuard>} />
+                    {TRAINING_SECTIONS.map((s) => (
+                      <Route key={s.slug} path={`training/${s.slug}`} element={<PermissionGuard permission="training.read"><FeatureGate flagKey="submodule:people:training"><TrainingSectionPage section={s.slug} /></FeatureGate></PermissionGuard>} />
+                    ))}
+
                     {/* Allocations & Time */}
                     <Route path="allocations" element={<PermissionGuard permission="allocations.read"><FeatureGate flagKey="submodule:people:allocations"><AllocationsPage /></FeatureGate></PermissionGuard>} />
                     <Route path="attendance" element={<PermissionGuard permission="attendance.read"><FeatureGate flagKey="submodule:people:attendance"><AttendanceRegisterPage /></FeatureGate></PermissionGuard>} />
@@ -290,6 +299,8 @@ const App = () => {
                     <Route path="leaves/approvals" element={<PermissionGuard permission={['leave.approve', 'leave.read']}><LeaveApprovalsPage /></PermissionGuard>} />
                     <Route path="leaves/balances" element={<PermissionGuard permission="leave.read"><LeaveBalancesPage /></PermissionGuard>} />
                     {/* Alias of settings/holidays — same page, surfaced under Leave Management for discoverability. */}
+                    {/* Company events (Pulse 59ea1731) — not the activity log. */}
+                    <Route path="events" element={<FeatureGate flagKey="submodule:people:events"><PermissionGuard permission={['company_events.read', 'company_events.create', 'company_events.update', 'company_events.delete', 'company_events.manage']}><CompanyEventsPage /></PermissionGuard></FeatureGate>} />
                     <Route path="leaves/holidays" element={<PermissionGuard permission="org_policy.read"><FeatureGate flagKey="submodule:people:holidays"><HolidaysPage /></FeatureGate></PermissionGuard>} />
 
                     {/* Performance Reviews */}
