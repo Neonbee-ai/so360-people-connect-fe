@@ -78,6 +78,6 @@ describe('ReviewDetailPage (Comb)', () => {
   it('Given the review fails to load / When rendered / Then the not-found message shows', async () => {
     reviews.getById.mockRejectedValue(new Error('Not found'));
     renderPage();
-    await waitFor(() => expect(screen.getByText('Review not found')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Record not found')).toBeInTheDocument());
   });
 });

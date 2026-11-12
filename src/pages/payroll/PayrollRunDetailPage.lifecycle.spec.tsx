@@ -377,7 +377,7 @@ describe('GIVEN navigation and failure states', () => {
   it('WHEN the run fetch fails THEN the not-found message renders', async () => {
     mockApi.runs.get.mockRejectedValue(new Error('404'));
     renderPage();
-    await waitFor(() => expect(screen.getByText('Payroll run not found.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Record not found')).toBeInTheDocument());
   });
 
   it('WHEN employees or alerts fail but the run loads THEN the page still renders', async () => {
