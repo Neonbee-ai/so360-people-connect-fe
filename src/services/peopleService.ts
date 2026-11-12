@@ -28,6 +28,16 @@ export const utilizationCache = createRequestCache({ defaultTtlMs: 15_000, maxEn
 // several times per page; coalesce and keep briefly. Keys carry the org (and user for
 // getMe); any people mutation below clears it.
 export const peopleReadCache = createRequestCache({ defaultTtlMs: 15_000, maxEntries: 20 });
+
+// The BE roster depends on the caller's visible departments, so cached reads are per user.
+// MFE module state survives logout / org switch: drop the cache whenever the (org, user) pair changes.
+let lastCacheCtx: string | null = null;
+function cacheCtx(): string {
+  const ctx = `${apiContext.getOrgId()}|${apiContext.getUserId()}`;
+  if (lastCacheCtx !== null && lastCacheCtx !== ctx) peopleReadCache.invalidate();
+  lastCacheCtx = ctx;
+  return ctx;
+}
 const ROSTER_LIMIT = 200;
 
 // =============================================================================
@@ -48,7 +58,7 @@ export const peopleApi = {
   }): Promise<PaginatedResponse<Person>> => {
     if (params?.limit === ROSTER_LIMIT && !params.page) {
       return peopleReadCache.run(
-        `people-roster|${apiContext.getOrgId()}|${JSON.stringify(params)}`,
+        `people-roster|${cacheCtx()}|${JSON.stringify(params)}`,
         () => api.get<PaginatedResponse<Person>>('/people', params),
       );
     }
@@ -61,7 +71,7 @@ export const peopleApi = {
 
   getMe: async (): Promise<Person> => {
     return peopleReadCache.run(
-      `people-me|${apiContext.getOrgId()}|${apiContext.getUserId()}`,
+      `people-me|${cacheCtx()}`,
       () => api.get<Person>('/people/me'),
     );
   },
