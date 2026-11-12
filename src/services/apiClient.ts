@@ -146,7 +146,7 @@ export class ApiClient {
         } catch {
           errorMessage = text || errorMessage;
         }
-        throw new Error(errorMessage);
+        throw Object.assign(new Error(errorMessage), { status: response.status });
       }
 
       try {

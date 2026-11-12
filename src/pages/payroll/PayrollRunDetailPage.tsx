@@ -9,6 +9,7 @@ import type { DataTableColumn } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import StatusChip from '../../components/payroll/StatusChip';
+import { RecordNotFound } from '../../components/RecordNotFound';
 import {
     payrollApi, PayrollRun, PayrollRunEmployee, PayrollRunLine, PayrollAlert, RunStatus,
 } from '../../services/payrollApi';
@@ -123,7 +124,7 @@ const PayrollRunDetailPage: React.FC = () => {
         return <Skeleton variant="rect" className="h-96" />;
     }
     if (!run || !id) {
-        return <p className="text-nb-body text-fg-muted">Payroll run not found.</p>;
+        return <RecordNotFound listPath="/people/payroll/runs" listLabel="Payroll Runs" />;
     }
 
     const isDraft = run.status === 'draft';

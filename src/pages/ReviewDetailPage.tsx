@@ -10,6 +10,7 @@ import { performanceReviewsApi, PerformanceReview } from '../services/performanc
 import { peopleApi } from '../services/peopleService';
 import { reviewTemplatesApi, ReviewTemplate, ReviewTemplateSection } from '../services/reviewTemplatesService';
 import PerformanceEvidencePanel from '../components/PerformanceEvidencePanel';
+import { RecordNotFound } from '../components/RecordNotFound';
 
 // Dynamic review form that renders template sections and fields
 const ReviewForm: React.FC<{
@@ -267,7 +268,7 @@ const ReviewDetailPage: React.FC = () => {
     if (!review) {
         return (
             <DetailPageTemplate title="Review" trail={[{ label: 'Reviews', to: '/people/reviews' }]}>
-                <p className="text-nb-sm text-fg-muted">Review not found</p>
+                <RecordNotFound listPath="/people/reviews" listLabel="Reviews" />
             </DetailPageTemplate>
         );
     }

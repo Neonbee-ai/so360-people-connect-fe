@@ -346,14 +346,28 @@ describe('PersonDetailPage', () => {
 
     it('When the record is empty / Then it shows the not-found state', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Person not found.')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Record not found')).toBeInTheDocument());
     });
 
     it('When Back to list is clicked in the not-found state / Then it navigates to the shell-scoped list path', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Back to list')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Back to list'));
+      await waitFor(() => expect(screen.getByText('Back to People')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('Back to People'));
       expect(mockNavigate).toHaveBeenCalledWith('/people/people');
+    });
+  });
+
+  describe('Given the employee id belongs to another org (API 404)', () => {
+    beforeEach(() => {
+      mockPeople.getById.mockImplementation(async () => { throw Object.assign(new Error('API Error: 404'), { status: 404 }); });
+      mockAlloc.getAll.mockResolvedValue({ data: [] });
+      mockTime.getEntries.mockResolvedValue({ data: [] });
+    });
+
+    it('When the fetch fails with 404 / Then it shows the not-found state, not the generic load failure', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Record not found')).toBeInTheDocument());
+      expect(screen.queryByText('Unable to load employee details.')).not.toBeInTheDocument();
     });
   });
 
