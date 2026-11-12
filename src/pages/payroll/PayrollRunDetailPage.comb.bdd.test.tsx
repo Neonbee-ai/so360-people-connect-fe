@@ -107,6 +107,6 @@ describe('GIVEN the Comb payroll run detail', () => {
   it('WHEN the run is missing THEN a not-found message renders', async () => {
     mockApi.runs.get.mockRejectedValue(new Error('nope'));
     renderPage();
-    await waitFor(() => expect(screen.getByText('Payroll run not found.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Record not found')).toBeInTheDocument());
   });
 });

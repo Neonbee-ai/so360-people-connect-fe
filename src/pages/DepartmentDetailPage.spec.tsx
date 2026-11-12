@@ -322,7 +322,7 @@ describe('Given DepartmentDetailPage when department not found', () => {
 
     it('When department not found / Then not found message is shown', async () => {
         renderPage();
-        await waitFor(() => expect(screen.getByText(/Department not found/i)).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText(/Record not found/i)).toBeInTheDocument());
     });
 
     it('When department not found / Then back link is shown', async () => {
