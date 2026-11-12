@@ -24,6 +24,12 @@ import { notifyQuotaExceeded } from './quotaExceeded';
 // not re-hit /utilization/summary each time.
 export const utilizationCache = createRequestCache({ defaultTtlMs: 15_000, maxEntries: 10 });
 
+// Picker rosters (getAll with limit 200) and getMe are requested by many pages and
+// several times per page; coalesce and keep briefly. Keys carry the org (and user for
+// getMe); any people mutation below clears it.
+export const peopleReadCache = createRequestCache({ defaultTtlMs: 15_000, maxEntries: 20 });
+const ROSTER_LIMIT = 200;
+
 // =============================================================================
 // PEOPLE API
 // =============================================================================
@@ -40,6 +46,12 @@ export const peopleApi = {
     page?: number;
     limit?: number;
   }): Promise<PaginatedResponse<Person>> => {
+    if (params?.limit === ROSTER_LIMIT && !params.page) {
+      return peopleReadCache.run(
+        `people-roster|${apiContext.getOrgId()}|${JSON.stringify(params)}`,
+        () => api.get<PaginatedResponse<Person>>('/people', params),
+      );
+    }
     return api.get<PaginatedResponse<Person>>('/people', params);
   },
 
@@ -48,7 +60,10 @@ export const peopleApi = {
   },
 
   getMe: async (): Promise<Person> => {
-    return api.get<Person>('/people/me');
+    return peopleReadCache.run(
+      `people-me|${apiContext.getOrgId()}|${apiContext.getUserId()}`,
+      () => api.get<Person>('/people/me'),
+    );
   },
 
   /**
@@ -61,15 +76,21 @@ export const peopleApi = {
   },
 
   create: async (data: CreatePersonPayload): Promise<Person & { invite?: CreatePersonInviteStatus }> => {
-    return api.post<Person & { invite?: CreatePersonInviteStatus }>('/people', data);
+    const created = await api.post<Person & { invite?: CreatePersonInviteStatus }>('/people', data);
+    peopleReadCache.invalidate();
+    return created;
   },
 
   update: async (id: string, data: Partial<Person>): Promise<Person> => {
-    return api.patch<Person>(`/people/${id}`, data);
+    const updated = await api.patch<Person>(`/people/${id}`, data);
+    peopleReadCache.invalidate();
+    return updated;
   },
 
   delete: async (id: string): Promise<{ message: string; hard_deleted: boolean; blockers?: string[] }> => {
-    return api.delete<{ message: string; hard_deleted: boolean; blockers?: string[] }>(`/people/${id}`);
+    const removed = await api.delete<{ message: string; hard_deleted: boolean; blockers?: string[] }>(`/people/${id}`);
+    peopleReadCache.invalidate();
+    return removed;
   },
 
   cancelInvite: async (id: string): Promise<{ message: string }> => {

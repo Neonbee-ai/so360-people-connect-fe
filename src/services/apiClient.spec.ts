@@ -194,3 +194,42 @@ describe('Given apiContext setters and getters', () => {
     expect(apiContext.getUserId()).toBe('u99');
   });
 });
+
+describe('Given ApiClient GET abort and timeout', () => {
+  it('When a GET is made / Then fetch receives an abort signal', async () => {
+    const client = new ApiClient('/test-api');
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve('{}') });
+    vi.stubGlobal('fetch', fetchMock);
+    await client.get('/test');
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('When the caller aborts its signal / Then the in-flight fetch signal is aborted', async () => {
+    const client = new ApiClient('/test-api');
+    let seen: AbortSignal | undefined;
+    vi.stubGlobal('fetch', vi.fn((_u: string, init: RequestInit) => {
+      seen = init.signal as AbortSignal;
+      return new Promise((_r, rej) => seen!.addEventListener('abort', () => rej(new DOMException('x', 'AbortError'))));
+    }));
+    const caller = new AbortController();
+    const pending = client.get('/test', undefined, { signal: caller.signal });
+    caller.abort();
+    await expect(pending).rejects.toThrow();
+    expect(seen?.aborted).toBe(true);
+  });
+
+  it('When the server never answers / Then the GET rejects with a timeout error', async () => {
+    vi.useFakeTimers();
+    try {
+      const client = new ApiClient('/test-api');
+      vi.stubGlobal('fetch', vi.fn((_u: string, init: RequestInit) =>
+        new Promise((_r, rej) => (init.signal as AbortSignal).addEventListener('abort', () => rej(new DOMException('x', 'AbortError'))))));
+      const pending = client.get('/slow');
+      const assertion = expect(pending).rejects.toThrow(/timed out/);
+      await vi.advanceTimersByTimeAsync(30_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
