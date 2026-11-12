@@ -137,11 +137,11 @@ describe('Given the Comb PersonDetailPage', () => {
     expect(screen.getByText(/Loading/)).toBeInTheDocument();
   });
 
-  it('When the person does not exist / Then a Person not found empty state offers Back to list', async () => {
+  it('When the person does not exist / Then a Record not found empty state offers Back to People', async () => {
     mockPeopleApi.getById.mockResolvedValue(null);
     renderPage();
-    await waitFor(() => expect(screen.getByText('Person not found.')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Back to list' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Record not found')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Back to People' })).toBeInTheDocument();
   });
 
   it('When Edit then Save is clicked / Then the same update payload is sent to the API', async () => {
