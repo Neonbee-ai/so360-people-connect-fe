@@ -88,6 +88,8 @@ function resolveAccessToken(): string {
 
 // GET requests give up after this long.
 const GET_TIMEOUT_MS = 30_000;
+// Reports / exports / analytics legitimately take longer: no client-side timeout for them.
+const SLOW_GET_PATH = /\/(reports?|export|analytics)(\/|\?|$)/;
 
 export class ApiClient {
   private baseURL: string;
@@ -177,14 +179,16 @@ export class ApiClient {
       else outer.addEventListener('abort', () => controller.abort(), { once: true });
     }
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, GET_TIMEOUT_MS);
+    const timer = SLOW_GET_PATH.test(endpoint)
+      ? undefined
+      : setTimeout(() => { timedOut = true; controller.abort(); }, GET_TIMEOUT_MS);
     try {
       return await this.request<T>(`${endpoint}${queryString}`, { method: 'GET', signal: controller.signal });
     } catch (error) {
       if (timedOut) throw new Error(`Request timed out: ${endpoint}`);
       throw error;
     } finally {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
     }
   }
 

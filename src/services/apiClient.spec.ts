@@ -232,4 +232,21 @@ describe('Given ApiClient GET abort and timeout', () => {
       vi.useRealTimers();
     }
   });
+
+  it.each(['/reports/payroll', '/people/export', '/analytics/summary'])(
+    'When %s answers after 45 s / Then the GET is not cut off by the 30 s timeout',
+    async (path) => {
+      vi.useFakeTimers();
+      try {
+        const client = new ApiClient('/test-api');
+        vi.stubGlobal('fetch', vi.fn(() =>
+          new Promise((resolve) => setTimeout(() => resolve({ ok: true, text: () => Promise.resolve('{"ok":true}') }), 45_000))));
+        const pending = client.get(path);
+        await vi.advanceTimersByTimeAsync(46_000);
+        await expect(pending).resolves.toEqual({ ok: true });
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
 });
