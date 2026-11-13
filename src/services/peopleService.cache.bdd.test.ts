@@ -30,9 +30,9 @@ vi.mock('./apiClient', () => {
 });
 
 import { api } from './apiClient';
-import { utilizationApi, utilizationCache } from './peopleService';
+import { utilizationApi, utilizationCache, peopleApi, peopleReadCache } from './peopleService';
 
-const mockApi = api as unknown as { get: ReturnType<typeof vi.fn> };
+const mockApi = api as unknown as { get: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn> };
 
 const deferred = <T>() => {
   let resolve!: (v: T) => void;
@@ -44,6 +44,7 @@ beforeEach(() => {
   ORG = 'org-1';
   mockApi.get.mockReset();
   utilizationCache.invalidate();
+  peopleReadCache.invalidate();
 });
 
 describe('utilizationApi.getSummary cache', () => {
@@ -97,5 +98,47 @@ describe('utilizationApi.getSummary cache', () => {
       expect(mockApi.get).toHaveBeenCalledTimes(2);
       expect(retry.total_people).toBe(3);
     });
+  });
+});
+
+describe('peopleApi roster and getMe cache', () => {
+  it('Given two pickers ask for the active roster / When both run / Then one request is made', async () => {
+    mockApi.get.mockResolvedValue({ data: [{ id: 'p1' }] });
+    await Promise.all([
+      peopleApi.getAll({ status: 'active', limit: 200 }),
+      peopleApi.getAll({ status: 'active', limit: 200 }),
+    ]);
+    expect(mockApi.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given a directory page request / When called twice / Then it is never cached', async () => {
+    mockApi.get.mockResolvedValue({ data: [] });
+    await peopleApi.getAll({ page: 1, limit: 50 });
+    await peopleApi.getAll({ page: 1, limit: 50 });
+    expect(mockApi.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('Given the roster was cached in another org / When the org differs / Then it is fetched again', async () => {
+    mockApi.get.mockResolvedValue({ data: [] });
+    await peopleApi.getAll({ status: 'active', limit: 200 });
+    ORG = 'org-2';
+    await peopleApi.getAll({ status: 'active', limit: 200 });
+    expect(mockApi.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('Given getMe is called at several sites / When called twice / Then one request is made', async () => {
+    mockApi.get.mockResolvedValue({ id: 'me' });
+    await peopleApi.getMe();
+    await peopleApi.getMe();
+    expect(mockApi.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('Given the roster is cached / When a person is updated / Then the next read refetches', async () => {
+    mockApi.get.mockResolvedValue({ data: [] });
+    mockApi.patch.mockResolvedValue({ id: 'p1' });
+    await peopleApi.getAll({ status: 'active', limit: 200 });
+    await peopleApi.update('p1', { full_name: 'X' } as any);
+    await peopleApi.getAll({ status: 'active', limit: 200 });
+    expect(mockApi.get).toHaveBeenCalledTimes(2);
   });
 });

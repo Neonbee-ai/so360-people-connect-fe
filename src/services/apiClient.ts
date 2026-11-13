@@ -86,6 +86,11 @@ function resolveAccessToken(): string {
   return ACCESS_TOKEN;
 }
 
+// GET requests give up after this long.
+const GET_TIMEOUT_MS = 30_000;
+// Reports / exports / analytics legitimately take longer: no client-side timeout for them.
+const SLOW_GET_PATH = /\/(reports?|export|analytics)(\/|\?|$)/;
+
 export class ApiClient {
   private baseURL: string;
 
@@ -155,7 +160,7 @@ export class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
+  async get<T>(endpoint: string, params?: Record<string, unknown>, opts?: { signal?: AbortSignal }): Promise<T> {
     const queryString = params
       ? '?' + new URLSearchParams(
           Object.entries(params).reduce((acc, [key, value]) => {
@@ -166,7 +171,25 @@ export class ApiClient {
           }, {} as Record<string, string>)
         ).toString()
       : '';
-    return this.request<T>(`${endpoint}${queryString}`, { method: 'GET' });
+    // GETs abort after 30s instead of hanging; a caller-supplied signal is honoured too.
+    const controller = new AbortController();
+    const outer = opts?.signal;
+    if (outer) {
+      if (outer.aborted) controller.abort();
+      else outer.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+    let timedOut = false;
+    const timer = SLOW_GET_PATH.test(endpoint)
+      ? undefined
+      : setTimeout(() => { timedOut = true; controller.abort(); }, GET_TIMEOUT_MS);
+    try {
+      return await this.request<T>(`${endpoint}${queryString}`, { method: 'GET', signal: controller.signal });
+    } catch (error) {
+      if (timedOut) throw new Error(`Request timed out: ${endpoint}`);
+      throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   async post<T>(endpoint: string, data: unknown): Promise<T> {
