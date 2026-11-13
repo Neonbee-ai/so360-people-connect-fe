@@ -27,6 +27,7 @@ import UserSelector from '../components/UserSelector';
 import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useCanConfigureLeave } from '../hooks/useCanConfigureLeave';
 import type { Person, Allocation, PersonRole } from '../types/people';
+import { RecordNotFound, isNotFoundError } from '../components/RecordNotFound';
 
 const PersonDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -79,8 +80,8 @@ const PersonDetailPage: React.FC = () => {
                 console.error('Failed to load person:', error);
                 if (cancelled) return;
                 setPerson(null);
-                setLoadError('load_failed');
-                toast.error('Failed to load employee details');
+                setLoadError(isNotFoundError(error) ? 'not_found' : 'load_failed');
+                if (!isNotFoundError(error)) toast.error('Failed to load employee details');
                 setLoading(false);
                 return;
             }
@@ -271,6 +272,14 @@ const PersonDetailPage: React.FC = () => {
 
     if (loading) {
         return <DetailPageTemplate title="Employee" trail={[{ label: 'People', onClick: goBack }]} loading />;
+    }
+
+    if (!person && loadError !== 'load_failed') {
+        return (
+            <DetailPageTemplate title="Person" trail={[{ label: 'People', onClick: goBack }]}>
+                <RecordNotFound listPath="/people/people" listLabel="People" />
+            </DetailPageTemplate>
+        );
     }
 
     if (!person) {

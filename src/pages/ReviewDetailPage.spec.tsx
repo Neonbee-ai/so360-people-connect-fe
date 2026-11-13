@@ -146,7 +146,7 @@ describe('Given ReviewDetailPage API failure', () => {
   it('When review load fails / Then error toast appears', async () => {
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText('Review not found')).toBeInTheDocument()
+      expect(screen.getByText('Record not found')).toBeInTheDocument()
     );
   });
 });

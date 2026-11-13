@@ -20,6 +20,7 @@ import { peopleApi } from '../services/peopleService';
 import { departmentScopeApi, DepartmentScopeGrantee } from '../services/departmentScopeService';
 import { apiContext } from '../services/apiClient';
 import type { Person } from '../types/people';
+import { RecordNotFound, isNotFoundError } from '../components/RecordNotFound';
 
 // =============================================================================
 // Edit Department Modal
@@ -310,9 +311,9 @@ const DepartmentDetailPage: React.FC = () => {
         let deptData: Department | null = null;
         try {
             deptData = await departmentsApi.getById(id);
-        } catch {
+        } catch (error) {
             if (cancelled) return;
-            setLoadError('load_failed');
+            setLoadError(isNotFoundError(error) ? 'not_found' : 'load_failed');
             setLoading(false);
             return;
         }
@@ -482,7 +483,7 @@ const DepartmentDetailPage: React.FC = () => {
             <PageContainer>
                 <Stack gap="default">
                     {backButton}
-                    <EmptyState icon={Building2} title="Department not found" description="This department does not exist or has been removed." action={{ label: 'Back to Departments', onClick: goBack }} />
+                    <RecordNotFound listPath="/people/departments" listLabel="Departments" />
                 </Stack>
             </PageContainer>
         );
