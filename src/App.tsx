@@ -141,6 +141,7 @@ const MyProfilePage = lazy(() => import('./pages/my/MyProfilePage'));
 const MyTeamPage = lazy(() => import('./pages/my/MyTeamPage'));
 const PeoplePage = lazy(() => import('./pages/PeoplePage'));
 const PersonDetailPage = lazy(() => import('./pages/PersonDetailPage'));
+const Employee360Page = lazy(() => import('./pages/Employee360Page'));
 const AllocationsPage = lazy(() => import('./pages/AllocationsPage'));
 const AttendanceRegisterPage = lazy(() => import('./pages/AttendanceRegisterPage'));
 const EmployeeTimesheetsPage = lazy(() => import('./pages/EmployeeTimesheetsPage'));
@@ -273,6 +274,8 @@ const App = () => {
                     {/* People */}
                     <Route path="people" element={<PermissionGuard permission="employees.read"><PeoplePage /></PermissionGuard>} />
                     <Route path="people/:id" element={<PermissionGuard permission="employees.read"><PersonDetailPage /></PermissionGuard>} />
+                    <Route path="people/:id/360" element={<PermissionGuard permission="employees.read"><Employee360Page kind="employee" /></PermissionGuard>} />
+                    <Route path="contractors/:id/360" element={<PermissionGuard permission="employees.read"><Employee360Page kind="contractor" /></PermissionGuard>} />
 
                     {/* Departments */}
                     <Route path="departments" element={<PermissionGuard permission="departments.read"><DepartmentsPage /></PermissionGuard>} />

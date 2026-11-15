@@ -381,3 +381,13 @@ export const eventsApi = {
 // =============================================================================
 
 export const peopleService = apiContext;
+
+/** Employee 360 — attendance, leave and allocations, composed by the API. */
+export async function getEmployee360<T = any>(id: string): Promise<T> {
+    return api.get<T>(`/people/${id}/360`);
+}
+
+/** Contractor 360 — worked sessions and allocations, composed by the API. */
+export async function getContractor360<T = any>(id: string): Promise<T> {
+    return api.get<T>(`/contractors/${id}/360`);
+}
