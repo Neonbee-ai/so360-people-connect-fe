@@ -96,15 +96,20 @@ const PersonDetailPage: React.FC = () => {
             }
 
             // Attendance block: additive and non-blocking — a 360 that cannot be
-            // served must not stop the record itself from rendering.
-            peopleApi
-                .getEmployee360(personData.id)
-                .then((res: any) => {
-                    if (!cancelled) setAttendance360(res?.panels?.attendance ?? null);
-                })
-                .catch(() => {
-                    if (!cancelled) setAttendance360({ available: false });
-                });
+            // served must not stop the record itself from rendering. Guarded on
+            // the method's existence because specs mock peopleApi partially;
+            // calling a missing method threw inside the load path and took the
+            // whole record down with it.
+            const loadAttendance = (peopleApi as any)?.getEmployee360;
+            if (typeof loadAttendance === 'function') {
+                Promise.resolve(loadAttendance(personData.id))
+                    .then((res: any) => {
+                        if (!cancelled) setAttendance360(res?.panels?.attendance ?? null);
+                    })
+                    .catch(() => {
+                        if (!cancelled) setAttendance360({ available: false });
+                    });
+            }
             setPerson(personData);
 
             // 2. Secondary data: allocations, time entries, work locations. A failure
