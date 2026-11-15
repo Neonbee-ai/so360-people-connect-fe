@@ -40,6 +40,8 @@ const PersonDetailPage: React.FC = () => {
     // Employees must not be able to grant themselves leave types.
     const canConfigureLeave = useCanConfigureLeave();
     const [person, setPerson] = useState<Person | null>(null);
+    // Attendance for the overview block, composed by GET people/:id/360.
+    const [attendance360, setAttendance360] = useState<any>(null);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [timeEntries, setTimeEntries] = useState<TimesheetEntry[]>([]);
     // Time entries come from the Timesheets module over a bridge that can be down
@@ -92,6 +94,17 @@ const PersonDetailPage: React.FC = () => {
                 setLoading(false);
                 return;
             }
+
+            // Attendance block: additive and non-blocking — a 360 that cannot be
+            // served must not stop the record itself from rendering.
+            peopleApi
+                .getEmployee360(personData.id)
+                .then((res: any) => {
+                    if (!cancelled) setAttendance360(res?.panels?.attendance ?? null);
+                })
+                .catch(() => {
+                    if (!cancelled) setAttendance360({ available: false });
+                });
             setPerson(personData);
 
             // 2. Secondary data: allocations, time entries, work locations. A failure
@@ -510,6 +523,27 @@ const PersonDetailPage: React.FC = () => {
                         <Stack gap="tight">
                             <p className="text-nb-body text-fg-muted">This is the overview of {person.full_name || 'this person'}'s profile.</p>
                             <p className="text-nb-body text-fg-muted">Use the tabs above to view allocations, time entries, employment history, rate changes, and goals.</p>
+
+                            {/* Attendance on the record itself — the "where do I see
+                                this person's attendance" question, answered without
+                                leaving the profile. Composed by GET people/:id/360
+                                (last 30 days); ids only, nothing copied. */}
+                            {attendance360?.available !== false && (
+                                <div className="mt-4">
+                                    <p className="mb-2 text-nb-label text-fg">Attendance — last 30 days</p>
+                                    <Grid gap="md">
+                                        <KpiCard label="Days recorded" value={attendance360?.days ?? 0} />
+                                        <KpiCard label="Present" value={attendance360?.present ?? 0} />
+                                        <KpiCard label="Absent" value={attendance360?.absent ?? 0} />
+                                        <KpiCard label="Hours" value={attendance360?.hours ?? 0} />
+                                    </Grid>
+                                    <p className="mt-2 text-nb-caption text-fg-subtle">
+                                        {attendance360?.late
+                                            ? `${attendance360.late} late arrival${attendance360.late === 1 ? '' : 's'} in this period.`
+                                            : 'No late arrivals in this period.'}
+                                    </p>
+                                </div>
+                            )}
                         </Stack>
                     )}
 
