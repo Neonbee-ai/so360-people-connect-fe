@@ -69,6 +69,11 @@ export const peopleApi = {
     return api.get<Person>(`/people/${id}`);
   },
 
+  /** Employee 360 — attendance, leave and allocations, composed by the API. */
+  getEmployee360: async <T = any>(id: string): Promise<T> => {
+    return api.get<T>(`/people/${id}/360`);
+  },
+
   getMe: async (): Promise<Person> => {
     return peopleReadCache.run(
       `people-me|${cacheCtx()}`,
