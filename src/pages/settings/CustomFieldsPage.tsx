@@ -4,6 +4,7 @@ import {
   Badge, Button, Cluster, DataTable, EmptyState, Modal, Select, SettingsPageTemplate, Skeleton, Stack, Switch, TextField, toast,
 } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
+import ListLoadFailed, { isForbidden } from '../../components/ListLoadFailed';
 import {
   customFieldDefsApi,
   CustomFieldDef,
@@ -42,19 +43,19 @@ const CustomFieldsPage: React.FC = () => {
 
   const [rows, setRows] = useState<CustomFieldDef[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<CustomFieldDef | null>(null);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      setLoadError(false);
+      setLoadError(null);
       const result = await customFieldDefsApi.getAll({ includeInactive: true });
       setRows((result.data ?? []).sort((a, b) => a.sort_order - b.sort_order));
-    } catch {
-      setLoadError(true);
-      toast.error('Failed to load custom fields');
+    } catch (err) {
+      setLoadError(err ?? new Error('load failed'));
+      if (!isForbidden(err)) toast.error('Failed to load custom fields');
     } finally {
       setLoading(false);
     }
@@ -193,11 +194,7 @@ const CustomFieldsPage: React.FC = () => {
           <Skeleton variant="rect" />
         </Stack>
       ) : loadError ? (
-        <EmptyState
-          icon={ListChecks}
-          title="Couldn't load custom fields"
-          description="Something went wrong fetching this list. Try refreshing the page."
-        />
+        <ListLoadFailed error={loadError} plural="Custom Fields" icon={ListChecks} onRetry={load} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={ListChecks}

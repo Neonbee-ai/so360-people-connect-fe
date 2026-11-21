@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, UserCog } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
+import ListLoadFailed, { isForbidden } from '../../components/ListLoadFailed';
 import Modal from '../../components/Modal';
 import {
   Alert,
@@ -58,18 +59,18 @@ const LaborCategoriesPage: React.FC = () => {
 
   const [rows, setRows] = useState<LaborCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<LaborCategory | null>(null);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      setLoadError(false);
+      setLoadError(null);
       setRows((await laborCategoriesApi.getAll()) ?? []);
-    } catch {
-      setLoadError(true);
-      toast.error('Failed to load labor categories');
+    } catch (err) {
+      setLoadError(err ?? new Error('load failed'));
+      if (!isForbidden(err)) toast.error('Failed to load labor categories');
     } finally {
       setLoading(false);
     }
@@ -179,11 +180,7 @@ const LaborCategoriesPage: React.FC = () => {
   }
 
   const emptyNode = loadError ? (
-    <EmptyState
-      icon={UserCog}
-      title="Couldn't load labor categories"
-      description="Something went wrong fetching this list. Try refreshing the page."
-    />
+    <ListLoadFailed error={loadError} plural="Labor Categories" icon={UserCog} onRetry={load} />
   ) : (
     <EmptyState
       icon={UserCog}
@@ -207,7 +204,7 @@ const LaborCategoriesPage: React.FC = () => {
           ) : undefined
         }
         loading={loading}
-        isEmpty={loadError || rows.length === 0}
+        isEmpty={!!loadError || rows.length === 0}
         empty={emptyNode}
         kpis={
           // A category with no rate looks configured but cannot cost anyone, so say so.
