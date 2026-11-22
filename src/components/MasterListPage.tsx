@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { masterPayloadForSubmit } from '../utils/masterPayload';
 import { Plus, Edit2, Trash2, Settings, LucideIcon } from 'lucide-react';
 import EmptyState from './EmptyState';
+import ListLoadFailed, { isForbidden } from './ListLoadFailed';
 import Modal from './Modal';
 import {
   toast,
@@ -72,19 +73,19 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
 
   const [rows, setRows] = useState<MasterRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<MasterRow | null>(null);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      setLoadError(false);
+      setLoadError(null);
       const result = await mastersApi.getAll(masterType, { includeInactive: true });
       setRows(result.data ?? []);
-    } catch {
-      setLoadError(true);
-      toast.error(`Failed to load ${plural.toLowerCase()}`);
+    } catch (err) {
+      setLoadError(err ?? new Error('load failed'));
+      if (!isForbidden(err)) toast.error(`Failed to load ${plural.toLowerCase()}`);
     } finally {
       setLoading(false);
     }
@@ -183,11 +184,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
   ];
 
   const emptyNode = loadError ? (
-    <EmptyState
-      icon={Icon}
-      title={`Couldn't load ${plural.toLowerCase()}`}
-      description="Something went wrong fetching this list. Try refreshing the page."
-    />
+    <ListLoadFailed error={loadError} plural={plural} icon={Icon} onRetry={load} />
   ) : (
     <EmptyState
       icon={Icon}
@@ -211,7 +208,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
           ) : undefined
         }
         loading={loading}
-        isEmpty={loadError || rows.length === 0}
+        isEmpty={!!loadError || rows.length === 0}
         empty={emptyNode}
       >
         <DataTable columns={columns} rows={rows} rowKey={row => row.id} />
