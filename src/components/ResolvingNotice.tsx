@@ -39,7 +39,7 @@ export const ResolvingNotice: React.FC<{ label?: string; timeoutMs?: number }> =
     }
 
     return (
-        <div role="status" aria-label={label}>
+        <div role="status"><span className="sr-only">{label}</span>
             <Skeleton.Page announce={false} template="dashboard" />
         </div>
     );

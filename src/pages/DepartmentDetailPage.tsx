@@ -250,7 +250,7 @@ const GrantAccessModal: React.FC<GrantAccessModalProps> = ({ isOpen, onClose, on
                         placeholder="Search by name..."
                     />
                     {loading ? (
-                        <div role="status" aria-busy="true" aria-label="Loading…" data-testid="dept-grant-loading">
+                        <div role="status" aria-busy="true" data-testid="dept-grant-loading"><span className="sr-only">Loading…</span>
                             <Skeleton.List announce={false} count={2} />
                         </div>
                     ) : filtered.length === 0 ? (
@@ -653,7 +653,7 @@ const DepartmentDetailPage: React.FC = () => {
                             <Stack gap="default">
                                 <p className="text-nb-caption text-fg-muted">People granted visibility into this department + its sub-departments, beyond their normal role permissions</p>
                                 {loadingScopes ? (
-                                    <div role="status" aria-busy="true" aria-label="Loading…" data-testid="dept-scopes-loading">
+                                    <div role="status" aria-busy="true" data-testid="dept-scopes-loading"><span className="sr-only">Loading…</span>
                                         <Skeleton.List announce={false} count={3} />
                                     </div>
                                 ) : scopeGrantees.length === 0 ? (

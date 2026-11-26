@@ -280,7 +280,7 @@ const DepartmentsPage: React.FC = () => {
                     <Stack gap="tight">
                         <h2 className="text-nb-h3 text-fg">Archived departments</h2>
                         {archivedLoading ? (
-                            <div role="status" aria-busy="true" aria-label="Loading archived departments"><Skeleton.List announce={false} count={3} /></div>
+                            <div role="status" aria-busy="true"><span className="sr-only">Loading archived departments</span><Skeleton.List announce={false} count={3} /></div>
                         ) : archived.length === 0 ? (
                             <p className="text-nb-caption text-fg-muted">No archived departments.</p>
                         ) : (

@@ -309,7 +309,7 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
   }
 
   if (loading) {
-    return <div role="status" aria-busy="true" aria-label="Loading leave configuration"><Skeleton.Form announce={false} count={3} columns={1} /></div>;
+    return <div role="status" aria-busy="true"><span className="sr-only">Loading leave configuration</span><Skeleton.Form announce={false} count={3} columns={1} /></div>;
   }
 
   if (error) {

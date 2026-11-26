@@ -92,7 +92,7 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
 
     if (loading) {
         return (
-            <div role="status" aria-busy="true" aria-label="Loading leave configuration"><Skeleton.Form announce={false} count={3} columns={1} /></div>
+            <div role="status" aria-busy="true"><span className="sr-only">Loading leave configuration</span><Skeleton.Form announce={false} count={3} columns={1} /></div>
         );
     }
 
