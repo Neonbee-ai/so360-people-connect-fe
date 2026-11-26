@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Combobox } from '@so360/design-system';
-import FieldLoading from './FieldLoading';
 import { apiContext } from '../services/apiClient';
 
 type User = {
@@ -94,8 +93,8 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
   );
 
   return (
-    <FieldLoading loading={loading} label="Loading users...">
     <Combobox
+      loading={loading}
       name="user"
       aria-label="User"
       options={options}
@@ -114,6 +113,5 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
       }}
       onChange={(id: string | null) => onChange(id)}
     />
-    </FieldLoading>
   );
 }

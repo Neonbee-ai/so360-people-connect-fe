@@ -444,10 +444,7 @@ export const DashboardPageTemplate = (p: any) => (
     {p.filters}
     {p.toolbarEnd}
     {p.kpis}
-    {p.primary}
-    {p.secondary}
-    {p.bottom}
-    {p.children}
+    {p.loading ? <div role="status" aria-busy="true">Loading…</div> : <>{p.primary}{p.secondary}{p.bottom}{p.children}</>}
   </section>
 );
 

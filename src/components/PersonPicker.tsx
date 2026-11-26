@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Combobox } from '@so360/design-system';
-import FieldLoading from './FieldLoading';
 
 /**
  * Minimal shape a pickable option must satisfy. Deliberately structural rather
@@ -62,8 +61,8 @@ function PersonPicker<T extends PickablePerson = PickablePerson>({
 
     return (
         <div data-testid={testId}>
-            <FieldLoading loading={loading} label="Loading…">
             <Combobox
+                loading={loading}
                 name={inputId ?? 'person-picker'}
                 id={inputId}
                 aria-label="Person"
@@ -82,7 +81,6 @@ function PersonPicker<T extends PickablePerson = PickablePerson>({
                     onChange(id, options.find(p => p.id === id));
                 }}
             />
-            </FieldLoading>
             {disabled && disabledMessage && (
                 <p className="mt-1 text-nb-caption text-fg-subtle">{disabledMessage}</p>
             )}

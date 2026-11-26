@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Combobox } from '@so360/design-system';
-import FieldLoading from './FieldLoading';
 import { departmentsApi, Department } from '../services/departmentsService';
 
 type Props = {
@@ -59,8 +58,8 @@ export default function DepartmentSelector({
 
   return (
     <div className={className}>
-      <FieldLoading loading={loading} label="Loading...">
       <Combobox
+        loading={loading}
         name="department"
         aria-label="Department"
         options={options}
@@ -74,7 +73,6 @@ export default function DepartmentSelector({
         }}
         onChange={(id: string | null) => onChange(id)}
       />
-      </FieldLoading>
     </div>
   );
 }

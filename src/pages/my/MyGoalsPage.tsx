@@ -4,7 +4,7 @@ import { Card, Cluster, DashboardPageTemplate, Stack } from '@so360/design-syste
 import EmptyState from '../../components/EmptyState';
 import { meService } from '../../services/meService';
 import type { MyGoal } from '../../services/meService';
-import { StatusPill, ProgressBar, Skeleton } from './myUi';
+import { StatusPill, ProgressBar } from './myUi';
 
 /**
  * My Goals.
@@ -40,9 +40,7 @@ const MyGoalsPage: React.FC = () => {
             title="My Goals"
             description="What you're working towards"
             primary={
-                loading ? (
-                    <Skeleton rows={3} />
-                ) : goals.length === 0 ? (
+                goals.length === 0 ? (
                     <EmptyState
                         icon={Target}
                         title="No goals yet"

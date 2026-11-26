@@ -5,7 +5,7 @@ import { meService } from '../../services/meService';
 import type { MyOpenSession, MyAttendanceRecord, MyAllocation } from '../../services/meService';
 import { attendanceCorrectionsApi } from '../../services/attendanceService';
 import type { AttendanceCorrectionRequest, AttendanceStatus } from '../../services/attendanceService';
-import { MyCard, StatusPill, Skeleton } from './myUi';
+import { MyCard, StatusPill } from './myUi';
 import { usePeopleFormatters } from '../../utils/formatters';
 
 /**
@@ -178,9 +178,7 @@ const MyTimePage: React.FC = () => {
             title="My Time"
             description="Clock in, take breaks, clock out"
             primary={
-                loading ? (
-                    <Skeleton rows={3} />
-                ) : (
+                (
                     <Stack gap="region">
                         {/* Hero clock card — the one thing this page is for. */}
                         {heroCard}

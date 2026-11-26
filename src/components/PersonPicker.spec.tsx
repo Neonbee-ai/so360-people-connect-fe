@@ -116,6 +116,7 @@ describe('Given a PersonPicker with nothing selected', () => {
             fireEvent.focus(input());
 
             await waitFor(() => expect(screen.getByText('Loading…')).toBeInTheDocument());
+            expect(screen.getByTestId('combobox-loading')).toBeInTheDocument();
         });
     });
 

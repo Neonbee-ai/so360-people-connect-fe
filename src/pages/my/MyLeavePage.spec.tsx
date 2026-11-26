@@ -67,6 +67,15 @@ const openForm = async () => {
     await waitFor(() => expect(screen.getByText('Annual Leave', { selector: 'option' })).toBeInTheDocument());
 };
 
+describe('MyLeavePage loading', () => {
+    it('Given the requests have not arrived / When the page renders / Then the template loading state shows instead of the requests list', async () => {
+        (meService.myLeaveRequests as any).mockReturnValue(new Promise(() => {}));
+        renderPage();
+        expect(screen.getByText('Loading…')).toBeInTheDocument();
+        expect(screen.queryByText('No leave requests yet')).not.toBeInTheDocument();
+    });
+});
+
 const chooseType = () => fireEvent.change(screen.getByLabelText('Leave Type *'), { target: { value: 'lt-1' } });
 const typeReason = (v: string) => fireEvent.change(screen.getByLabelText('Reason *'), { target: { value: v } });
 const setRange = (start: string, end: string) => {

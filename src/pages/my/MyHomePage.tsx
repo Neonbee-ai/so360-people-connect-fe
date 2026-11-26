@@ -4,7 +4,7 @@ import { Cluster, DashboardPageTemplate, Grid, Stack } from '@so360/design-syste
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance, MyGoal, WhosOutEntry } from '../../services/meService';
 import type { LeaveRequest } from '../../services/leaveRequestsService';
-import { MyCard, StatusPill, ProgressBar, Avatar, Skeleton } from './myUi';
+import { MyCard, StatusPill, ProgressBar, Avatar } from './myUi';
 import MyOnboardingCard from './MyOnboardingCard';
 
 /**
@@ -60,6 +60,7 @@ const MyHomePage: React.FC = () => {
 
     return (
         <DashboardPageTemplate
+            loading={loading}
             title="Overview"
             description="Your leave, goals and team at a glance"
             kpis={
@@ -68,12 +69,7 @@ const MyHomePage: React.FC = () => {
                 <MyOnboardingCard />
             }
             primary={
-                loading ? (
-                    <Grid columns={2}>
-                        <Skeleton rows={2} />
-                        <Skeleton rows={2} />
-                    </Grid>
-                ) : (
+                (
                     <Grid columns={2}>
                         <MyCard
                             title="My leave balance"
