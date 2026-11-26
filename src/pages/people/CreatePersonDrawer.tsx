@@ -25,7 +25,7 @@ import { fetchOrgBaseCurrency } from '../../services/settingsService';
 import { validatePersonName, validateEmail, validatePhone, sanitizePhoneInput, focusFirstInvalid } from '../../utils/validation';
 import { useRefreshOnReturn } from '../../hooks/useRefreshOnReturn';
 import { personTypeForEmploymentType, personTypeLabel, typeToSendOnEdit } from '../../utils/personType';
-import { DEFAULT_CURRENCIES } from './shared';
+import { DEFAULT_CURRENCIES, rateCurrencyOptions, rateCurrencyForPayload } from './shared';
 import { CustomFieldsSection } from './CustomFieldsSection';
 import { WorkLocationFieldHelp, Section, QuickAddLocationPanel } from './WorkLocationHelpers';
 
@@ -39,8 +39,8 @@ export interface CreatePersonModalProps {
     /** Resolve `false` when nothing was saved so the form keeps the admin's input for a retry. */
     onCreate: (data: CreatePersonPayload) => void | boolean | Promise<void | boolean>;
     currencies?: string[];
-    // Org's configured base currency; pre-selected as the default. Falls back to
-    // 'USD' only when no org currency is configured.
+    // Org's configured base currency; pre-selected as the default.
+    // Never defaults to USD: when unset the backend applies the Core base currency.
     defaultCurrency?: string;
 }
 
@@ -97,7 +97,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
     const canAddDesignation = !!shell?.permissionsLoaded && !!shell?.hasPermission?.('employees.create');
     // Holds the resolved org currency. Initialized from the shell prop when available;
     // falls back to a direct Core BE fetch to avoid the shell's async race condition.
-    const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || 'USD');
+    const [resolvedCurrency, setResolvedCurrency] = useState(defaultCurrency || '');
 
     useEffect(() => {
         if (!isOpen) return;
@@ -229,6 +229,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
         // triggered by an empty string.
         const payload: any = { ...formData, full_name: formData.full_name.trim() };
         payload.department_id = payload.department_id || undefined;
+        payload.currency = rateCurrencyForPayload(payload.currency);
         payload.type = personTypeForEmploymentType(payload.employment_type, 'employee', employmentTypes);
         // The invitation always goes to the Identity email — never carry a separate value.
         payload.inviteEmail = payload.email;
@@ -517,7 +518,7 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
                             value={formData.billing_rate || 0}
                             onChange={(v: number | null) => updateField('billing_rate', v || 0)}
                         />
-                        <Select label="Currency" name="people-select-67" value={formData.currency} onChange={(e) => updateField('currency', e.target.value)} options={[...currencies.map((c) => ({ value: c, label: c }))]} />
+                        <Select label="Currency" name="people-select-67" value={formData.currency} onChange={(e) => updateField('currency', e.target.value)} options={rateCurrencyOptions(currencies, resolvedCurrency).map((c) => ({ value: c, label: c }))} />
                     </FieldGrid>
                 </Section>
 
