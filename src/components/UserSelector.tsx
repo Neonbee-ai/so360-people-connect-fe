@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Combobox } from '@so360/design-system';
+import FieldLoading from './FieldLoading';
 import { apiContext } from '../services/apiClient';
 
 type User = {
@@ -93,6 +94,7 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
   );
 
   return (
+    <FieldLoading loading={loading} label="Loading users...">
     <Combobox
       name="user"
       aria-label="User"
@@ -101,12 +103,10 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
       placeholder={placeholder}
       clearable
       emptyText={
-        loading
-          ? 'Loading users...'
-          : error
-            ?? (users.length === 0
-              ? 'No users in this organization yet. Use "Invite as New User" instead.'
-              : 'No users match. Search by name or email.')
+        error
+          ?? (users.length === 0
+            ? 'No users in this organization yet. Use "Invite as New User" instead.'
+            : 'No users match. Search by name or email.')
       }
       filter={(o: { label: string; description?: string }, q: string) => {
         const lower = q.trim().toLowerCase();
@@ -114,5 +114,6 @@ export default function UserSelector({ value, onChange, placeholder = 'Select us
       }}
       onChange={(id: string | null) => onChange(id)}
     />
+    </FieldLoading>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, X, Star } from 'lucide-react';
-import { Badge, Button, IconButton, SearchInput, Stack, Cluster } from '@so360/design-system';
+import { Badge, Button, IconButton, SearchInput, Skeleton, Stack, Cluster } from '@so360/design-system';
 import { leaveRequestsApi, type EligibleApprover } from '../../services/leaveRequestsService';
 
 interface ApproverSelectorProps {
@@ -143,7 +143,10 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
 
       <div className="max-h-48 overflow-y-auto rounded-nb border border-line-strong bg-surface-raised">
         {loading ? (
-          <p className="p-nb-3 text-nb-caption text-fg-subtle">Loading people…</p>
+          <div className="p-nb-3" aria-busy="true" data-testid="approver-loading">
+            <Skeleton.List count={3} />
+            <span className="sr-only">Loading people…</span>
+          </div>
         ) : error ? (
           <div className="p-nb-3">
             <p className="text-nb-caption text-danger">{error}</p>

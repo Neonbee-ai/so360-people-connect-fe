@@ -206,7 +206,7 @@ const LaborCategoriesPage: React.FC = () => {
         loading={loading}
         isEmpty={!!loadError || rows.length === 0}
         empty={emptyNode}
-        kpis={
+        notice={
           // A category with no rate looks configured but cannot cost anyone, so say so.
           !loading && !loadError && unpricedCount > 0 ? (
             <Alert variant="warning" title="Rates not set">

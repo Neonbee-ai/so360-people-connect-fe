@@ -10,7 +10,7 @@ import Modal from '../components/Modal';
 import {
     toast, Select, DataTable, useConfirm, type DataTableColumn,
     Alert, Avatar, Button, Card, Checkbox, Cluster, DetailPageTemplate, FieldGrid, Grid, KpiCard,
-    PageContainer, Stack, TextField, Textarea,
+    PageContainer, Skeleton, Stack, TextField, Textarea,
 } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
 import PersonPicker from '../components/PersonPicker';
@@ -250,7 +250,10 @@ const GrantAccessModal: React.FC<GrantAccessModalProps> = ({ isOpen, onClose, on
                         placeholder="Search by name..."
                     />
                     {loading ? (
-                        <p className="text-nb-caption text-fg-muted">Loading…</p>
+                        <div aria-busy="true" data-testid="dept-grant-loading">
+                            <Skeleton.List count={2} />
+                            <span className="sr-only">Loading…</span>
+                        </div>
                     ) : filtered.length === 0 ? (
                         <p className="text-nb-caption text-fg-muted">No people with a linked login found.</p>
                     ) : (
@@ -651,7 +654,10 @@ const DepartmentDetailPage: React.FC = () => {
                             <Stack gap="default">
                                 <p className="text-nb-caption text-fg-muted">People granted visibility into this department + its sub-departments, beyond their normal role permissions</p>
                                 {loadingScopes ? (
-                                    <p className="text-nb-caption text-fg-muted">Loading…</p>
+                                    <div aria-busy="true" data-testid="dept-scopes-loading">
+                                        <Skeleton.List count={3} />
+                                        <span className="sr-only">Loading…</span>
+                                    </div>
                                 ) : scopeGrantees.length === 0 ? (
                                     <EmptyState
                                         icon={Shield}

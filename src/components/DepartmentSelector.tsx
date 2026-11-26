@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Combobox } from '@so360/design-system';
+import FieldLoading from './FieldLoading';
 import { departmentsApi, Department } from '../services/departmentsService';
 
 type Props = {
@@ -58,6 +59,7 @@ export default function DepartmentSelector({
 
   return (
     <div className={className}>
+      <FieldLoading loading={loading} label="Loading...">
       <Combobox
         name="department"
         aria-label="Department"
@@ -65,13 +67,14 @@ export default function DepartmentSelector({
         value={value || null}
         placeholder={placeholder}
         clearable={allowClear}
-        emptyText={loading ? 'Loading...' : 'No departments found'}
+        emptyText="No departments found"
         filter={(o: { label: string; code?: string }, q: string) => {
           const lower = q.trim().toLowerCase();
           return o.label.toLowerCase().includes(lower) || !!o.code?.toLowerCase().includes(lower);
         }}
         onChange={(id: string | null) => onChange(id)}
       />
+      </FieldLoading>
     </div>
   );
 }

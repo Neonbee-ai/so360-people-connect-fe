@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, Send, ClipboardCheck, CheckCircle, Circle } from 'lucide-react';
-import { toast, Button, IconButton, Card, Modal, Stack, Cluster, Skeleton, TextField, NumberInput, FormPageTemplate } from '@so360/design-system';
+import { toast, Button, IconButton, Card, Modal, Stack, Cluster, TextField, NumberInput, FormPageTemplate } from '@so360/design-system';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import StatusChip from '../../components/payroll/StatusChip';
@@ -95,7 +95,11 @@ const MyTaxDeclarationPage: React.FC = () => {
     };
 
     if (loading) {
-        return <Skeleton variant="rect" className="h-96" />;
+        return (
+            <FormPageTemplate trail={[{ label: 'My Work', to: '/people/my' }]} title="My Tax Declaration" loading>
+                {null}
+            </FormPageTemplate>
+        );
     }
 
     const statusIndex = declaration ? STATUS_TIMELINE.indexOf(declaration.status as typeof STATUS_TIMELINE[number]) : 0;

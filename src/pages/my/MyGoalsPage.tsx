@@ -36,6 +36,7 @@ const MyGoalsPage: React.FC = () => {
 
     return (
         <DashboardPageTemplate trail={[]}
+            loading={loading}
             title="My Goals"
             description="What you're working towards"
             primary={
