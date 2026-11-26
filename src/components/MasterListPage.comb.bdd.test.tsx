@@ -42,7 +42,7 @@ describe('MasterListPage (Comb)', () => {
     render(<MasterListPage masterType={'employment_type' as any} label="Employment Type" />);
     expect(await screen.findByText('Full Time')).toBeInTheDocument();
     expect(screen.getByText('Employment Types')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Add Employment Type/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New Employment Type/ })).toBeInTheDocument();
     expect(api.getAll).toHaveBeenCalledWith('employment_type', { includeInactive: true });
   });
 
@@ -63,7 +63,7 @@ describe('MasterListPage (Comb)', () => {
     shellState.canManage = false;
     render(<MasterListPage masterType={'employment_type' as any} label="Employment Type" />);
     await screen.findByText('Full Time');
-    expect(screen.queryByRole('button', { name: /Add Employment Type/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New Employment Type/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
     expect(screen.getByText('Active', { selector: 'span' })).toBeInTheDocument();
   });
@@ -71,7 +71,7 @@ describe('MasterListPage (Comb)', () => {
   it('Given a manager / When the add form is submitted / Then create is called with the payload', async () => {
     render(<MasterListPage masterType={'employment_type' as any} label="Employment Type" />);
     await screen.findByText('Full Time');
-    fireEvent.click(screen.getByRole('button', { name: /Add Employment Type/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Employment Type/ }));
     const input = await screen.findByLabelText(/Name/);
     fireEvent.change(input, { target: { value: 'Contract' } });
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Add Employment Type' }));

@@ -37,7 +37,7 @@ const existing = { id: 'd1', name: 'Engineering', code: 'ENG', is_active: true, 
 const openCreateModal = async () => {
   render(<MemoryRouter><DepartmentsPage /></MemoryRouter>);
   await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-  fireEvent.click(screen.getByRole('button', { name: /create department/i }));
+  fireEvent.click(screen.getByRole('button', { name: /new department/i }));
   await waitFor(() => expect(screen.getByLabelText('Code *')).toBeInTheDocument());
 };
 

@@ -66,7 +66,8 @@ describe('Given the Employee Timesheets Comb list page', () => {
   it('When the request is pending / Then a loading status is shown', () => {
     mockTimesheet.getEntries.mockReturnValue(new Promise(() => {}));
     renderPage();
-    expect(screen.getByRole('status', { busy: true })).toBeInTheDocument();
+    expect(screen.getByTestId('page-loading-status')).toHaveTextContent('Loading…');
+    expect(screen.getByTestId('list-page-template')).toHaveAttribute('aria-busy', 'true');
   });
 
   it('When there are no entries / Then the empty state is shown', async () => {

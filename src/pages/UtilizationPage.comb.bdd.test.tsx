@@ -49,7 +49,7 @@ describe('Given the Utilization page on the Comb template', () => {
     api.getAll.mockReturnValue(new Promise(() => {}));
     api.getSummary.mockReturnValue(new Promise(() => {}));
     renderPage();
-    expect(screen.getByRole('status', { name: 'Loading…', hidden: true })).toBeInTheDocument();
+    expect(screen.getByTestId('page-loading-status')).toHaveTextContent('Loading…');
     expect(screen.getByTestId('list-page-template')).toHaveAttribute('aria-busy', 'true');
   });
 
