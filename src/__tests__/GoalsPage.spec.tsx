@@ -101,7 +101,7 @@ describe('GoalsPage', () => {
     it('When the Create Goal button is clicked / Then the create modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Increase revenue')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Create Goal'));
+      fireEvent.click(screen.getByText('New Goal'));
       await waitFor(() => expect(screen.getByPlaceholderText('Increase sales by 20%')).toBeInTheDocument());
     });
   });
@@ -124,7 +124,7 @@ describe('GoalsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No goals found')).toBeInTheDocument());
-    expect(screen.queryByText('Create Goal')).not.toBeInTheDocument();
+    expect(screen.queryByText('New Goal')).not.toBeInTheDocument();
   });
 
   it('When effectiveFlagsLoaded is true / Then Create Goal button is present', async () => {
@@ -132,6 +132,6 @@ describe('GoalsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No goals found')).toBeInTheDocument());
-    expect(screen.queryAllByText('Create Goal').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('New Goal').length).toBeGreaterThan(0);
   });
 });

@@ -29,7 +29,7 @@ describe('ShiftsPage (Comb)', () => {
     renderPage();
     expect(screen.getByText('Shift Management')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Morning')).toBeInTheDocument());
-    expect(screen.getByText('Add Shift')).toBeInTheDocument();
+    expect(screen.getByText('New Shift')).toBeInTheDocument();
   });
 
   it('Given a pending fetch / When rendered / Then the loading state shows', () => {
@@ -49,7 +49,7 @@ describe('ShiftsPage (Comb)', () => {
     api.create.mockResolvedValue({ id: 'n' });
     renderPage();
     await waitFor(() => screen.getByText('Morning'));
-    fireEvent.click(screen.getByText('Add Shift'));
+    fireEvent.click(screen.getByText('New Shift'));
     expect(screen.getByPlaceholderText('e.g. Morning Shift')).toHaveAttribute('maxlength', '100');
     fireEvent.change(screen.getByPlaceholderText('e.g. Morning Shift'), { target: { value: 'Evening' } });
     fireEvent.click(screen.getByText('Add Shift', { selector: 'button[type="submit"]' }));
@@ -61,7 +61,7 @@ describe('ShiftsPage (Comb)', () => {
     api.getAll.mockResolvedValue({ data: [SHIFT] });
     renderPage();
     await waitFor(() => screen.getByText('Morning'));
-    expect(screen.queryByText('Add Shift')).not.toBeInTheDocument();
+    expect(screen.queryByText('New Shift')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Delete')).not.toBeInTheDocument();
     expect(screen.getByText('Active', { selector: 'span' })).toBeInTheDocument();
   });

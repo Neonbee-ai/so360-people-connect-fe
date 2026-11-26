@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Select, Button, IconButton, Banner, Badge, Spinner, Modal, DescriptionList, DashboardPageTemplate, Stack, Cluster } from '@so360/design-system';
+import { Select, Button, IconButton, Banner, Badge, Skeleton, Modal, DescriptionList, DashboardPageTemplate, Stack, Cluster } from '@so360/design-system';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { leaveRequestsApi, LeaveRequest } from '../services/leaveRequestsService';
 import { departmentsApi, Department } from '../services/departmentsService';
@@ -264,9 +264,7 @@ const LeaveCalendarPage: React.FC = () => {
                 </div>
 
                 {loading && (
-                    <Cluster justify="center">
-                        <Spinner />
-                    </Cluster>
+                    <Skeleton.Table count={5} columns={7} header={false} aria-label="Loading leave calendar" />
                 )}
             </Stack>
 

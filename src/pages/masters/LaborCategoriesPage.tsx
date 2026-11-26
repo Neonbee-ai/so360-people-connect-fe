@@ -199,7 +199,7 @@ const LaborCategoriesPage: React.FC = () => {
           canManage ? (
             <Button onClick={() => setShowModal(true)}>
               <Plus size={16} />
-              Add Labor Category
+              New Labor Category
             </Button>
           ) : undefined
         }

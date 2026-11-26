@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from '@so360/design-system';
+import { Button, Skeleton } from '@so360/design-system';
 
 /** How long shell context may take before we stop spinning and offer a retry. */
 export const RESOLVE_TIMEOUT_MS = 20000;
@@ -39,9 +39,8 @@ export const ResolvingNotice: React.FC<{ label?: string; timeoutMs?: number }> =
     }
 
     return (
-        <div role="status" className="flex flex-col items-center justify-center min-h-72 gap-3 text-fg-muted">
-            <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-            <p className="text-sm">{label}</p>
+        <div role="status" aria-label={label}>
+            <Skeleton.Page template="dashboard" />
         </div>
     );
 };

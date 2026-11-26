@@ -54,7 +54,7 @@ describe('LeaveTypesPage', () => {
     it('When the Create Leave Type button is clicked / Then the modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Create Leave Type'));
+      fireEvent.click(screen.getByText('New Leave Type'));
       await waitFor(() => expect(screen.getByText('Basic Information')).toBeInTheDocument());
     });
 
@@ -84,7 +84,7 @@ describe('LeaveTypesPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No leave types found')).toBeInTheDocument());
-    expect(screen.queryByText('Create Leave Type')).not.toBeInTheDocument();
+    expect(screen.queryByText('New Leave Type')).not.toBeInTheDocument();
   });
 
   it('When effectiveFlagsLoaded is true / Then Create Leave Type button is present', async () => {
@@ -92,6 +92,6 @@ describe('LeaveTypesPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No leave types found')).toBeInTheDocument());
-    expect(screen.queryAllByText('Create Leave Type').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('New Leave Type').length).toBeGreaterThan(0);
   });
 });

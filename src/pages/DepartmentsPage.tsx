@@ -14,9 +14,9 @@ import {
     FieldGrid,
     IconButton,
     ListPageTemplate,
-    QuotaBar,
     QuotaGate,
     Select,
+    Skeleton,
     Stack,
     Textarea,
     TextField,
@@ -237,7 +237,7 @@ const DepartmentsPage: React.FC = () => {
                                 title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
                             >
                                 <Building2 size={16} />
-                                Create Department
+                                New Department
                             </Button>
                         </QuotaGate>
                     ) : undefined
@@ -257,29 +257,21 @@ const DepartmentsPage: React.FC = () => {
                         icon={Building2}
                         title="No departments found"
                         description="Create your first department to organize your team."
-                        action={canCreate ? { label: 'Create Department', onClick: () => setShowCreateModal(true) } : undefined}
+                        action={canCreate ? { label: 'New Department', onClick: () => setShowCreateModal(true) } : undefined}
                     />
                 }
-                kpis={
-                    quotaData || (isSandboxMode && isLimited(departments.length)) ? (
-                        <Stack>
-                            {quotaData && (
-                                <QuotaBar
-                                    label="Departments"
-                                    used={quotaData.current_usage}
-                                    limit={quotaData.limit}
-                                    isUnlimited={quotaData.is_unlimited}
-                                />
-                            )}
-                            {isSandboxMode && isLimited(departments.length) && (
-                                <Alert variant="warning">
-                                    <span className="font-semibold">Sandbox:</span>{' '}
-                                    <span>Showing {sandboxEntryLimit} of {departments.length} records. Switch to Production to view all.</span>
-                                </Alert>
-                            )}
-                        </Stack>
-                    ) : undefined
-                }
+                quota={quotaData ? {
+                    label: 'Departments',
+                    used: quotaData.current_usage,
+                    limit: quotaData.limit,
+                    isUnlimited: quotaData.is_unlimited,
+                } : undefined}
+                notice={isSandboxMode && isLimited(departments.length) ? (
+                    <Alert variant="warning">
+                        <span className="font-semibold">Sandbox:</span>{' '}
+                        <span>Showing {sandboxEntryLimit} of {departments.length} records. Switch to Production to view all.</span>
+                    </Alert>
+                ) : undefined}
             >
                 {/* Departments Tree */}
                 <Stack gap="tight">{visibleDepartments.map(dept => renderDepartment(dept))}</Stack>
@@ -288,7 +280,7 @@ const DepartmentsPage: React.FC = () => {
                     <Stack gap="tight">
                         <h2 className="text-nb-h3 text-fg">Archived departments</h2>
                         {archivedLoading ? (
-                            <p className="text-nb-caption text-fg-muted">Loading…</p>
+                            <Skeleton.List count={3} aria-label="Loading archived departments" />
                         ) : archived.length === 0 ? (
                             <p className="text-nb-caption text-fg-muted">No archived departments.</p>
                         ) : (

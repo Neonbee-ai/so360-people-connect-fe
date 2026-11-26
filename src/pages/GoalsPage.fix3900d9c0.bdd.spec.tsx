@@ -36,13 +36,13 @@ describe('Goals fixes (Pulse 3900d9c0)', () => {
   it('Given no goals / When the page loads / Then exactly one Create Goal button is offered', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('No goals found')).toBeInTheDocument());
-    expect(screen.getAllByRole('button', { name: /Create Goal/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /New Goal/ })).toHaveLength(1);
   });
 
   it('Given the create dialog / When it opens / Then Unit is a dropdown of fixed units', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('No goals found')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /Create Goal/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Goal/ }));
     const unit = screen.getByLabelText(/Unit/) as HTMLSelectElement;
     expect(unit.tagName).toBe('SELECT');
     const values = Array.from(unit.options).map((o) => o.value);
@@ -60,7 +60,7 @@ describe('Goals fixes (Pulse 3900d9c0)', () => {
     const spy = vi.spyOn(toast, 'error');
     renderPage();
     await waitFor(() => expect(screen.getByText('No goals found')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /Create Goal/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Goal/ }));
     await waitFor(() => expect((peopleApi as any).getMe).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 0));
     fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Ship v2' } });

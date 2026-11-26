@@ -136,7 +136,7 @@ const GoalsPage: React.FC = () => {
             primaryAction={canCreateGoal ? (
                 <Button type="button" onClick={() => setShowCreateModal(true)}>
                     <Target className="w-4 h-4" />
-                    Create Goal
+                    New Goal
                 </Button>
             ) : undefined}
             filterConfig={{

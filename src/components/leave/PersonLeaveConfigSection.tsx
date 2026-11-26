@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { Badge, Banner, Button, Card, Checkbox, Cluster, Stack, TextField } from '@so360/design-system';
+import { Badge, Banner, Button, Card, Checkbox, Cluster, Skeleton, Stack, TextField } from '@so360/design-system';
 import { leaveConfigApi, type ApplicableLeaveType } from '../../services/leaveConfigService';
 import { leaveTypesApi } from '../../services/leaveTypesService';
 
@@ -309,7 +309,7 @@ const PersonLeaveConfigSection: React.FC<PersonLeaveConfigSectionProps> = ({
   }
 
   if (loading) {
-    return <p className="text-nb-body text-fg-subtle">Loading leave configuration…</p>;
+    return <Skeleton.Form count={3} columns={1} aria-label="Loading leave configuration" />;
   }
 
   if (error) {

@@ -29,7 +29,7 @@ describe('WorkLocationsPage (Comb)', () => {
     renderPage();
     expect(screen.getByText('Work Locations')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Head Office')).toBeInTheDocument());
-    expect(screen.getByText('Add Location')).toBeInTheDocument();
+    expect(screen.getByText('New Location')).toBeInTheDocument();
   });
 
   it('Given a pending fetch / When rendered / Then loading shows', () => {
@@ -59,7 +59,7 @@ describe('WorkLocationsPage (Comb)', () => {
     api.getAll.mockResolvedValue({ data: [LOC] });
     renderPage();
     await waitFor(() => screen.getByText('Head Office'));
-    expect(screen.queryByText('Add Location')).not.toBeInTheDocument();
+    expect(screen.queryByText('New Location')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Delete')).not.toBeInTheDocument();
   });
 

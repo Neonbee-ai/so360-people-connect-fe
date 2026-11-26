@@ -147,7 +147,7 @@ describe('Given active custom field definitions when adding a Person', () => {
   const openCreateModal = async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Add Person'));
+    fireEvent.click(screen.getByText('New Person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
   };
 
@@ -219,7 +219,7 @@ describe('Given no active custom field definitions exist', () => {
   it('When the create modal opens / Then no Custom Fields section is rendered', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Add Person'));
+    fireEvent.click(screen.getByText('New Person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
     expect(screen.queryByTestId('custom-fields-section')).not.toBeInTheDocument();
   });

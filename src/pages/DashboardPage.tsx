@@ -80,7 +80,7 @@ const DashboardPage: React.FC = () => {
             description="Resource control, allocation, and utilization intelligence"
             primaryAction={(
                 <Button type="button" onClick={() => navigate('/people/people', { state: { openCreate: true } })}>
-                    <UserPlus className="w-4 h-4" /> Add Person
+                    <UserPlus className="w-4 h-4" /> New Person
                 </Button>
             )}
             kpis={kpis}

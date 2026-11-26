@@ -75,7 +75,7 @@ describe('HolidaysPage', () => {
     it('When Add Holiday is clicked / Then the modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Republic Day')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Holiday'));
+      fireEvent.click(screen.getByText('New Holiday'));
       await waitFor(() => expect(screen.getByText('Add Holiday', { selector: 'h2' })).toBeInTheDocument());
     });
 
@@ -101,7 +101,7 @@ describe('HolidaysPage', () => {
       mockApi.create.mockResolvedValue({ id: 'h-new', name: 'New Holiday' });
       renderPage();
       await waitFor(() => expect(screen.getByText('Republic Day')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Holiday'));
+      fireEvent.click(screen.getByText('New Holiday'));
       await waitFor(() => expect(screen.getByText('Add Holiday', { selector: 'h2' })).toBeInTheDocument());
 
       fireEvent.change(screen.getByPlaceholderText('e.g. Republic Day'), { target: { value: 'New Holiday' } });
@@ -130,7 +130,7 @@ describe('HolidaysPage', () => {
       mockApi.create.mockResolvedValue({ id: 'h-new', name: 'Scoped Holiday' });
       renderPage();
       await waitFor(() => expect(screen.getByText('Republic Day')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Holiday'));
+      fireEvent.click(screen.getByText('New Holiday'));
       await waitFor(() => expect(screen.getByText('Add Holiday', { selector: 'h2' })).toBeInTheDocument());
 
       fireEvent.change(screen.getByPlaceholderText('e.g. Republic Day'), { target: { value: 'Scoped Holiday' } });
@@ -190,7 +190,7 @@ describe('HolidaysPage', () => {
       mockApi.getAll.mockResolvedValue({ data: [] });
       renderPage();
       await waitFor(() => expect(screen.queryByText('No holidays')).toBeInTheDocument());
-      expect(screen.queryByText('Add Holiday')).not.toBeInTheDocument();
+      expect(screen.queryByText('New Holiday')).not.toBeInTheDocument();
     });
   });
 });

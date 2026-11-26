@@ -122,7 +122,7 @@ const ShiftsPage: React.FC = () => {
           canManage ? (
             <Button onClick={() => setShowModal(true)}>
               <Plus size={16} />
-              Add Shift
+              New Shift
             </Button>
           ) : undefined
         }

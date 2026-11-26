@@ -203,7 +203,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
           canManage ? (
             <Button onClick={() => setShowModal(true)}>
               <Plus size={16} />
-              Add {label}
+              New {label}
             </Button>
           ) : undefined
         }

@@ -146,8 +146,8 @@ describe('PerformanceReviewsPage — Create Review template empty state', () => 
 
   const openModal = async () => {
     renderPage();
-    await waitFor(() => expect(screen.queryAllByText('Create Review').length).toBeGreaterThan(0));
-    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => expect(screen.queryAllByText('New Review').length).toBeGreaterThan(0));
+    fireEvent.click(screen.getAllByText('New Review')[0]);
   };
 
   it('When no templates exist / Then the empty state with a create-defaults button is shown', async () => {
@@ -178,7 +178,7 @@ describe('PerformanceReviewsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No performance reviews found')).toBeInTheDocument());
-    expect(screen.queryByText('Create Review')).not.toBeInTheDocument();
+    expect(screen.queryByText('New Review')).not.toBeInTheDocument();
   });
 
   it('When effectiveFlagsLoaded is true / Then Create Review button is present', async () => {
@@ -186,6 +186,6 @@ describe('PerformanceReviewsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No performance reviews found')).toBeInTheDocument());
-    expect(screen.queryAllByText('Create Review').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('New Review').length).toBeGreaterThan(0);
   });
 });

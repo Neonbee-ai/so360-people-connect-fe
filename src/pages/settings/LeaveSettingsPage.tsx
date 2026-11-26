@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Banner, Button, Grid, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, Switch, toast } from '@so360/design-system';
+import { Banner, Button, Grid, Select, SettingsCard, SettingsPageTemplate, Stack, Switch, toast } from '@so360/design-system';
 import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -82,13 +82,12 @@ const LeaveSettingsPage: React.FC = () => {
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      loading={loading}
       title="Leave Policy"
       description="Leave year and calendar rules applied across every leave type"
       primaryAction={saveAction}
     >
-      {loading ? (
-        <Spinner aria-label="Loading leave settings..." />
-      ) : (
+      {loading ? null : (
         <Grid columns={2} gap="lg">
           <SettingsCard title="Leave Calendar">
             <Stack gap="default">
