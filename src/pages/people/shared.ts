@@ -51,3 +51,17 @@ export const resolveInviteRoleId = (
 
     return (byName(person.system_role) ?? byName('Employee'))?.id;
 };
+
+/**
+ * Currency picker options: the org's Core base currency is always offered (first)
+ * so it can be the default even when it is not in the supported list. Returns an
+ * empty-currency-safe list (no hard-coded USD).
+ */
+export function rateCurrencyOptions(currencies: string[], baseCurrency: string): string[] {
+    return baseCurrency && !currencies.includes(baseCurrency) ? [baseCurrency, ...currencies] : currencies;
+}
+
+/** Currency sent on create: the form value, or undefined so the backend applies the Core base currency. */
+export function rateCurrencyForPayload(value: string | undefined | null): string | undefined {
+    return value ? value : undefined;
+}
