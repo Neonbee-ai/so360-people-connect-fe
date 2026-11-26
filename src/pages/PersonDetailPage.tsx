@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Mail, Phone, Calendar, DollarSign, Clock, Target, MapPin,
@@ -6,9 +6,6 @@ import {
     Wallet, ClipboardCheck, CalendarDays,
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
-import PayrollProfileTab from '../components/payroll/PayrollProfileTab';
-import PersonLeaveConfigTab from '../components/leave/PersonLeaveConfigTab';
-import PersonOnboardingTab from '../components/PersonOnboardingTab';
 import Modal from '../components/Modal';
 import {
     toast, Select, DetailPageTemplate, Button, IconButton, TextField, NumberInput, DateInput, Checkbox,
@@ -28,6 +25,12 @@ import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useCanConfigureLeave } from '../hooks/useCanConfigureLeave';
 import type { Person, Allocation, PersonRole } from '../types/people';
 import { RecordNotFound, isNotFoundError } from '../components/RecordNotFound';
+
+// Non-default tabs load on demand: the Overview tab is what the route opens on.
+const PayrollProfileTab = lazy(() => import('../components/payroll/PayrollProfileTab'));
+const PersonLeaveConfigTab = lazy(() => import('../components/leave/PersonLeaveConfigTab'));
+const PersonOnboardingTab = lazy(() => import('../components/PersonOnboardingTab'));
+const TabFallback = () => <Skeleton lines={4} />;
 
 const PersonDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -718,21 +721,31 @@ const PersonDetailPage: React.FC = () => {
                     )}
 
                     {/* Onboarding Tab */}
-                    {activeTab === 'onboarding' && id && <PersonOnboardingTab personId={id} />}
+                    {activeTab === 'onboarding' && id && (
+                        <Suspense fallback={<TabFallback />}>
+                            <PersonOnboardingTab personId={id} />
+                        </Suspense>
+                    )}
 
                     {/* Leave Configuration Tab — which leave types apply to this
                         employee, and whether each came from their employment type
                         or was set for them specifically. */}
                     {activeTab === 'leave' && id && (
-                        <PersonLeaveConfigTab
-                            personId={id}
-                            employmentTypeLabel={person?.employment_type ?? null}
-                            canEdit={canConfigureLeave}
-                        />
+                        <Suspense fallback={<TabFallback />}>
+                            <PersonLeaveConfigTab
+                                personId={id}
+                                employmentTypeLabel={person?.employment_type ?? null}
+                                canEdit={canConfigureLeave}
+                            />
+                        </Suspense>
                     )}
 
                     {/* Payroll Tab */}
-                    {activeTab === 'payroll' && person && <PayrollProfileTab person={person} />}
+                    {activeTab === 'payroll' && person && (
+                        <Suspense fallback={<TabFallback />}>
+                            <PayrollProfileTab person={person} />
+                        </Suspense>
+                    )}
 
                     {/* Goals Tab */}
                     {activeTab === 'goals' && (

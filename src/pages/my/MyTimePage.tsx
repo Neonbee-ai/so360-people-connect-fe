@@ -30,6 +30,16 @@ const elapsed = (fromIso: string, now: number): string => {
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
 
+/** Clock leaf: owns the 30 s tick so only this text re-renders, never the whole page. */
+export const Elapsed: React.FC<{ fromIso: string }> = ({ fromIso }) => {
+    const [now, setNow] = useState(Date.now());
+    useEffect(() => {
+        const t = setInterval(() => setNow(Date.now()), 30_000);
+        return () => clearInterval(t);
+    }, []);
+    return <>{elapsed(fromIso, now)}</>;
+};
+
 const MyTimePage: React.FC = () => {
     const [session, setSession] = useState<MyOpenSession | null>(null);
     const [allocations, setAllocations] = useState<MyAllocation[]>([]);
@@ -38,7 +48,6 @@ const MyTimePage: React.FC = () => {
     const [corrections, setCorrections] = useState<AttendanceCorrectionRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
-    const [now, setNow] = useState(Date.now());
 
     const load = useCallback(async () => {
         const [s, a, al, c] = await Promise.allSettled([
@@ -55,13 +64,6 @@ const MyTimePage: React.FC = () => {
     }, []);
 
     useEffect(() => { void load(); }, [load]);
-
-    // Keeps the running timer honest without refetching.
-    useEffect(() => {
-        if (!session) return;
-        const t = setInterval(() => setNow(Date.now()), 30_000);
-        return () => clearInterval(t);
-    }, [session]);
 
     const act = async (fn: () => Promise<unknown>, success: string) => {
         setBusy(true);
@@ -89,7 +91,7 @@ const MyTimePage: React.FC = () => {
                         ) : ''}
                     </p>
                     <p className="text-nb-sm text-fg-muted">
-                        Started {elapsed(session.started_at, now)} ago
+                        Started <Elapsed fromIso={session.started_at} /> ago
                     </p>
                 </Stack>
 
