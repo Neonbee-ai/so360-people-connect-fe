@@ -49,6 +49,19 @@ export default defineConfig(({ mode, command }) => {
         minify: 'esbuild',
         cssCodeSplit: false,
         emptyOutDir: false,
+        rollupOptions: {
+            output: {
+                // lucide-react icons -> ONE `icons` chunk (instead of many single-icon
+                // micro-chunks). The federation importShared runtime keeps its own chunk:
+                // otherwise Rollup hoists it into a vendor chunk and the exposed ./App
+                // statically imports that whole chunk on every open.
+                manualChunks(id: string) {
+                    if (id.includes('__federation_fn_import')) return '__federation_fn_import';
+                    if (id.includes('node_modules/lucide-react')) return 'icons';
+                    return undefined;
+                },
+            },
+        },
     },
     server: {
         port: 3014,
