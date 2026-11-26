@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Users, UserPlus, Briefcase, Mail, Upload, Download, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
 import { peopleApi } from '../services/peopleService';
@@ -16,7 +16,6 @@ import { buildAtomicCreatePayload, inviteFailed } from './people/createPersonFlo
 import { personCustomFieldsApi } from '../services/customFieldsService';
 import { usePeopleFormatters } from '../utils/formatters';
 import { DEFAULT_CURRENCIES, resolveAccessBadge, INVITATION_LABEL, resolveInviteRoleId } from './people/shared';
-import { CreatePersonModal } from './people/CreatePersonDrawer';
 import { EditPersonModal } from './people/EditPersonDrawer';
 
 // Re-exported so specs (and any caller) keep importing it from the page module.
@@ -27,6 +26,9 @@ type ConfirmAction =
     | { type: 'deactivate'; person: Person }
     | { type: 'archive'; person: Person }
     | { type: 'cancel-invite'; person: Person };
+
+// Create modal is only needed once the user opens it.
+const CreatePersonModal = lazy(() => import('./people/CreatePersonDrawer').then(m => ({ default: m.CreatePersonModal })));
 
 const ACCESS_TONE: Record<string, 'success' | 'warning' | 'neutral' | 'danger'> = {
     'Has Access': 'success',
@@ -753,13 +755,17 @@ const PeoplePage: React.FC = () => {
             </ListPageTemplate>
 
             {/* Create Modal */}
-            <CreatePersonModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onCreate={handleCreate}
-                currencies={currencies}
-                defaultCurrency={baseCurrency}
-            />
+            {showCreateModal && (
+                <Suspense fallback={null}>
+                    <CreatePersonModal
+                        isOpen={showCreateModal}
+                        onClose={() => setShowCreateModal(false)}
+                        onCreate={handleCreate}
+                        currencies={currencies}
+                        defaultCurrency={baseCurrency}
+                    />
+                </Suspense>
+            )}
 
             {/* Invite link — shown after inviting so the admin can copy/share it if email is unreliable */}
             <Modal
