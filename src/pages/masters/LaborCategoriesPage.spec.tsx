@@ -244,6 +244,19 @@ describe('LaborCategoriesPage', () => {
       render(<LaborCategoriesPage />);
 
       expect(await screen.findByText("Couldn't load labor categories")).toBeInTheDocument();
+      expect(screen.queryByText(/something went wrong/i)).toBeNull();
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('When the API refuses the role (403) / Then a no-access state renders with no error toast', async () => {
+      const toastErrorSpy = vi.spyOn(toast, 'error');
+      toastErrorSpy.mockClear();
+      mockApi.getAll.mockRejectedValue(Object.assign(new Error('Forbidden'), { status: 403 }));
+      render(<LaborCategoriesPage />);
+
+      expect(await screen.findByText("You don't have access to labor categories")).toBeInTheDocument();
+      expect(screen.queryByText("Couldn't load labor categories")).toBeNull();
+      expect(toastErrorSpy).not.toHaveBeenCalled();
     });
   });
 });

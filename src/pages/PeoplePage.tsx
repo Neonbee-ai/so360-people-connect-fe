@@ -9,7 +9,7 @@ import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import {
     QuotaBar, QuotaGate, toast, ListPageTemplate, DataTable, SearchInput, Button, IconButton,
-    Menu, ConfirmDialog, Modal, TextField, Badge, StatusBadge, Avatar, EmptyState, Banner, Cluster, Stack,
+    Menu, ConfirmDialog, Modal, Pagination, TextField, Badge, StatusBadge, Avatar, EmptyState, Banner, Cluster, Stack,
 } from '@so360/design-system';
 import { mastersApi, MasterRow } from '../services/mastersService';
 import { buildAtomicCreatePayload, inviteFailed } from './people/createPersonFlow';
@@ -84,6 +84,12 @@ const PeoplePage: React.FC = () => {
     const quotaData = getQuota('max_employees');
     const { isSandboxMode, sandboxEntryLimit, limitItems, isLimited } = useSandboxLimit();
     const [people, setPeople] = useState<Person[]>([]);
+    // Server-side paging. `localPaging` is set when the backend ignored page/limit and
+    // returned more rows than a page: the rows are then sliced on screen instead.
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(50);
+    const [totalPeople, setTotalPeople] = useState(0);
+    const [localPaging, setLocalPaging] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const [search, setSearch] = useState('');
@@ -172,6 +178,9 @@ const PeoplePage: React.FC = () => {
     // Latest-wins: a slow response for an older filter must not overwrite (or end
     // the spinner of) the response for the filters the user has now.
     const loadSeq = useRef(0);
+    // In local-paging mode the backend ignored page/limit: the full list is already loaded,
+    // so page clicks must not refetch it.
+    const pageParam = localPaging ? 1 : page;
     const loadPeople = useCallback(async () => {
         const seq = ++loadSeq.current;
         if (joinedRangeInvalid) {
@@ -190,9 +199,19 @@ const PeoplePage: React.FC = () => {
                 employment_type: employmentTypeFilter || undefined,
                 date_of_joining_from: joiningFromFilter || undefined,
                 date_of_joining_to: joiningToFilter || undefined,
+                page: pageParam,
+                limit: pageSize,
             });
             if (seq !== loadSeq.current) return;
-            setPeople(result.data);
+            const rows = result.data ?? [];
+            if (rows.length > pageSize) {
+                setLocalPaging(true);
+                setTotalPeople(rows.length);
+            } else {
+                setLocalPaging(false);
+                setTotalPeople(result.meta?.total ?? rows.length);
+            }
+            setPeople(rows);
         } catch (error) {
             if (seq !== loadSeq.current) return;
             console.error('Failed to load people:', error);
@@ -200,7 +219,7 @@ const PeoplePage: React.FC = () => {
         } finally {
             if (seq === loadSeq.current) setLoading(false);
         }
-    }, [debouncedSearch, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter, joinedRangeInvalid]);
+    }, [debouncedSearch, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter, joinedRangeInvalid, pageParam, pageSize]);
 
     useEffect(() => {
         loadPeople();
@@ -427,7 +446,14 @@ const PeoplePage: React.FC = () => {
         }
     };
 
-    const visiblePeople = isSandboxMode ? people.slice(0, sandboxEntryLimit) : people;
+    // Any filter change goes back to the first page.
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch, statusFilter, typeFilter, departmentFilter, employmentTypeFilter, joiningFromFilter, joiningToFilter]);
+
+    const pagedPeople = localPaging ? people.slice((page - 1) * pageSize, page * pageSize) : people;
+    const visiblePeople = isSandboxMode ? pagedPeople.slice(0, Math.max(0, sandboxEntryLimit - (page - 1) * pageSize)) : pagedPeople;
+    const totalPages = Math.max(1, Math.ceil(totalPeople / pageSize));
 
     const rowMenuItems = (person: Person) => {
         const isPendingInvite = person.invitation_status === 'pending' || person.access_status === 'pending';
@@ -597,6 +623,18 @@ const PeoplePage: React.FC = () => {
     return (
         <>
             <ListPageTemplate trail={[]}
+                pagination={totalPeople > 0 ? (
+                    <Pagination
+                        className="w-full"
+                        currentPage={page}
+                        totalPages={totalPages}
+                        totalItems={totalPeople}
+                        pageSize={pageSize}
+                        pageSizeOptions={[25, 50, 100]}
+                        onPageChange={setPage}
+                        onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                    />
+                ) : undefined}
                 title="People Registry"
                 description="Manage people as costed, allocatable resources"
                 headerSecondaryActions={[
@@ -688,9 +726,9 @@ const PeoplePage: React.FC = () => {
                     <Banner variant="danger">From Date cannot be later than To Date.</Banner>
                 )}
 
-                {isSandboxMode && isLimited(people.length) && (
+                {isSandboxMode && isLimited(totalPeople) && (
                     <Banner variant="warning">
-                        Sandbox: Showing {sandboxEntryLimit} of {people.length} records. Switch to Production to view all.
+                        Sandbox: Showing {sandboxEntryLimit} of {totalPeople} records. Switch to Production to view all.
                     </Banner>
                 )}
                     </>

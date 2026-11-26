@@ -24,7 +24,7 @@ vi.mock('./apiClient', () => ({
 }));
 
 import { peopleApi, allocationsApi, utilizationApi, eventsApi } from './peopleService';
-import { api } from './apiClient';
+import { api, apiContext } from './apiClient';
 
 const mockApi = api as any;
 
@@ -43,6 +43,43 @@ describe('Given peopleApi.getAll', () => {
     mockApi.get.mockResolvedValue({ data: [], total: 0 });
     await peopleApi.getAll({ search: 'alice', status: 'active' });
     expect(mockApi.get).toHaveBeenCalledWith('/people', { search: 'alice', status: 'active' });
+  });
+});
+
+describe('Given the roster read cache (PC-W4-1)', () => {
+  const roster = { limit: 200 };
+
+  it('When a second user on the same org loads the roster / Then the first user\'s cached roster is not served', async () => {
+    (apiContext.getOrgId as any).mockReturnValue('org-cache-1');
+    (apiContext.getUserId as any).mockReturnValue('user-a');
+    mockApi.get.mockResolvedValue({ data: [{ id: 'p-a' }] });
+    await peopleApi.getAll(roster);
+    (apiContext.getUserId as any).mockReturnValue('user-b');
+    mockApi.get.mockResolvedValue({ data: [{ id: 'p-b' }] });
+    const r: any = await peopleApi.getAll(roster);
+    expect(mockApi.get).toHaveBeenCalledTimes(2);
+    expect(r.data[0].id).toBe('p-b');
+  });
+
+  it('When the same user reloads the roster within the TTL / Then it is served from cache', async () => {
+    (apiContext.getOrgId as any).mockReturnValue('org-cache-2');
+    (apiContext.getUserId as any).mockReturnValue('user-a');
+    mockApi.get.mockResolvedValue({ data: [] });
+    await peopleApi.getAll(roster);
+    await peopleApi.getAll(roster);
+    expect(mockApi.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('When the org changes and then changes back / Then the cache was cleared in between', async () => {
+    (apiContext.getUserId as any).mockReturnValue('user-a');
+    (apiContext.getOrgId as any).mockReturnValue('org-cache-3');
+    mockApi.get.mockResolvedValue({ data: [] });
+    await peopleApi.getAll(roster);
+    (apiContext.getOrgId as any).mockReturnValue('org-cache-4');
+    await peopleApi.getAll(roster);
+    (apiContext.getOrgId as any).mockReturnValue('org-cache-3');
+    await peopleApi.getAll(roster);
+    expect(mockApi.get).toHaveBeenCalledTimes(3);
   });
 });
 
