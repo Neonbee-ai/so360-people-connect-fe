@@ -179,12 +179,16 @@ export const CreatePersonModal: React.FC<CreatePersonModalProps> = ({ isOpen, on
         et => et.code === (formData as any).employment_type,
     );
 
-    // Sync form currency whenever the resolved currency updates or the modal opens.
+    // Fresh errors each time the modal opens.
     useEffect(() => {
-        if (isOpen) {
-            setErrors({});
-            setFormData(prev => ({ ...prev, currency: resolvedCurrency }));
-        }
+        if (isOpen) setErrors({});
+    }, [isOpen]);
+
+    // Sync form currency whenever the resolved currency updates or the modal opens.
+    // The base currency can resolve after the user has started typing, so this must
+    // never clear their inline validation errors.
+    useEffect(() => {
+        if (isOpen) setFormData(prev => ({ ...prev, currency: resolvedCurrency }));
     }, [isOpen, resolvedCurrency]);
 
     const validate = (data: typeof formData): Record<string, string> => {
