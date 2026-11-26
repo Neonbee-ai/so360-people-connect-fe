@@ -7,7 +7,7 @@ afterEach(() => { vi.useRealTimers(); });
 describe('Given shell entitlements are still resolving', () => {
     it('When it has just started / Then a loading status shows, not a blank page', () => {
         render(<ResolvingNotice label="Loading People…" />);
-        expect(screen.getByRole('status')).toHaveTextContent('Loading People…');
+        expect(screen.getByRole('status', { name: 'Loading People…' })).toBeInTheDocument();
     });
 
     it('When the wait exceeds the timeout / Then a bounded error with Retry replaces the spinner', () => {

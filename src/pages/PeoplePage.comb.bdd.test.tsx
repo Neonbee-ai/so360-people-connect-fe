@@ -143,7 +143,8 @@ describe('Given the People Registry on the Comb list template', () => {
   it('When the people request is still pending / Then the template shows its loading status and no rows', () => {
     mockApi.getAll.mockReturnValue(new Promise(() => {}));
     renderPage();
-    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+    expect(document.querySelector('[data-template="list"]')).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
   });
 

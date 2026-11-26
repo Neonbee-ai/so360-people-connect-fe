@@ -717,13 +717,14 @@ const PeoplePage: React.FC = () => {
                     limit: quotaData.limit,
                     isUnlimited: quotaData.is_unlimited,
                 } : undefined}
-                notice={joinedRangeInvalid ? (
-                    <Banner variant="danger">From Date cannot be later than To Date.</Banner>
-                ) : isSandboxMode && isLimited(totalPeople) ? (
-                    <Banner variant="warning">
-                        Sandbox: Showing {sandboxEntryLimit} of {totalPeople} records. Switch to Production to view all.
-                    </Banner>
-                ) : undefined}
+                notice={[
+                    joinedRangeInvalid && <Banner key="range" variant="danger">From Date cannot be later than To Date.</Banner>,
+                    isSandboxMode && isLimited(totalPeople) && (
+                        <Banner key="sandbox" variant="warning">
+                            Sandbox: Showing {sandboxEntryLimit} of {totalPeople} records. Switch to Production to view all.
+                        </Banner>
+                    ),
+                ]}
                 loading={loading && people.length === 0}
                 isEmpty={people.length === 0}
                 empty={

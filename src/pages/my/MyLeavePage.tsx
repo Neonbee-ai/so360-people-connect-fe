@@ -75,7 +75,7 @@ const MyLeavePage: React.FC = () => {
     return (
         <>
             <DashboardPageTemplate trail={[]}
-                loading={loading}
+                loading={loading && balances.length === 0 && requests.length === 0}
                 title="My Leave"
                 description="Your balances and requests"
                 primaryAction={

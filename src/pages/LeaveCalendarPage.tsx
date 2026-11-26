@@ -264,7 +264,7 @@ const LeaveCalendarPage: React.FC = () => {
                 </div>
 
                 {loading && (
-                    <Skeleton.Table count={5} columns={7} header={false} aria-label="Loading leave calendar" />
+                    <div role="status" aria-busy="true" aria-label="Loading leave calendar"><Skeleton.Table announce={false} count={5} columns={7} header={false} /></div>
                 )}
             </Stack>
 

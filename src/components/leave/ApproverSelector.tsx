@@ -143,9 +143,8 @@ const ApproverSelector: React.FC<ApproverSelectorProps> = ({
 
       <div className="max-h-48 overflow-y-auto rounded-nb border border-line-strong bg-surface-raised">
         {loading ? (
-          <div className="p-nb-3" aria-busy="true" data-testid="approver-loading">
-            <Skeleton.List count={3} />
-            <span className="sr-only">Loading people…</span>
+          <div className="p-nb-3" role="status" aria-busy="true" aria-label="Loading people…" data-testid="approver-loading">
+            <Skeleton.List announce={false} count={3} />
           </div>
         ) : error ? (
           <div className="p-nb-3">

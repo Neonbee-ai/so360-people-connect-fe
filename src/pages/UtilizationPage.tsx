@@ -194,14 +194,11 @@ const UtilizationPage: React.FC = () => {
             <IconButton label="Previous week" variant="ghost" icon={<ChevronLeft size={16} />} onClick={() => setWeekOffset(prev => prev - 1)} />
             <Cluster gap="tight" align="center" className="flex-nowrap">
                 <Calendar size={14} className="text-primary" />
-                <span className="whitespace-nowrap text-nb-sm text-fg">
+                <div className="whitespace-nowrap text-nb-sm text-fg">
                     {period.start ? `${period.start} to ${period.end}` : (
-                        <>
-                            <Skeleton className="h-nb-5 w-nb-12" data-testid="utilization-period-loading" />
-                            <span className="sr-only">Loading...</span>
-                        </>
+                        <Skeleton className="h-nb-5 w-nb-12" data-testid="utilization-period-loading" />
                     )}
-                </span>
+                </div>
             </Cluster>
             <IconButton label="Next week" variant="ghost" icon={<ChevronRight size={16} />} onClick={() => setWeekOffset(prev => Math.min(prev + 1, 0))} disabled={weekOffset >= 0} />
         </Cluster>
@@ -248,7 +245,7 @@ const UtilizationPage: React.FC = () => {
                     </div>
                 </Banner>
             ) : undefined}
-            kpisCollapsible
+            kpisCollapsible={{ defaultOpen: true, storageKey: 'people-utilization' }}
             kpis={(
                 <Grid columns={4} gap="md">
                     <KpiCard label="Avg utilization" value={`${summary?.avg_utilization_pct || 0}%`} icon={Target} />

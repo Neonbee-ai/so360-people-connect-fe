@@ -95,7 +95,7 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
                 </p>
 
                 {loading ? (
-                    <Skeleton.List count={4} aria-label="Loading leave types" />
+                    <div role="status" aria-busy="true" aria-label="Loading leave types"><Skeleton.List announce={false} count={4} /></div>
                 ) : (
                     <>
                         {/* Selecting nothing is a real choice with a real consequence —

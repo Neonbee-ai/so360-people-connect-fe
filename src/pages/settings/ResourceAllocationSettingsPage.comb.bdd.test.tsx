@@ -44,7 +44,8 @@ describe('Given ResourceAllocationSettingsPage built on Comb SettingsPageTemplat
   it('When settings are still loading / Then the loading skeleton is shown and Save is disabled', async () => {
     api.get.mockReturnValue(new Promise(() => {}));
     renderPage();
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+    expect(document.querySelector('[data-slot="loading"]')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save Changes/ })).toBeDisabled();
   });
 

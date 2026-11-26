@@ -35,7 +35,8 @@ describe('Given EmploymentPolicyPage built on Comb SettingsPageTemplate', () => 
   it('When the policy is loading / Then a spinner is shown', () => {
     api.getEmploymentPolicy.mockReturnValue(new Promise(() => {}));
     renderPage();
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+    expect(document.querySelector('[data-slot="loading"]')).toBeInTheDocument();
   });
 
   it('When the policy loads / Then the title, cards and Save Policy action are shown', async () => {
