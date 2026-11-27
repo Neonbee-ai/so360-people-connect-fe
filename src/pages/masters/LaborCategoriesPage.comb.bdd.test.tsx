@@ -38,7 +38,7 @@ describe('LaborCategoriesPage (Comb)', () => {
     render(<LaborCategoriesPage />);
     expect(await screen.findByText('Welder')).toBeInTheDocument();
     expect(screen.getByText('Labor Categories')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Add Labor Category/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New Labor Category/ })).toBeInTheDocument();
     expect(screen.getByText('20.00')).toBeInTheDocument();
   });
 
@@ -59,14 +59,14 @@ describe('LaborCategoriesPage (Comb)', () => {
     flags.create = false;
     render(<LaborCategoriesPage />);
     await screen.findByText('Welder');
-    expect(screen.queryByRole('button', { name: /Add Labor Category/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New Labor Category/ })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Edit Welder')).not.toBeInTheDocument();
   });
 
   it('Given the add form / When submitted / Then create receives the typed payload', async () => {
     render(<LaborCategoriesPage />);
     await screen.findByText('Welder');
-    fireEvent.click(screen.getByRole('button', { name: /Add Labor Category/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Labor Category/ }));
     fireEvent.change(await screen.findByLabelText('Name *'), { target: { value: 'Rigger' } });
     fireEvent.change(screen.getByLabelText('Code *'), { target: { value: 'RIG' } });
     fireEvent.change(screen.getByLabelText('Hourly Rate'), { target: { value: '30' } });

@@ -110,7 +110,7 @@ const renderPage = () => render(<MemoryRouter><PeoplePage /></MemoryRouter>);
 const openAddPerson = async () => {
   renderPage();
   await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-  fireEvent.click(screen.getByRole('button', { name: /add person/i }));
+  fireEvent.click(screen.getByRole('button', { name: /new person/i }));
   await waitFor(() => expect(screen.getByLabelText('Full Name *')).toBeInTheDocument());
 };
 

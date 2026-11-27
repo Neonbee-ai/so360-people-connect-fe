@@ -112,7 +112,7 @@ const renderPage = () => render(<MemoryRouter><PeoplePage /></MemoryRouter>);
 const openAddPerson = async () => {
   renderPage();
   await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-  fireEvent.click(screen.getByRole('button', { name: /add person/i }));
+  fireEvent.click(screen.getByRole('button', { name: /new person/i }));
   await waitFor(() => expect(screen.getByLabelText('Full Name *')).toBeInTheDocument());
 };
 
@@ -137,13 +137,14 @@ describe('Given the People Registry on the Comb list template', () => {
     renderPage();
     expect(await screen.findByRole('heading', { name: 'People Registry' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /add person/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /new person/i })).toBeInTheDocument();
   });
 
   it('When the people request is still pending / Then the template shows its loading status and no rows', () => {
     mockApi.getAll.mockReturnValue(new Promise(() => {}));
     renderPage();
-    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+    expect(document.querySelector('[data-template="list"]')).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
   });
 
@@ -172,7 +173,7 @@ describe('Given the People Registry on the Comb list template', () => {
     flags.disabled.add('action:people:employees:create');
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /add person/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /new person/i })).not.toBeInTheDocument();
   });
 
   it('When peopleApi.create fails / Then an error toast is raised and the drawer stays open', async () => {

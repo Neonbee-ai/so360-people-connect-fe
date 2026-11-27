@@ -7,7 +7,7 @@ import type { MyLeaveBalance } from '../../services/meService';
 import { leaveRequestsApi } from '../../services/leaveRequestsService';
 import type { CreateLeaveRequestPayload, LeaveRequest } from '../../services/leaveRequestsService';
 import LeaveRequestFormModal from '../../components/leave/LeaveRequestFormModal';
-import { MyCard, StatTile, StatusPill, Skeleton } from './myUi';
+import { MyCard, StatTile, StatusPill } from './myUi';
 
 /**
  * My Leave — the employee's own balances, history and request form.
@@ -75,6 +75,7 @@ const MyLeavePage: React.FC = () => {
     return (
         <>
             <DashboardPageTemplate trail={[]}
+                loading={loading && balances.length === 0 && requests.length === 0}
                 title="My Leave"
                 description="Your balances and requests"
                 primaryAction={
@@ -99,9 +100,7 @@ const MyLeavePage: React.FC = () => {
                 }
                 primary={
                     <MyCard title="My requests" icon={<CalendarDays size={14} />}>
-                        {loading ? (
-                            <Skeleton rows={3} />
-                        ) : requests.length === 0 ? (
+                        {requests.length === 0 ? (
                             <EmptyState
                                 icon={CalendarDays}
                                 title="No leave requests yet"

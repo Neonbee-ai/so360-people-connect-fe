@@ -41,7 +41,7 @@ describe('GoalsPage (Comb)', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: 'Goals' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /Create Goal/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New Goal/ })).toBeInTheDocument();
   });
 
   it('Given no goals / When loaded / Then the empty state shows', async () => {
@@ -54,7 +54,7 @@ describe('GoalsPage (Comb)', () => {
     flagEnabled = false;
     renderPage();
     await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /Create Goal/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New Goal/ })).not.toBeInTheDocument();
   });
 
   it('Given the status filter / When changed / Then the API is called with that status', async () => {
@@ -68,14 +68,14 @@ describe('GoalsPage (Comb)', () => {
     api.getAll.mockResolvedValue({ data: [], total: 0 });
     renderPage();
     await waitFor(() => expect(screen.getByText('No goals found')).toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole('button', { name: /Create Goal/ })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /New Goal/ })[0]);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('Given the create modal is open / When Cancel is clicked / Then it closes', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /Create Goal/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Goal/ }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -92,14 +92,14 @@ describe('GoalsPage (Comb)', () => {
     api.getAll.mockResolvedValue({ data: [], total: 0 });
     renderPage();
     await waitFor(() => expect(screen.getByText('No goals found')).toBeInTheDocument());
-    expect(screen.getAllByRole('button', { name: /Create Goal/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /New Goal/ })).toHaveLength(1);
   });
 
   it('Given a directory reader (admin) / When the create modal opens / Then an Assigned To picker is shown', async () => {
     (peopleApi.getAll as any).mockResolvedValueOnce({ data: [{ id: 'p1', full_name: 'Alice' }] });
     renderPage();
     await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /Create Goal/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Goal/ }));
     expect(await screen.findByText('Assigned To')).toBeInTheDocument();
   });
 
@@ -107,7 +107,7 @@ describe('GoalsPage (Comb)', () => {
     (peopleApi.getAll as any).mockRejectedValueOnce(new Error('403'));
     renderPage();
     await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /Create Goal/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Goal/ }));
     await screen.findByRole('dialog');
     expect(screen.queryByText('Assigned To')).not.toBeInTheDocument();
   });
@@ -115,7 +115,7 @@ describe('GoalsPage (Comb)', () => {
   it('Given the modal is open / When viewed / Then Target, Current and Unit are marked optional with hints', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Complete 10 deals')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /Create Goal/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Goal/ }));
     expect(await screen.findByText('Target Value (optional)')).toBeInTheDocument();
     expect(screen.getByText('Current Value (optional)')).toBeInTheDocument();
     expect(screen.getByText('Unit (optional)')).toBeInTheDocument();

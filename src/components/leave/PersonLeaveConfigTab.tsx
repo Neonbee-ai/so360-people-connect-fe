@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Loader2, Plus, RotateCcw, X } from 'lucide-react';
-import { Badge, Button, IconButton, Spinner, Stack, Cluster } from '@so360/design-system';
+import { Badge, Button, IconButton, Skeleton, Spinner, Stack, Cluster } from '@so360/design-system';
 import {
     leaveConfigApi,
     type ApplicableLeaveType,
@@ -92,10 +92,7 @@ const PersonLeaveConfigTab: React.FC<Props> = ({
 
     if (loading) {
         return (
-            <Cluster gap="tight" className="p-nb-4 text-nb-body text-fg-muted">
-                <Spinner />
-                Loading leave configuration…
-            </Cluster>
+            <div role="status" aria-busy="true"><span className="sr-only">Loading leave configuration</span><Skeleton.Form announce={false} count={3} columns={1} /></div>
         );
     }
 

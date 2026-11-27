@@ -58,7 +58,7 @@ describe('LaborCategoriesPage', () => {
     it('When the page loads / Then an empty state offers to create the first one', async () => {
       render(<LaborCategoriesPage />);
       expect(await screen.findByText('No labor categories')).toBeInTheDocument();
-      expect(screen.getAllByText('Add Labor Category').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('New Labor Category').length).toBeGreaterThan(0);
     });
   });
 
@@ -115,7 +115,7 @@ describe('LaborCategoriesPage', () => {
   describe('Given the create form', () => {
     it('When submitted / Then the category is created and the list reloads', async () => {
       render(<LaborCategoriesPage />);
-      fireEvent.click((await screen.findAllByText('Add Labor Category'))[0]);
+      fireEvent.click((await screen.findAllByText('New Labor Category'))[0]);
 
       fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'QA Engineer' } });
       fireEvent.change(screen.getByLabelText('Code *'), { target: { value: 'QA_ENG' } });
@@ -132,7 +132,7 @@ describe('LaborCategoriesPage', () => {
 
     it('When the rate is left at 0 / Then the form warns it will not price time', async () => {
       render(<LaborCategoriesPage />);
-      fireEvent.click((await screen.findAllByText('Add Labor Category'))[0]);
+      fireEvent.click((await screen.findAllByText('New Labor Category'))[0]);
 
       expect(
         screen.getByText(/Leave at 0 only if this category should not price time/),
@@ -141,7 +141,7 @@ describe('LaborCategoriesPage', () => {
 
     it('When required fields are blank / Then nothing is submitted', async () => {
       render(<LaborCategoriesPage />);
-      fireEvent.click((await screen.findAllByText('Add Labor Category'))[0]);
+      fireEvent.click((await screen.findAllByText('New Labor Category'))[0]);
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => expect(mockApi.create).not.toHaveBeenCalled());
@@ -156,7 +156,7 @@ describe('LaborCategoriesPage', () => {
       );
 
       render(<LaborCategoriesPage />);
-      fireEvent.click((await screen.findAllByText('Add Labor Category'))[0]);
+      fireEvent.click((await screen.findAllByText('New Labor Category'))[0]);
       fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'QA' } });
       fireEvent.change(screen.getByLabelText('Code *'), { target: { value: 'QA_ENG' } });
       fireEvent.click(screen.getByText('Create'));

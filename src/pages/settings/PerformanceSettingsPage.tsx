@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Banner, Button, Cluster, Grid, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, TextField, toast } from '@so360/design-system';
+import { Badge, Banner, Button, Cluster, Grid, Select, SettingsCard, SettingsPageTemplate, Stack, TextField, toast } from '@so360/design-system';
 import { Save, X } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -125,13 +125,12 @@ const PerformanceSettingsPage: React.FC = () => {
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      loading={loading}
       title="Performance Settings"
       description="Review cycles, KPI categories, and competency library"
       primaryAction={saveAction}
     >
-      {loading ? (
-        <Spinner aria-label="Loading performance settings..." />
-      ) : (
+      {loading ? null : (
         <Grid columns={2} gap="lg">
           <SettingsCard title="Review Cycle & Rating">
             <Stack gap="default">

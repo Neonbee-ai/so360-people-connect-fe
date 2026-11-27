@@ -121,7 +121,15 @@ const PayrollRunDetailPage: React.FC = () => {
     };
 
     if (loading) {
-        return <Skeleton variant="rect" className="h-96" />;
+        return (
+            <DetailPageTemplate
+                title="Payroll Run"
+                trail={[{ label: 'All Runs', to: '/people/payroll/runs', onClick: () => navigate('/people/payroll/runs') }]}
+                loading
+            >
+                {null}
+            </DetailPageTemplate>
+        );
     }
     if (!run || !id) {
         return <RecordNotFound listPath="/people/payroll/runs" listLabel="Payroll Runs" />;

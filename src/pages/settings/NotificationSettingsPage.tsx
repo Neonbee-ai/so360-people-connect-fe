@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Checkbox, DataTable, Grid, SettingsCard, SettingsPageTemplate, Spinner, Stack, TextField, toast } from '@so360/design-system';
+import { Button, Checkbox, DataTable, Grid, SettingsCard, SettingsPageTemplate, Stack, TextField, toast } from '@so360/design-system';
 import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -138,13 +138,12 @@ const NotificationSettingsPage: React.FC = () => {
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      loading={loading}
       title="Notification Settings"
       description="Channel and trigger preferences for People Connect notifications"
       primaryAction={saveAction}
     >
-      {loading ? (
-        <Spinner aria-label="Loading notification settings..." />
-      ) : (
+      {loading ? null : (
         <Stack gap="region">
           <SettingsCard title="Channels x Triggers">
             <DataTable columns={columns} rows={[...NOTIFICATION_TRIGGERS]} rowKey={(t: TriggerRow) => t.key} />

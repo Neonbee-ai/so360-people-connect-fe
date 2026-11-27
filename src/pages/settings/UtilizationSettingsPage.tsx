@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Spinner, Stack, toast } from '@so360/design-system';
+import { Button, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Stack, toast } from '@so360/design-system';
 import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -68,13 +68,12 @@ const UtilizationSettingsPage: React.FC = () => {
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      loading={loading}
       title="Utilization Settings"
       description="Capacity, working hours, and threshold defaults used by the Utilization dashboard"
       primaryAction={saveAction}
     >
-      {loading ? (
-        <Spinner aria-label="Loading utilization settings..." />
-      ) : (
+      {loading ? null : (
         <Grid columns={2} gap="lg">
           <SettingsCard title="Capacity">
             <Stack gap="default">

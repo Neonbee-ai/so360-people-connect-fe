@@ -255,7 +255,7 @@ const HolidaysPage: React.FC = () => {
         loading={loading}
         isEmpty={holidays.length === 0}
         isFilteredEmpty={holidays.length > 0 && visible.length === 0}
-        primaryAction={canManage ? <Button onClick={() => setShowModal(true)}>Add Holiday</Button> : undefined}
+        primaryAction={canManage ? <Button onClick={() => setShowModal(true)}>New Holiday</Button> : undefined}
         search={
           <SearchInput
             name="holidays-search"
@@ -296,7 +296,7 @@ const HolidaysPage: React.FC = () => {
             icon={CalendarDays}
             title="No holidays"
             description={`No holidays configured for ${year}. Add public and optional holidays for your organization.`}
-            action={canManage ? { label: 'Add Holiday', onClick: () => setShowModal(true) } : undefined}
+            action={canManage ? { label: 'New Holiday', onClick: () => setShowModal(true) } : undefined}
           />
         }
       >

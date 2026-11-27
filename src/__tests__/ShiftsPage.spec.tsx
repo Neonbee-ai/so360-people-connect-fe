@@ -49,7 +49,7 @@ describe('ShiftsPage', () => {
     it('When Add Shift is clicked / Then the modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Morning')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Shift'));
+      fireEvent.click(screen.getByText('New Shift'));
       await waitFor(() => expect(screen.getByText('Add Shift', { selector: 'h2' })).toBeInTheDocument());
     });
 
@@ -84,7 +84,7 @@ describe('ShiftsPage', () => {
       mockApi.create.mockResolvedValue({ id: 's-new', name: 'Evening' });
       renderPage();
       await waitFor(() => expect(screen.getByText('Morning')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Shift'));
+      fireEvent.click(screen.getByText('New Shift'));
       await waitFor(() => expect(screen.getByText('Add Shift', { selector: 'h2' })).toBeInTheDocument());
 
       fireEvent.change(screen.getByPlaceholderText('e.g. Morning Shift'), { target: { value: 'Evening' } });
@@ -114,7 +114,7 @@ describe('ShiftsPage', () => {
       mockApi.getAll.mockResolvedValue({ data: [] });
       renderPage();
       await waitFor(() => expect(screen.queryByText('No shifts')).toBeInTheDocument());
-      expect(screen.queryByText('Add Shift')).not.toBeInTheDocument();
+      expect(screen.queryByText('New Shift')).not.toBeInTheDocument();
     });
   });
 });

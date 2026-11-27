@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Spinner, Stack, Switch, TextField, toast } from '@so360/design-system';
+import { Button, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Stack, Switch, TextField, toast } from '@so360/design-system';
 import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -70,13 +70,12 @@ const AttendanceSettingsPage: React.FC = () => {
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      loading={loading}
       title="Attendance Settings"
       description="Grace periods, punch rules, and location validation"
       primaryAction={saveAction}
     >
-      {loading ? (
-        <Spinner aria-label="Loading attendance settings..." />
-      ) : (
+      {loading ? null : (
         <Grid columns={2} gap="lg">
           <SettingsCard title="Punch Rules">
             <Stack gap="default">

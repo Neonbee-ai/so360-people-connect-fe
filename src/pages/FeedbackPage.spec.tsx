@@ -118,8 +118,8 @@ describe('Given FeedbackPage create interaction', () => {
 
   it('When Give Feedback button is clicked / Then create modal opens', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Give Feedback')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Give Feedback'));
+    await waitFor(() => expect(screen.getByText('New Feedback')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Feedback'));
     await waitFor(() => expect(screen.getByText('Feedback Type *')).toBeInTheDocument());
   });
 });
@@ -139,8 +139,8 @@ describe('Given the Give Feedback modal person selector', () => {
     mockApi.getAll.mockResolvedValue({ data: [mockFeedback], total: 1 });
     mockPeopleApi.directory.mockResolvedValue({ data: PEOPLE });
     renderPage();
-    await waitFor(() => expect(screen.getByText('Give Feedback')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Give Feedback'));
+    await waitFor(() => expect(screen.getByText('New Feedback')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Feedback'));
     await waitFor(() => expect(screen.getByTestId('feedback-person-picker')).toBeInTheDocument());
   };
 
@@ -183,8 +183,8 @@ describe('Given the Give Feedback modal person selector', () => {
     mockApi.getAll.mockResolvedValue({ data: [mockFeedback], total: 1 });
     mockPeopleApi.directory.mockRejectedValue(new Error('Forbidden'));
     renderPage();
-    await waitFor(() => expect(screen.getByText('Give Feedback')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Give Feedback'));
+    await waitFor(() => expect(screen.getByText('New Feedback')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Feedback'));
     await waitFor(() => expect(screen.getByTestId('feedback-person-picker')).toBeInTheDocument());
     fireEvent.focus(pickerInput());
     await waitFor(() => expect(screen.getByText(/Could not load people: Forbidden/)).toBeInTheDocument());

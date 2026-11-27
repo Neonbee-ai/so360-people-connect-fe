@@ -96,7 +96,7 @@ const LeaveTypesPage: React.FC = () => {
                 primaryAction={canCreate ? (
                     <Button onClick={() => setShowCreateModal(true)}>
                         <CalendarClock size={16} />
-                        Create Leave Type
+                        New Leave Type
                     </Button>
                 ) : undefined}
                 empty={

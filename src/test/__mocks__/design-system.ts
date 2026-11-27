@@ -180,7 +180,7 @@ export const Alert = ({ variant = 'info', title, children, action, onDismiss, id
 
 // Combobox mirrors Comb Combobox: role=combobox input, listbox opens on focus/click, typing filters
 // (custom `filter` or label substring), options are role=option, clearable renders "Clear selection".
-export const Combobox = ({ options = [], value = null, onChange, name, label, placeholder, disabled, clearable, emptyText = 'No results', filter, loadOptions, error, hint, 'data-testid': testId, 'aria-label': ariaLabel }: any) => {
+export const Combobox = ({ options = [], value = null, onChange, name, label, placeholder, disabled, clearable, emptyText = 'No results', loading = false, filter, loadOptions, error, hint, 'data-testid': testId, 'aria-label': ariaLabel }: any) => {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const [remote, setRemote] = React.useState<any[]>([]);
@@ -215,7 +215,9 @@ export const Combobox = ({ options = [], value = null, onChange, name, label, pl
       ? React.createElement(
           'div',
           null,
-          visible.length > 0
+          loading
+            ? React.createElement('div', { role: 'status', 'data-testid': 'combobox-loading' }, 'Loading…')
+            : visible.length > 0
             ? React.createElement(
                 'ul',
                 { role: 'listbox', 'aria-label': ariaLabel ?? name },

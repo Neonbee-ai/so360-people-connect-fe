@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Banner, Button, Checkbox, Cluster, FieldGrid, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, TextField, toast } from '@so360/design-system';
+import { Banner, Button, Checkbox, Cluster, FieldGrid, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Stack, TextField, toast } from '@so360/design-system';
 import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -87,13 +87,12 @@ const OrganizationSettingsPage: React.FC = () => {
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      loading={loading}
       title="Organization Settings"
       description="Working hours, calendar defaults, and organization-wide identifiers"
       primaryAction={saveAction}
     >
-      {loading ? (
-        <Spinner aria-label="Loading organization settings..." />
-      ) : (
+      {loading ? null : (
         <Grid columns={2} gap="lg">
           <SettingsCard title="Working Hours">
             <Stack gap="default">

@@ -152,7 +152,62 @@ export const EmptyState = ({ title, description, action, icon: Icon, 'data-testi
   </div>
 );
 
-export const Skeleton = ({ 'data-testid': testId }: any) => <div data-testid={testId ?? 'skeleton'} aria-busy="true" />;
+// ---- Mirrors of packages/design-system: Skeleton presets, PageNotice, QuotaChip, PageContainer loading status ----
+const mkEl = React.createElement;
+const skAnnounce = (p: any) => (p.announce === false ? null : mkEl('span', { className: 'sr-only' }, 'Loading…'));
+const skItems = (n: number, id: string) => Array.from({ length: n }, (_, i) => mkEl('div', { key: i, 'data-testid': id, 'aria-hidden': 'true' }));
+const skPreset = (name: string, item: string | null, dflt: number) => (props: any = {}) =>
+  mkEl('div', {
+    'data-testid': props['data-testid'] ?? `skeleton-${name}`, 'data-slot': props['data-slot'], 'data-comb-path': props['data-comb-path'],
+    role: props.announce === false ? undefined : 'status', 'aria-busy': 'true', className: props.className,
+  }, skAnnounce(props), item ? skItems(Math.max(1, Math.floor(props.count ?? dflt)), props.itemTestId ?? item) : null);
+const SkeletonBase = ({ variant = 'text', lines = 1, announce = true, ...rest }: any = {}) =>
+  mkEl('div', { 'data-testid': rest['data-testid'] ?? `skeleton-${variant}`, 'aria-busy': 'true' }, announce ? mkEl('span', { className: 'sr-only' }, 'Loading…') : null,
+    Array.from({ length: variant === 'text' ? Math.max(1, lines) : 1 }, (_, i) => mkEl('div', { key: i, 'data-testid': 'skeleton-item', 'aria-hidden': 'true' })));
+export const Skeleton = Object.assign(SkeletonBase, {
+  Table: skPreset('table', 'skeleton-row', 6), Cards: skPreset('cards', 'skeleton-card', 3), Form: skPreset('form', 'skeleton-field', 6),
+  Fields: skPreset('fields', 'skeleton-field', 4), Detail: skPreset('detail', 'skeleton-block', 3), Kpis: skPreset('kpis', 'skeleton-kpi', 4),
+  Settings: skPreset('settings', 'skeleton-card', 2), List: skPreset('list', 'skeleton-list-item', 8), Dashboard: skPreset('dashboard', null, 0),
+  Canvas: skPreset('canvas', null, 0), Header: skPreset('header', null, 0), Toolbar: skPreset('toolbar', null, 0),
+  Tabs: skPreset('tabs', null, 0), Aside: skPreset('aside', null, 0), Page: skPreset('page', null, 0),
+});
+/** PageNotice: a node or array; falsy entries dropped; several stack. */
+const mirrorNotice = (notice: any) => {
+  if (!notice) return null;
+  const items = React.Children.toArray(notice).filter((c: any) => c !== '');
+  if (items.length === 0) return null;
+  if (items.length === 1) return mkEl('div', { 'data-slot': 'notice' }, items[0]);
+  return mkEl('div', { 'data-slot': 'notice', 'data-stacked': 'true' }, items.map((c: any, i: number) => mkEl('div', { key: i, 'data-slot': 'notice-item' }, c)));
+};
+const quotaNum = (v: number) => (v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `${(v / 1_000).toFixed(1)}K` : String(Number.isInteger(v) ? v : Math.round(v * 100) / 100));
+/** QuotaChip: `quota` object -> chip with a role=meter; any other node renders as-is. */
+const mirrorQuota = (q: any) => {
+  if (!q) return null;
+  if (React.isValidElement(q) || typeof q !== 'object' || !('label' in q) || !('used' in q)) return q;
+  const { label, used, limit, isUnlimited = false, warnAt = 0.8, onUpgrade, onBuyMore, showBuyMore = false, upgradeLabel = 'Upgrade' } = q as any;
+  const ratio = limit > 0 ? used / limit : used > 0 ? 1 : 0;
+  const upgrade = onUpgrade ?? onBuyMore;
+  const name = isUnlimited ? `${label}: ${used} used, unlimited` : `${label}: ${used} of ${limit} used`;
+  return mkEl('span', { 'data-slot': 'quota', 'data-testid': (q as any)['data-testid'] ?? 'quota-chip', 'data-used': String(used), 'data-limit': String(limit), 'data-unlimited': isUnlimited ? 'true' : 'false', 'data-tone': isUnlimited ? 'unlimited' : ratio >= 1 ? 'danger' : ratio >= warnAt ? 'warning' : 'normal' },
+    mkEl('span', null, label), mkEl('span', null, isUnlimited ? `${quotaNum(used)} / ∞` : `${quotaNum(used)} / ${quotaNum(limit)}`),
+    isUnlimited ? mkEl('span', { className: 'sr-only' }, name) : mkEl('span', { role: 'meter', 'aria-label': name, 'aria-valuemin': 0, 'aria-valuemax': limit, 'aria-valuenow': Math.min(used, limit) }),
+    upgrade && !isUnlimited && (showBuyMore || ratio >= warnAt) ? mkEl('button', { type: 'button', 'data-slot': 'quota-upgrade', onClick: upgrade }, upgradeLabel) : null);
+};
+/** PageContainer: aria-busy + the ONE sr-only "Loading…" status while a template is loading. */
+const mirrorStatus = (loading: any) => (loading ? mkEl('span', { role: 'status', 'data-testid': 'page-loading-status', className: 'sr-only' }, 'Loading…') : null);
+/** List KPI strip: `kpisCollapsible` starts closed unless `defaultOpen`; the "KPIs" toggle opens it. */
+const KpiRegion = ({ kpis, collapsible }: any) => {
+  const cfg = collapsible ? (typeof collapsible === 'object' ? collapsible : {}) : null;
+  const [open, setOpen] = React.useState(!!cfg?.defaultOpen);
+  if (!kpis) return null;
+  if (!cfg) return <div data-slot="kpis">{kpis}</div>;
+  return (
+    <>
+      <button type="button" data-slot="kpi-toggle" aria-expanded={open} onClick={() => setOpen((o: boolean) => !o)}>{cfg.label ?? 'KPIs'}</button>
+      <div data-slot="kpis" data-state={open ? 'open' : 'closed'} hidden={!open}>{kpis}</div>
+    </>
+  );
+};
 export const Spinner = ({ 'aria-label': ariaLabel }: any) => <span role="status" aria-label={ariaLabel ?? 'Loading'} />;
 export const Tooltip = ({ children }: any) => children;
 export const QuotaBar = () => null;
@@ -276,7 +331,7 @@ export const FormActions = ({ submitLabel = 'Save', onSubmit, submitting, submit
 );
 
 // ---- page header + floorplans -----------------------------------------
-const Header = ({ title, description, count, status, meta, onBack, backLabel, trail, primaryAction, secondaryActions, headerSecondaryActions, overflowActions, collapsibleActions, metaItems, breadcrumbs, actions }: any) => (
+const Header = ({ title, description, count, status, meta, onBack, backLabel, trail, primaryAction, secondaryActions, headerSecondaryActions, overflowActions, collapsibleActions, metaItems, breadcrumbs, actions, quota }: any) => (
   <header data-slot="header">
     <CombRootCrumb trail={trail} />
     {onBack ? <button type="button" aria-label={backLabel ?? 'Back'} onClick={onBack} /> : null}
@@ -286,6 +341,7 @@ const Header = ({ title, description, count, status, meta, onBack, backLabel, tr
     {Array.isArray(trail) ? trail.map((t: any) => <span key={t.label}>{t.label}</span>) : null}
     <h1>{title}</h1>
     {count != null ? <span>{count}</span> : null}
+    {mirrorQuota(quota)}
     {description ? <p>{description}</p> : null}
     {status}
     {meta}
@@ -345,9 +401,11 @@ export const ListFilters = (cfg: any) => (
 export const ListPageTemplate = (p: any) => {
   const empty = !p.loading && (p.isFilteredEmpty || (p.isEmpty ?? p.empty !== undefined));
   return (
-    <section data-template="list" data-testid="list-page-template">
+    <section data-template="list" data-testid="list-page-template" aria-busy={p.loading || undefined}>
+      {mirrorStatus(p.loading)}
+      {mirrorNotice(p.notice)}
       <Header {...p} headerSecondaryActions={p.headerSecondaryActions} overflowActions={[...(p.secondaryActions ?? []), ...(p.overflowActions ?? [])]} secondaryActions={undefined} />
-      {p.kpis}
+      <KpiRegion kpis={p.kpis} collapsible={p.kpisCollapsible} />
       <div data-slot="toolbar">
         {p.selectedCount > 0 ? (
           <>
@@ -371,7 +429,7 @@ export const ListPageTemplate = (p: any) => {
       </div>
       <div data-slot="content">
         {p.loading ? (
-          <div role="status" aria-busy="true">Loading…</div>
+          Skeleton.Table({ announce: false, 'data-slot': 'loading', count: p.loadingRows, itemTestId: 'list-skeleton-row' })
         ) : empty ? (
           p.isFilteredEmpty ? (
             <EmptyState title="No results match your filters" action={p.onClearFilters ? { label: 'Clear filters', onClick: p.onClearFilters } : undefined} />
@@ -389,7 +447,9 @@ export const ListPageTemplate = (p: any) => {
 };
 
 export const DetailPageTemplate = (p: any) => (
-  <section data-template="detail" data-testid="detail-page-template">
+  <section data-template="detail" data-testid="detail-page-template" aria-busy={p.loading || undefined}>
+    {mirrorStatus(p.loading)}
+    {mirrorNotice(p.notice)}
     <Header {...p} secondaryActions={p.secondaryActions} />
     {Array.isArray(p.tabs) ? (
       <div role="tablist">
@@ -398,14 +458,18 @@ export const DetailPageTemplate = (p: any) => (
         ))}
       </div>
     ) : null}
-    {p.loading ? <div role="status" aria-busy="true">Loading…</div> : <>{p.children}{p.sidePanel}</>}
+    {p.loading && !(Array.isArray(p.tabs) && p.tabs.length) && p.loadingTabs > 0 ? Skeleton.Tabs({ announce: false, 'data-slot': 'tabs-loading' }) : null}
+    {p.loading ? Skeleton.Detail({ announce: false, 'data-slot': 'loading', itemTestId: 'detail-skeleton-block' }) : p.children}
+    {p.sidePanel ?? (p.loading && p.loadingAside ? Skeleton.Aside({ announce: false, 'data-slot': 'side-panel-loading' }) : null)}
   </section>
 );
 
 export const FormPageTemplate = (p: any) => (
-  <section data-template="form" data-testid="form-page-template">
+  <section data-template="form" data-testid="form-page-template" aria-busy={p.loading || undefined}>
+    {mirrorStatus(p.loading)}
+    {mirrorNotice(p.notice)}
     <Header {...p} primaryAction={undefined} />
-    {p.children}
+    {p.loading ? Skeleton.Form({ announce: false, 'data-slot': 'loading' }) : p.children}
     <footer data-slot="footer">
       {p.onCancel ? <button type="button" onClick={p.onCancel}>{p.cancelLabel ?? 'Cancel'}</button> : null}
       {p.secondaryAction}
@@ -425,7 +489,9 @@ export const SettingsCard = ({ title, description, actions, children }: any) => 
 );
 
 export const SettingsPageTemplate = (p: any) => (
-  <section data-template="settings" data-testid="settings-page-template">
+  <section data-template="settings" data-testid="settings-page-template" aria-busy={p.loading || undefined}>
+    {mirrorStatus(p.loading)}
+    {mirrorNotice(p.notice)}
     <Header {...p} />
     {Array.isArray(p.sections) ? (
       <nav>
@@ -434,20 +500,18 @@ export const SettingsPageTemplate = (p: any) => (
         ))}
       </nav>
     ) : null}
-    {p.children}
+    {p.loading && !p.keepChildrenWhileLoading ? Skeleton.Settings({ announce: false, 'data-slot': 'loading' }) : p.children}
   </section>
 );
 
 export const DashboardPageTemplate = (p: any) => (
-  <section data-template="dashboard" data-testid="dashboard-page-template">
+  <section data-template="dashboard" data-testid="dashboard-page-template" aria-busy={p.loading || undefined}>
+    {mirrorStatus(p.loading)}
+    {mirrorNotice(p.notice)}
     <Header {...p} secondaryActions={undefined} actions={p.secondaryActions} />
     {p.filters}
     {p.toolbarEnd}
-    {p.kpis}
-    {p.primary}
-    {p.secondary}
-    {p.bottom}
-    {p.children}
+    {p.loading ? Skeleton.Dashboard({ announce: false, 'data-slot': 'loading' }) : <>{p.kpis}{p.primary}{p.secondary}{p.bottom}{p.children}</>}
   </section>
 );
 

@@ -50,8 +50,8 @@ describe('Given MasterListPage generic behavior', () => {
     it('When Add {label} is clicked / Then the shared form modal opens', async () => {
       renderPage(<MasterListPage masterType="skill" label="Skill" />);
       await waitFor(() => expect(screen.getByText('React')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Skill'));
-      // Both the trigger button and the modal title/submit button now read "Add Skill".
+      fireEvent.click(screen.getByText('New Skill'));
+      // The header trigger reads "New Skill"; the modal title and submit button read "Add Skill".
       await waitFor(() => expect(screen.getAllByText('Add Skill').length).toBeGreaterThan(1));
       expect(screen.getByPlaceholderText('e.g. Skill')).toBeInTheDocument();
     });
@@ -123,7 +123,7 @@ describe('Given MasterListPage generic behavior', () => {
       renderPage(<MasterListPage masterType="skill" label="Skill" />);
       await waitFor(() => expect(screen.getByText('React')).toBeInTheDocument());
 
-      fireEvent.click(screen.getByText('Add Skill'));
+      fireEvent.click(screen.getByText('New Skill'));
       const nameInput = await screen.findByPlaceholderText('e.g. Skill');
       fireEvent.change(nameInput, { target: { value: 'Vue' } });
       const submitButtons = screen.getAllByRole('button', { name: 'Add Skill' });
@@ -167,6 +167,7 @@ describe('Given MasterListPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage(<MasterListPage masterType="skill" label="Skill" pluralLabel="Skills" />);
     await waitFor(() => expect(screen.queryByText('No skills')).toBeInTheDocument());
+    expect(screen.queryByText('New Skill')).not.toBeInTheDocument();
     expect(screen.queryByText('Add Skill')).not.toBeInTheDocument();
   });
 

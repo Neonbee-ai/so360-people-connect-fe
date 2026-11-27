@@ -145,7 +145,7 @@ const WorkLocationsPage: React.FC = () => {
           canManage ? (
             <Button onClick={() => setShowDrawer(true)}>
               <Plus size={16} />
-              Add Location
+              New Location
             </Button>
           ) : undefined
         }
@@ -156,7 +156,7 @@ const WorkLocationsPage: React.FC = () => {
             icon={MapPin}
             title="No work locations"
             description="Add locations like Factory, Store, Office, or Remote to assign to employees."
-            action={canManage ? { label: 'Add Location', onClick: () => setShowDrawer(true) } : undefined}
+            action={canManage ? { label: 'New Location', onClick: () => setShowDrawer(true) } : undefined}
           />
         }
       >

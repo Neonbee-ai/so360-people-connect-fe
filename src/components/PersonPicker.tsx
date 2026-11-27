@@ -57,11 +57,12 @@ function PersonPicker<T extends PickablePerson = PickablePerson>({
         [options],
     );
 
-    const emptyText = loading ? 'Loading…' : options.length === 0 ? emptyMessage : 'No matches found';
+    const emptyText = options.length === 0 ? emptyMessage : 'No matches found';
 
     return (
         <div data-testid={testId}>
             <Combobox
+                loading={loading}
                 name={inputId ?? 'person-picker'}
                 id={inputId}
                 aria-label="Person"

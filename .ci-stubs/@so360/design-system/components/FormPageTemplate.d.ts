@@ -10,6 +10,7 @@ export interface FormPageSection {
     content: React.ReactNode;
 }
 export interface FormPageTemplateProps extends CombPageProps {
+    [key: string]: any;
     title: string;
     description?: string;
     /** Ancestors of this page (`Root › A`, nearest last); renders `[←] Root › A` above the title. See PageHeader. */

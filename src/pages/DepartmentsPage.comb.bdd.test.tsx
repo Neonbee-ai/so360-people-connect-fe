@@ -54,7 +54,7 @@ describe('DepartmentsPage (Comb)', () => {
     expect(await screen.findByText('Engineering')).toBeInTheDocument();
     expect(screen.getByText('Departments')).toBeInTheDocument();
     expect(screen.getByText('ENG')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Create Department/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New Department/ })).toBeInTheDocument();
   });
 
   it('Given no departments / When loaded / Then the empty state shows', async () => {
@@ -80,7 +80,7 @@ describe('DepartmentsPage (Comb)', () => {
   it('Given the create form / When submitted / Then create receives code and name', async () => {
     renderPage();
     await screen.findByText('Engineering');
-    fireEvent.click(screen.getByRole('button', { name: /Create Department/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Department/ }));
     fireEvent.change(await screen.findByLabelText('Code *'), { target: { value: 'QA' } });
     fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Quality' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));

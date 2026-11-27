@@ -206,6 +206,7 @@ const AttendanceRegisterPage: React.FC = () => {
                         <DateInput name="attendance-date" label="Date" value={date} onChange={(v: string) => setDate(v)} />
                     ) : undefined
                 }
+                kpisCollapsible
                 kpis={
                     isRegister ? (
                         <Grid columns={4} gap="md">

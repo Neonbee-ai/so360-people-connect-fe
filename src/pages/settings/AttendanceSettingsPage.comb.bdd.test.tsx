@@ -41,10 +41,11 @@ describe('Given AttendanceSettingsPage built on Comb SettingsPageTemplate', () =
     expect(screen.getByRole('button', { name: /Save Changes/ })).toBeInTheDocument();
   });
 
-  it('When settings are still loading / Then a loading spinner is shown and Save is disabled', async () => {
+  it('When settings are still loading / Then the loading skeleton is shown and Save is disabled', async () => {
     api.get.mockReturnValue(new Promise(() => {}));
     renderPage();
-    expect(screen.getByRole('status', { name: 'Loading attendance settings...' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+    expect(document.querySelector('[data-slot="loading"]')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save Changes/ })).toBeDisabled();
   });
 
