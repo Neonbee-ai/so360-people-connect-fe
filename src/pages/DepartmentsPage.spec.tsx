@@ -102,10 +102,10 @@ describe('Given DepartmentsPage create interaction', () => {
     mockApi.getTree.mockResolvedValue({ data: [mockDept] });
   });
 
-  it('When Add Department button is clicked / Then create modal opens', async () => {
+  it('When the New Department button is clicked / Then create modal opens', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Create Department'));
+    fireEvent.click(screen.getAllByRole('button', { name: /new department/i })[0]);
     await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
   });
 });
@@ -163,7 +163,7 @@ describe('Given DepartmentsPage Parent Department selector with a nested tree', 
   it('When a parent is selected while creating a department / Then the full reporting path breadcrumb is shown', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('QA')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Create Department'));
+    fireEvent.click(screen.getAllByRole('button', { name: /new department/i })[0]);
     await waitFor(() => expect(screen.getByText(/Parent Department/i)).toBeInTheDocument());
 
     const select = screen.getAllByRole('combobox').find((el) =>
@@ -179,7 +179,7 @@ describe('Given DepartmentsPage Parent Department selector with a nested tree', 
   it('When creating a department / Then the parent selector lists every depth of the tree, not just root departments', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Create Department'));
+    fireEvent.click(screen.getAllByRole('button', { name: /new department/i })[0]);
     await waitFor(() => expect(screen.getByText(/Parent Department/i)).toBeInTheDocument());
 
     const select = screen.getAllByRole('combobox').find((el) =>
@@ -229,7 +229,7 @@ describe('Given DepartmentsPage mutates a department', () => {
     mockApi.create.mockResolvedValue({ id: 'd2', name: 'Sales' });
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Create Department'));
+    fireEvent.click(screen.getAllByRole('button', { name: /new department/i })[0]);
     await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
     fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'SAL' } });
     fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'Sales' } });
@@ -259,7 +259,7 @@ describe('Given DepartmentsPage create/update failure surfaces the backend error
     mockApi.create.mockRejectedValue(new Error('Cannot set department as parent - would create circular reference'));
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Create Department'));
+    fireEvent.click(screen.getAllByRole('button', { name: /new department/i })[0]);
     await waitFor(() => expect(screen.getByText(/Code/i)).toBeInTheDocument());
     fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'XD' } });
     fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'X Dept' } });

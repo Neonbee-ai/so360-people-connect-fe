@@ -132,7 +132,7 @@ describe('PeoplePage', () => {
     it('When the Add Person button is clicked / Then the create modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Person'));
+      fireEvent.click(screen.getByText('New Person'));
       await waitFor(() => expect(screen.getByText('Identity')).toBeInTheDocument());
     });
 
@@ -201,7 +201,7 @@ describe('PeoplePage — effectiveFlagsLoaded gate', () => {
     mockPeopleApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No people found')).toBeInTheDocument());
-    expect(screen.queryByText('Add Person')).not.toBeInTheDocument();
+    expect(screen.queryByText('New Person')).not.toBeInTheDocument();
     expect(screen.queryByText('Import')).not.toBeInTheDocument();
     expect(screen.queryByText('Export')).not.toBeInTheDocument();
   });
@@ -211,7 +211,7 @@ describe('PeoplePage — effectiveFlagsLoaded gate', () => {
     mockPeopleApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No people found')).toBeInTheDocument());
-    expect(screen.getByText('Add Person')).toBeInTheDocument();
+    expect(screen.getByText('New Person')).toBeInTheDocument();
     expect(screen.getByText('Import')).toBeInTheDocument();
     expect(screen.getByText('Export')).toBeInTheDocument();
   });
@@ -224,8 +224,8 @@ describe('PeoplePage — effectiveFlagsLoaded gate', () => {
 describe('PeoplePage — Add Person currency default', () => {
   const openCreateModal = async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Add Person')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Add Person'));
+    await waitFor(() => expect(screen.getByText('New Person')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('New Person'));
     await waitFor(() => expect(screen.getByText('Identity')).toBeInTheDocument());
     // Currency lives behind the Cost & Billing disclosure now.
     fireEvent.click(screen.getByText('Cost & Billing'));

@@ -154,8 +154,8 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
     mockTemplatesApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     // Wait for empty state with Create Review action button
-    await waitFor(() => screen.getByText('Create Review'));
-    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => screen.getByText('New Review'));
+    fireEvent.click(screen.getAllByText('New Review')[0]);
     await waitFor(() =>
       expect(mockTemplatesApi.getAll).toHaveBeenCalledWith({ status: 'active' })
     );
@@ -164,8 +164,8 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
   it('When the Create Review button is clicked / Then reviewTemplatesApi.getAll is NOT called with { is_active: true }', async () => {
     mockTemplatesApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
-    await waitFor(() => screen.getByText('Create Review'));
-    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => screen.getByText('New Review'));
+    fireEvent.click(screen.getAllByText('New Review')[0]);
     await waitFor(() => expect(mockTemplatesApi.getAll).toHaveBeenCalled());
     expect(mockTemplatesApi.getAll).not.toHaveBeenCalledWith({ is_active: true });
   });
@@ -178,8 +178,8 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
       ],
     });
     renderPage();
-    await waitFor(() => screen.getByText('Create Review'));
-    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => screen.getByText('New Review'));
+    fireEvent.click(screen.getAllByText('New Review')[0]);
     await waitFor(() => expect(screen.getByText('Annual Review 2025 (annual)')).toBeInTheDocument());
     expect(screen.getByText('Probation Review (probation)')).toBeInTheDocument();
   });
@@ -187,8 +187,8 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
   it('When templates API returns empty / Then the empty-state prompt and seed button are shown', async () => {
     mockTemplatesApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
-    await waitFor(() => screen.getByText('Create Review'));
-    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => screen.getByText('New Review'));
+    fireEvent.click(screen.getAllByText('New Review')[0]);
     await waitFor(() => expect(mockTemplatesApi.getAll).toHaveBeenCalled());
     expect(screen.getByText('No review templates found.')).toBeInTheDocument();
     expect(screen.getByText('Create default templates')).toBeInTheDocument();
@@ -199,8 +199,8 @@ describe('Given PerformanceReviewsPage — Create Review modal template loading'
   it('When templates API rejects / Then the page does not crash', async () => {
     mockTemplatesApi.getAll.mockImplementation(async () => { throw new Error('Network error'); });
     renderPage();
-    await waitFor(() => screen.getByText('Create Review'));
-    fireEvent.click(screen.getAllByText('Create Review')[0]);
+    await waitFor(() => screen.getByText('New Review'));
+    fireEvent.click(screen.getAllByText('New Review')[0]);
     await waitFor(() => expect(mockTemplatesApi.getAll).toHaveBeenCalled());
     expect(screen.getByText('Performance Reviews')).toBeInTheDocument();
   });
@@ -254,8 +254,8 @@ const reviewerText = () => {
 
 const openCreateModal = async () => {
   renderPage();
-  await waitFor(() => expect(screen.getAllByText('Create Review').length).toBeGreaterThan(0));
-  fireEvent.click(screen.getAllByText('Create Review')[0]);
+  await waitFor(() => expect(screen.getAllByText('New Review').length).toBeGreaterThan(0));
+  fireEvent.click(screen.getAllByText('New Review')[0]);
   await waitFor(() => expect(screen.getByText('Person Being Reviewed *')).toBeInTheDocument());
 };
 

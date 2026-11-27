@@ -20,6 +20,7 @@ export interface ListViewSwitcher {
     'aria-label'?: string;
 }
 export interface ListPageTemplateProps extends CombPageProps {
+    [key: string]: any;
     title: string;
     /** Ancestors of this list (usually omitted on a module root list) (`Root › A`, nearest last); renders `[←] Root › A` above the title. See PageHeader. */
     trail?: TrailItem[];

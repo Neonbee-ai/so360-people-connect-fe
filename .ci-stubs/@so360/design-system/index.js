@@ -94,7 +94,9 @@ export const SearchInput = PassThrough;
 export const SegmentedControl = PassThrough;
 export const Select = PassThrough;
 export const SideNav = PassThrough;
-export const Skeleton = PassThrough;
+export const Skeleton = Object.assign((props) => PassThrough(props), Object.fromEntries(
+  ['Table','Cards','Form','Fields','Detail','Kpis','Settings','List','Dashboard','Canvas','Header','Toolbar','Tabs','Aside','Page'].map((k) => [k, PassThrough])
+));
 export const Slider = PassThrough;
 export const SliderThumb = PassThrough;
 export const SortableHeader = PassThrough;

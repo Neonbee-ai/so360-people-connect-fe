@@ -59,13 +59,14 @@ export default function DepartmentSelector({
   return (
     <div className={className}>
       <Combobox
+        loading={loading}
         name="department"
         aria-label="Department"
         options={options}
         value={value || null}
         placeholder={placeholder}
         clearable={allowClear}
-        emptyText={loading ? 'Loading...' : 'No departments found'}
+        emptyText="No departments found"
         filter={(o: { label: string; code?: string }, q: string) => {
           const lower = q.trim().toLowerCase();
           return o.label.toLowerCase().includes(lower) || !!o.code?.toLowerCase().includes(lower);

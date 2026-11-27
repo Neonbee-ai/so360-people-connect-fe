@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Cluster, FieldGrid, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Spinner, TextField, toast } from '@so360/design-system';
+import { Button, Cluster, FieldGrid, Grid, NumberInput, SettingsCard, SettingsPageTemplate, TextField, toast } from '@so360/design-system';
 import { Hash, Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -97,13 +97,12 @@ const NumberingSettingsPage: React.FC = () => {
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      loading={loading}
       title="Numbering & Prefixes"
       description="Auto-generated ID formats used across People Connect"
       primaryAction={saveAction}
     >
-      {loading ? (
-        <Spinner aria-label="Loading numbering settings..." />
-      ) : (
+      {loading ? null : (
         <>
           <Grid columns={2} gap="lg">
             <RuleGroup title="Employee ID" name="employee" rule={value.employee} onChange={(r) => setValue((p) => ({ ...p, employee: r }))} />

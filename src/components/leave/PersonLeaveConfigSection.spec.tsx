@@ -289,7 +289,7 @@ describe('Given the leave data cannot be loaded', () => {
     mockConfig.getForEmploymentType.mockReturnValue(new Promise(() => {}));
     render(<Host />);
 
-    expect(await screen.findByText(/Loading leave configuration/)).toBeInTheDocument();
+    expect((await screen.findByText('Loading leave configuration')).closest('[role="status"]')).not.toBeNull();
   });
 });
 

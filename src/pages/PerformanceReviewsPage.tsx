@@ -87,7 +87,7 @@ const PerformanceReviewsPage: React.FC = () => {
             primaryAction={canCreateReview ? (
                 <Button type="button" onClick={() => setShowCreateModal(true)}>
                     <TrendingUp className="w-4 h-4" />
-                    Create Review
+                    New Review
                 </Button>
             ) : undefined}
             views={(

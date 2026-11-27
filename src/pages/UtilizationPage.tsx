@@ -7,7 +7,7 @@ import {
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import EmptyState from '../components/EmptyState';
-import { toast, IconButton, ListPageTemplate, KpiCard, Banner, Stack, Cluster, DataTable, Grid, Select, Progress, Avatar, Badge } from '@so360/design-system';
+import { toast, IconButton, ListPageTemplate, KpiCard, Banner, Stack, Cluster, DataTable, Grid, Select, Progress, Avatar, Badge, Skeleton } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { utilizationApi } from '../services/peopleService';
 import type { UtilizationData, UtilizationSummary } from '../types/people';
@@ -194,9 +194,11 @@ const UtilizationPage: React.FC = () => {
             <IconButton label="Previous week" variant="ghost" icon={<ChevronLeft size={16} />} onClick={() => setWeekOffset(prev => prev - 1)} />
             <Cluster gap="tight" align="center" className="flex-nowrap">
                 <Calendar size={14} className="text-primary" />
-                <span className="whitespace-nowrap text-nb-sm text-fg">
-                    {period.start ? `${period.start} to ${period.end}` : 'Loading...'}
-                </span>
+                <div className="whitespace-nowrap text-nb-sm text-fg">
+                    {period.start ? `${period.start} to ${period.end}` : (
+                        <Skeleton className="h-nb-5 w-nb-12" data-testid="utilization-period-loading" />
+                    )}
+                </div>
             </Cluster>
             <IconButton label="Next week" variant="ghost" icon={<ChevronRight size={16} />} onClick={() => setWeekOffset(prev => Math.min(prev + 1, 0))} disabled={weekOffset >= 0} />
         </Cluster>
@@ -234,6 +236,16 @@ const UtilizationPage: React.FC = () => {
                     description="Utilization metrics will appear once people are allocated and time is logged."
                 />
             )}
+            notice={idlePeople.length > 0 ? (
+                <Banner variant="danger">
+                    <div className="text-nb-sm font-medium">Idle cost signal</div>
+                    <div className="text-nb-xs mt-nb-1">
+                        {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
+                        Estimated idle cost: {formatCurrency(idleCost)} this period.
+                    </div>
+                </Banner>
+            ) : undefined}
+            kpisCollapsible={{ defaultOpen: true, storageKey: 'people-utilization' }}
             kpis={(
                 <Grid columns={4} gap="md">
                     <KpiCard label="Avg utilization" value={`${summary?.avg_utilization_pct || 0}%`} icon={Target} />
@@ -273,17 +285,6 @@ const UtilizationPage: React.FC = () => {
                     {' · '}Utilization {avg(r => r.utilizationPct)}% · Allocation {avg(r => r.allocationPct)}% · Variance {sum(r => r.varianceHours)}h
                     {' · '}Cost {formatCurrency(sum(r => r.actualCost))}
                 </p>
-
-                {/* Idle Cost Signal */}
-                {idlePeople.length > 0 && (
-                    <Banner variant="danger">
-                        <div className="text-nb-sm font-medium">Idle cost signal</div>
-                        <div className="text-nb-xs mt-nb-1">
-                            {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
-                            Estimated idle cost: {formatCurrency(idleCost)} this period.
-                        </div>
-                    </Banner>
-                )}
             </Stack>
         </ListPageTemplate>
     );

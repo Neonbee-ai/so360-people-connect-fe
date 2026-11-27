@@ -7,6 +7,7 @@ export interface SettingsSection {
     label: string;
 }
 export interface SettingsPageTemplateProps extends CombPageProps {
+    [key: string]: any;
     title: string;
     description?: string;
     /** Ancestors of this page (`Root › A`, nearest last); renders `[←] Root › A` above the title. See PageHeader. */
@@ -34,6 +35,7 @@ export interface SettingsPageTemplateProps extends CombPageProps {
  */
 export declare const SettingsPageTemplate: React.FC<SettingsPageTemplateProps>;
 export interface SettingsCardProps {
+    [key: string]: any;
     title: string;
     description?: string;
     /** Footer actions, e.g. a Save button (right-aligned). */

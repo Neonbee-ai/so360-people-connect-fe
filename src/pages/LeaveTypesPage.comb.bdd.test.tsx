@@ -32,7 +32,7 @@ describe('LeaveTypesPage (Comb)', () => {
     render(<LeaveTypesPage />);
     expect(screen.getByRole('heading', { name: 'Leave Types' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /Create Leave Type/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New Leave Type/ })).toBeInTheDocument();
   });
 
   it('Given no leave types / When loaded / Then the empty state shows', async () => {
@@ -45,14 +45,14 @@ describe('LeaveTypesPage (Comb)', () => {
     flagEnabled = false;
     render(<LeaveTypesPage />);
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /Create Leave Type/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New Leave Type/ })).not.toBeInTheDocument();
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
   });
 
   it('Given the modal is open / When Cancel is clicked / Then it closes', async () => {
     render(<LeaveTypesPage />);
     await waitFor(() => expect(screen.getByText('Annual Leave')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /Create Leave Type/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New Leave Type/ }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

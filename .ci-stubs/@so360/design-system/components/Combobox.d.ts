@@ -8,6 +8,7 @@ export interface ComboboxOption {
     disabled?: boolean;
 }
 export interface ComboboxProps {
+    [key: string]: any;
     options: ComboboxOption[];
     /** Selected option value (controlled). `null` = nothing selected. */
     value?: string | null;

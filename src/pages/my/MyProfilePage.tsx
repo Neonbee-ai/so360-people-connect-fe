@@ -4,7 +4,7 @@ import { Button, Cluster, DashboardPageTemplate, Grid, Stack, TextField, toast }
 import { meService } from '../../services/meService';
 import { peopleApi } from '../../services/peopleService';
 import type { Person } from '../../types/people';
-import { MyCard, Skeleton } from './myUi';
+import { MyCard } from './myUi';
 
 /**
  * My Profile.
@@ -85,12 +85,11 @@ const MyProfilePage: React.FC = () => {
 
     return (
         <DashboardPageTemplate trail={[]}
+            loading={loading}
             title="My Profile"
             description="Your details"
             primary={
-                loading ? (
-                    <Skeleton rows={3} />
-                ) : (
+                (
                     <Grid columns={2}>
                         <MyCard title="Employment" icon={<BadgeCheck size={14} />}>
                             <Stack gap="tight">

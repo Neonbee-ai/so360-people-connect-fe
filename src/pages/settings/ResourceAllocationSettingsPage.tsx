@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, toast } from '@so360/design-system';
+import { Button, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Stack, toast } from '@so360/design-system';
 import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -69,13 +69,12 @@ const ResourceAllocationSettingsPage: React.FC = () => {
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      loading={loading}
       title="Resource Allocation Defaults"
       description="Default allocation percentages and warning thresholds used across Allocations"
       primaryAction={saveAction}
     >
-      {loading ? (
-        <Spinner aria-label="Loading resource allocation settings..." />
-      ) : (
+      {loading ? null : (
         <Grid columns={2} gap="lg">
           <SettingsCard title="Allocation Defaults">
             <Stack gap="default">

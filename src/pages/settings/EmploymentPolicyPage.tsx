@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-import { Banner, Button, EmptyState, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Spinner, Stack } from '@so360/design-system';
+import { Banner, Button, EmptyState, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Stack } from '@so360/design-system';
 import { Save, RefreshCw } from 'lucide-react';
 import { orgPolicyApi, EmploymentPolicy } from '../../services/orgPolicyService';
 import { useShellBridge } from '@so360/shell-context';
@@ -73,9 +73,7 @@ const EmploymentPolicyPage: React.FC = () => {
 
   if (!isLoadCompleted) {
     return (
-      <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps}>
-        <Spinner aria-label="Loading employment policy..." />
-      </SettingsPageTemplate>
+      <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps} loading />
     );
   }
 

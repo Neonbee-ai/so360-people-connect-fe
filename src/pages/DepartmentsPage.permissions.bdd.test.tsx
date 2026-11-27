@@ -67,7 +67,7 @@ describe('DepartmentsPage — role-based action gating', () => {
     it('When the page loads / Then Create Department is not shown', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy());
-      expect(screen.queryByRole('button', { name: /create department/i })).toBeNull();
+      expect(screen.queryByRole('button', { name: /new department/i })).toBeNull();
     });
 
     it('When the page loads / Then the Edit action is not shown', async () => {
@@ -83,7 +83,7 @@ describe('DepartmentsPage — role-based action gating', () => {
     it('When the page loads / Then Create shows but Edit does not', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy());
-      expect(screen.getByRole('button', { name: /create department/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /new department/i })).toBeTruthy();
       expect(screen.queryByRole('button', { name: /^edit$/i })).toBeNull();
     });
   });
@@ -94,7 +94,7 @@ describe('DepartmentsPage — role-based action gating', () => {
     it('When the page loads / Then both Create and Edit are shown', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy());
-      expect(screen.getByRole('button', { name: /create department/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /new department/i })).toBeTruthy();
       expect(screen.getByRole('button', { name: /^edit$/i })).toBeTruthy();
     });
   });
@@ -105,7 +105,7 @@ describe('DepartmentsPage — role-based action gating', () => {
     it('When the page loads / Then management actions remain available', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy());
-      expect(screen.getByRole('button', { name: /create department/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /new department/i })).toBeTruthy();
       expect(screen.getByRole('button', { name: /^edit$/i })).toBeTruthy();
     });
   });
@@ -116,7 +116,7 @@ describe('DepartmentsPage — role-based action gating', () => {
     it('When permissionsLoaded is false / Then actions fail closed (hidden)', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy());
-      expect(screen.queryByRole('button', { name: /create department/i })).toBeNull();
+      expect(screen.queryByRole('button', { name: /new department/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /^edit$/i })).toBeNull();
     });
   });

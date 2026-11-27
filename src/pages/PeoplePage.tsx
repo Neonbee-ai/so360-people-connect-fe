@@ -672,7 +672,7 @@ const PeoplePage: React.FC = () => {
                             title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
                         >
                             <UserPlus size={16} />
-                            Add Person
+                            New Person
                         </Button>
                     </QuotaGate>
                 ) : undefined}
@@ -713,28 +713,20 @@ const PeoplePage: React.FC = () => {
                 }}
                 isFilteredEmpty={hasActiveFilters && people.length === 0}
                 onClearFilters={handleClearFilters}
-                kpis={
-                    <>
-                {quotaData && (
-                    <QuotaBar
-                        label="Employees"
-                        used={quotaData.current_usage}
-                        limit={quotaData.limit}
-                        isUnlimited={quotaData.is_unlimited}
-                    />
-                )}
-
-                {joinedRangeInvalid && (
-                    <Banner variant="danger">From Date cannot be later than To Date.</Banner>
-                )}
-
-                {isSandboxMode && isLimited(totalPeople) && (
-                    <Banner variant="warning">
-                        Sandbox: Showing {sandboxEntryLimit} of {totalPeople} records. Switch to Production to view all.
-                    </Banner>
-                )}
-                    </>
-                }
+                quota={quotaData ? {
+                    label: 'Employees',
+                    used: quotaData.current_usage,
+                    limit: quotaData.limit,
+                    isUnlimited: quotaData.is_unlimited,
+                } : undefined}
+                notice={[
+                    joinedRangeInvalid && <Banner key="range" variant="danger">From Date cannot be later than To Date.</Banner>,
+                    isSandboxMode && isLimited(totalPeople) && (
+                        <Banner key="sandbox" variant="warning">
+                            Sandbox: Showing {sandboxEntryLimit} of {totalPeople} records. Switch to Production to view all.
+                        </Banner>
+                    ),
+                ]}
                 loading={loading && people.length === 0}
                 isEmpty={people.length === 0}
                 empty={

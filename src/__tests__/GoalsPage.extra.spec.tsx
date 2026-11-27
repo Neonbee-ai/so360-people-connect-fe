@@ -118,7 +118,7 @@ describe('GoalsPage — extra scenarios', () => {
       const toastErrorSpy = vi.spyOn(toast, 'error');
       renderPage();
       await waitFor(() => screen.getByText('Goals'));
-      fireEvent.click(screen.getAllByText('Create Goal')[0]);
+      fireEvent.click(screen.getAllByText('New Goal')[0]);
       // Submit form if modal is rendered
       const modal = screen.queryByTestId('modal') || document.querySelector('[role="dialog"]');
       if (modal) {
@@ -199,9 +199,9 @@ describe('GoalsPage — extra scenarios', () => {
       await waitFor(() => expect(screen.getByText('Goals')).toBeInTheDocument());
     });
 
-    it('When rendered / Then Create Goal button is present', async () => {
+    it('When rendered / Then the New Goal button is present', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getAllByText('Create Goal')[0]).toBeInTheDocument());
+      await waitFor(() => expect(screen.getAllByText('New Goal')[0]).toBeInTheDocument());
     });
   });
 });

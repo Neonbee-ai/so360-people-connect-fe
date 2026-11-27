@@ -3,7 +3,7 @@ import { Calendar, Check, X } from 'lucide-react';
 import { Button, Cluster, DashboardPageTemplate, SearchInput, SegmentedControl, Stack, TextField } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { WhosOutEntry, DirectoryEntry, TeamLeaveRequest } from '../../services/meService';
-import { Avatar, MyCard, Skeleton, StatusPill } from './myUi';
+import { Avatar, MyCard, StatusPill } from './myUi';
 
 /**
  * My Team — Who's Out and the colleague directory.
@@ -169,6 +169,7 @@ const MyTeamPage: React.FC = () => {
 
     return (
         <DashboardPageTemplate trail={[]}
+            loading={loading}
             title="My Team"
             description="Who's away, and who to contact"
             filters={
@@ -196,9 +197,7 @@ const MyTeamPage: React.FC = () => {
                 <Stack gap="default">
                     {approvalsCard}
                     {
-                loading ? (
-                    <Skeleton rows={3} />
-                ) : tab === 'out' ? (
+                tab === 'out' ? (
                     whosOut.length === 0 ? (
                         <p className={muted}>Nobody is scheduled to be away in the next 30 days.</p>
                     ) : (

@@ -174,13 +174,18 @@ const EmployeeTimesheetsPage: React.FC = () => {
                     description="No time has been logged in the Timesheets module for the selected filters."
                 />
             )}
-            kpis={(
-                <Stack gap="default">
+            notice={(
+                <Stack gap="tight">
                     <Banner variant="info">
                         Time entries are created, submitted, and approved in the Timesheets module.
                         This page is a consolidated read-only view for people managers.
                     </Banner>
                     {dateRangeError && <Banner variant="danger">{dateRangeError}</Banner>}
+                </Stack>
+            )}
+            kpisCollapsible
+            kpis={(
+                <Stack gap="default">
                     {totals.cost > 0 && (
                         <span className="flex items-center gap-nb-1 text-nb-xs text-fg-muted">
                             <DollarSign size={12} />

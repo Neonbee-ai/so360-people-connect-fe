@@ -164,28 +164,28 @@ describe('Given the Add Person button on the Dashboard', () => {
   it('When the page loads / Then the Add Person button is visible', async () => {
     renderPage();
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /add person/i })).toBeInTheDocument(),
+      expect(screen.getByRole('button', { name: /new person/i })).toBeInTheDocument(),
     );
   });
 
   it('When clicked / Then it navigates to /people/people with openCreate:true in state', async () => {
     renderPage();
-    await waitFor(() => screen.getByRole('button', { name: /add person/i }));
-    fireEvent.click(screen.getByRole('button', { name: /add person/i }));
+    await waitFor(() => screen.getByRole('button', { name: /new person/i }));
+    fireEvent.click(screen.getByRole('button', { name: /new person/i }));
     expect(mockNavigate).toHaveBeenCalledWith('/people/people', { state: { openCreate: true } });
   });
 
   it('When clicked / Then it does NOT navigate to bare /people (regression guard: was routing to MFE root, discarding openCreate state)', async () => {
     renderPage();
-    await waitFor(() => screen.getByRole('button', { name: /add person/i }));
-    fireEvent.click(screen.getByRole('button', { name: /add person/i }));
+    await waitFor(() => screen.getByRole('button', { name: /new person/i }));
+    fireEvent.click(screen.getByRole('button', { name: /new person/i }));
     expect(mockNavigate).not.toHaveBeenCalledWith('/people', expect.anything());
   });
 
   it('When clicked / Then exactly one navigation call is made', async () => {
     renderPage();
-    await waitFor(() => screen.getByRole('button', { name: /add person/i }));
-    fireEvent.click(screen.getByRole('button', { name: /add person/i }));
+    await waitFor(() => screen.getByRole('button', { name: /new person/i }));
+    fireEvent.click(screen.getByRole('button', { name: /new person/i }));
     expect(mockNavigate).toHaveBeenCalledTimes(1);
   });
 });

@@ -81,7 +81,7 @@ const FeedbackPage: React.FC = () => {
             isEmpty={feedbacks.length === 0}
             primaryAction={canCreate ? (
                 <Button type="button" onClick={() => setShowCreateModal(true)}>
-                    <Plus className="w-4 h-4" /> Give Feedback
+                    <Plus className="w-4 h-4" /> New Feedback
                 </Button>
             ) : undefined}
             filterConfig={{

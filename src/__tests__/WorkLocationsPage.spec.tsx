@@ -60,7 +60,7 @@ describe('WorkLocationsPage', () => {
     it('When Add Location is clicked / Then the modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Head Office')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('Add Location'));
+      fireEvent.click(screen.getByText('New Location'));
       await waitFor(() => expect(screen.getByText('Add Work Location')).toBeInTheDocument());
     });
 
@@ -115,7 +115,7 @@ describe('WorkLocationsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No work locations')).toBeInTheDocument());
-    expect(screen.queryByText('Add Location')).not.toBeInTheDocument();
+    expect(screen.queryByText('New Location')).not.toBeInTheDocument();
   });
 
   it('When effectiveFlagsLoaded is true / Then Add Location button is present', async () => {
@@ -123,6 +123,6 @@ describe('WorkLocationsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No work locations')).toBeInTheDocument());
-    expect(screen.queryAllByText('Add Location').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('New Location').length).toBeGreaterThan(0);
   });
 });

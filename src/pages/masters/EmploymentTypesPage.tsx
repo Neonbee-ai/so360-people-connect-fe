@@ -3,7 +3,7 @@ import { Briefcase, CalendarDays } from 'lucide-react';
 import MasterListPage from '../../components/MasterListPage';
 import Modal from '../../components/Modal';
 import { useCanConfigureLeave } from '../../hooks/useCanConfigureLeave';
-import { Button, Checkbox, Cluster, IconButton, Spinner, Stack, TextField } from '@so360/design-system';
+import { Button, Checkbox, Cluster, IconButton, Skeleton, Stack, TextField } from '@so360/design-system';
 import { leaveConfigApi } from '../../services/leaveConfigService';
 import { leaveTypesApi, type LeaveType } from '../../services/leaveTypesService';
 
@@ -95,9 +95,7 @@ const EmploymentTypeLeaveTypesModal: React.FC<LeaveTypesModalProps> = ({
                 </p>
 
                 {loading ? (
-                    <Cluster>
-                        <Spinner size="sm" /> <span className="text-nb-sm text-fg-muted">Loading…</span>
-                    </Cluster>
+                    <div role="status" aria-busy="true"><span className="sr-only">Loading leave types</span><Skeleton.List announce={false} count={4} /></div>
                 ) : (
                     <>
                         {/* Selecting nothing is a real choice with a real consequence —

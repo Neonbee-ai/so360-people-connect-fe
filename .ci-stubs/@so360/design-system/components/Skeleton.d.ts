@@ -7,4 +7,14 @@ export interface SkeletonProps {
     className?: string;
     'data-testid'?: string;
 }
-export declare const Skeleton: React.FC<SkeletonProps>;
+export interface SkeletonPresetProps {
+    count?: number;
+    className?: string;
+    [key: string]: any;
+}
+type Preset = React.FC<SkeletonPresetProps>;
+export declare const Skeleton: React.FC<SkeletonProps> & {
+    Table: Preset; Cards: Preset; Form: Preset; Fields: Preset; Detail: Preset; Kpis: Preset;
+    Settings: Preset; List: Preset; Dashboard: Preset; Canvas: Preset; Header: Preset;
+    Toolbar: Preset; Tabs: Preset; Aside: Preset; Page: Preset;
+};

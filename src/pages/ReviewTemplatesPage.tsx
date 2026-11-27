@@ -100,7 +100,7 @@ const ReviewTemplatesPage: React.FC = () => {
             }}
             primaryAction={canCreate ? (
                 <Button type="button" onClick={() => setShowCreateModal(true)}>
-                    <FileText className="w-4 h-4" /> Create Template
+                    <FileText className="w-4 h-4" /> New Template
                 </Button>
             ) : undefined}
             empty={(

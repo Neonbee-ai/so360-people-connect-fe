@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Spinner, Stack, Switch, toast } from '@so360/design-system';
+import { Button, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Stack, Switch, toast } from '@so360/design-system';
 import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -68,13 +68,12 @@ const TimesheetSettingsPage: React.FC = () => {
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
+      loading={loading}
       title="Timesheet Settings"
       description="Submission requirements, reminders, and lock/edit windows for the Timesheet module"
       primaryAction={saveAction}
     >
-      {loading ? (
-        <Spinner aria-label="Loading timesheet settings..." />
-      ) : (
+      {loading ? null : (
         <Grid columns={2} gap="lg">
           <SettingsCard title="Submission Rules">
             <Stack gap="default">

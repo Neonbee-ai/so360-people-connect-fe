@@ -3,6 +3,7 @@ import { type CombPageProps } from './usePageComb';
 import { Breadcrumb } from './PageHeader';
 import type { TrailItem } from './PageTrail';
 export interface DashboardPageTemplateProps extends CombPageProps {
+    [key: string]: any;
     title: string;
     description?: string;
     /** Ancestors of this page (`Root › A`, nearest last); renders `[←] Root › A` above the title. See PageHeader. */
