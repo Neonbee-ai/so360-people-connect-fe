@@ -49,7 +49,7 @@ describe('Given PerformanceSettingsPage wiring', () => {
 
     expect(screen.getByText('Customer Satisfaction')).toBeTruthy();
 
-    fireEvent.click(screen.getByText('Save Changes'));
+    fireEvent.click(screen.getByText('Save changes'));
 
     await waitFor(() =>
       expect(mockApi.update).toHaveBeenCalledWith('performance_settings', {

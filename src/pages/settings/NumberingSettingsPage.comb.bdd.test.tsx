@@ -38,7 +38,7 @@ describe('Given NumberingSettingsPage built on Comb SettingsPageTemplate', () =>
     api.get.mockResolvedValue({ category: 'numbering', value: {}, updated_by: null, updated_at: null });
     renderPage();
     expect(await screen.findByText('Numbering & Prefixes')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Save Changes/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save changes/ })).toBeInTheDocument();
   });
 
   it('When settings are still loading / Then the loading skeleton is shown and Save is disabled', async () => {
@@ -46,7 +46,7 @@ describe('Given NumberingSettingsPage built on Comb SettingsPageTemplate', () =>
     renderPage();
     expect(screen.getByRole('status')).toHaveTextContent('Loading…');
     expect(document.querySelector('[data-slot="loading"]')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Save Changes/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Save changes/ })).toBeDisabled();
   });
 
   it('When the page mounts / Then it fetches the "numbering" category', async () => {
@@ -59,7 +59,7 @@ describe('Given NumberingSettingsPage built on Comb SettingsPageTemplate', () =>
     api.get.mockResolvedValue({ category: 'numbering', value: {}, updated_by: null, updated_at: null });
     api.update.mockResolvedValue({});
     renderPage();
-    const save = await screen.findByRole('button', { name: /Save Changes/ });
+    const save = await screen.findByRole('button', { name: /Save changes/ });
     await waitFor(() => expect(save).not.toBeDisabled());
     fireEvent.click(save);
     await waitFor(() => expect(api.update).toHaveBeenCalledWith('numbering', expect.any(Object)));
@@ -71,7 +71,7 @@ describe('Given NumberingSettingsPage built on Comb SettingsPageTemplate', () =>
     api.get.mockResolvedValue({ category: 'numbering', value: {}, updated_by: null, updated_at: null });
     renderPage();
     await screen.findByText('Numbering & Prefixes');
-    expect(screen.queryByRole('button', { name: /Save Changes/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Save changes/ })).not.toBeInTheDocument();
   });
 
   it('When loading fails / Then an error toast is shown', async () => {
@@ -84,7 +84,7 @@ describe('Given NumberingSettingsPage built on Comb SettingsPageTemplate', () =>
     api.get.mockResolvedValue({ category: 'numbering', value: {}, updated_by: null, updated_at: null });
     api.update.mockRejectedValue(new Error('boom'));
     renderPage();
-    const save = await screen.findByRole('button', { name: /Save Changes/ });
+    const save = await screen.findByRole('button', { name: /Save changes/ });
     await waitFor(() => expect(save).not.toBeDisabled());
     fireEvent.click(save);
     await waitFor(() => expect(toastMock.error).toHaveBeenCalledWith('Failed to save numbering settings'));

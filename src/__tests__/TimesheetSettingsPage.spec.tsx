@@ -35,7 +35,7 @@ describe('Given TimesheetSettingsPage wiring', () => {
     await waitFor(() => expect(mockApi.get).toHaveBeenCalledWith('timesheet_settings'));
   });
 
-  it('When Save Changes is clicked / Then it calls settingsApi.update with category "timesheet_settings" and the current value', async () => {
+  it('When Save changes is clicked / Then it calls settingsApi.update with category "timesheet_settings" and the current value', async () => {
     mockApi.get.mockResolvedValueOnce({
       category: 'timesheet_settings',
       value: DEFAULT_TIMESHEET_SETTINGS,
@@ -52,7 +52,7 @@ describe('Given TimesheetSettingsPage wiring', () => {
     renderPage();
     await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByText('Save Changes'));
+    fireEvent.click(screen.getByText('Save changes'));
 
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('timesheet_settings', DEFAULT_TIMESHEET_SETTINGS));
     await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Timesheet settings saved'));

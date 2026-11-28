@@ -166,7 +166,7 @@ describe('Given CustomFieldsPage — editing and deactivating', () => {
 
     const labelInput = await screen.findByDisplayValue('Blood Group');
     fireEvent.change(labelInput, { target: { value: 'Blood Type' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
       expect(mockApi.update).toHaveBeenCalledWith('f1', expect.objectContaining({ label: 'Blood Type' })),

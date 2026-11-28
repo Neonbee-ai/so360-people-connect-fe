@@ -56,14 +56,14 @@ describe('Given LeaveSettingsPage wiring', () => {
     expect(screen.queryByText(/Auto Carry Forward/i)).not.toBeInTheDocument();
   });
 
-  it('When Save Changes is clicked / Then it calls settingsApi.update with category "leave_policy" and the current value', async () => {
+  it('When Save changes is clicked / Then it calls settingsApi.update with category "leave_policy" and the current value', async () => {
     mockApi.get.mockResolvedValueOnce({ category: 'leave_policy', value: DEFAULT_LEAVE_SETTINGS, updated_by: null, updated_at: null });
     mockApi.update.mockResolvedValueOnce({ category: 'leave_policy', value: DEFAULT_LEAVE_SETTINGS, updated_by: 'u1', updated_at: 'now' });
 
     renderPage();
     await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByText('Save Changes'));
+    fireEvent.click(screen.getByText('Save changes'));
 
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('leave_policy', DEFAULT_LEAVE_SETTINGS));
     await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Leave settings saved'));

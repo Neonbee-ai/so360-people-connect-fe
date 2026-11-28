@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Stack, toast } from '@so360/design-system';
+import { Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Stack, toast, type PageAction } from '@so360/design-system';
 import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -60,12 +60,15 @@ const ResourceAllocationSettingsPage: React.FC = () => {
   const num = (field: keyof ResourceAllocationSettingsValue) => (n: number | null) =>
     set(field, (n || 0) as never);
 
-  const saveAction = canManage ? (
-    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
-      <Save className="w-4 h-4" />
-      {saving ? 'Saving...' : 'Save Changes'}
-    </Button>
-  ) : undefined;
+  const saveAction: PageAction | undefined = canManage
+    ? {
+        id: 'save',
+        label: saving ? 'Saving...' : 'Save changes',
+        icon: <Save className="w-4 h-4" />,
+        onSelect: handleSave,
+        disabled: saving || loading,
+      }
+    : undefined;
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}

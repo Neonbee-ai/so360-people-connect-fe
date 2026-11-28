@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Banner, Button, Checkbox, Cluster, FieldGrid, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Stack, TextField, toast } from '@so360/design-system';
+import { Banner, Checkbox, Cluster, FieldGrid, Grid, NumberInput, Select, SettingsCard, SettingsPageTemplate, Stack, TextField, toast, type PageAction } from '@so360/design-system';
 import { Save } from 'lucide-react';
 import { settingsApi } from '../../services/orgSettingsService';
 import { useShellBridge } from '@so360/shell-context';
@@ -76,12 +76,15 @@ const OrganizationSettingsPage: React.FC = () => {
     }
   };
 
-  const saveAction = canManage ? (
-    <Button variant="primary" onClick={handleSave} disabled={saving || loading} className="gap-nb-2">
-      <Save className="w-4 h-4" />
-      {saving ? 'Saving...' : 'Save Changes'}
-    </Button>
-  ) : undefined;
+  const saveAction: PageAction | undefined = canManage
+    ? {
+        id: 'save',
+        label: saving ? 'Saving...' : 'Save changes',
+        icon: <Save className="w-4 h-4" />,
+        onSelect: handleSave,
+        disabled: saving || loading,
+      }
+    : undefined;
 
   const dayOptions = DAYS.map((d) => ({ value: d, label: d }));
 

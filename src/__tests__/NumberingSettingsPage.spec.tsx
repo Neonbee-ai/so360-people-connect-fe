@@ -35,14 +35,14 @@ describe('Given NumberingSettingsPage wiring', () => {
     await waitFor(() => expect(mockApi.get).toHaveBeenCalledWith('numbering'));
   });
 
-  it('When Save Changes is clicked / Then it calls settingsApi.update with category "numbering" and the current value', async () => {
+  it('When Save changes is clicked / Then it calls settingsApi.update with category "numbering" and the current value', async () => {
     mockApi.get.mockResolvedValueOnce({ category: 'numbering', value: DEFAULT_NUMBERING_SETTINGS, updated_by: null, updated_at: null });
     mockApi.update.mockResolvedValueOnce({ category: 'numbering', value: DEFAULT_NUMBERING_SETTINGS, updated_by: 'u1', updated_at: 'now' });
 
     renderPage();
     await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
 
-    fireEvent.click(await screen.findByText('Save Changes'));
+    fireEvent.click(await screen.findByText('Save changes'));
 
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('numbering', DEFAULT_NUMBERING_SETTINGS));
     await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Numbering settings saved'));

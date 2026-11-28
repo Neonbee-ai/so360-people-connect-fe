@@ -35,14 +35,14 @@ describe('Given AttendanceSettingsPage wiring', () => {
     await waitFor(() => expect(mockApi.get).toHaveBeenCalledWith('attendance'));
   });
 
-  it('When Save Changes is clicked / Then it calls settingsApi.update with category "attendance" and the current value', async () => {
+  it('When Save changes is clicked / Then it calls settingsApi.update with category "attendance" and the current value', async () => {
     mockApi.get.mockResolvedValueOnce({ category: 'attendance', value: DEFAULT_ATTENDANCE_SETTINGS, updated_by: null, updated_at: null });
     mockApi.update.mockResolvedValueOnce({ category: 'attendance', value: DEFAULT_ATTENDANCE_SETTINGS, updated_by: 'u1', updated_at: 'now' });
 
     renderPage();
     await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByText('Save Changes'));
+    fireEvent.click(screen.getByText('Save changes'));
 
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('attendance', DEFAULT_ATTENDANCE_SETTINGS));
     await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Attendance settings saved'));

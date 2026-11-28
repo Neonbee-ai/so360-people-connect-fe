@@ -75,7 +75,7 @@ describe('Given OrganizationSettingsPage', () => {
   });
 
   describe('Given the user clicks Save', () => {
-    it('When Save Changes is clicked / Then it calls settingsApi.update with category and the current form value, then toasts success', async () => {
+    it('When Save changes is clicked / Then it calls settingsApi.update with category and the current form value, then toasts success', async () => {
       mockApi.get.mockResolvedValueOnce({
         category: 'organization',
         value: { ...DEFAULT_ORGANIZATION_SETTINGS, default_working_hours: 7 },
@@ -93,7 +93,7 @@ describe('Given OrganizationSettingsPage', () => {
 
       await waitFor(() => expect(screen.getByDisplayValue('7')).toBeInTheDocument());
 
-      fireEvent.click(screen.getByText('Save Changes'));
+      fireEvent.click(screen.getByText('Save changes'));
 
       await waitFor(() =>
         expect(mockApi.update).toHaveBeenCalledWith('organization', { ...DEFAULT_ORGANIZATION_SETTINGS, default_working_hours: 7 }),
@@ -108,7 +108,7 @@ describe('Given OrganizationSettingsPage', () => {
       renderPage();
 
       await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
-      fireEvent.click(screen.getByText('Save Changes'));
+      fireEvent.click(screen.getByText('Save changes'));
 
       await waitFor(() => expect(toastMock.error).toHaveBeenCalledWith('Failed to save organization settings'));
     });

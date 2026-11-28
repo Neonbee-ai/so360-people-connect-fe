@@ -37,7 +37,7 @@ describe('Given ResourceAllocationSettingsPage wiring', () => {
     await waitFor(() => expect(mockApi.get).toHaveBeenCalledWith('resource_allocation_defaults'));
   });
 
-  it('When Save Changes is clicked / Then it calls settingsApi.update with category "resource_allocation_defaults" and the current value', async () => {
+  it('When Save changes is clicked / Then it calls settingsApi.update with category "resource_allocation_defaults" and the current value', async () => {
     mockApi.get.mockResolvedValueOnce({
       category: 'resource_allocation_defaults',
       value: DEFAULT_RESOURCE_ALLOCATION_SETTINGS,
@@ -54,7 +54,7 @@ describe('Given ResourceAllocationSettingsPage wiring', () => {
     renderPage();
     await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByText('Save Changes'));
+    fireEvent.click(screen.getByText('Save changes'));
 
     await waitFor(() =>
       expect(mockApi.update).toHaveBeenCalledWith('resource_allocation_defaults', DEFAULT_RESOURCE_ALLOCATION_SETTINGS),

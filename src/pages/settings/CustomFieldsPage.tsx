@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Edit2, Trash2, ListChecks, ArrowUp, ArrowDown, X } from 'lucide-react';
 import {
   Badge, Button, Cluster, DataTable, EmptyState, Modal, Select, SettingsPageTemplate, Skeleton, Stack, Switch, TextField, toast,
+  type PageAction,
 } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import ListLoadFailed, { isForbidden } from '../../components/ListLoadFailed';
@@ -174,12 +175,9 @@ const CustomFieldsPage: React.FC = () => {
       : []),
   ];
 
-  const addAction = canManage ? (
-    <Button variant="primary" onClick={() => setShowModal(true)} className="gap-nb-2">
-      <Plus className="w-4 h-4" />
-      Add Custom Field
-    </Button>
-  ) : undefined;
+  const addAction: PageAction | undefined = canManage
+    ? { id: 'add-custom-field', label: 'Add Custom Field', icon: <Plus className="w-4 h-4" />, onSelect: () => setShowModal(true) }
+    : undefined;
 
   return (
     <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}

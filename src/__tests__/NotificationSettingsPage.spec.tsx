@@ -52,7 +52,7 @@ describe('Given NotificationSettingsPage wiring', () => {
     fireEvent.click(smsCheckbox);
     expect(smsCheckbox.checked).toBe(true);
 
-    fireEvent.click(screen.getByText('Save Changes'));
+    fireEvent.click(screen.getByText('Save changes'));
 
     await waitFor(() => expect(mockApi.update).toHaveBeenCalled());
     const sentValue = mockApi.update.mock.calls[0][1];

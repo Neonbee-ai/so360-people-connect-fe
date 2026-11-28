@@ -35,7 +35,7 @@ describe('Given UtilizationSettingsPage wiring', () => {
     await waitFor(() => expect(mockApi.get).toHaveBeenCalledWith('utilization_settings'));
   });
 
-  it('When Save Changes is clicked / Then it calls settingsApi.update with category "utilization_settings" and the current value', async () => {
+  it('When Save changes is clicked / Then it calls settingsApi.update with category "utilization_settings" and the current value', async () => {
     mockApi.get.mockResolvedValueOnce({
       category: 'utilization_settings',
       value: DEFAULT_UTILIZATION_SETTINGS,
@@ -52,7 +52,7 @@ describe('Given UtilizationSettingsPage wiring', () => {
     renderPage();
     await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByText('Save Changes'));
+    fireEvent.click(screen.getByText('Save changes'));
 
     await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith('utilization_settings', DEFAULT_UTILIZATION_SETTINGS));
     await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Utilization settings saved'));
