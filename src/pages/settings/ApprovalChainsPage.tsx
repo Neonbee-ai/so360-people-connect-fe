@@ -258,15 +258,12 @@ const ApprovalChainsPage: React.FC = () => {
         title="Approval Chains"
         description="Define reporting lines for automated submission routing across Timesheet, Leave, and Expenses."
         count={filtered.length}
-        // TODO(comb-title-area): manual - icon has props other than size
-        primaryAction={
-          canManage ? (
-            <Button variant="primary" onClick={() => setIsAddOpen(true)}>
-              <UserPlus className="w-4 h-4" />
-              New Relationship
-            </Button>
-          ) : undefined
-        }
+        primaryAction={canManage ? {
+            id: 'new-relationship',
+            label: 'New relationship',
+            icon: <UserPlus />,
+            onSelect: () => setIsAddOpen(true),
+        } : undefined}
         search={{ placeholder: 'Search employee or approver', value: searchQuery, onChange: (v: string) => setSearchQuery(v) }}
         filters={{
           fields: [{ key: 'scope', label: 'Scope', type: 'select', options: Array.from(new Set(chains.map(c => c.module_scope))).filter(Boolean).map(s => ({ value: s, label: s })) }],

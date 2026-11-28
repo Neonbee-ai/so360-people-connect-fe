@@ -84,26 +84,22 @@ const PerformanceReviewsPage: React.FC = () => {
             description="Track employee performance evaluations"
             loading={loading}
             isEmpty={reviews.length === 0}
-            // TODO(comb-title-area): manual - icon has props other than size
-            primaryAction={canCreateReview ? (
-                <Button type="button" onClick={() => setShowCreateModal(true)}>
-                    <TrendingUp className="w-4 h-4" />
-                    New Review
-                </Button>
-            ) : undefined}
-            // TODO(comb-title-area): manual - use tabs (navigation) or a drawer field
-            views={(
-                <Tabs
-                    name="performance-reviews-scope"
-                    items={[
-                        { id: 'all', label: 'All Reviews' },
-                        { id: 'my', label: 'My Reviews' },
-                        { id: 'team', label: 'My Team' },
-                    ]}
-                    value={activeTab}
-                    onChange={(id) => setActiveTab(id as 'all' | 'my' | 'team')}
-                />
-            )}
+            primaryAction={canCreateReview ? {
+                id: 'new-review',
+                label: 'New review',
+                icon: <TrendingUp />,
+                onSelect: () => setShowCreateModal(true),
+            } : undefined}
+            tabs={{
+                name: 'performance-reviews-scope',
+                items: [
+                    { id: 'all', label: 'All reviews' },
+                    { id: 'my', label: 'My reviews' },
+                    { id: 'team', label: 'My team' },
+                ],
+                value: activeTab,
+                onChange: (id) => setActiveTab(id as 'all' | 'my' | 'team'),
+            }}
             filters={{
                 fields: [{ key: 'status', label: 'Status', type: 'select', options: [
                     { value: 'draft', label: 'Draft' },

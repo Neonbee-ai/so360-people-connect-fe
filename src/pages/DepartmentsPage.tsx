@@ -221,45 +221,38 @@ const DepartmentsPage: React.FC = () => {
             <ListPageTemplate trail={[]}
                 title="Departments"
                 description="Manage organizational structure"
-                // TODO(comb-title-area): manual - unsupported Button prop title
-                primaryAction={
-                    canCreate ? (
-                        <QuotaGate
-                            quotaKey="max_departments"
-                            moduleCode="people"
-                            used={quotaData?.current_usage ?? 0}
-                            limit={quotaData?.limit ?? 0}
-                            isUnlimited={quotaData?.is_unlimited}
-                            disableOnExceeded
-                        >
-                            <Button
-                                onClick={() => setShowCreateModal(true)}
-                                disabled={isSandboxMode}
-                                title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
-                            >
-                                <Building2 size={16} />
-                                New Department
-                            </Button>
-                        </QuotaGate>
-                    ) : undefined
-                }
+                primaryAction={canCreate ? {
+                    id: 'new-department',
+                    label: 'New department',
+                    icon: <Building2 />,
+                    onSelect: () => setShowCreateModal(true),
+                    disabled: isSandboxMode,
+                    disabledReason: isSandboxMode ? 'Not available in Sandbox mode' : undefined,
+                    gate: {
+                        quota: {
+                            quotaKey: 'max_departments',
+                            moduleCode: 'people',
+                            used: quotaData?.current_usage ?? 0,
+                            limit: quotaData?.limit ?? 0,
+                            isUnlimited: quotaData?.is_unlimited,
+                            disableOnExceeded: true,
+                        },
+                    },
+                } : undefined}
                 loading={loading}
                 isEmpty={departments.length === 0 && !showArchived}
-                // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
-                toolbar={
-                    <Checkbox
-                        name="departments-show-archived"
-                        label="Show archived"
-                        checked={showArchived}
-                        onChange={(e) => setShowArchived(e.target.checked)}
-                    />
-                }
+                filters={{
+                    fields: [{ key: 'archived', label: 'Show archived', type: 'switch', default: false }],
+                    values: { archived: showArchived },
+                    onChange: (v) => setShowArchived(v.archived === true),
+                    onClear: () => setShowArchived(false),
+                }}
                 empty={
                     <EmptyState
                         icon={Building2}
                         title="No departments found"
                         description="Create your first department to organize your team."
-                        action={canCreate ? { label: 'New Department', onClick: () => setShowCreateModal(true) } : undefined}
+                        action={canCreate ? { label: 'New department', onClick: () => setShowCreateModal(true) } : undefined}
                     />
                 }
                 meta={quotaData ? {

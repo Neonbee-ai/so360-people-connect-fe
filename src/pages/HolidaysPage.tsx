@@ -260,17 +260,7 @@ const HolidaysPage: React.FC = () => {
             label: 'New holiday',
             onSelect: () => setShowModal(true),
         } : undefined}
-        // TODO(comb-title-area): manual - SearchInput prop name
-        search={
-          <SearchInput
-            name="holidays-search"
-            value={search}
-            onChange={setSearch}
-            onClear={() => setSearch('')}
-            placeholder="Search holidays"
-            aria-label="Search holidays"
-          />
-        }
+        search={{ placeholder: 'Search holidays', value: search, onChange: setSearch }}
         view={{
           'aria-label': 'Holiday view',
           value: view,
@@ -280,23 +270,22 @@ const HolidaysPage: React.FC = () => {
             { value: 'calendar', label: 'Calendar', icon: CalendarDays },
           ],
         }}
-        // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
-        toolbarEnd={
-          <Cluster gap="tight" align="center">
-            <Select name="holidays-select-44" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} options={[{ value: '', label: 'All Types' }, ...HOLIDAY_TYPE_OPTIONS.map((t) => ({ value: t.value, label: t.label }))]} />
-            <Select name="holidays-select-45" value={year} onChange={e => setYear(e.target.value)} options={[...YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) }))]} />
-            {canManage && (
-              <Button
-                variant="secondary"
-                onClick={handleCopyPreviousYear}
-                disabled={copying}
-                title={`Copy every holiday from ${Number(year) - 1} into ${year}`}
-              >
-                {copying ? 'Copying…' : 'Copy from Previous Year'}
-              </Button>
-            )}
-          </Cluster>
-        }
+        filters={{
+          fields: [
+            { key: 'type', label: 'Type', type: 'select', options: HOLIDAY_TYPE_OPTIONS.map((t) => ({ value: t.value, label: t.label })) },
+            { key: 'year', label: 'Year', type: 'select', default: String(DEFAULT_YEAR), options: YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) })) },
+          ],
+          values: { type: typeFilter || undefined, year },
+          onChange: (v) => { setTypeFilter((v.type as string) || ''); setYear((v.year as string) || String(DEFAULT_YEAR)); },
+          onClear: () => { setTypeFilter(''); setYear(String(DEFAULT_YEAR)); },
+        }}
+        secondaryActions={canManage ? [{
+          id: 'copy-previous-year',
+          label: copying ? 'Copying…' : 'Copy from previous year',
+          onSelect: handleCopyPreviousYear,
+          disabled: copying,
+          disabledReason: copying ? undefined : `Copy every holiday from ${Number(year) - 1} into ${year}`,
+        }] : undefined}
         empty={
           <EmptyState
             icon={CalendarDays}

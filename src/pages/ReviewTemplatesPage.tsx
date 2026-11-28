@@ -98,12 +98,12 @@ const ReviewTemplatesPage: React.FC = () => {
                 onChange: (v) => setTypeFilter((v.review_type as string) || ''),
                 onClear: () => setTypeFilter(''),
             }}
-            // TODO(comb-title-area): manual - icon has props other than size
-            primaryAction={canCreate ? (
-                <Button type="button" onClick={() => setShowCreateModal(true)}>
-                    <FileText className="w-4 h-4" /> New Template
-                </Button>
-            ) : undefined}
+            primaryAction={canCreate ? {
+                id: 'new-template',
+                label: 'New template',
+                icon: <FileText />,
+                onSelect: () => setShowCreateModal(true),
+            } : undefined}
             empty={(
                 <EmptyState
                     icon={FileText}

@@ -172,28 +172,15 @@ const MyTeamPage: React.FC = () => {
             loading={loading}
             title="My Team"
             description="Who's away, and who to contact"
-            // TODO(comb-title-area): manual - move inline filters into drawer fields (filters={{ fields, values, onChange, onClear }})
-            filters={
-                <Cluster gap="default" className="flex-nowrap">
-                    <SegmentedControl
-                        aria-label="Team view"
-                        value={tab}
-                        onChange={v => setTab(v as 'out' | 'directory')}
-                        options={[
-                            { value: 'out', label: "Who's out" },
-                            { value: 'directory', label: 'Directory' },
-                        ]}
-                    />
-                    {tab === 'directory' && (
-                        <SearchInput
-                            name="colleague-search"
-                            value={search}
-                            onChange={setSearch}
-                            placeholder="Search colleagues"
-                        />
-                    )}
-                </Cluster>
-            }
+            tabs={{
+                name: 'team-view',
+                items: [
+                    { id: 'out', label: "Who's out" },
+                    { id: 'directory', label: 'Directory' },
+                ],
+                value: tab,
+                onChange: (v) => setTab(v as 'out' | 'directory'),
+            }}
             primary={
                 <Stack gap="default">
                     {approvalsCard}
@@ -227,6 +214,12 @@ const MyTeamPage: React.FC = () => {
                     )
                 ) : (
                     <Stack gap="default">
+                        <SearchInput
+                            name="colleague-search"
+                            value={search}
+                            onChange={setSearch}
+                            placeholder="Search colleagues"
+                        />
                         {filtered.length === 0 ? (
                             <p className={muted}>No colleagues found.</p>
                         ) : (

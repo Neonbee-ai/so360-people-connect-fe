@@ -158,15 +158,12 @@ const LeaveCalendarPage: React.FC = () => {
         <DashboardPageTemplate trail={[]}
             title="Leave Calendar"
             description="Visual overview of team availability"
-            // TODO(comb-title-area): manual - move inline filters into drawer fields (filters={{ fields, values, onChange, onClear }})
-            filters={
-                <Select
-                    name="leavecalendar-select-54"
-                    value={departmentFilter}
-                    onChange={(e) => setDepartmentFilter(e.target.value)}
-                    options={[{ value: '', label: 'All Departments' }, ...departments.map((dept) => ({ value: dept.id, label: dept.name }))]}
-                />
-            }
+            filters={{
+                fields: [{ key: 'department', label: 'Department', type: 'select', options: departments.map((dept) => ({ value: dept.id, label: dept.name })) }],
+                values: { department: departmentFilter || undefined },
+                onChange: (v) => setDepartmentFilter((v.department as string) || ''),
+                onClear: () => setDepartmentFilter(''),
+            }}
         >
             <Stack gap="default">
                 {/* Controls */}

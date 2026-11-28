@@ -236,15 +236,12 @@ const CompanyEventsPage: React.FC = () => {
             icon: <Plus />,
             onSelect: () => setShowDrawer(true),
         } : undefined}
-        // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
-        toolbarEnd={
-          <SegmentedControl
-            aria-label="Event period"
-            value={when}
-            onChange={(v: string) => setWhen(v === 'past' ? 'past' : 'upcoming')}
-            options={[{ value: 'upcoming', label: 'Upcoming' }, { value: 'past', label: 'Past' }]}
-          />
-        }
+        filters={{
+          fields: [{ key: 'when', label: 'Period', type: 'segment', default: 'upcoming', options: [{ value: 'upcoming', label: 'Upcoming' }, { value: 'past', label: 'Past' }] }],
+          values: { when },
+          onChange: (v) => setWhen(v.when === 'past' ? 'past' : 'upcoming'),
+          onClear: () => setWhen('upcoming'),
+        }}
         loading={loading}
         isEmpty={events.length === 0}
         empty={
@@ -252,7 +249,7 @@ const CompanyEventsPage: React.FC = () => {
             icon={CalendarDays}
             title={when === 'past' ? 'No past events' : 'No upcoming events'}
             description={canCreate ? 'Create an event to invite your organisation, a department or selected people.' : 'Events you are invited to will show here.'}
-            action={canCreate ? { label: 'New Event', onClick: () => setShowDrawer(true) } : undefined}
+            action={canCreate ? { label: 'New event', onClick: () => setShowDrawer(true) } : undefined}
           />
         }
       >

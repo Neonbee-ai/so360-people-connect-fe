@@ -172,17 +172,15 @@ const AttendanceRegisterPage: React.FC = () => {
         },
     ];
 
-    const tabs = (
-        <Tabs
-            name="attendance-register-tabs"
-            items={[
-                { id: 'register', label: 'Register' },
-                { id: 'corrections', label: 'Corrections' },
-            ]}
-            value={tab}
-            onChange={(id: string) => setTab(id as 'register' | 'corrections')}
-        />
-    );
+    const tabs = {
+        name: 'attendance-register-tabs',
+        items: [
+            { id: 'register', label: 'Register' },
+            { id: 'corrections', label: 'Corrections' },
+        ],
+        value: tab,
+        onChange: (id: string) => setTab(id as 'register' | 'corrections'),
+    };
 
     const isRegister = tab === 'register';
 
@@ -200,13 +198,13 @@ const AttendanceRegisterPage: React.FC = () => {
                         description="Attendance records will appear here once people are registered."
                     />
                 }
-                filters={tabs}
-                // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
-                toolbarEnd={
-                    isRegister ? (
-                        <DateInput name="attendance-date" label="Date" value={date} onChange={(v: string) => setDate(v)} />
-                    ) : undefined
-                }
+                tabs={tabs}
+                filters={isRegister ? {
+                    fields: [{ key: 'date', label: 'Date', type: 'date', default: formatters.businessToday() }],
+                    values: { date },
+                    onChange: (v) => setDate((v.date as string) || formatters.businessToday()),
+                    onClear: () => setDate(formatters.businessToday()),
+                } : undefined}
                 kpis={
                     isRegister ? (
                         <Grid columns={4} gap="md">

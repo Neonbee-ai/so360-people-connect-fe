@@ -133,13 +133,12 @@ const GoalsPage: React.FC = () => {
             description="Track objectives and key results"
             loading={loading}
             isEmpty={goals.length === 0}
-            // TODO(comb-title-area): manual - icon has props other than size
-            primaryAction={canCreateGoal ? (
-                <Button type="button" onClick={() => setShowCreateModal(true)}>
-                    <Target className="w-4 h-4" />
-                    New Goal
-                </Button>
-            ) : undefined}
+            primaryAction={canCreateGoal ? {
+                id: 'new-goal',
+                label: 'New goal',
+                icon: <Target />,
+                onSelect: () => setShowCreateModal(true),
+            } : undefined}
             filters={{
                 fields: [{ key: 'status', label: 'Status', type: 'select', options: [
                     { value: 'draft', label: 'Draft' },

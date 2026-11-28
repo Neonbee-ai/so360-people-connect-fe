@@ -79,12 +79,12 @@ const FeedbackPage: React.FC = () => {
             description="Give and receive feedback across the team"
             loading={loading}
             isEmpty={feedbacks.length === 0}
-            // TODO(comb-title-area): manual - icon has props other than size
-            primaryAction={canCreate ? (
-                <Button type="button" onClick={() => setShowCreateModal(true)}>
-                    <Plus className="w-4 h-4" /> New Feedback
-                </Button>
-            ) : undefined}
+            primaryAction={canCreate ? {
+                id: 'new-feedback',
+                label: 'New feedback',
+                icon: <Plus />,
+                onSelect: () => setShowCreateModal(true),
+            } : undefined}
             filters={{
                 fields: [{ key: 'type', label: 'Type', type: 'select', options: [
                     { value: 'positive', label: 'Positive' },

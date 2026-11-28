@@ -189,45 +189,11 @@ const UtilizationPage: React.FC = () => {
         { key: 'cost', header: 'Cost', align: 'right', render: (row) => <span className="tabular-nums">{formatCurrency(Math.round(row.actualCost))}</span> },
     ];
 
-    const weekNavigator = (
-        <Cluster gap="tight" align="center" className="flex-nowrap">
-            <IconButton label="Previous week" variant="ghost" icon={<ChevronLeft size={16} />} onClick={() => setWeekOffset(prev => prev - 1)} />
-            <Cluster gap="tight" align="center" className="flex-nowrap">
-                <Calendar size={14} className="text-primary" />
-                <div className="whitespace-nowrap text-nb-sm text-fg">
-                    {period.start ? `${period.start} to ${period.end}` : (
-                        <Skeleton className="h-nb-5 w-nb-12" data-testid="utilization-period-loading" />
-                    )}
-                </div>
-            </Cluster>
-            <IconButton label="Next week" variant="ghost" icon={<ChevronRight size={16} />} onClick={() => setWeekOffset(prev => Math.min(prev + 1, 0))} disabled={weekOffset >= 0} />
-        </Cluster>
-    );
-
-    const sortControl = (
-        <Cluster gap="tight" align="center" className="flex-nowrap">
-            <Select
-                name="utilization-sort"
-                aria-label="Sort by"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'name' | 'utilization' | 'cost')}
-                options={[{ value: 'utilization', label: 'Utilization' }, { value: 'name', label: 'Name' }, { value: 'cost', label: 'Cost' }]}
-            />
-            <IconButton
-                label={sortDir === 'asc' ? 'Sort ascending' : 'Sort descending'}
-                variant="ghost"
-                icon={<ArrowUpDown size={14} />}
-                onClick={() => setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))}
-            />
-        </Cluster>
-    );
-
     return (
         <ListPageTemplate trail={[]}
             title="Utilization Intelligence"
             description="Planned vs Actual | Idle detection | Burn rate signals"
-            // TODO(comb-title-area): manual - not a Button (<IconButton>)
-            primaryAction={<IconButton label="Refresh" variant="ghost" icon={<RefreshCw size={14} />} onClick={loadData} />}
+            moreActions={[{ id: 'refresh', label: 'Refresh', kind: 'refresh', icon: <RefreshCw />, onSelect: loadData }]}
             loading={loading}
             isEmpty={sortedData.length === 0}
             empty={(
@@ -273,9 +239,21 @@ const UtilizationPage: React.FC = () => {
                     />
                 </Grid>
             )}
-            filters={weekNavigator}
-            // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
-            toolbarEnd={sortControl}
+            filters={{
+                fields: [{
+                    key: 'week', label: period.start ? `Week (${period.start} to ${period.end})` : 'Week', type: 'select', default: '0',
+                    options: Array.from({ length: 53 }, (_, i) => ({ value: String(-i), label: i === 0 ? 'This week' : i === 1 ? 'Last week' : `${i} weeks ago` })),
+                }],
+                values: { week: String(weekOffset) },
+                onChange: (v) => setWeekOffset(Math.min(Number(v.week) || 0, 0)),
+                onClear: () => setWeekOffset(0),
+            }}
+            sort={{
+                options: [{ value: 'utilization', label: 'Utilization' }, { value: 'name', label: 'Name' }, { value: 'cost', label: 'Cost' }],
+                value: sortBy,
+                direction: sortDir,
+                onChange: (value, direction) => { setSortBy(value as 'name' | 'utilization' | 'cost'); setSortDir(direction); },
+            }}
         >
             <Stack gap="default">
                 <DataTable name="utilization-table" rowKey={(row: Row) => row.key} rows={rows} columns={columns} />

@@ -122,39 +122,30 @@ const LeaveBalancesPage: React.FC = () => {
                 <EmptyState
                     icon={DollarSign}
                     title="Select an employee"
-                    description="Choose an employee above to view or initialize their leave balances."
+                    description="Choose an employee in Filters to view or initialize their leave balances."
                 />
             }
-            // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
-            toolbarEnd={
-                <Cluster gap="default" align="end">
-                    <Select
-                        name="leavebalances-select-53"
-                        label="Employee"
-                        value={personId}
-                        onChange={(e) => setPersonId(e.target.value)}
-                        options={[{ value: '', label: 'Select an employee...' }, ...people.map((p) => ({ value: p.id, label: p.full_name }))]}
-                    />
-                    <NumberInput
-                        name="leavebalances-fiscal-year"
-                        label="Fiscal Year"
-                        min={2020}
-                        max={2100}
-                        value={fiscalYear}
-                        onChange={(v) => setFiscalYear(v || currentYear)}
-                    />
-                    {canManage && (
-                        <Button
-                            variant="primary"
-                            onClick={handleInitialize}
-                            disabled={!personId || initializing}
-                        >
-                            <RefreshCw size={16} />
-                            {initializing ? 'Initializing...' : 'Initialize Balances'}
-                        </Button>
-                    )}
-                </Cluster>
-            }
+            primaryAction={canManage ? {
+                id: 'initialize-balances',
+                label: initializing ? 'Initializing...' : 'Initialize balances',
+                icon: <RefreshCw />,
+                onSelect: handleInitialize,
+                disabled: !personId || initializing,
+                disabledReason: !personId ? 'Select an employee in Filters first' : undefined,
+            } : undefined}
+            filters={{
+                fields: [
+                    { key: 'person', label: 'Employee', type: 'select', options: people.map((p) => ({ value: p.id, label: p.full_name })) },
+                    { key: 'fiscalYear', label: 'Fiscal year', type: 'select', default: String(currentYear),
+                        options: Array.from({ length: 2100 - 2020 + 1 }, (_, i) => ({ value: String(2020 + i), label: String(2020 + i) })) },
+                ],
+                values: { person: personId || undefined, fiscalYear: String(fiscalYear) },
+                onChange: (v) => {
+                    setPersonId((v.person as string) || '');
+                    setFiscalYear(Number(v.fiscalYear) || currentYear);
+                },
+                onClear: () => { setPersonId(''); setFiscalYear(currentYear); },
+            }}
         >
             <div className="min-w-0 max-w-full overflow-x-auto">
             <DataTable
