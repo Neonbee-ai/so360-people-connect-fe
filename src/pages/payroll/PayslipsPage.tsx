@@ -102,7 +102,7 @@ const PayslipsPage: React.FC = () => {
                 description="All generated payslips across pay runs"
                 loading={loading}
                 isEmpty={payslips.length === 0}
-                filterConfig={{
+                filters={{
                     fields: [
                         { key: 'person', label: 'Employee', type: 'select', options: people.map(p => ({ value: p.id, label: p.full_name })) },
                         { key: 'period', label: 'Period', type: 'daterange' },

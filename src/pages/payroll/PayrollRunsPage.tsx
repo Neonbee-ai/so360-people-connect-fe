@@ -76,17 +76,18 @@ const PayrollRunsPage: React.FC = () => {
                 isEmpty={runs.length === 0}
                 isFilteredEmpty={runs.length > 0 && visibleRuns.length === 0}
                 onClearFilters={() => setStatusFilter('')}
-                filterConfig={{
+                filters={{
                     fields: [{ key: 'status', label: 'Status', type: 'select', options: Array.from(new Set(runs.map(r => r.status))).filter(Boolean).map(s => ({ value: s, label: s.replace(/_/g, ' ') })) }],
                     values: { status: statusFilter || undefined },
                     onChange: (v) => setStatusFilter((v.status as string) || ''),
                     onClear: () => setStatusFilter(''),
                 }}
-                primaryAction={
-                    <Button onClick={() => setShowNewRunDialog(true)}>
-                        <Plus size={16} /> New payroll run
-                    </Button>
-                }
+                primaryAction={{
+                    id: 'new-payroll-run',
+                    label: 'New payroll run',
+                    icon: <Plus />,
+                    onSelect: () => setShowNewRunDialog(true),
+                }}
                 empty={
                     <EmptyState
                         icon={Wallet}

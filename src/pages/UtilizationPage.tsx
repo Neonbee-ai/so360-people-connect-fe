@@ -226,6 +226,7 @@ const UtilizationPage: React.FC = () => {
         <ListPageTemplate trail={[]}
             title="Utilization Intelligence"
             description="Planned vs Actual | Idle detection | Burn rate signals"
+            // TODO(comb-title-area): manual - not a Button (<IconButton>)
             primaryAction={<IconButton label="Refresh" variant="ghost" icon={<RefreshCw size={14} />} onClick={loadData} />}
             loading={loading}
             isEmpty={sortedData.length === 0}
@@ -236,7 +237,7 @@ const UtilizationPage: React.FC = () => {
                     description="Utilization metrics will appear once people are allocated and time is logged."
                 />
             )}
-            notice={idlePeople.length > 0 ? (
+            banner={idlePeople.length > 0 ? (
                 <Banner variant="danger">
                     <div className="text-nb-sm font-medium">Idle cost signal</div>
                     <div className="text-nb-xs mt-nb-1">
@@ -245,7 +246,6 @@ const UtilizationPage: React.FC = () => {
                     </div>
                 </Banner>
             ) : undefined}
-            kpisCollapsible={{ defaultOpen: true, storageKey: 'people-utilization' }}
             kpis={(
                 <Grid columns={4} gap="md">
                     <KpiCard label="Avg utilization" value={`${summary?.avg_utilization_pct || 0}%`} icon={Target} />
@@ -274,6 +274,7 @@ const UtilizationPage: React.FC = () => {
                 </Grid>
             )}
             filters={weekNavigator}
+            // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
             toolbarEnd={sortControl}
         >
             <Stack gap="default">

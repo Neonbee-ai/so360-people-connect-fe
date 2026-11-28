@@ -78,6 +78,7 @@ const DashboardPage: React.FC = () => {
         <DashboardPageTemplate
             title="People Connect"
             description="Resource control, allocation, and utilization intelligence"
+            // TODO(comb-title-area): manual - icon has props other than size
             primaryAction={(
                 <Button type="button" onClick={() => navigate('/people/people', { state: { openCreate: true } })}>
                     <UserPlus className="w-4 h-4" /> New Person

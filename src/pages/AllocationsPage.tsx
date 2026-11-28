@@ -210,12 +210,12 @@ const AllocationsPage: React.FC = () => {
                 title="Allocations"
                 description="Assign people to execution entities with capacity control"
                 count={allocations.length}
-                primaryAction={canCreateAllocation ? (
-                    <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-                        <Plus size={16} />
-                        New Allocation
-                    </Button>
-                ) : undefined}
+                primaryAction={canCreateAllocation ? {
+                    id: 'new-allocation',
+                    label: 'New allocation',
+                    icon: <Plus />,
+                    onSelect: () => setShowCreateModal(true),
+                } : undefined}
                 loading={loading && allocations.length === 0}
                 isEmpty={allocations.length === 0 && !statusFilter && !entityTypeFilter && !departmentFilter}
                 isFilteredEmpty={allocations.length === 0 && !!(statusFilter || entityTypeFilter || departmentFilter)}
@@ -228,7 +228,7 @@ const AllocationsPage: React.FC = () => {
                         action={{ label: 'Create Allocation', onClick: () => setShowCreateModal(true) }}
                     />
                 )}
-                filterConfig={filterConfig}
+                filters={filterConfig}
             >
                 <DataTable
                     name="allocations"

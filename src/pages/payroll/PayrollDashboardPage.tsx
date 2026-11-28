@@ -58,11 +58,12 @@ const PayrollDashboardPage: React.FC = () => {
             <DashboardPageTemplate trail={[]}
                 title="Payroll Dashboard"
                 description="Current pay run at a glance, with anything blocking it"
-                primaryAction={run ? (
-                    <Button onClick={() => navigate(`/people/payroll/runs/${run.id}`)}>
-                        Open Current Run <ArrowRight size={14} />
-                    </Button>
-                ) : undefined}
+                primaryAction={run ? {
+                    id: 'open-current-run',
+                    label: 'Open current run',
+                    icon: <ArrowRight />,
+                    onSelect: () => navigate(`/people/payroll/runs/${run.id}`),
+                } : undefined}
                 kpis={kpis}
                 primary={loading ? (
                     <Skeleton variant="rect" className="h-28" />

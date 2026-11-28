@@ -195,18 +195,16 @@ const LaborCategoriesPage: React.FC = () => {
       <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title="Labor Categories"
         description="Labor classifications and the standard rates used to cost time entries"
-        primaryAction={
-          canManage ? (
-            <Button onClick={() => setShowModal(true)}>
-              <Plus size={16} />
-              New Labor Category
-            </Button>
-          ) : undefined
-        }
+        primaryAction={canManage ? {
+            id: 'new-labor-category',
+            label: 'New labor category',
+            icon: <Plus />,
+            onSelect: () => setShowModal(true),
+        } : undefined}
         loading={loading}
         isEmpty={!!loadError || rows.length === 0}
         empty={emptyNode}
-        notice={
+        banner={
           // A category with no rate looks configured but cannot cost anyone, so say so.
           !loading && !loadError && unpricedCount > 0 ? (
             <Alert variant="warning" title="Rates not set">

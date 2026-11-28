@@ -101,6 +101,7 @@ const PayrollReportsPage: React.FC = () => {
         <DashboardPageTemplate trail={[]}
             title="Payroll Reports"
             description="Registers, cost splits and statutory summaries"
+            // TODO(comb-title-area): manual - move inline filters into drawer fields (filters={{ fields, values, onChange, onClear }})
             filters={
                 <Cluster gap="default" align="end">
                     <DateInput name="from" label="From" value={filters.from} onChange={v => setFilters(f => ({ ...f, from: v }))} />

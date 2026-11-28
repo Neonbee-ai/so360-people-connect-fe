@@ -120,11 +120,14 @@ const LeaveRequestDetailPage: React.FC = () => {
             title="Leave Request"
             meta={<span>{request.person?.full_name ?? ''}</span>}
             status={<span data-testid="leave-status"><Badge tone={statusTone}>{request.status}</Badge></span>}
-            primaryAction={showActions && !rejecting ? (
-                <Button variant="primary" onClick={approve} disabled={acting}>
-                    <CheckCircle size={16} /> Approve
-                </Button>
-            ) : undefined}
+            primaryAction={showActions && !rejecting ? {
+                id: 'approve',
+                label: 'Approve',
+                icon: <CheckCircle />,
+                onSelect: approve,
+                disabled: acting,
+            } : undefined}
+            // TODO(comb-title-area): manual - not a JSX Button
             secondaryActions={showActions && !rejecting ? [
                 <Button key="reject" variant="danger" onClick={() => setRejecting(true)} disabled={acting}>
                     <XCircle size={16} /> Reject

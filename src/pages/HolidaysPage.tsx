@@ -255,7 +255,12 @@ const HolidaysPage: React.FC = () => {
         loading={loading}
         isEmpty={holidays.length === 0}
         isFilteredEmpty={holidays.length > 0 && visible.length === 0}
-        primaryAction={canManage ? <Button onClick={() => setShowModal(true)}>New Holiday</Button> : undefined}
+        primaryAction={canManage ? {
+            id: 'new-holiday',
+            label: 'New holiday',
+            onSelect: () => setShowModal(true),
+        } : undefined}
+        // TODO(comb-title-area): manual - SearchInput prop name
         search={
           <SearchInput
             name="holidays-search"
@@ -266,7 +271,7 @@ const HolidaysPage: React.FC = () => {
             aria-label="Search holidays"
           />
         }
-        viewSwitcher={{
+        view={{
           'aria-label': 'Holiday view',
           value: view,
           onChange: v => setView(v === 'calendar' ? 'calendar' : 'list'),
@@ -275,6 +280,7 @@ const HolidaysPage: React.FC = () => {
             { value: 'calendar', label: 'Calendar', icon: CalendarDays },
           ],
         }}
+        // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
         toolbarEnd={
           <Cluster gap="tight" align="center">
             <Select name="holidays-select-44" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} options={[{ value: '', label: 'All Types' }, ...HOLIDAY_TYPE_OPTIONS.map((t) => ({ value: t.value, label: t.label }))]} />

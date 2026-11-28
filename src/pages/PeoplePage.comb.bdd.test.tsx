@@ -162,7 +162,7 @@ describe('Given the People Registry on the Comb list template', () => {
     fireEvent.change(screen.getByLabelText('Invitation role'), { target: { value: 'role-1' } });
 
     const submit = within(screen.getByRole('dialog')).getByRole('button', { name: 'Add Person' });
-    await waitFor(() => expect(submit).not.toBeDisabled());
+    await waitFor(() => expect(submit).not.toHaveAttribute('aria-disabled', 'true'));
     fireEvent.click(submit);
 
     await waitFor(() => expect(mockApi.create).toHaveBeenCalledTimes(1));
@@ -185,7 +185,7 @@ describe('Given the People Registry on the Comb list template', () => {
     fireEvent.change(screen.getByLabelText('Invitation role'), { target: { value: 'role-1' } });
 
     const submit = within(screen.getByRole('dialog')).getByRole('button', { name: 'Add Person' });
-    await waitFor(() => expect(submit).not.toBeDisabled());
+    await waitFor(() => expect(submit).not.toHaveAttribute('aria-disabled', 'true'));
     fireEvent.click(submit);
 
     await waitFor(() => expect(toastError).toHaveBeenCalledWith('boom'));

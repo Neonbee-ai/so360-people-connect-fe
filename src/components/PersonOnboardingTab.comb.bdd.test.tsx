@@ -85,7 +85,7 @@ describe('Given PersonOnboardingTab in Comb', () => {
     render(<PersonOnboardingTab personId="p1" />);
     fireEvent.click(await screen.findByRole('button', { name: /Waive/ }));
     const submit = await screen.findByRole('button', { name: 'Waive Item' });
-    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute('aria-disabled', 'true');
     fireEvent.change(screen.getByPlaceholderText("Why this step doesn't apply"), { target: { value: 'n/a' } });
     fireEvent.click(submit);
     await waitFor(() => expect(api.waiveItem).toHaveBeenCalledWith('i2', 'n/a'));

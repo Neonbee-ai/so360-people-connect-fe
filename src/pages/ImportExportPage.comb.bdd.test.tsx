@@ -52,7 +52,7 @@ describe('ImportExportPage (Comb)', () => {
   it('Given ?tab=import / When rendered / Then Validate is disabled until a file is chosen', () => {
     renderAt('/people/import-export?tab=import');
     expect(screen.getByRole('heading', { name: 'Import People' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Validate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Validate' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('Given a chosen file / When validated / Then validateImport is called and errors are listed', async () => {

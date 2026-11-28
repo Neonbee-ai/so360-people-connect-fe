@@ -59,7 +59,7 @@ const TaxDeclarationsPage: React.FC = () => {
             <ListPageTemplate trail={[]}
                 title="Tax Declarations"
                 description="Review employee investment declarations"
-                filterConfig={{
+                filters={{
                     fields: [
                         { key: 'fiscal_year', label: 'Fiscal Year', type: 'text' },
                         { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.map((s) => ({ value: s, label: s.replace(/_/g, ' ') })) },

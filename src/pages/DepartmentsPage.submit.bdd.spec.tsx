@@ -76,7 +76,7 @@ describe('Given the Create Department form is filled in (Pulse 29889378)', () =>
     fireEvent.submit(form);
     fireEvent.submit(form);
     await waitFor(() => expect(mockApi.create).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Saving…' })).toHaveAttribute('aria-disabled', 'true');
     resolveCreate({ id: 'd2' });
     await waitFor(() => expect(screen.queryByLabelText('Code *')).not.toBeInTheDocument());
     expect(mockApi.create).toHaveBeenCalledTimes(1);

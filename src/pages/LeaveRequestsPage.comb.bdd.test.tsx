@@ -95,7 +95,7 @@ describe('LeaveRequestsPage (Comb)', () => {
     await waitFor(() => expect(screen.getByText('Annual Leave', { selector: 'option' })).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText('Leave Type *'), { target: { value: 'lt1' } });
     fireEvent.change(screen.getByLabelText('Reason *'), { target: { value: 'Rest' } });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Submit Request' })).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Submit Request' })).not.toHaveAttribute('aria-disabled', 'true'));
     fireEvent.click(screen.getByRole('button', { name: 'Submit Request' }));
     await waitFor(() => expect(api.submit).toHaveBeenCalledWith('new', []));
     expect(api.create).toHaveBeenCalled();
@@ -111,7 +111,7 @@ describe('LeaveRequestsPage (Comb)', () => {
     await waitFor(() => expect(screen.getByText('Annual Leave', { selector: 'option' })).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText('Leave Type *'), { target: { value: 'lt1' } });
     fireEvent.change(screen.getByLabelText('Reason *'), { target: { value: 'Rest' } });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Submit Request' })).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Submit Request' })).not.toHaveAttribute('aria-disabled', 'true'));
     fireEvent.click(screen.getByRole('button', { name: 'Submit Request' }));
     await waitFor(() => expect(spy).toHaveBeenCalledWith('boom'));
   });

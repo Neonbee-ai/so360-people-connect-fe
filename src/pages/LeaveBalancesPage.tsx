@@ -125,6 +125,7 @@ const LeaveBalancesPage: React.FC = () => {
                     description="Choose an employee above to view or initialize their leave balances."
                 />
             }
+            // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
             toolbarEnd={
                 <Cluster gap="default" align="end">
                     <Select

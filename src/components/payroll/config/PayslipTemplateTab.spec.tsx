@@ -126,8 +126,8 @@ describe('GIVEN the payslip template preview Print / Download actions', () => {
     mockApi.template.preview.mockImplementation(() => new Promise(() => {}));
     render(<PayslipTemplateTab />);
     await waitFor(() => expect(screen.getByText('Print')).toBeInTheDocument());
-    expect(screen.getByText('Print').closest('button')).toBeDisabled();
-    expect(screen.getByText('Download PDF').closest('button')).toBeDisabled();
+    expect(screen.getByText('Print').closest('button')).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByText('Download PDF').closest('button')).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('WHEN Print is clicked THEN a print window opens with the preview HTML titled for the payslip', async () => {

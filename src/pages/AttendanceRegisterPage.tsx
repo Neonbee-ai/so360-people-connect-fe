@@ -201,12 +201,12 @@ const AttendanceRegisterPage: React.FC = () => {
                     />
                 }
                 filters={tabs}
+                // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
                 toolbarEnd={
                     isRegister ? (
                         <DateInput name="attendance-date" label="Date" value={date} onChange={(v: string) => setDate(v)} />
                     ) : undefined
                 }
-                kpisCollapsible
                 kpis={
                     isRegister ? (
                         <Grid columns={4} gap="md">

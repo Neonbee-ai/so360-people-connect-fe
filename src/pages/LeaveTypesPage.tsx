@@ -93,12 +93,12 @@ const LeaveTypesPage: React.FC = () => {
                 description="Configure leave policies and accrual rules"
                 loading={loading}
                 isEmpty={leaveTypes.length === 0}
-                primaryAction={canCreate ? (
-                    <Button onClick={() => setShowCreateModal(true)}>
-                        <CalendarClock size={16} />
-                        New Leave Type
-                    </Button>
-                ) : undefined}
+                primaryAction={canCreate ? {
+                    id: 'new-leave-type',
+                    label: 'New leave type',
+                    icon: <CalendarClock />,
+                    onSelect: () => setShowCreateModal(true),
+                } : undefined}
                 empty={
                     <EmptyState
                         icon={CalendarClock}

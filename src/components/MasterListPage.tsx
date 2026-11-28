@@ -199,6 +199,7 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
       <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title={plural}
         description={description || `Manage the ${plural.toLowerCase()} available across People Connect`}
+        // TODO(comb-title-area): manual - label is not a plain string
         primaryAction={
           canManage ? (
             <Button onClick={() => setShowModal(true)}>

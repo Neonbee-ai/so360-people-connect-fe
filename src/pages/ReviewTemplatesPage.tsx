@@ -86,7 +86,7 @@ const ReviewTemplatesPage: React.FC = () => {
             isEmpty={templates.length === 0}
             isFilteredEmpty={templates.length > 0 && visibleTemplates.length === 0}
             onClearFilters={() => setTypeFilter('')}
-            filterConfig={{
+            filters={{
                 fields: [{ key: 'review_type', label: 'Review Type', type: 'select', options: [
                     { value: 'annual', label: 'Annual' },
                     { value: 'quarterly', label: 'Quarterly' },
@@ -98,6 +98,7 @@ const ReviewTemplatesPage: React.FC = () => {
                 onChange: (v) => setTypeFilter((v.review_type as string) || ''),
                 onClear: () => setTypeFilter(''),
             }}
+            // TODO(comb-title-area): manual - icon has props other than size
             primaryAction={canCreate ? (
                 <Button type="button" onClick={() => setShowCreateModal(true)}>
                     <FileText className="w-4 h-4" /> New Template

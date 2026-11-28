@@ -313,7 +313,9 @@ const PayrollRunDetailPage: React.FC = () => {
                 meta={`${run.period_start ? formatters.formatDate(run.period_start) : ''} – ${run.period_end ? formatters.formatDate(run.period_end) : ''} · Pay date ${formatters.formatDate(run.pay_date)}`}
                 status={<StatusChip status={run.status} />}
                 trail={[{ label: 'All Runs', to: '/people/payroll/runs', onClick: () => navigate('/people/payroll/runs') }]}
+                // TODO(comb-title-area): manual - primaryAction={primaryAction} cannot be resolved in this file
                 primaryAction={primaryAction}
+                // TODO(comb-title-area): manual - secondaryActions is not a literal list (unresolved secondaryActions)
                 secondaryActions={secondaryActions}
                 overflowActions={overflowActions}
             >

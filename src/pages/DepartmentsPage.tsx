@@ -221,6 +221,7 @@ const DepartmentsPage: React.FC = () => {
             <ListPageTemplate trail={[]}
                 title="Departments"
                 description="Manage organizational structure"
+                // TODO(comb-title-area): manual - unsupported Button prop title
                 primaryAction={
                     canCreate ? (
                         <QuotaGate
@@ -244,6 +245,7 @@ const DepartmentsPage: React.FC = () => {
                 }
                 loading={loading}
                 isEmpty={departments.length === 0 && !showArchived}
+                // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
                 toolbar={
                     <Checkbox
                         name="departments-show-archived"
@@ -260,13 +262,14 @@ const DepartmentsPage: React.FC = () => {
                         action={canCreate ? { label: 'New Department', onClick: () => setShowCreateModal(true) } : undefined}
                     />
                 }
-                quota={quotaData ? {
+                meta={quotaData ? {
+                    kind: 'quota',
                     label: 'Departments',
                     used: quotaData.current_usage,
                     limit: quotaData.limit,
                     isUnlimited: quotaData.is_unlimited,
                 } : undefined}
-                notice={isSandboxMode && isLimited(departments.length) ? (
+                banner={isSandboxMode && isLimited(departments.length) ? (
                     <Alert variant="warning">
                         <span className="font-semibold">Sandbox:</span>{' '}
                         <span>Showing {sandboxEntryLimit} of {departments.length} records. Switch to Production to view all.</span>

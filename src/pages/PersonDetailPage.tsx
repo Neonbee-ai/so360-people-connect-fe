@@ -372,6 +372,7 @@ const PersonDetailPage: React.FC = () => {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             maxVisible={5}
+            // TODO(comb-title-area): manual - not a JSX Button
             secondaryActions={!editing
                 ? [
                     <Button key="edit" variant="secondary" onClick={() => { setEditing(true); setEditData(person); }}>
@@ -390,11 +391,12 @@ const PersonDetailPage: React.FC = () => {
                         <X size={13} /> Cancel
                     </Button>,
                 ]}
-            primaryAction={editing ? (
-                <Button onClick={handleSave}>
-                    <Save size={13} /> Save
-                </Button>
-            ) : undefined}
+            primaryAction={editing ? {
+                id: 'save',
+                label: 'Save',
+                icon: <Save />,
+                onSelect: handleSave,
+            } : undefined}
         >
             <Stack gap="region">
                 {/* Inline Edit Fields */}

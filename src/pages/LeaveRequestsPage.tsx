@@ -118,8 +118,12 @@ const LeaveRequestsPage: React.FC = () => {
                 description="View and manage leave applications"
                 loading={loading}
                 isEmpty={requests.length === 0 && !statusFilter}
-                primaryAction={canCreate ? <Button onClick={() => setShowCreateModal(true)}>Request Leave</Button> : undefined}
-                filterConfig={{
+                primaryAction={canCreate ? {
+                    id: 'request-leave',
+                    label: 'Request leave',
+                    onSelect: () => setShowCreateModal(true),
+                } : undefined}
+                filters={{
                     fields: [{
                         key: 'status', label: 'Status', type: 'select',
                         options: [{ value: 'draft', label: 'Draft' }, { value: 'pending', label: 'Pending' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: 'cancelled', label: 'Cancelled' }],

@@ -204,7 +204,7 @@ const LeaveApprovalsPage: React.FC = () => {
             isEmpty={requests.length === 0}
             isFilteredEmpty={requests.length > 0 && visibleRequests.length === 0}
             onClearFilters={() => setLeaveTypeFilter('')}
-            filterConfig={{
+            filters={{
                 fields: [{ key: 'leave_type', label: 'Leave Type', type: 'select', options: Array.from(new Set(requests.map(r => r.leave_type?.name).filter(Boolean) as string[])).map(n => ({ value: n, label: n })) }],
                 values: { leave_type: leaveTypeFilter || undefined },
                 onChange: (v) => setLeaveTypeFilter((v.leave_type as string) || ''),

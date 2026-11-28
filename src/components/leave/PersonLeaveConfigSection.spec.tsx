@@ -327,7 +327,7 @@ describe('Given the org has no leave types at all', () => {
     expect(screen.getByRole('checkbox', { name: 'Annual Leave' })).not.toBeChecked();
     expect(screen.getByRole('textbox', { name: 'Annual Leave days per year' })).toHaveValue('18');
     expect(screen.queryByRole('textbox', { name: 'Unpaid Leave days per year' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create selected (0)' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create selected (0)' })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByText(/You can skip this/)).toBeInTheDocument();
   });
 
@@ -354,7 +354,7 @@ describe('Given the org has no leave types at all', () => {
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Sick Leave' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sick Leave' }));
 
-    expect(screen.getByRole('button', { name: 'Create selected (0)' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create selected (0)' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('When creation is in progress / Then the button shows it and is disabled', async () => {
@@ -364,7 +364,7 @@ describe('Given the org has no leave types at all', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Create selected (1)' }));
 
-    expect(await screen.findByRole('button', { name: 'Creating…' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Creating…' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('When a picked preset has invalid days / Then nothing is created and the row explains why', async () => {

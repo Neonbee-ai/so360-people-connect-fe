@@ -158,6 +158,7 @@ const LeaveCalendarPage: React.FC = () => {
         <DashboardPageTemplate trail={[]}
             title="Leave Calendar"
             description="Visual overview of team availability"
+            // TODO(comb-title-area): manual - move inline filters into drawer fields (filters={{ fields, values, onChange, onClear }})
             filters={
                 <Select
                     name="leavecalendar-select-54"

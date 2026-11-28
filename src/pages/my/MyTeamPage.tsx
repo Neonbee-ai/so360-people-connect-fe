@@ -172,6 +172,7 @@ const MyTeamPage: React.FC = () => {
             loading={loading}
             title="My Team"
             description="Who's away, and who to contact"
+            // TODO(comb-title-area): manual - move inline filters into drawer fields (filters={{ fields, values, onChange, onClear }})
             filters={
                 <Cluster gap="default" className="flex-nowrap">
                     <SegmentedControl

@@ -639,6 +639,7 @@ const PeoplePage: React.FC = () => {
                 ) : undefined}
                 title="People Registry"
                 description="Manage people as costed, allocatable resources"
+                // TODO(comb-title-area): manual - not a plain Button (all items must be plain buttons to become PageActions)
                 headerSecondaryActions={[
                     ...(canImportEmployees ? [
                         // Land directly on the Import tab — clicking Import must
@@ -656,6 +657,7 @@ const PeoplePage: React.FC = () => {
                         </Button>,
                     ] : []),
                 ]}
+                // TODO(comb-title-area): manual - unsupported Button prop title
                 primaryAction={canAddEmployee ? (
                     <QuotaGate
                         quotaKey="max_employees"
@@ -676,6 +678,7 @@ const PeoplePage: React.FC = () => {
                         </Button>
                     </QuotaGate>
                 ) : undefined}
+                // TODO(comb-title-area): manual - SearchInput prop name
                 search={
                     <SearchInput
                         name="people-search"
@@ -685,7 +688,7 @@ const PeoplePage: React.FC = () => {
                         onClear={() => setSearch('')}
                     />
                 }
-                filterConfig={{
+                filters={{
                     fields: [
                         { key: 'status', label: 'Status', type: 'select', options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }, { value: 'on_leave', label: 'On Leave' }, { value: 'terminated', label: 'Terminated' }, { value: 'archived', label: 'Archived' }] },
                         { key: 'type', label: 'Type', type: 'select', options: [{ value: 'employee', label: 'Employee' }, { value: 'contractor', label: 'Contractor' }] },
@@ -713,12 +716,14 @@ const PeoplePage: React.FC = () => {
                 }}
                 isFilteredEmpty={hasActiveFilters && people.length === 0}
                 onClearFilters={handleClearFilters}
-                quota={quotaData ? {
+                meta={quotaData ? {
+                    kind: 'quota',
                     label: 'Employees',
                     used: quotaData.current_usage,
                     limit: quotaData.limit,
                     isUnlimited: quotaData.is_unlimited,
                 } : undefined}
+                // TODO(comb-title-area): manual - notice is an array; banner takes one banner
                 notice={[
                     joinedRangeInvalid && <Banner key="range" variant="danger">From Date cannot be later than To Date.</Banner>,
                     isSandboxMode && isLimited(totalPeople) && (

@@ -84,12 +84,14 @@ const PerformanceReviewsPage: React.FC = () => {
             description="Track employee performance evaluations"
             loading={loading}
             isEmpty={reviews.length === 0}
+            // TODO(comb-title-area): manual - icon has props other than size
             primaryAction={canCreateReview ? (
                 <Button type="button" onClick={() => setShowCreateModal(true)}>
                     <TrendingUp className="w-4 h-4" />
                     New Review
                 </Button>
             ) : undefined}
+            // TODO(comb-title-area): manual - use tabs (navigation) or a drawer field
             views={(
                 <Tabs
                     name="performance-reviews-scope"
@@ -102,7 +104,7 @@ const PerformanceReviewsPage: React.FC = () => {
                     onChange={(id) => setActiveTab(id as 'all' | 'my' | 'team')}
                 />
             )}
-            filterConfig={{
+            filters={{
                 fields: [{ key: 'status', label: 'Status', type: 'select', options: [
                     { value: 'draft', label: 'Draft' },
                     { value: 'self_review_pending', label: 'Self Review Pending' },

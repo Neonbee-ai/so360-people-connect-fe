@@ -187,7 +187,7 @@ describe('Given the Edit Attendance modal is opened', () => {
     await waitFor(() => expect(screen.getByText('Edit Attendance — Bob')).toBeInTheDocument());
 
     const saveButton = screen.getByRole('button', { name: 'Save Changes' });
-    expect(saveButton).toBeDisabled();
+    expect(saveButton).toHaveAttribute('aria-disabled', 'true');
 
     // Directly submit the form to exercise the client-side guard regardless
     // of the button's disabled state (mirrors the server's required-reason rule).
@@ -343,7 +343,7 @@ describe('Given the Corrections tab', () => {
 
     // Empty note — the confirm button stays disabled and no call is made.
     const confirmBtn = screen.getByRole('button', { name: 'Reject Request' });
-    expect(confirmBtn).toBeDisabled();
+    expect(confirmBtn).toHaveAttribute('aria-disabled', 'true');
     expect(mockCorrectionsApi.reject).not.toHaveBeenCalled();
 
     fireEvent.change(

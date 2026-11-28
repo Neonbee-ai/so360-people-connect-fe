@@ -137,7 +137,7 @@ describe('Given the Team Leave section (manager tier)', () => {
         fireEvent.click(screen.getByRole('button', { name: /^reject$/i }));
 
         const confirmBtn = screen.getByRole('button', { name: /confirm reject/i });
-        expect(confirmBtn).toBeDisabled();
+        expect(confirmBtn).toHaveAttribute('aria-disabled', 'true');
         fireEvent.click(confirmBtn);
         expect(meService.rejectTeamLeaveRequest).not.toHaveBeenCalled();
 

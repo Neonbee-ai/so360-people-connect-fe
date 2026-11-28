@@ -57,7 +57,7 @@ describe('Given MyTimePage on the Comb dashboard template', () => {
         await waitFor(() => expect(screen.getByText(/not clocked in/i)).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: /request correction/i }));
         expect(screen.getByLabelText(/reason/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /submit request/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /submit request/i })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('When a reason and times are filed / Then createMine gets the payload', async () => {

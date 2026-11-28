@@ -153,12 +153,12 @@ const EmployeeTimesheetsPage: React.FC = () => {
         <ListPageTemplate trail={[]}
             title="Employee Timesheets"
             description="Read-only view of time logged in the Timesheets module"
-            primaryAction={
-                <Button onClick={() => navigate('/timesheet/my-timesheet')}>
-                    <ExternalLink size={14} />
-                    Log time in Timesheets
-                </Button>
-            }
+            primaryAction={{
+                id: 'log-time-in-timesheets',
+                label: 'Log time in timesheets',
+                icon: <ExternalLink />,
+                onSelect: () => navigate('/timesheet/my-timesheet'),
+            }}
             loading={loading && !dateRangeError}
             isEmpty={!!dateRangeError || entries.length === 0}
             empty={dateRangeError ? (
@@ -174,7 +174,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
                     description="No time has been logged in the Timesheets module for the selected filters."
                 />
             )}
-            notice={(
+            banner={(
                 <Stack gap="tight">
                     <Banner variant="info">
                         Time entries are created, submitted, and approved in the Timesheets module.
@@ -183,7 +183,6 @@ const EmployeeTimesheetsPage: React.FC = () => {
                     {dateRangeError && <Banner variant="danger">{dateRangeError}</Banner>}
                 </Stack>
             )}
-            kpisCollapsible
             kpis={(
                 <Stack gap="default">
                     {totals.cost > 0 && (
@@ -200,7 +199,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
                     </div>
                 </Stack>
             )}
-            filterConfig={{
+            filters={{
                 fields: [
                     { key: 'person', label: 'Person', type: 'select', options: people.map((p) => ({ value: p.id, label: p.full_name })) },
                     { key: 'status', label: 'Status', type: 'select', options: [{ value: 'draft', label: 'Draft' }, { value: 'submitted', label: 'Submitted' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }] },

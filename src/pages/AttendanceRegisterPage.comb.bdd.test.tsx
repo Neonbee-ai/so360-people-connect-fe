@@ -68,7 +68,7 @@ describe('AttendanceRegisterPage (Comb)', () => {
     await screen.findByText('Alice');
     fireEvent.click(screen.getByRole('button', { name: 'Edit attendance for Alice' }));
     const save = await screen.findByRole('button', { name: 'Save Changes' });
-    expect(save).toBeDisabled();
+    expect(save).toHaveAttribute('aria-disabled', 'true');
     fireEvent.submit(save.closest('form')!);
     expect(await screen.findByText('A reason is required to save this change.')).toBeInTheDocument();
     expect(api.mark).not.toHaveBeenCalled();

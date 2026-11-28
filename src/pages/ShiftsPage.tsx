@@ -118,14 +118,12 @@ const ShiftsPage: React.FC = () => {
       <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title="Shift Management"
         description="Define work shifts, grace periods, and weekly offs"
-        primaryAction={
-          canManage ? (
-            <Button onClick={() => setShowModal(true)}>
-              <Plus size={16} />
-              New Shift
-            </Button>
-          ) : undefined
-        }
+        primaryAction={canManage ? {
+            id: 'new-shift',
+            label: 'New shift',
+            icon: <Plus />,
+            onSelect: () => setShowModal(true),
+        } : undefined}
         loading={loading}
         isEmpty={shifts.length === 0}
         empty={

@@ -221,7 +221,7 @@ describe('Given an employee with active work assignments', () => {
         render(<MyTimePage />);
         await waitFor(() => expect(screen.getByRole('combobox')).toBeInTheDocument());
 
-        expect(screen.getByRole('button', { name: /clock in/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /clock in/i })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('When a job is chosen and clocked in / Then the work unit is sent, never a person', async () => {
@@ -311,7 +311,7 @@ describe('Given an employee filing a correction', () => {
     it('When the reason is empty / Then submit stays disabled', async () => {
         await openForm();
 
-        expect(screen.getByRole('button', { name: /submit request/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /submit request/i })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('When submitted / Then the self-scoped create is called with the fields and NO person id', async () => {

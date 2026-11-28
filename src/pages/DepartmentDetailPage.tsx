@@ -550,6 +550,7 @@ const DepartmentDetailPage: React.FC = () => {
                     `Created ${new Date(department.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`,
                     `${employeeTotal} employees`,
                 ].filter(Boolean).join(' · ')}
+                // TODO(comb-title-area): manual - not a JSX Button
                 secondaryActions={
                     canEdit
                         ? [

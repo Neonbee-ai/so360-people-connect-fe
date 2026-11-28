@@ -141,14 +141,12 @@ const WorkLocationsPage: React.FC = () => {
       <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title="Work Locations"
         description="Define where your people work"
-        primaryAction={
-          canManage ? (
-            <Button onClick={() => setShowDrawer(true)}>
-              <Plus size={16} />
-              New Location
-            </Button>
-          ) : undefined
-        }
+        primaryAction={canManage ? {
+            id: 'new-location',
+            label: 'New location',
+            icon: <Plus />,
+            onSelect: () => setShowDrawer(true),
+        } : undefined}
         loading={loading}
         isEmpty={locations.length === 0}
         empty={

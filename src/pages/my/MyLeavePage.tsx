@@ -78,11 +78,12 @@ const MyLeavePage: React.FC = () => {
                 loading={loading && balances.length === 0 && requests.length === 0}
                 title="My Leave"
                 description="Your balances and requests"
-                primaryAction={
-                    <Button onClick={() => setFormOpen(true)}>
-                        <Plus size={16} /> Request Leave
-                    </Button>
-                }
+                primaryAction={{
+                    id: 'request-leave',
+                    label: 'Request leave',
+                    icon: <Plus />,
+                    onSelect: () => setFormOpen(true),
+                }}
                 kpis={
                     balances.length > 0 ? (
                         <Grid columns="auto" gap="md">

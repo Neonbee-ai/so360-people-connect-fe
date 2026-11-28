@@ -122,7 +122,7 @@ describe('Given a person with no linked user account', () => {
 
   it('When the dialog opens with no user chosen / Then the confirm button is disabled', async () => {
     await openLinkModal();
-    expect(screen.getByRole('button', { name: 'Link Account' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Link Account' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('When a user is chosen and confirmed / Then the person is linked through the API', async () => {

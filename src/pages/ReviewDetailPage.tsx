@@ -315,6 +315,7 @@ const ReviewDetailPage: React.FC = () => {
             title={`${review.person?.full_name || 'Unknown'} - ${review.template?.name || 'Review'}`}
             meta={<span className="text-nb-sm text-fg-muted">{`Review Period: ${formatters.formatDate(review.review_period_start)} - ${formatters.formatDate(review.review_period_end)}`}</span>}
             trail={[{ label: 'Reviews', to: '/people/reviews' }]}
+            // TODO(comb-title-area): manual - primaryAction={primaryAction} cannot be resolved in this file
             primaryAction={primaryAction}
             tabs={[
                 ...(showSelfTab ? [{ id: 'self', label: `Self Review${selfSubmitted ? ' \u2713' : ''}` }] : []),

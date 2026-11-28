@@ -170,6 +170,7 @@ const OnboardingTemplatesPage: React.FC = () => {
     <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
       title="Onboarding Templates"
       description="Checklists that guide every new hire's first weeks"
+      // TODO(comb-title-area): manual - not a plain Button (all items must be plain buttons to become PageActions)
       headerSecondaryActions={
         canManage ? [
           <Button key="standard-templates" type="button" variant="secondary" onClick={() => setShowCatalog(true)}>
@@ -178,14 +179,13 @@ const OnboardingTemplatesPage: React.FC = () => {
           </Button>
         ] : undefined
       }
-      primaryAction={
-        canManage ? (
-          <Button type="button" onClick={() => setShowDrawer(true)}>
-            <Plus size={16} />
-            New Template
-          </Button>
-        ) : undefined
-      }
+      primaryAction={canManage ? {
+          id: 'new-template',
+          label: 'New template',
+          icon: <Plus />,
+          onSelect: () => setShowDrawer(true),
+      } : undefined}
+      // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
       toolbar={
         missingDefault ? (
           <Alert variant="warning" title="No default onboarding template">

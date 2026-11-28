@@ -230,14 +230,13 @@ const CompanyEventsPage: React.FC = () => {
         trail={[{ label: 'People', to: '/people' }]}
         title="Events"
         description="Town halls, trainings and celebrations across your organisation"
-        primaryAction={
-          canCreate ? (
-            <Button onClick={() => setShowDrawer(true)}>
-              <Plus size={16} />
-              New Event
-            </Button>
-          ) : undefined
-        }
+        primaryAction={canCreate ? {
+            id: 'new-event',
+            label: 'New event',
+            icon: <Plus />,
+            onSelect: () => setShowDrawer(true),
+        } : undefined}
+        // TODO(comb-title-area): manual - move into drawer fields / view / R1 actions
         toolbarEnd={
           <SegmentedControl
             aria-label="Event period"
