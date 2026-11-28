@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, EmptyState } from '@so360/design-system';
+import { Button, Card, DetailPageTemplate, EmptyState } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import { getContractor360, getEmployee360 } from '../services/peopleService';
 
@@ -48,8 +48,17 @@ export function Employee360Page({ kind = 'employee' }: { kind?: 'employee' | 'co
     return () => { alive = false; };
   }, [personId, kind]);
 
-  if (failed) return <div className="p-6 text-fg-muted">Could not load this 360.</div>;
-  if (!data) return null;
+  const fallbackTitle = kind === 'contractor' ? 'Contractor 360' : 'Employee 360';
+  const backToRecord = { id: 'back-to-record', label: 'Back to record', onSelect: () => navigate(`/people/people/${personId}`) };
+
+  if (failed) {
+    return (
+      <DetailPageTemplate trail={[]} title={fallbackTitle} secondaryActions={[backToRecord]}>
+        <EmptyState title="Could not load this 360" description="Try again in a moment." />
+      </DetailPageTemplate>
+    );
+  }
+  if (!data) return <DetailPageTemplate trail={[]} title={fallbackTitle} loading />;
 
   const panels: Record<string, Panel> = data.panels ?? {};
   const attendance = panels.attendance;
@@ -58,16 +67,13 @@ export function Employee360Page({ kind = 'employee' }: { kind?: 'employee' | 'co
   const allocations = panels.allocations;
 
   return (
-    <div className="flex flex-col gap-nb-3 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-fg">
-          {data.profile?.name || (kind === 'contractor' ? 'Contractor 360' : 'Employee 360')}
-        </h1>
-        <Button variant="ghost" onClick={() => navigate(`/people/people/${personId}`)}>
-          Back to record
-        </Button>
-      </div>
-
+    <DetailPageTemplate
+      trail={[]}
+      title={data.profile?.name || fallbackTitle}
+      description={kind === 'contractor' ? 'Contractor 360' : 'Employee 360'}
+      secondaryActions={[backToRecord]}
+    >
+      <div className="flex flex-col gap-nb-3">
       {kind === 'employee' && attendance?.available !== false && (
         <Card title="Attendance — last 30 days">
           <div className="grid grid-cols-2 gap-nb-3 md:grid-cols-5">
@@ -120,7 +126,8 @@ export function Employee360Page({ kind = 'employee' }: { kind?: 'employee' | 'co
           )}
         </Card>
       )}
-    </div>
+      </div>
+    </DetailPageTemplate>
   );
 }
 
