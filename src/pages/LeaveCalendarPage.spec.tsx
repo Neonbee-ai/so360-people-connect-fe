@@ -387,7 +387,8 @@ describe('Given the Leave Calendar is navigated between months', () => {
     renderPage();
     await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
 
-    fireEvent.change(screen.getByDisplayValue('All Departments'), { target: { value: 'd1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    fireEvent.change(screen.getByLabelText('Department'), { target: { value: 'd1' } });
     fireEvent.click(prevButton());
 
     await waitFor(() => expect(screen.getByText(PREV_MONTH)).toBeInTheDocument());

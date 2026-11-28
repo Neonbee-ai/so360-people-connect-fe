@@ -34,8 +34,10 @@ const balances = leaveBalancesApi as any;
 
 const renderPage = () => render(<MemoryRouter><LeaveBalancesPage /></MemoryRouter>);
 const pick = async () => {
-  await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
-  fireEvent.change(screen.getByDisplayValue('Select an employee...'), { target: { value: 'p1' } });
+  fireEvent.click(await screen.findByRole('button', { name: 'Filters' }));
+    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
+  fireEvent.change(screen.getByLabelText('Employee'), { target: { value: 'p1' } });
+  fireEvent.keyDown(document.body, { key: 'Escape' }); // close the Filters drawer
 };
 
 beforeEach(() => {

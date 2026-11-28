@@ -141,7 +141,8 @@ describe('Given UtilizationPage receives incomplete/malformed utilization record
     await waitFor(() => expect(screen.getByText('Complete Carla')).toBeInTheDocument());
     // Toggling the sort direction re-runs the comparator against the same
     // (incomplete) data set — this is where the reported crash occurred.
-    fireEvent.click(screen.getByRole('button', { name: /Sort descending|Sort ascending/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Sort:/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Utilization' }));
     expect(screen.getByText('Complete Carla')).toBeInTheDocument();
     expect(screen.getByText('No Util Nate')).toBeInTheDocument();
   });
@@ -149,7 +150,8 @@ describe('Given UtilizationPage receives incomplete/malformed utilization record
   it('When sorting by name with a record missing `.utilization` / Then it does not throw', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Complete Carla')).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText('Sort by'), { target: { value: 'name' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Sort:/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Name' }));
     expect(screen.getByText('Complete Carla')).toBeInTheDocument();
   });
 
@@ -228,7 +230,7 @@ describe('Given resource rows are rendered in the Utilization table', () => {
   it('When the sort control renders / Then it offers Utilization, Name and Cost', async () => {
     mockApi.getAll.mockResolvedValue({ data: [person('p1', 'Alice Smith')], period: { start: '2024-06-10', end: '2024-06-14' } });
     renderPage();
-    const select = await screen.findByLabelText('Sort by');
-    expect(Array.from((select as HTMLSelectElement).options).map(o => o.text)).toEqual(['Utilization', 'Name', 'Cost']);
+    fireEvent.click(await screen.findByRole('button', { name: /^Sort:/ }));
+    expect(screen.getAllByRole('menuitemradio').map(o => o.textContent)).toEqual(['Utilization', 'Name', 'Cost']);
   });
 });

@@ -28,6 +28,12 @@ const api = departmentsApi as any;
 const live = { id: 'd1', name: 'Engineering', code: 'ENG', is_active: true, employee_count: 5, children: [] };
 const old = { id: 'd2', name: 'Legacy Ops', code: 'OPS', is_active: false, employee_count: 0 };
 
+// "Show archived" lives in the Filters drawer (title area v2): open it, then use the switch.
+const archivedSwitch = () => {
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  return screen.getByRole('switch', { name: 'Show archived' });
+};
+
 const renderPage = () => render(
   <MemoryRouter initialEntries={['/departments']}>
     <Routes>
@@ -55,7 +61,7 @@ describe('Given the departments list', () => {
   it('When Show archived is ticked / Then inactive departments are fetched and listed', async () => {
     renderPage();
     await screen.findByText('Engineering');
-    fireEvent.click(screen.getByLabelText('Show archived'));
+    fireEvent.click(archivedSwitch());
     expect(await screen.findByText('Legacy Ops')).toBeInTheDocument();
     expect(api.getAll).toHaveBeenCalledWith({ status: 'inactive', limit: 200 });
   });
@@ -63,7 +69,7 @@ describe('Given the departments list', () => {
   it('When an archived row is opened / Then the department detail (with Restore) is shown', async () => {
     renderPage();
     await screen.findByText('Engineering');
-    fireEvent.click(screen.getByLabelText('Show archived'));
+    fireEvent.click(archivedSwitch());
     fireEvent.click(await screen.findByRole('button', { name: /View \/ Restore/ }));
     expect(await screen.findByText('Department Detail')).toBeInTheDocument();
   });
@@ -72,7 +78,7 @@ describe('Given the departments list', () => {
     api.getAll.mockResolvedValue({ data: [], total: 0 });
     renderPage();
     await screen.findByText('Engineering');
-    fireEvent.click(screen.getByLabelText('Show archived'));
+    fireEvent.click(archivedSwitch());
     expect(await screen.findByText('No archived departments.')).toBeInTheDocument();
   });
 
@@ -81,14 +87,14 @@ describe('Given the departments list', () => {
     api.getAll.mockRejectedValue(new Error('boom'));
     renderPage();
     await screen.findByText('Engineering');
-    fireEvent.click(screen.getByLabelText('Show archived'));
+    fireEvent.click(archivedSwitch());
     await waitFor(() => expect(err).toHaveBeenCalledWith('Failed to load archived departments'));
   });
 
   it('When Show archived is unticked again / Then the archived section is hidden', async () => {
     renderPage();
     await screen.findByText('Engineering');
-    const box = screen.getByLabelText('Show archived');
+    const box = archivedSwitch();
     fireEvent.click(box);
     await screen.findByText('Legacy Ops');
     fireEvent.click(box);

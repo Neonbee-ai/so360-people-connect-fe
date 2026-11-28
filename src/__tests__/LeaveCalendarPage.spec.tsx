@@ -95,7 +95,8 @@ describe('LeaveCalendarPage', () => {
     it('When department filter is changed / Then leaves are reloaded', async () => {
       renderPage();
       await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalled());
-      const deptSelect = screen.getByDisplayValue('All Departments');
+      fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+      const deptSelect = screen.getByLabelText('Department');
       fireEvent.change(deptSelect, { target: { value: 'd1' } });
       await waitFor(() => expect(mockLeaveApi.getAll).toHaveBeenCalledTimes(2));
     });

@@ -70,9 +70,11 @@ describe('Given an employee is selected with no balance initialized yet', () => 
 
   it('When the leave type row renders / Then it shows "Not initialized" instead of a stale zero', async () => {
     renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters' }));
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
-    fireEvent.change(screen.getByDisplayValue('Select an employee...'), { target: { value: 'person-1' } });
+    fireEvent.change(screen.getByLabelText('Employee'), { target: { value: 'person-1' } });
+    fireEvent.keyDown(document.body, { key: 'Escape' }); // close the Filters drawer
 
     await waitFor(() => expect(screen.getByText('Not initialized')).toBeInTheDocument());
   });
@@ -81,9 +83,11 @@ describe('Given an employee is selected with no balance initialized yet', () => 
     mockBalancesApi.initialize.mockResolvedValue({ message: 'ok' });
     const toastSuccessSpy = vi.spyOn(toast, 'success');
     renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters' }));
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
-    fireEvent.change(screen.getByDisplayValue('Select an employee...'), { target: { value: 'person-1' } });
+    fireEvent.change(screen.getByLabelText('Employee'), { target: { value: 'person-1' } });
+    fireEvent.keyDown(document.body, { key: 'Escape' }); // close the Filters drawer
     await waitFor(() => expect(screen.getByText('Not initialized')).toBeInTheDocument());
 
     fireEvent.click(screen.getByText('Initialize balances'));
@@ -118,9 +122,11 @@ describe('Given an employee has an existing leave balance', () => {
 
   it('When the row renders / Then it shows the real available balance, not zero', async () => {
     renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters' }));
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
-    fireEvent.change(screen.getByDisplayValue('Select an employee...'), { target: { value: 'person-1' } });
+    fireEvent.change(screen.getByLabelText('Employee'), { target: { value: 'person-1' } });
+    fireEvent.keyDown(document.body, { key: 'Escape' }); // close the Filters drawer
 
     await waitFor(() => expect(screen.getByText('8')).toBeInTheDocument());
   });
@@ -128,9 +134,11 @@ describe('Given an employee has an existing leave balance', () => {
   it('When Adjust is clicked and submitted / Then it calls the adjust API with the entered amount and reason', async () => {
     mockBalancesApi.adjust.mockResolvedValue({});
     renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters' }));
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
-    fireEvent.change(screen.getByDisplayValue('Select an employee...'), { target: { value: 'person-1' } });
+    fireEvent.change(screen.getByLabelText('Employee'), { target: { value: 'person-1' } });
+    fireEvent.keyDown(document.body, { key: 'Escape' }); // close the Filters drawer
     await waitFor(() => expect(screen.getByText('Adjust')).toBeInTheDocument());
 
     fireEvent.click(screen.getByText('Adjust'));

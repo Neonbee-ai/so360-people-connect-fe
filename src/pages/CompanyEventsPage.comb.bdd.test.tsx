@@ -122,7 +122,8 @@ describe('CompanyEventsPage (Comb)', () => {
   it('Given the list view / When Past is chosen / Then past events are requested', async () => {
     renderPage();
     await screen.findByText('2 going · 1 maybe');
-    fireEvent.click(within(screen.getByRole('group', { name: 'Event period' })).getByText('Past'));
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    fireEvent.click(screen.getByLabelText('Past'));
     await waitFor(() => expect(api.getAll).toHaveBeenCalledWith({ when: 'past', include_cancelled: 'true' }));
   });
 

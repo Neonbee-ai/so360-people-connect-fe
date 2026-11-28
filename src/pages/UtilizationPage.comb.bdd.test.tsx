@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 
 vi.mock('../services/peopleService', () => ({
   utilizationApi: { getAll: vi.fn(), getSummary: vi.fn() },
@@ -42,7 +43,8 @@ describe('Given the Utilization page on the Comb template', () => {
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
     expect(screen.getByText('Utilization Intelligence')).toBeInTheDocument();
     expect(screen.getByText('Active resources')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Refresh' })).toBeInTheDocument();
   });
 
   it('When data is still loading / Then a busy status is shown', () => {
@@ -62,7 +64,8 @@ describe('Given the Utilization page on the Comb template', () => {
   it('When Refresh is clicked / Then both utilization APIs are called again', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Refresh' }));
     await waitFor(() => expect(api.getAll).toHaveBeenCalledTimes(2));
     expect(api.getSummary).toHaveBeenCalledTimes(2);
   });
@@ -78,12 +81,14 @@ describe('Given the Utilization page on the Comb template', () => {
     await waitFor(() => expect(screen.getByText('Idle cost signal')).toBeInTheDocument());
   });
 
-  it('When the previous-week arrow is clicked / Then data is requested for the earlier week', async () => {
+  it('When a different "Week of" date is chosen in Filters / Then data is requested for that week, snapped to Monday', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Previous week' }));
-    await waitFor(() => expect(api.getAll).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('button', { name: 'Next week' })).not.toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    const input = screen.getByLabelText('Week of');
+    await userEvent.clear(input);
+    await userEvent.type(input, '12062024');
+    await waitFor(() => expect(api.getAll).toHaveBeenLastCalledWith({ period_start: '2024-06-10', period_end: '2024-06-14' }));
   });
 
   it('When the API fails / Then an error toast is shown', async () => {

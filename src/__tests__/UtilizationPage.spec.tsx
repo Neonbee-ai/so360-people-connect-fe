@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 
 vi.mock('../services/peopleService', () => ({
   utilizationApi: { getAll: vi.fn(), getSummary: vi.fn() },
@@ -87,16 +88,19 @@ describe('UtilizationPage', () => {
       await waitFor(() => expect(screen.getByText('Totals (2 people)')).toBeInTheDocument());
       // default: utilization desc -> Alice (80%) first
       expect(screen.getAllByRole('row')[1]).toHaveTextContent('Alice');
-      fireEvent.change(screen.getByLabelText('Sort by'), { target: { value: 'name' } });
+      fireEvent.click(screen.getByRole('button', { name: /^Sort:/ }));
+      fireEvent.click(screen.getByRole('menuitemradio', { name: 'Name' }));
       // name desc -> Bob first
       await waitFor(() => expect(screen.getAllByRole('row')[1]).toHaveTextContent('Bob'));
     });
 
-    it('When the previous week button is clicked / Then it loads previous week data', async () => {
+    it('When a different "Week of" date is chosen in Filters / Then it loads that week', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
-      const prevBtn = screen.getAllByRole('button').find(btn => btn.querySelector('[data-testid="icon-ChevronLeft"]'));
-      if (prevBtn) fireEvent.click(prevBtn);
+      fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+      const input = screen.getByLabelText('Week of');
+      await userEvent.clear(input);
+      await userEvent.type(input, '12062024');
       await waitFor(() => expect(mockApi.getAll).toHaveBeenCalledTimes(2));
     });
   });

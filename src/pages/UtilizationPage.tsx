@@ -25,9 +25,9 @@ const UtilizationPage: React.FC = () => {
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
     // Compute initial week
-    const getWeekDates = (offset: number = 0) => {
-        const now = new Date();
-        now.setDate(now.getDate() + (offset * 7));
+    // `anchor` = any YYYY-MM-DD inside the wanted week (empty = this week); snaps to Monday.
+    const getWeekDates = (anchor: string = '') => {
+        const now = anchor ? new Date(`${anchor}T00:00:00`) : new Date();
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
         const start = new Date(now);
@@ -40,12 +40,13 @@ const UtilizationPage: React.FC = () => {
         };
     };
 
-    const [weekOffset, setWeekOffset] = useState(0);
+    const [weekOf, setWeekOf] = useState('');
+    const thisWeekStart = getWeekDates().start;
 
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            const dates = getWeekDates(weekOffset);
+            const dates = getWeekDates(weekOf);
 
             const [utilData, summaryData] = await Promise.all([
                 utilizationApi.getAll({ period_start: dates.start, period_end: dates.end }),
@@ -61,7 +62,7 @@ const UtilizationPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [weekOffset]);
+    }, [weekOf]);
 
     useEffect(() => {
         loadData();
@@ -238,13 +239,10 @@ const UtilizationPage: React.FC = () => {
                 </Grid>
             )}
             filters={{
-                fields: [{
-                    key: 'week', label: period.start ? `Week (${period.start} to ${period.end})` : 'Week', type: 'select', default: '0',
-                    options: Array.from({ length: 53 }, (_, i) => ({ value: String(-i), label: i === 0 ? 'This week' : i === 1 ? 'Last week' : `${i} weeks ago` })),
-                }],
-                values: { week: String(weekOffset) },
-                onChange: (v) => setWeekOffset(Math.min(Number(v.week) || 0, 0)),
-                onClear: () => setWeekOffset(0),
+                fields: [{ key: 'weekOf', label: 'Week of', type: 'date', default: thisWeekStart }],
+                values: { weekOf: weekOf ? getWeekDates(weekOf).start : thisWeekStart },
+                onChange: (v) => setWeekOf(v.weekOf ? getWeekDates(v.weekOf as string).start : ''),
+                onClear: () => setWeekOf(''),
             }}
             sort={{
                 options: [{ value: 'utilization', label: 'Utilization' }, { value: 'name', label: 'Name' }, { value: 'cost', label: 'Cost' }],
