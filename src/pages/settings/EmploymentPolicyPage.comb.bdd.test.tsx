@@ -39,28 +39,28 @@ describe('Given EmploymentPolicyPage built on Comb SettingsPageTemplate', () => 
     expect(document.querySelector('[data-slot="loading"]')).toBeInTheDocument();
   });
 
-  it('When the policy loads / Then the title, cards and Save Policy action are shown', async () => {
+  it('When the policy loads / Then the title, cards and Save policy action are shown', async () => {
     api.getEmploymentPolicy.mockResolvedValue(policy);
     renderPage();
     expect(await screen.findByText('Employment Policy')).toBeInTheDocument();
     expect(await screen.findByText('Daily Threshold')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Save Policy/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save policy/ })).toBeInTheDocument();
   });
 
-  it('When Save Policy is clicked / Then updateEmploymentPolicy receives the loaded policy', async () => {
+  it('When Save policy is clicked / Then updateEmploymentPolicy receives the loaded policy', async () => {
     api.getEmploymentPolicy.mockResolvedValue(policy);
     api.updateEmploymentPolicy.mockResolvedValue(policy);
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /Save Policy/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Save policy/ }));
     await waitFor(() => expect(api.updateEmploymentPolicy).toHaveBeenCalledWith(policy));
   });
 
-  it('When the manage flag is off / Then Save Policy is hidden', async () => {
+  it('When the manage flag is off / Then Save policy is hidden', async () => {
     flags.manage = false;
     api.getEmploymentPolicy.mockResolvedValue(policy);
     renderPage();
     await screen.findByText('Daily Threshold');
-    expect(screen.queryByRole('button', { name: /Save Policy/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Save policy/ })).not.toBeInTheDocument();
   });
 
   it('When loading fails / Then a warning banner shows the error', async () => {
@@ -73,7 +73,7 @@ describe('Given EmploymentPolicyPage built on Comb SettingsPageTemplate', () => 
     api.getEmploymentPolicy.mockResolvedValue(policy);
     api.updateEmploymentPolicy.mockRejectedValue(new Error('Save blew up'));
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /Save Policy/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Save policy/ }));
     expect(await screen.findByText(/Save blew up/)).toBeInTheDocument();
   });
 });

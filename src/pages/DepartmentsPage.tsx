@@ -6,7 +6,6 @@ import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
 import {
-    Alert,
     Button,
     Card,
     Checkbox,
@@ -19,7 +18,7 @@ import {
     Stack,
     Textarea,
     TextField,
-    toast,
+    toast
 } from '@so360/design-system';
 import { departmentsApi, Department, CreateDepartmentPayload } from '../services/departmentsService';
 import { peopleApi } from '../services/peopleService';
@@ -261,12 +260,11 @@ const DepartmentsPage: React.FC = () => {
                     limit: quotaData.limit,
                     isUnlimited: quotaData.is_unlimited,
                 } : undefined}
-                banner={isSandboxMode && isLimited(departments.length) ? (
-                    <Alert variant="warning">
-                        <span className="font-semibold">Sandbox:</span>{' '}
-                        <span>Showing {sandboxEntryLimit} of {departments.length} records. Switch to Production to view all.</span>
-                    </Alert>
-                ) : undefined}
+                banner={isSandboxMode && isLimited(departments.length) ? {
+                    variant: 'warning',
+                    title: 'Sandbox',
+                    message: `Showing ${sandboxEntryLimit} of ${departments.length} records. Switch to Production to view all.`,
+                } : undefined}
             >
                 {/* Departments Tree */}
                 <Stack gap="tight">{visibleDepartments.map(dept => renderDepartment(dept))}</Stack>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-import { Banner, Button, EmptyState, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Stack } from '@so360/design-system';
+import { Button, EmptyState, Grid, NumberInput, SettingsCard, SettingsPageTemplate, Stack } from '@so360/design-system';
 import { Save, RefreshCw } from 'lucide-react';
 import { orgPolicyApi, EmploymentPolicy } from '../../services/orgPolicyService';
 import { useShellBridge } from '@so360/shell-context';
@@ -65,9 +65,11 @@ const EmploymentPolicyPage: React.FC = () => {
 
   if (loadError) {
     return (
-      <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps}>
-        <Banner variant="warning" title="Unable to load employment policy">{loadError}</Banner>
-      </SettingsPageTemplate>
+      <SettingsPageTemplate
+        trail={[{ label: 'Settings', to: '/people/settings' }]}
+        {...pageProps}
+        banner={{ variant: 'warning', title: 'Unable to load employment policy', message: loadError }}
+      />
     );
   }
 
@@ -88,15 +90,20 @@ const EmploymentPolicyPage: React.FC = () => {
     );
   }
 
-  const primaryAction = canManage ? (
-    <Button variant="primary" onClick={handleSave} disabled={isSaving} className="gap-nb-2">
-      <Save className="w-4 h-4" />
-      {isSaving ? 'Saving...' : 'Save Policy'}
-    </Button>
-  ) : undefined;
+  const primaryAction = canManage ? {
+    id: 'save-policy',
+    label: isSaving ? 'Saving...' : 'Save policy',
+    icon: <Save />,
+    onSelect: handleSave,
+    disabled: isSaving,
+  } : undefined;
 
   return (
-    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps} primaryAction={primaryAction}>
+    <SettingsPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]} {...pageProps}
+      description={`${pageProps.description} Changes apply to new time entries only; previously approved costs are immutable for accounting integrity.`}
+      primaryAction={primaryAction}
+      banner={saveError ? { variant: 'danger', message: saveError } : undefined}
+    >
       <Stack gap="region">
         <Grid columns="auto" gap="lg">
           <Grid.Item span={6}>
@@ -132,14 +139,9 @@ const EmploymentPolicyPage: React.FC = () => {
                 onChange={(n) => setPolicy({ ...policy, premium_multiplier: n ?? NaN })}
               />
             </SettingsCard>
-            <Banner variant="warning">
-              Changes apply to <strong>new</strong> time entries only. Previously approved costs are immutable for accounting integrity.
-            </Banner>
           </Stack>
           </Grid.Item>
         </Grid>
-
-        {saveError && <Banner variant="danger">{saveError}</Banner>}
 
         {canManage && (
           <Button

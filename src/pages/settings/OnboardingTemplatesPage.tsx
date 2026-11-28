@@ -12,7 +12,6 @@ import {
   Button,
   IconButton,
   Badge,
-  Alert,
   Card,
   Stack,
   Cluster,
@@ -21,8 +20,7 @@ import {
   TextField,
   NumberInput,
   Checkbox,
-  Skeleton,
-} from '@so360/design-system';
+  Skeleton} from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import {
   onboardingApi,
@@ -182,14 +180,12 @@ const OnboardingTemplatesPage: React.FC = () => {
           icon: <Plus />,
           onSelect: () => setShowDrawer(true),
       } : undefined}
-      banner={missingDefault ? (
-        <Alert variant="warning" title="No default onboarding template">
-          New hires won't get a checklist automatically, and{' '}
-          <span className="font-medium">Start onboarding</span> will ask for a template every
-          time. Edit a template below and tick{' '}
-          <span className="font-medium">Set as the organization default</span> to fix this.
-        </Alert>
-      ) : undefined}
+      search={false}
+      banner={missingDefault ? {
+        variant: 'warning',
+        title: 'No default onboarding template',
+        message: 'New hires won\'t get a checklist automatically, and Start onboarding will ask for a template every time. Edit a template below and tick Set as the organization default to fix this.',
+      } : undefined}
     >
       <DataTable
         columns={columns}

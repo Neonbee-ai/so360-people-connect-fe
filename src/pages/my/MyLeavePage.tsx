@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Plus } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
-import { Cluster, DashboardPageTemplate, Grid, Stack, toast } from '@so360/design-system';
+import { Cluster, DashboardPageTemplate, Stack, toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance } from '../../services/meService';
 import { leaveRequestsApi } from '../../services/leaveRequestsService';
 import type { CreateLeaveRequestPayload, LeaveRequest } from '../../services/leaveRequestsService';
 import LeaveRequestFormModal from '../../components/leave/LeaveRequestFormModal';
-import { MyCard, StatTile, StatusPill } from './myUi';
+import { MyCard, StatusPill } from './myUi';
 
 /**
  * My Leave — the employee's own balances, history and request form.
@@ -84,21 +84,12 @@ const MyLeavePage: React.FC = () => {
                     icon: <Plus />,
                     onSelect: () => setFormOpen(true),
                 }}
-                kpis={
-                    balances.length > 0 ? (
-                        <Grid columns="auto" gap="md">
-                            {balances.map(b => (
-                                <Grid.Item key={b.id} span={3}>
-                                    <StatTile
-                                        label={b.leave_type?.name ?? 'Leave'}
-                                        value={b.available}
-                                        hint={`days available · ${b.used} used`}
-                                    />
-                                </Grid.Item>
-                            ))}
-                        </Grid>
-                    ) : undefined
-                }
+                kpis={balances.length > 0 ? balances.map(b => ({
+                    id: `balance-${b.id}`,
+                    label: b.leave_type?.name ?? 'Leave',
+                    value: b.available,
+                    hint: `days available · ${b.used} used`,
+                })) : undefined}
                 primary={
                     <MyCard title="My requests" icon={<CalendarDays size={14} />}>
                         {requests.length === 0 ? (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { UserCheck, UserMinus, Clock, Home, CalendarDays, Pencil, ClipboardCheck, Users } from 'lucide-react';
+import { UserCheck, UserMinus, Clock, Home, CalendarDays, Pencil, ClipboardCheck } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import {
@@ -8,7 +8,6 @@ import {
     Button,
     IconButton,
     Badge,
-    KpiCard,
     ListPageTemplate,
     DataTable,
     Modal,
@@ -17,8 +16,7 @@ import {
     SegmentedControl,
     Skeleton,
     Stack,
-    Cluster,
-    Grid,
+    Cluster
 } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import {
@@ -203,21 +201,12 @@ const AttendanceRegisterPage: React.FC = () => {
                     onChange: (v) => setDate((v.date as string) || formatters.businessToday()),
                     onClear: () => setDate(formatters.businessToday()),
                 } : undefined}
-                kpis={
-                    isRegister ? (
-                        <Grid columns={4} gap="md">
-                            <KpiCard label="Total Employees" value={summary?.total_employees ?? 0} icon={Users} />
-                            <KpiCard
-                                label="Present"
-                                value={summary?.present ?? 0}
-                                icon={UserCheck}
-                                hint={`${summary?.remote ?? 0} remote · ${summary?.half_day ?? 0} half day`}
-                            />
-                            <KpiCard label="Absent" value={summary?.absent ?? 0} icon={UserMinus} />
-                            <KpiCard label="On Leave" value={summary?.on_leave ?? 0} icon={CalendarDays} />
-                        </Grid>
-                    ) : undefined
-                }
+                kpis={isRegister ? [
+                    { id: 'total-employees', label: 'Total Employees', value: summary?.total_employees ?? 0 },
+                    { id: 'present', label: 'Present', value: summary?.present ?? 0, hint: `${summary?.remote ?? 0} remote · ${summary?.half_day ?? 0} half day` },
+                    { id: 'absent', label: 'Absent', value: summary?.absent ?? 0 },
+                    { id: 'on-leave', label: 'On Leave', value: summary?.on_leave ?? 0 },
+                ] : undefined}
             >
                 {isRegister ? (
                     <DataTable name="attendance-register" columns={columns} rows={rows} rowKey={(r) => r.person_id} />

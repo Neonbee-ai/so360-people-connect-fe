@@ -110,14 +110,14 @@ const MyTaxDeclarationPage: React.FC = () => {
                 title="My Tax Declaration"
                 description={`Fiscal year ${fiscalYear}`}
                 status={declaration ? <StatusChip status={declaration.status} /> : undefined}
-                secondaryAction={editable ? (
-                    <Button variant="secondary" onClick={save} disabled={saving}>Save Draft</Button>
-                ) : undefined}
-                primaryAction={editable ? (
-                    <Button onClick={() => setShowSubmitConfirm(true)} disabled={saving || items.length === 0}>
-                        <Send size={14} /> Submit Declaration
-                    </Button>
-                ) : undefined}
+                secondaryAction={editable ? { id: 'save-draft', label: 'Save draft', onSelect: save, disabled: saving } : undefined}
+                primaryAction={editable ? {
+                    id: 'submit-declaration',
+                    label: 'Submit declaration',
+                    icon: <Send size={14} />,
+                    onSelect: () => setShowSubmitConfirm(true),
+                    disabled: saving || items.length === 0,
+                } : undefined}
             >
                 <Stack gap="default">
                     {/* Status timeline */}

@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, CheckCircle, Send, DollarSign, ExternalLink } from 'lucide-react';
+import { Clock, ExternalLink } from 'lucide-react';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
-import { toast, Banner, KpiCard, ListPageTemplate, DataTable, Stack} from '@so360/design-system';
+import { toast, ListPageTemplate, DataTable} from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';
@@ -152,7 +152,7 @@ const EmployeeTimesheetsPage: React.FC = () => {
     return (
         <ListPageTemplate trail={[]}
             title="Employee Timesheets"
-            description="Read-only view of time logged in the Timesheets module"
+            description="Read-only view of time logged in the Timesheets module. Time entries are created, submitted, and approved there; this page is a consolidated view for people managers."
             primaryAction={{
                 id: 'log-time-in-timesheets',
                 label: 'Log time in timesheets',
@@ -174,31 +174,13 @@ const EmployeeTimesheetsPage: React.FC = () => {
                     description="No time has been logged in the Timesheets module for the selected filters."
                 />
             )}
-            banner={(
-                <Stack gap="tight">
-                    <Banner variant="info">
-                        Time entries are created, submitted, and approved in the Timesheets module.
-                        This page is a consolidated read-only view for people managers.
-                    </Banner>
-                    {dateRangeError && <Banner variant="danger">{dateRangeError}</Banner>}
-                </Stack>
-            )}
-            kpis={(
-                <Stack gap="default">
-                    {totals.cost > 0 && (
-                        <span className="flex items-center gap-nb-1 text-nb-xs text-fg-muted">
-                            <DollarSign size={12} />
-                            Approved cost: {formatCurrency(totals.cost)}
-                        </span>
-                    )}
-                    <div className="grid grid-cols-1 wc-medium:grid-cols-2 wc-expanded:grid-cols-4 gap-nb-4">
-                        <KpiCard label="Total Hours" value={`${totals.total.toFixed(1)}h`} icon={Clock} />
-                        <KpiCard label="Approved Hours" value={`${totals.approved.toFixed(1)}h`} icon={CheckCircle} />
-                        <KpiCard label="Submitted Hours" value={`${totals.submitted.toFixed(1)}h`} icon={Send} />
-                        <KpiCard label="Billable Hours" value={`${totals.billable.toFixed(1)}h`} icon={DollarSign} />
-                    </div>
-                </Stack>
-            )}
+            banner={dateRangeError ? { variant: 'danger', message: dateRangeError } : undefined}
+            kpis={[
+                { id: 'total-hours', label: 'Total Hours', value: `${totals.total.toFixed(1)}h`, hint: totals.cost > 0 ? `Approved cost: ${formatCurrency(totals.cost)}` : undefined },
+                { id: 'approved-hours', label: 'Approved Hours', value: `${totals.approved.toFixed(1)}h` },
+                { id: 'submitted-hours', label: 'Submitted Hours', value: `${totals.submitted.toFixed(1)}h` },
+                { id: 'billable-hours', label: 'Billable Hours', value: `${totals.billable.toFixed(1)}h` },
+            ]}
             filters={{
                 fields: [
                     { key: 'person', label: 'Person', type: 'select', options: people.map((p) => ({ value: p.id, label: p.full_name })) },

@@ -375,11 +375,11 @@ const PersonDetailPage: React.FC = () => {
             secondaryActions={!editing
                 ? [
                     { id: 'edit', label: 'Edit', icon: <Edit2 />, onSelect: () => { setEditing(true); setEditData(person); } },
-                    ...(activeTab === 'rate-history' && canViewCompensation
-                        ? [{ id: 'add-rate', label: 'Add new rate', icon: <DollarSign />, onSelect: () => setShowUpdateRateModal(true) }]
-                        : []),
                 ]
                 : [{ id: 'cancel', label: 'Cancel', icon: <X />, onSelect: () => setEditing(false) }]}
+            moreActions={!editing && activeTab === 'rate-history' && canViewCompensation
+                ? [{ id: 'add-rate', label: 'Add new rate', icon: <DollarSign />, onSelect: () => setShowUpdateRateModal(true) }]
+                : undefined}
             primaryAction={editing ? {
                 id: 'save',
                 label: 'Save',

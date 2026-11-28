@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Download, Upload, FileDown, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Download, Upload, FileDown, AlertCircle, Loader2 } from 'lucide-react';
 import {
-    toast, Select, Alert, Button, Card, Checkbox, Cluster, FieldGrid, SettingsPageTemplate, Stack, Tabs,
+    toast, Select, Alert, Button, Card, Checkbox, Cluster, FieldGrid, SettingsPageTemplate, Stack
 } from '@so360/design-system';
 import { peopleApi } from '../services/peopleService';
 import { departmentsApi, Department } from '../services/departmentsService';
@@ -248,20 +248,18 @@ const ImportExportPage: React.FC = () => {
         <SettingsPageTemplate trail={[]}
             title="Data Management"
             description="Bulk import and export for people data"
-        >
-            {/* Workflow tabs — only one workflow is ever on screen, so Import
-                never shows Export controls and vice versa. */}
-            <Tabs
-                name="bulk-workflow"
-                items={[
+            // Workflow tabs: only one workflow is ever on screen, so Import never shows Export controls and vice versa.
+            tabs={{
+                name: 'bulk-workflow',
+                items: [
                     { id: 'export', label: 'Export People' },
                     { id: 'import', label: 'Import People' },
-                ]}
-                value={activeTab}
-                onChange={(id: string) => setActiveTab(id as BulkTab)}
-            >
-                {(tab: string) => (tab === 'export' ? exportSection : importSection)}
-            </Tabs>
+                ],
+                value: activeTab,
+                onChange: (id: string) => setActiveTab(id as BulkTab),
+            }}
+        >
+            {activeTab === 'export' ? exportSection : importSection}
         </SettingsPageTemplate>
     );
 };

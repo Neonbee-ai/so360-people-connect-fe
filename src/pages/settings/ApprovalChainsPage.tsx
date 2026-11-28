@@ -271,11 +271,10 @@ const ApprovalChainsPage: React.FC = () => {
           onChange: (v) => setScopeFilter((v.scope as string) || ''),
           onClear: () => setScopeFilter(''),
         }}
+        banner={error ? { variant: 'danger', message: error } : undefined}
         loading={isLoading}
       >
         <Stack gap="default">
-          {error && <Banner variant="danger">{error}</Banner>}
-
           <DataTable
             columns={columns}
             rows={filtered}

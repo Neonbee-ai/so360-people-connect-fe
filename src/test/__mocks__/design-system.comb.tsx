@@ -330,6 +330,34 @@ export const FormActions = ({ submitLabel = 'Save', onSubmit, submitting, submit
   </div>
 );
 
+
+// ---- Title area v2 shim: typed PageAction / banner / kpis / tabs / search / filters specs rendered as nodes ----
+const isPA2 = (v: any) => !!v && typeof v === 'object' && !Array.isArray(v) && !React.isValidElement(v) && typeof v.id === 'string' && typeof v.label === 'string';
+const isSpecObj = (v: any) => !!v && typeof v === 'object' && !Array.isArray(v) && !React.isValidElement(v);
+const paNode = (a: any) => (isPA2(a)
+  ? <button key={a.id} type="button" data-comb-action={a.id} data-testid={a.id} title={a.disabledReason} disabled={!!a.disabled || undefined} onClick={a.disabled ? undefined : a.onSelect}>{a.icon ?? null}{a.label}</button>
+  : a);
+const v2 = (p: any, keepSecondary = false) => {
+  const q: any = { ...p };
+  q.primaryAction = paNode(p.primaryAction);
+  if (p.secondaryAction !== undefined) q.secondaryAction = paNode(p.secondaryAction);
+  if (!keepSecondary && Array.isArray(p.secondaryActions)) q.secondaryActions = p.secondaryActions.map((a: any) => paNode(a));
+  if (Array.isArray(p.moreActions) && p.moreActions.length) q.overflowActions = [...(p.overflowActions ?? []), ...p.moreActions.map((a: any) => ({ label: a.label, onSelect: a.onSelect, disabled: a.disabled }))];
+  if (isSpecObj(p.search) && !('$$typeof' in p.search)) q.search = <SearchInput {...p.search} />;
+  if (p.search === false) q.search = null;
+  if (isSpecObj(p.filters) && Array.isArray(p.filters.fields)) q.filters = <ListFilters {...p.filters} />;
+  const extras: any[] = [];
+  if (isSpecObj(p.banner)) extras.push(<div key="banner" role="alert" data-variant={p.banner.variant} data-slot="banner">{p.banner.title ? <p>{p.banner.title}</p> : null}{p.banner.message}{p.banner.action ? <button type="button" onClick={p.banner.action.onClick}>{p.banner.action.label}</button> : null}</div>);
+  else if (p.banner) extras.push(<React.Fragment key="banner">{p.banner}</React.Fragment>);
+  if (isSpecObj(p.tabs) && Array.isArray(p.tabs.items)) extras.push(<Tabs key="tabs" {...p.tabs} />);
+  if (Array.isArray(p.kpis) && p.kpis.length && p.kpis.every((k: any) => isSpecObj(k) && 'label' in k && 'value' in k)) {
+    q.kpis = <>{p.kpis.map((k: any) => <div key={k.id} data-testid={k.id}><span>{k.label}</span><span>{k.value}</span>{k.hint ? <span>{k.hint}</span> : null}</div>)}</>;
+  }
+  if (p.metaChip && p.metaChip.label) q.meta = <>{p.meta}<span data-slot="meta">{p.metaChip.label}</span></>;
+  if (extras.length) q.notice = <>{p.notice}{extras}</>;
+  if (Array.isArray(p.tabs) === false && isSpecObj(p.tabs)) q.tabs = undefined;
+  return q;
+};
 // ---- page header + floorplans -----------------------------------------
 const Header = ({ title, description, count, status, meta, onBack, backLabel, trail, primaryAction, secondaryActions, headerSecondaryActions, overflowActions, collapsibleActions, metaItems, breadcrumbs, actions, quota }: any) => (
   <header data-slot="header">
@@ -398,7 +426,7 @@ export const ListFilters = (cfg: any) => (
   </div>
 );
 
-export const ListPageTemplate = (p: any) => {
+const ListPageTemplateImpl = (p: any) => {
   const empty = !p.loading && (p.isFilteredEmpty || (p.isEmpty ?? p.empty !== undefined));
   return (
     <section data-template="list" data-testid="list-page-template" aria-busy={p.loading || undefined}>
@@ -446,7 +474,7 @@ export const ListPageTemplate = (p: any) => {
   );
 };
 
-export const DetailPageTemplate = (p: any) => (
+const DetailPageTemplateImpl = (p: any) => (
   <section data-template="detail" data-testid="detail-page-template" aria-busy={p.loading || undefined}>
     {mirrorStatus(p.loading)}
     {mirrorNotice(p.notice)}
@@ -464,7 +492,7 @@ export const DetailPageTemplate = (p: any) => (
   </section>
 );
 
-export const FormPageTemplate = (p: any) => (
+const FormPageTemplateImpl = (p: any) => (
   <section data-template="form" data-testid="form-page-template" aria-busy={p.loading || undefined}>
     {mirrorStatus(p.loading)}
     {mirrorNotice(p.notice)}
@@ -488,7 +516,7 @@ export const SettingsCard = ({ title, description, actions, children }: any) => 
   </section>
 );
 
-export const SettingsPageTemplate = (p: any) => (
+const SettingsPageTemplateImpl = (p: any) => (
   <section data-template="settings" data-testid="settings-page-template" aria-busy={p.loading || undefined}>
     {mirrorStatus(p.loading)}
     {mirrorNotice(p.notice)}
@@ -504,7 +532,7 @@ export const SettingsPageTemplate = (p: any) => (
   </section>
 );
 
-export const DashboardPageTemplate = (p: any) => (
+const DashboardPageTemplateImpl = (p: any) => (
   <section data-template="dashboard" data-testid="dashboard-page-template" aria-busy={p.loading || undefined}>
     {mirrorStatus(p.loading)}
     {mirrorNotice(p.notice)}
@@ -607,3 +635,9 @@ export const SelectableCard = ({ title, description, value, selected, onSelect, 
     </button>
   );
 };
+
+export const ListPageTemplate = (p: any) => ListPageTemplateImpl(v2(p, true));
+export const DetailPageTemplate = (p: any) => DetailPageTemplateImpl(v2(p));
+export const FormPageTemplate = (p: any) => FormPageTemplateImpl(v2(p));
+export const SettingsPageTemplate = (p: any) => SettingsPageTemplateImpl(v2(p));
+export const DashboardPageTemplate = (p: any) => DashboardPageTemplateImpl(v2(p));

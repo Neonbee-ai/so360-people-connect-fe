@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-    BarChart3, TrendingUp, TrendingDown, DollarSign, Clock, Target, Users, RefreshCw,
+    BarChart3, RefreshCw
 } from 'lucide-react';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import EmptyState from '../components/EmptyState';
-import { toast, ListPageTemplate, KpiCard, Banner, Stack, Cluster, DataTable, Grid, Progress, Avatar, Badge} from '@so360/design-system';
+import { toast, ListPageTemplate, Stack, Cluster, DataTable, Progress, Avatar, Badge} from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { utilizationApi } from '../services/peopleService';
 import type { UtilizationData, UtilizationSummary } from '../types/people';
@@ -202,42 +202,21 @@ const UtilizationPage: React.FC = () => {
                     description="Utilization metrics will appear once people are allocated and time is logged."
                 />
             )}
-            banner={idlePeople.length > 0 ? (
-                <Banner variant="danger">
-                    <div className="text-nb-sm font-medium">Idle cost signal</div>
-                    <div className="text-nb-xs mt-nb-1">
-                        {idlePeople.length} resource{idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization.
-                        Estimated idle cost: {formatCurrency(idleCost)} this period.
-                    </div>
-                </Banner>
-            ) : undefined}
-            kpis={(
-                <Grid columns={4} gap="md">
-                    <KpiCard label="Avg utilization" value={`${summary?.avg_utilization_pct || 0}%`} icon={Target} />
-                    <KpiCard label="Weekly burn" value={formatCurrency(summary?.total_cost_this_week || 0)} icon={DollarSign} />
-                    <KpiCard label="Total hours" value={summary?.total_hours_this_week || 0} icon={Clock} />
-                    <KpiCard label="Active resources" value={summary?.total_people || 0} icon={Users} />
-                    <KpiCard
-                        label="Idle resources"
-                        value={idlePeople.length}
-                        icon={TrendingDown}
-                        hint={idlePeople.length > 0 ? idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ') : undefined}
-                    />
-                    <KpiCard
-                        label="Overallocated"
-                        value={overallocated.length}
-                        icon={TrendingUp}
-                        hint={overallocated.length > 0 ? overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ') : undefined}
-                    />
-                    <KpiCard label="Healthy" value={healthyCount} icon={BarChart3} hint="Within normal range" />
-                    <KpiCard
-                        label="Daily burn"
-                        value={formatCurrency(summary?.burn_rate_daily || 0)}
-                        icon={DollarSign}
-                        hint={`${formatCurrency((summary?.burn_rate_daily || 0) * 5)}/week from approved time`}
-                    />
-                </Grid>
-            )}
+            banner={idlePeople.length > 0 ? {
+                variant: 'danger',
+                title: 'Idle cost signal',
+                message: `${idlePeople.length} resource${idlePeople.length > 1 ? 's are' : ' is'} below 30% utilization. Estimated idle cost: ${formatCurrency(idleCost)} this period.`,
+            } : undefined}
+            kpis={[
+                { id: 'avg-utilization', label: 'Avg utilization', value: `${summary?.avg_utilization_pct || 0}%` },
+                { id: 'weekly-burn', label: 'Weekly burn', value: formatCurrency(summary?.total_cost_this_week || 0) },
+                { id: 'total-hours', label: 'Total hours', value: summary?.total_hours_this_week || 0 },
+                { id: 'active-resources', label: 'Active resources', value: summary?.total_people || 0 },
+                { id: 'idle-resources', label: 'Idle resources', value: idlePeople.length, hint: idlePeople.length > 0 ? idlePeople.map(d => d?.person?.full_name || 'Unknown').join(', ') : undefined },
+                { id: 'overallocated', label: 'Overallocated', value: overallocated.length, hint: overallocated.length > 0 ? overallocated.map(d => d?.person?.full_name || 'Unknown').join(', ') : undefined },
+                { id: 'healthy', label: 'Healthy', value: healthyCount, hint: 'Within normal range' },
+                { id: 'daily-burn', label: 'Daily burn', value: formatCurrency(summary?.burn_rate_daily || 0), hint: `${formatCurrency((summary?.burn_rate_daily || 0) * 5)}/week from approved time` },
+            ]}
             filters={{
                 fields: [{ key: 'weekOf', label: 'Week of', type: 'date', default: thisWeekStart }],
                 values: { weekOf: weekOf ? getWeekDates(weekOf).start : thisWeekStart },

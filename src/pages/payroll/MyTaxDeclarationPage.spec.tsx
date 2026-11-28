@@ -77,11 +77,11 @@ describe('GIVEN an existing draft declaration', () => {
     expect(screen.getByText('$0.00')).toBeInTheDocument();
   });
 
-  it('WHEN Save Draft is clicked THEN the declaration is saved with regime and items', async () => {
+  it('WHEN Save draft is clicked THEN the declaration is saved with regime and items', async () => {
     mockApi.my.taxDeclarations.save.mockResolvedValue(draftDeclaration);
     renderPage();
-    await waitFor(() => expect(screen.getByText('Save Draft')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Save Draft'));
+    await waitFor(() => expect(screen.getByText('Save draft')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Save draft'));
     await waitFor(() =>
       expect(mockApi.my.taxDeclarations.save).toHaveBeenCalledWith(FY, {
         regime: 'old',
@@ -94,17 +94,17 @@ describe('GIVEN an existing draft declaration', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('New Regime')).toBeInTheDocument());
     fireEvent.click(screen.getByText('New Regime'));
-    fireEvent.click(screen.getByText('Save Draft'));
+    fireEvent.click(screen.getByText('Save draft'));
     await waitFor(() =>
       expect(mockApi.my.taxDeclarations.save).toHaveBeenCalledWith(FY, expect.objectContaining({ regime: 'new' })));
   });
 
-  it('WHEN Submit Declaration is confirmed THEN it saves first, then submits, then reloads', async () => {
+  it('WHEN Submit declaration is confirmed THEN it saves first, then submits, then reloads', async () => {
     mockApi.my.taxDeclarations.save.mockResolvedValue(draftDeclaration);
     mockApi.my.taxDeclarations.submit.mockResolvedValue({ ...draftDeclaration, status: 'submitted' });
     renderPage();
-    await waitFor(() => expect(screen.getByText('Submit Declaration')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Submit Declaration'));
+    await waitFor(() => expect(screen.getByText('Submit declaration')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Submit declaration'));
     await waitFor(() => expect(screen.getByText('Submit Tax Declaration')).toBeInTheDocument());
     expect(mockApi.my.taxDeclarations.submit).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
@@ -116,13 +116,13 @@ describe('GIVEN an existing draft declaration', () => {
 
   it('WHEN the submit confirmation is cancelled THEN nothing is submitted', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Submit Declaration')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Submit Declaration'));
+    await waitFor(() => expect(screen.getByText('Submit declaration')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Submit declaration'));
     await waitFor(() => expect(screen.getByText('Submit Tax Declaration')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Cancel'));
     await waitFor(() => expect(screen.queryByText('Submit Tax Declaration')).not.toBeInTheDocument());
     // Reopen and close via the close control too
-    fireEvent.click(screen.getByText('Submit Declaration'));
+    fireEvent.click(screen.getByText('Submit declaration'));
     await waitFor(() => expect(screen.getByText('Submit Tax Declaration')).toBeInTheDocument());
     fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]);
     await waitFor(() => expect(screen.queryByText('Submit Tax Declaration')).not.toBeInTheDocument());
@@ -132,8 +132,8 @@ describe('GIVEN an existing draft declaration', () => {
   it('WHEN the save fails during submit THEN submit never fires and the dialog closes', async () => {
     mockApi.my.taxDeclarations.save.mockRejectedValue(new Error('bad'));
     renderPage();
-    await waitFor(() => expect(screen.getByText('Submit Declaration')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Submit Declaration'));
+    await waitFor(() => expect(screen.getByText('Submit declaration')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Submit declaration'));
     await waitFor(() => expect(screen.getByText('Submit Tax Declaration')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
     await waitFor(() => expect(mockApi.my.taxDeclarations.save).toHaveBeenCalled());
@@ -145,12 +145,12 @@ describe('GIVEN an existing draft declaration', () => {
     mockApi.my.taxDeclarations.save.mockResolvedValue(draftDeclaration);
     mockApi.my.taxDeclarations.submit.mockRejectedValue(new Error('bad'));
     renderPage();
-    await waitFor(() => expect(screen.getByText('Submit Declaration')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Submit Declaration'));
+    await waitFor(() => expect(screen.getByText('Submit declaration')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Submit declaration'));
     await waitFor(() => expect(screen.getByText('Submit Tax Declaration')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
     await waitFor(() => expect(mockApi.my.taxDeclarations.submit).toHaveBeenCalled());
-    expect(screen.getByText('Save Draft')).toBeInTheDocument();
+    expect(screen.getByText('Save draft')).toBeInTheDocument();
   });
 });
 
@@ -163,10 +163,10 @@ describe('GIVEN no declaration exists yet for this FY', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('My Tax Declaration')).toBeInTheDocument());
     expect(screen.getByText(/Nothing declared under Section 80C/)).toBeInTheDocument();
-    expect(screen.getByText('Submit Declaration')).toBeDisabled();
+    expect(screen.getByText('Submit declaration')).toBeDisabled();
     // Adding one item enables submission
     fireEvent.click(screen.getAllByText('Add')[0]);
-    await waitFor(() => expect(screen.getByText('Submit Declaration')).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByText('Submit declaration')).not.toBeDisabled());
   });
 });
 
@@ -181,8 +181,8 @@ describe('GIVEN a declaration that is no longer editable', () => {
   it('WHEN the page loads THEN editing controls are gone and the lock notice with reviewer notes shows', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText(/Reviewer notes: Missing rent receipts/)).toBeInTheDocument());
-    expect(screen.queryByText('Save Draft')).not.toBeInTheDocument();
-    expect(screen.queryByText('Submit Declaration')).not.toBeInTheDocument();
+    expect(screen.queryByText('Save draft')).not.toBeInTheDocument();
+    expect(screen.queryByText('Submit declaration')).not.toBeInTheDocument();
     expect(screen.getByText(/can no longer be edited/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Remove item')).not.toBeInTheDocument();
     // Regime buttons are disabled

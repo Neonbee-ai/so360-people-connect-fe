@@ -4,7 +4,6 @@ import EmptyState from '../../components/EmptyState';
 import ListLoadFailed, { isForbidden } from '../../components/ListLoadFailed';
 import Modal from '../../components/Modal';
 import {
-  Alert,
   Badge,
   Button,
   Cluster,
@@ -18,8 +17,7 @@ import {
   TextField,
   toast,
   getErrorMessage,
-  type DataTableColumn,
-} from '@so360/design-system';
+  type DataTableColumn} from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import {
   laborCategoriesApi,
@@ -206,13 +204,13 @@ const LaborCategoriesPage: React.FC = () => {
         empty={emptyNode}
         banner={
           // A category with no rate looks configured but cannot cost anyone, so say so.
-          !loading && !loadError && unpricedCount > 0 ? (
-            <Alert variant="warning" title="Rates not set">
-              {unpricedCount === 1
-                ? '1 active category has no hourly rate, so it cannot cost an employee who has no rate of their own.'
-                : `${unpricedCount} active categories have no hourly rate, so they cannot cost employees who have no rate of their own.`}
-            </Alert>
-          ) : undefined
+          !loading && !loadError && unpricedCount > 0 ? {
+            variant: 'warning',
+            title: 'Rates not set',
+            message: unpricedCount === 1
+              ? '1 active category has no hourly rate, so it cannot cost an employee who has no rate of their own.'
+              : `${unpricedCount} active categories have no hourly rate, so they cannot cost employees who have no rate of their own.`,
+          } : undefined
         }
       >
         <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />
