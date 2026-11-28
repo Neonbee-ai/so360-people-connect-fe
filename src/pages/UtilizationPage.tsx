@@ -1,13 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-    BarChart3, TrendingUp, TrendingDown,
-    Calendar, DollarSign, Clock, Target, Users,
-    ChevronLeft, ChevronRight, RefreshCw, ArrowUpDown,
+    BarChart3, TrendingUp, TrendingDown, DollarSign, Clock, Target, Users, RefreshCw,
 } from 'lucide-react';
 import { useBusinessSettings } from '@so360/shell-context';
 import { useFormatters } from '@so360/formatters';
 import EmptyState from '../components/EmptyState';
-import { toast, IconButton, ListPageTemplate, KpiCard, Banner, Stack, Cluster, DataTable, Grid, Select, Progress, Avatar, Badge, Skeleton } from '@so360/design-system';
+import { toast, ListPageTemplate, KpiCard, Banner, Stack, Cluster, DataTable, Grid, Progress, Avatar, Badge} from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { utilizationApi } from '../services/peopleService';
 import type { UtilizationData, UtilizationSummary } from '../types/people';

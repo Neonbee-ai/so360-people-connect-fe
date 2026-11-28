@@ -468,21 +468,21 @@ describe('Given DepartmentDetailPage assign manager interaction', () => {
     it('When Assign Manager button is clicked / Then assign manager modal opens', async () => {
         renderPage();
         await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-        fireEvent.click(screen.getByRole('button', { name: /Assign Manager/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Assign manager/i }));
         await waitFor(() => expect(screen.getByText('Assign Department Manager')).toBeInTheDocument());
     });
 
     it('When assign manager modal opens / Then people list is loaded', async () => {
         renderPage();
         await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-        fireEvent.click(screen.getByRole('button', { name: /Assign Manager/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Assign manager/i }));
         await waitFor(() => expect(mockPeopleApi.getAll).toHaveBeenCalledWith({ status: 'active', limit: 200 }));
     });
 
     it('When assign manager modal Cancel is clicked / Then modal closes', async () => {
         renderPage();
         await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-        fireEvent.click(screen.getByRole('button', { name: /Assign Manager/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Assign manager/i }));
         await waitFor(() => expect(screen.getByText('Assign Department Manager')).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
         await waitFor(() => expect(screen.queryByText('Assign Department Manager')).not.toBeInTheDocument());

@@ -284,7 +284,7 @@ describe('Given PeoplePage create modal', () => {
   it('When Add Person is clicked / Then create modal opens', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Person'));
+    fireEvent.click(screen.getByText('New person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
   });
 });
@@ -297,7 +297,7 @@ describe('Given the Work Location field in the create modal', () => {
   const openModal = async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Person'));
+    fireEvent.click(screen.getByText('New person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
   };
 
@@ -339,7 +339,7 @@ describe('Given the Designation (Job Title) field in the create modal', () => {
   const openModal = async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Person'));
+    fireEvent.click(screen.getByText('New person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
     // Designation lives behind the Employment Details disclosure now.
     fireEvent.click(screen.getByText('Employment Details'));
@@ -386,7 +386,7 @@ describe('Given the Employment Type field in the create modal', () => {
   const openModal = async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Person'));
+    fireEvent.click(screen.getByText('New person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
     // Employment Type lives behind the Employment Details disclosure now.
     fireEvent.click(screen.getByText('Employment Details'));
@@ -487,7 +487,7 @@ describe('Given the Department field in the create modal', () => {
   const openModal = async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Person'));
+    fireEvent.click(screen.getByText('New person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
   };
 
@@ -562,7 +562,7 @@ describe('Given the "Invite as New User" flow on create', () => {
   const openModalAndFillInvite = async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Person'));
+    fireEvent.click(screen.getByText('New person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
 
     const nameInput = screen.getByPlaceholderText('John Doe');
@@ -901,7 +901,7 @@ describe('Given PeoplePage mutates an employee', () => {
     mockApi.create.mockResolvedValue({ id: 'new-p' });
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Person'));
+    fireEvent.click(screen.getByText('New person'));
     await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
     const nameInput = screen.getByPlaceholderText('John Doe');
     fireEvent.change(nameInput, { target: { value: 'Bob Jones' } });

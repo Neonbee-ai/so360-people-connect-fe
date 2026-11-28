@@ -49,7 +49,7 @@ describe('DashboardPage (Comb)', () => {
 
   it('Given the Add Person action / When clicked / Then it navigates to People with openCreate', async () => {
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /New Person/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /New person/ }));
     expect(mockNavigate).toHaveBeenCalledWith('/people/people', { state: { openCreate: true } });
   });
 

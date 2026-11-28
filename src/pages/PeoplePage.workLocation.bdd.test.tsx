@@ -143,7 +143,7 @@ beforeEach(() => {
 const openCreateModal = async () => {
   renderPage();
   await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-  fireEvent.click(screen.getByText('New Person'));
+  fireEvent.click(screen.getByText('New person'));
   await waitFor(() => expect(screen.getByText(/Full Name/i)).toBeInTheDocument());
 };
 

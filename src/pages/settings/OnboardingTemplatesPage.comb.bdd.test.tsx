@@ -42,8 +42,8 @@ describe('OnboardingTemplatesPage (Comb)', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: 'Onboarding Templates' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Engineering New Hire')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /New Template/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Standard Templates/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New template/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Standard templates/ })).toBeInTheDocument();
   });
 
   it('Given no templates / When loaded / Then the empty state offers the standard catalog', async () => {
@@ -57,7 +57,7 @@ describe('OnboardingTemplatesPage (Comb)', () => {
     mockShell = { permissionsLoaded: true, hasPermission: (c: string) => c !== 'onboarding.manage' };
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering New Hire')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /New Template/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New template/ })).not.toBeInTheDocument();
     expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
   });
 
@@ -70,7 +70,7 @@ describe('OnboardingTemplatesPage (Comb)', () => {
   it('Given the template drawer is open / When Cancel is clicked / Then it closes', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering New Hire')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /New Template/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New template/ }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

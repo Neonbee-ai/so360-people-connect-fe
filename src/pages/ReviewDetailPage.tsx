@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-    toast, DetailPageTemplate, Card, Stack, Cluster, Grid, Button, Badge, Rating,
-    TextField, Textarea, NumberInput, Checkbox, EmptyState,
+    toast, DetailPageTemplate, Card, Stack, Cluster, Grid, Badge, Rating,
+    TextField, Textarea, NumberInput, Checkbox, EmptyState, type PageAction,
 } from '@so360/design-system';
 import { useActivity } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
@@ -289,25 +289,28 @@ const ReviewDetailPage: React.FC = () => {
         ? (showManagerTab ? 'manager' : 'overall')
         : activeTab === 'manager' && !showManagerTab ? 'overall' : activeTab;
 
-    let primaryAction: React.ReactNode;
+    let primaryAction: PageAction | undefined;
     if (review.status === 'self_review_pending' && !selfSubmitted && canSubmitSelf) {
-        primaryAction = (
-            <Button type="button" onClick={handleSubmitSelfReview} disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Submit Self Review'}
-            </Button>
-        );
+        primaryAction = {
+            id: 'submit-self-review',
+            label: submitting ? 'Submitting...' : 'Submit self review',
+            onSelect: handleSubmitSelfReview,
+            disabled: submitting,
+        };
     } else if (review.status === 'manager_review_pending' && !managerSubmitted && canSubmitManager) {
-        primaryAction = (
-            <Button type="button" onClick={handleSubmitManagerReview} disabled={submitting || overallRating === 0}>
-                {submitting ? 'Submitting...' : 'Submit Manager Review'}
-            </Button>
-        );
+        primaryAction = {
+            id: 'submit-manager-review',
+            label: submitting ? 'Submitting...' : 'Submit manager review',
+            onSelect: handleSubmitManagerReview,
+            disabled: submitting || overallRating === 0,
+        };
     } else if (review.status === 'manager_review_pending' && managerSubmitted) {
-        primaryAction = (
-            <Button type="button" onClick={handleCompleteReview} disabled={submitting}>
-                {submitting ? 'Completing...' : 'Complete Review'}
-            </Button>
-        );
+        primaryAction = {
+            id: 'complete-review',
+            label: submitting ? 'Completing...' : 'Complete review',
+            onSelect: handleCompleteReview,
+            disabled: submitting,
+        };
     }
 
     return (
@@ -315,7 +318,6 @@ const ReviewDetailPage: React.FC = () => {
             title={`${review.person?.full_name || 'Unknown'} - ${review.template?.name || 'Review'}`}
             meta={<span className="text-nb-sm text-fg-muted">{`Review Period: ${formatters.formatDate(review.review_period_start)} - ${formatters.formatDate(review.review_period_end)}`}</span>}
             trail={[{ label: 'Reviews', to: '/people/reviews' }]}
-            // TODO(comb-title-area): manual - primaryAction={primaryAction} cannot be resolved in this file
             primaryAction={primaryAction}
             tabs={[
                 ...(showSelfTab ? [{ id: 'self', label: `Self Review${selfSubmitted ? ' \u2713' : ''}` }] : []),

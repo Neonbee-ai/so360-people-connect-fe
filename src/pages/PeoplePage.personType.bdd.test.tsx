@@ -151,7 +151,7 @@ describe('Given the Add Person form', () => {
   const openCreate = async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Person'));
+    fireEvent.click(screen.getByText('New person'));
     await waitFor(() => expect(employmentTypeSelect('create-employment-type')).toBeInTheDocument());
     await waitFor(() =>
       expect(within(employmentTypeSelect('create-employment-type')).getByRole('option', { name: 'Freelancer' })).toBeInTheDocument(),

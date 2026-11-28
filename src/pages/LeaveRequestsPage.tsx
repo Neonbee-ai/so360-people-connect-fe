@@ -7,7 +7,6 @@ import type { DataTableColumn } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';
 import { usePeopleFormatters } from '../utils/formatters';
 import { leaveRequestsApi, LeaveRequest, CreateLeaveRequestPayload } from '../services/leaveRequestsService';
-import { apiContext } from '../services/apiClient';
 import LeaveRequestFormModal from '../components/leave/LeaveRequestFormModal';
 import ApprovalProgress from '../components/leave/ApprovalProgress';
 

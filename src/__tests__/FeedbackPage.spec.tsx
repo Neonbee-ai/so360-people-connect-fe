@@ -133,8 +133,8 @@ describe('FeedbackPage', () => {
 
     it('When the button is clicked / Then the modal opens', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('New Feedback')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('New Feedback'));
+      await waitFor(() => expect(screen.getByText('New feedback')).toBeInTheDocument());
+      fireEvent.click(screen.getByText('New feedback'));
       await waitFor(() => expect(screen.getByText('Feedback For *')).toBeInTheDocument());
     });
   });
@@ -146,7 +146,7 @@ describe('FeedbackPage — effectiveFlagsLoaded gate', () => {
     mockFeedback.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No feedback yet')).toBeInTheDocument());
-    expect(screen.queryByText('New Feedback')).not.toBeInTheDocument();
+    expect(screen.queryByText('New feedback')).not.toBeInTheDocument();
   });
 
   it('When effectiveFlagsLoaded is true / Then Give Feedback button is present', async () => {
@@ -154,6 +154,6 @@ describe('FeedbackPage — effectiveFlagsLoaded gate', () => {
     mockFeedback.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No feedback yet')).toBeInTheDocument());
-    expect(screen.getByText('New Feedback')).toBeInTheDocument();
+    expect(screen.getByText('New feedback')).toBeInTheDocument();
   });
 });

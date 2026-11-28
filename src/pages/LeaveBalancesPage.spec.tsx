@@ -86,7 +86,7 @@ describe('Given an employee is selected with no balance initialized yet', () => 
     fireEvent.change(screen.getByDisplayValue('Select an employee...'), { target: { value: 'person-1' } });
     await waitFor(() => expect(screen.getByText('Not initialized')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('Initialize Balances'));
+    fireEvent.click(screen.getByText('Initialize balances'));
 
     await waitFor(() => expect(mockBalancesApi.initialize).toHaveBeenCalledWith(
       expect.objectContaining({ person_id: 'person-1' }),

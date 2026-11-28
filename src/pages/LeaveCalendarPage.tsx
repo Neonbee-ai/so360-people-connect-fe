@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Select, Button, IconButton, Banner, Badge, Skeleton, Modal, DescriptionList, DashboardPageTemplate, Stack, Cluster } from '@so360/design-system';
+import { Button, IconButton, Banner, Badge, Skeleton, Modal, DescriptionList, DashboardPageTemplate, Stack, Cluster } from '@so360/design-system';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { leaveRequestsApi, LeaveRequest } from '../services/leaveRequestsService';
 import { departmentsApi, Department } from '../services/departmentsService';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart3, Download, FileSpreadsheet } from 'lucide-react';
-import { toast, Select, Button, Cluster, ChoiceCardGrid, SelectableCard, Skeleton, DataTable, DateInput, DashboardPageTemplate } from '@so360/design-system';
+import { toast, ChoiceCardGrid, SelectableCard, Skeleton, DataTable, DashboardPageTemplate } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import EmptyState from '../../components/EmptyState';
 import { payrollApi, ReportResult, PayrollGroup } from '../../services/payrollApi';
@@ -101,35 +101,32 @@ const PayrollReportsPage: React.FC = () => {
         <DashboardPageTemplate trail={[]}
             title="Payroll Reports"
             description="Registers, cost splits and statutory summaries"
-            // TODO(comb-title-area): manual - move inline filters into drawer fields (filters={{ fields, values, onChange, onClear }})
-            filters={
-                <Cluster gap="default" align="end">
-                    <DateInput name="from" label="From" value={filters.from} onChange={v => setFilters(f => ({ ...f, from: v }))} />
-                    <DateInput name="to" label="To" value={filters.to} onChange={v => setFilters(f => ({ ...f, to: v }))} />
-                    <Select
-                        name="group_id"
-                        label="Group"
-                        value={filters.group_id}
-                        onChange={e => setFilters(f => ({ ...f, group_id: e.target.value }))}
-                        options={[{ value: '', label: 'All groups' }, ...groups.map(g => ({ value: g.id, label: g.name }))]}
-                    />
-                    <Select
-                        name="department_id"
-                        label="Department"
-                        value={filters.department_id}
-                        onChange={e => setFilters(f => ({ ...f, department_id: e.target.value }))}
-                        options={[{ value: '', label: 'All departments' }, ...departments.map(d => ({ value: d.id, label: d.name }))]}
-                    />
-                    {selectedReport && (
-                        <>
-                            <Button variant="secondary" onClick={() => runReport(selectedReport)}>Apply Filters</Button>
-                            <Button onClick={exportCsv} disabled={exporting}>
-                                <Download size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
-                            </Button>
-                        </>
-                    )}
-                </Cluster>
-            }
+            filters={{
+                fields: [
+                    { key: 'from', label: 'From', type: 'date' },
+                    { key: 'to', label: 'To', type: 'date' },
+                    { key: 'group_id', label: 'Group', type: 'select', options: groups.map(g => ({ value: g.id, label: g.name })) },
+                    { key: 'department_id', label: 'Department', type: 'select', options: departments.map(d => ({ value: d.id, label: d.name })) },
+                ],
+                values: {
+                    from: filters.from || undefined,
+                    to: filters.to || undefined,
+                    group_id: filters.group_id || undefined,
+                    department_id: filters.department_id || undefined,
+                },
+                onChange: (v) => setFilters(f => ({
+                    ...f,
+                    from: (v.from as string) || '',
+                    to: (v.to as string) || '',
+                    group_id: (v.group_id as string) || '',
+                    department_id: (v.department_id as string) || '',
+                })),
+                onClear: () => setFilters(f => ({ ...f, from: '', to: '', group_id: '', department_id: '' })),
+            }}
+            secondaryActions={selectedReport ? [
+                { id: 'apply-filters', label: 'Apply filters', onSelect: () => runReport(selectedReport) },
+                { id: 'export-csv', label: exporting ? 'Exporting…' : 'Export CSV', kind: 'export', icon: <Download />, onSelect: exportCsv, disabled: exporting },
+            ] : undefined}
             primary={
                 <ChoiceCardGrid
                     name="payroll-reports"

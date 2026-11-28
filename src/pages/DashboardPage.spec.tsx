@@ -93,7 +93,7 @@ describe('Given DashboardPage with full data', () => {
 
   it('When events load / Then activity feed contains "New Person"', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('New Person')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('New person')).toBeInTheDocument());
   });
 });
 

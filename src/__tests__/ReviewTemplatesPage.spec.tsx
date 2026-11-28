@@ -53,7 +53,7 @@ describe('ReviewTemplatesPage', () => {
     it('When Create Template is clicked / Then the modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Annual Review')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('New Template'));
+      fireEvent.click(screen.getByText('New template'));
       await waitFor(() => expect(screen.getByText('Create Review Template')).toBeInTheDocument());
     });
 
@@ -83,7 +83,7 @@ describe('ReviewTemplatesPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No review templates found')).toBeInTheDocument());
-    expect(screen.queryByText('New Template')).not.toBeInTheDocument();
+    expect(screen.queryByText('New template')).not.toBeInTheDocument();
   });
 
   it('When effectiveFlagsLoaded is true / Then Create Template button is present', async () => {
@@ -91,6 +91,6 @@ describe('ReviewTemplatesPage — effectiveFlagsLoaded gate', () => {
     mockApi.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No review templates found')).toBeInTheDocument());
-    expect(screen.queryAllByText('New Template').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('New template').length).toBeGreaterThan(0);
   });
 });

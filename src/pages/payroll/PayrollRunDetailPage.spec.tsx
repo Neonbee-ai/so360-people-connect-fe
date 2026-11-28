@@ -106,7 +106,7 @@ describe('GIVEN a draft payroll run', () => {
     await waitFor(() => expect(screen.getByText('Payroll Run #3')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Approve'));
     await waitFor(() => expect(screen.getByText(/Approval becomes available/)).toBeInTheDocument());
-    expect(screen.queryByText('Approve Run')).not.toBeInTheDocument();
+    expect(screen.queryByText('Approve run')).not.toBeInTheDocument();
   });
 
   it('WHEN a draft run renders THEN Reopen is not offered (illegal from draft)', async () => {
@@ -126,18 +126,18 @@ describe('GIVEN a run pending approval', () => {
     await waitFor(() => expect(screen.getByText('Payroll Run #3')).toBeInTheDocument());
     const approveStep = screen.getByText('Approve').closest('button') as HTMLButtonElement;
     expect(approveStep).toHaveAttribute('aria-current', 'step');
-    expect(screen.getByText('Approve Run')).toBeInTheDocument();
+    expect(screen.getByText('Approve run')).toBeInTheDocument();
   });
 
   it('WHEN Approve Run is clicked THEN a confirmation with totals appears before the API call', async () => {
     mockApi.runs.approve.mockResolvedValue({ ...baseRun, status: 'approved' });
     renderPage();
-    await waitFor(() => expect(screen.getByText('Approve Run')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Approve Run'));
+    await waitFor(() => expect(screen.getByText('Approve run')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Approve run'));
     await waitFor(() => expect(screen.getByText('Approve Payroll Run')).toBeInTheDocument());
     expect(mockApi.runs.approve).not.toHaveBeenCalled();
     // Page action + modal confirm share the label; the modal confirm is last.
-    const approveButtons = screen.getAllByRole('button', { name: 'Approve Run' });
+    const approveButtons = screen.getAllByRole('button', { name: 'Approve run' });
     fireEvent.click(approveButtons[approveButtons.length - 1]);
     await waitFor(() => expect(mockApi.runs.approve).toHaveBeenCalledWith('run-1'));
   });

@@ -74,7 +74,7 @@ describe('Given DepartmentDetailPage on Comb', () => {
         expect(await screen.findByRole('heading', { name: 'Engineering' })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: 'Access' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Assign Manager/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Assign manager/i })).toBeInTheDocument();
     });
 
     it('When data is pending / Then loading state is shown', () => {
@@ -100,7 +100,7 @@ describe('Given DepartmentDetailPage on Comb', () => {
         renderPage();
         await screen.findByRole('heading', { name: 'Engineering' });
         expect(screen.queryByRole('button', { name: /^Edit$/i })).toBeNull();
-        expect(screen.queryByRole('button', { name: /Assign Manager/i })).toBeNull();
+        expect(screen.queryByRole('button', { name: /Assign manager/i })).toBeNull();
         expect(screen.queryByRole('button', { name: /Archive/i })).toBeNull();
         expect(screen.queryByRole('tab', { name: 'Access' })).toBeNull();
     });

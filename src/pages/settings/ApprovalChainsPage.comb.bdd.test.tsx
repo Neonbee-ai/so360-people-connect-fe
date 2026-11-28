@@ -37,7 +37,7 @@ describe('Given ApprovalChainsPage built on Comb ListPageTemplate', () => {
     expect(await screen.findByText('Alice Doe')).toBeInTheDocument();
     expect(screen.getByText('Approval Chains')).toBeInTheDocument();
     expect(screen.getByText('Bob Boss')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /New Relationship/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New relationship/ })).toBeInTheDocument();
   });
 
   it('When there are no chains / Then the empty state is shown', async () => {
@@ -70,7 +70,7 @@ describe('Given ApprovalChainsPage built on Comb ListPageTemplate', () => {
     api.getApprovalChains.mockResolvedValue([chain]);
     renderPage();
     await screen.findByText('Alice Doe');
-    expect(screen.queryByRole('button', { name: /New Relationship/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New relationship/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
   });
 
@@ -83,7 +83,7 @@ describe('Given ApprovalChainsPage built on Comb ListPageTemplate', () => {
   it('When New Relationship is clicked / Then the Define Approval Relationship modal opens', async () => {
     api.getApprovalChains.mockResolvedValue([]);
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /New Relationship/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /New relationship/ }));
     expect(await screen.findByRole('dialog', { name: 'Define Approval Relationship' })).toBeInTheDocument();
   });
 });

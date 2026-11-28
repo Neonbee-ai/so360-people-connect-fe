@@ -127,12 +127,14 @@ const LeaveRequestDetailPage: React.FC = () => {
                 onSelect: approve,
                 disabled: acting,
             } : undefined}
-            // TODO(comb-title-area): manual - not a JSX Button
-            secondaryActions={showActions && !rejecting ? [
-                <Button key="reject" variant="danger" onClick={() => setRejecting(true)} disabled={acting}>
-                    <XCircle size={16} /> Reject
-                </Button>,
-            ] : undefined}
+            moreActions={showActions && !rejecting ? [{
+                id: 'reject',
+                label: 'Reject',
+                icon: <XCircle />,
+                kind: 'danger',
+                onSelect: () => setRejecting(true),
+                disabled: acting,
+            }] : undefined}
         >
             <Stack gap="default">
                 <Card title={request.leave_type?.name ?? 'Leave'}>

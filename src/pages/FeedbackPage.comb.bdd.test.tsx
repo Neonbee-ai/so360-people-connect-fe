@@ -39,7 +39,7 @@ describe('FeedbackPage (Comb)', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: 'Feedback' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Excellent work')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /New Feedback/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New feedback/ })).toBeInTheDocument();
   });
 
   it('Given no feedback / When loaded / Then the empty state shows', async () => {
@@ -52,7 +52,7 @@ describe('FeedbackPage (Comb)', () => {
     api.getAll.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.getByText('No feedback yet')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /New Feedback/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New feedback/ }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
@@ -62,7 +62,7 @@ describe('FeedbackPage (Comb)', () => {
     api.getAll.mockRejectedValue(new Error('400'));
     renderPage();
     await waitFor(() => expect(errSpy).toHaveBeenCalledWith('Failed to load feedback'));
-    fireEvent.click(screen.getByRole('button', { name: /New Feedback/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New feedback/ }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
@@ -70,7 +70,7 @@ describe('FeedbackPage (Comb)', () => {
     flagEnabled = false;
     renderPage();
     await waitFor(() => expect(screen.getByText('Excellent work')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /New Feedback/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New feedback/ })).not.toBeInTheDocument();
   });
 
   it('Given the type filter / When changed / Then the API is called with that type', async () => {
@@ -83,7 +83,7 @@ describe('FeedbackPage (Comb)', () => {
   it('Given the modal is open / When Cancel is clicked / Then it closes', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Excellent work')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /New Feedback/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New feedback/ }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

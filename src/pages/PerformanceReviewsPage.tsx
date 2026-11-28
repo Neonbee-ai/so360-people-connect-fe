@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import EmptyState from '../components/EmptyState';
 import PersonPicker, { PickablePerson } from '../components/PersonPicker';
 import {
-    toast, getErrorMessage, Select, ListPageTemplate, DataTable, Modal, Button, Tabs, Badge, Avatar, Rating,
+    toast, getErrorMessage, Select, ListPageTemplate, DataTable, Modal, Button, Badge, Avatar, Rating,
     Cluster, Stack, Grid, Card, Alert, DateInput,
 } from '@so360/design-system';
 import { useActivity, useShellBridge } from '@so360/shell-context';

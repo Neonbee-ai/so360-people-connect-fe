@@ -87,7 +87,7 @@ describe('Given ReviewTemplatesPage create interaction', () => {
   it('When Create Template is clicked / Then create modal opens', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Annual 2024')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Template'));
+    fireEvent.click(screen.getByText('New template'));
     await waitFor(() => expect(screen.getByText('Name *')).toBeInTheDocument());
   });
 });

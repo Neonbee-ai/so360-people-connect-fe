@@ -71,7 +71,7 @@ describe('Given onboarding templates exist', () => {
   it('When New Template is clicked / Then the drawer opens with one blank item row', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering New Hire')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Template'));
+    fireEvent.click(screen.getByText('New template'));
     await waitFor(() => expect(screen.getByText('New Onboarding Template')).toBeInTheDocument());
     expect(screen.getByLabelText('Item 1 title')).toBeInTheDocument();
   });
@@ -79,7 +79,7 @@ describe('Given onboarding templates exist', () => {
   it('When Add Item is clicked / Then a second item row appears', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering New Hire')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Template'));
+    fireEvent.click(screen.getByText('New template'));
     await waitFor(() => expect(screen.getByLabelText('Item 1 title')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Add Item'));
     expect(screen.getByLabelText('Item 2 title')).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe('Given onboarding templates exist', () => {
     mockApi.createTemplate.mockResolvedValue({ id: 't3', items: [] });
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering New Hire')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('New Template'));
+    fireEvent.click(screen.getByText('New template'));
     await waitFor(() => expect(screen.getByText('New Onboarding Template')).toBeInTheDocument());
 
     fireEvent.change(screen.getByPlaceholderText('e.g. Engineering New Hire'), {
@@ -155,7 +155,7 @@ describe('Given a viewer without onboarding.manage', () => {
     mockShell = { permissionsLoaded: true, hasPermission: (code: string) => code !== 'onboarding.manage' };
     renderPage();
     await waitFor(() => expect(screen.getByText('Engineering New Hire')).toBeInTheDocument());
-    expect(screen.queryByText('New Template')).not.toBeInTheDocument();
+    expect(screen.queryByText('New template')).not.toBeInTheDocument();
     expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
     expect(screen.queryByTitle('Delete')).not.toBeInTheDocument();
   });

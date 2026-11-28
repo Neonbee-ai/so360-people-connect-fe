@@ -17,7 +17,7 @@ import { usePeopleFormatters } from '../utils/formatters';
 import { peopleApi, allocationsApi } from '../services/peopleService';
 import { timesheetApi } from '../services/timesheetApi';
 import type { TimesheetEntry } from '../services/timesheetApi';
-import { goalsApi, Goal } from '../services/goalsService';
+import { goalsApi} from '../services/goalsService';
 import { workLocationsApi, WorkLocation } from '../services/workLocationsService';
 import DepartmentSelector from '../components/DepartmentSelector';
 import UserSelector from '../components/UserSelector';
@@ -372,25 +372,14 @@ const PersonDetailPage: React.FC = () => {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             maxVisible={5}
-            // TODO(comb-title-area): manual - not a JSX Button
             secondaryActions={!editing
                 ? [
-                    <Button key="edit" variant="secondary" onClick={() => { setEditing(true); setEditData(person); }}>
-                        <Edit2 size={13} /> Edit
-                    </Button>,
+                    { id: 'edit', label: 'Edit', icon: <Edit2 />, onSelect: () => { setEditing(true); setEditData(person); } },
                     ...(activeTab === 'rate-history' && canViewCompensation
-                        ? [
-                            <Button key="add-rate" variant="secondary" onClick={() => setShowUpdateRateModal(true)}>
-                                <DollarSign size={13} /> Add new rate
-                            </Button>,
-                        ]
+                        ? [{ id: 'add-rate', label: 'Add new rate', icon: <DollarSign />, onSelect: () => setShowUpdateRateModal(true) }]
                         : []),
                 ]
-                : [
-                    <Button key="cancel" variant="secondary" onClick={() => setEditing(false)}>
-                        <X size={13} /> Cancel
-                    </Button>,
-                ]}
+                : [{ id: 'cancel', label: 'Cancel', icon: <X />, onSelect: () => setEditing(false) }]}
             primaryAction={editing ? {
                 id: 'save',
                 label: 'Save',

@@ -231,10 +231,10 @@ describe('GIVEN a run in review', () => {
   it('WHEN Submit for Approval is confirmed THEN the submit-review API is called', async () => {
     mockApi.runs.submitReview.mockResolvedValue({});
     renderPage();
-    await waitFor(() => expect(screen.getByText('Submit for Approval')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Submit for Approval'));
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Submit for Approval' })).toBeInTheDocument());
-    const buttons = screen.getAllByRole('button', { name: 'Submit for Approval' });
+    await waitFor(() => expect(screen.getByText('Submit for approval')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Submit for approval'));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Submit for approval' })).toBeInTheDocument());
+    const buttons = screen.getAllByRole('button', { name: 'Submit for approval' });
     fireEvent.click(buttons[buttons.length - 1]);
     await waitFor(() => expect(mockApi.runs.submitReview).toHaveBeenCalledWith('run-1'));
   });
@@ -277,7 +277,7 @@ describe('GIVEN an approved run (pay step)', () => {
 
   it('WHEN the page loads THEN the totals card and Mark as Paid are available', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Mark as Paid')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Mark as paid')).toBeInTheDocument());
     expect(screen.getByText('Gross Pay')).toBeInTheDocument();
     expect(screen.getByText('$109,000.00')).toBeInTheDocument();
   });
@@ -285,10 +285,10 @@ describe('GIVEN an approved run (pay step)', () => {
   it('WHEN Mark as Paid is confirmed THEN the mark-paid API is called', async () => {
     mockApi.runs.markPaid.mockResolvedValue({});
     renderPage();
-    await waitFor(() => expect(screen.getByText('Mark as Paid')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Mark as Paid'));
+    await waitFor(() => expect(screen.getByText('Mark as paid')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Mark as paid'));
     await waitFor(() => expect(screen.getByText('Mark Run as Paid')).toBeInTheDocument());
-    const buttons = screen.getAllByRole('button', { name: 'Mark as Paid' });
+    const buttons = screen.getAllByRole('button', { name: 'Mark as paid' });
     fireEvent.click(buttons[buttons.length - 1]);
     await waitFor(() => expect(mockApi.runs.markPaid).toHaveBeenCalledWith('run-1'));
   });
@@ -309,10 +309,10 @@ describe('GIVEN a paid run (close step)', () => {
   it('WHEN Close Run is confirmed THEN the close API is called', async () => {
     mockApi.runs.close.mockResolvedValue({});
     renderPage();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Close Run' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Close Run' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Close run' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Close run' }));
     await waitFor(() => expect(screen.getByText('Close Payroll Run')).toBeInTheDocument());
-    const buttons = screen.getAllByRole('button', { name: 'Close Run' });
+    const buttons = screen.getAllByRole('button', { name: 'Close run' });
     fireEvent.click(buttons[buttons.length - 1]);
     await waitFor(() => expect(mockApi.runs.close).toHaveBeenCalledWith('run-1'));
   });
@@ -322,7 +322,7 @@ describe('GIVEN a paid run (close step)', () => {
     await waitFor(() => expect(screen.getByText('Payroll Run #9')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Pay'));
     await waitFor(() => expect(screen.getByText(/^Paid /)).toBeInTheDocument());
-    expect(screen.queryByText('Mark as Paid')).not.toBeInTheDocument();
+    expect(screen.queryByText('Mark as paid')).not.toBeInTheDocument();
   });
 });
 

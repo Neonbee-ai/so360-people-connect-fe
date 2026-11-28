@@ -199,15 +199,12 @@ const MasterListPage: React.FC<MasterListPageProps> = ({
       <ListPageTemplate trail={[{ label: 'Settings', to: '/people/settings' }]}
         title={plural}
         description={description || `Manage the ${plural.toLowerCase()} available across People Connect`}
-        // TODO(comb-title-area): manual - label is not a plain string
-        primaryAction={
-          canManage ? (
-            <Button onClick={() => setShowModal(true)}>
-              <Plus size={16} />
-              New {label}
-            </Button>
-          ) : undefined
-        }
+        primaryAction={canManage ? {
+          id: 'new-master',
+          label: `New ${label.toLowerCase()}`,
+          icon: <Plus />,
+          onSelect: () => setShowModal(true),
+        } : undefined}
         loading={loading}
         isEmpty={!!loadError || rows.length === 0}
         empty={emptyNode}

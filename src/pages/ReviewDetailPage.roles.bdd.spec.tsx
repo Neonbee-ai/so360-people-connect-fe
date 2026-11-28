@@ -89,14 +89,14 @@ describe('Given role-based review sections (Pulse cac0fab5)', () => {
     await renderAs('emp1');
     await waitFor(() => expect(screen.queryByRole('tab', { name: /^Manager Review/ })).not.toBeInTheDocument());
     expect(screen.getByRole('tab', { name: /^Self Review/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Submit Self Review' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Submit self review' })).toBeInTheDocument();
   });
 
   it('When someone other than the subject opens an unsubmitted review / Then Self Review is hidden and they cannot submit it', async () => {
     await renderAs('admin1');
     await waitFor(() => expect(screen.queryByRole('tab', { name: /^Self Review/ })).not.toBeInTheDocument());
     expect(screen.getByRole('tab', { name: /^Manager Review/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Submit Self Review' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Submit self review' })).not.toBeInTheDocument();
   });
 
   it('When the viewer profile cannot be resolved / Then both sections stay visible (display fails open)', async () => {

@@ -44,7 +44,7 @@ describe('HolidaysPage (Comb)', () => {
     expect(await screen.findByText('Republic Day')).toBeInTheDocument();
     expect(screen.getByText('Holiday Calendar')).toBeInTheDocument();
     expect(screen.getByText('January')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'New Holiday' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'New holiday' }).length).toBeGreaterThan(0);
   });
 
   it('Given no holidays / When it loads / Then the empty state shows', async () => {
@@ -62,7 +62,7 @@ describe('HolidaysPage (Comb)', () => {
   it('Given a manager / When Add Holiday is filled and saved / Then create is called with the payload', async () => {
     renderPage();
     await screen.findByText('Republic Day');
-    fireEvent.click(screen.getAllByRole('button', { name: 'New Holiday' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'New holiday' })[0]);
     fireEvent.change(await screen.findByLabelText('Name *'), { target: { value: 'Diwali' } });
     fireEvent.change(screen.getByLabelText('Date *'), { target: { value: '2030-11-01' } });
     fireEvent.submit(document.getElementById('holiday-form') as HTMLFormElement);
@@ -80,7 +80,7 @@ describe('HolidaysPage (Comb)', () => {
     flags.manage = false;
     renderPage();
     await screen.findByText('Republic Day');
-    expect(screen.queryByRole('button', { name: 'New Holiday' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'New holiday' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
   });
 
@@ -115,7 +115,7 @@ describe('HolidaysPage (Comb)', () => {
   it('Given Add Holiday with a department picked / When saved / Then create sends department_id and is_active', async () => {
     renderPage();
     await screen.findByText('Republic Day');
-    fireEvent.click(screen.getAllByRole('button', { name: 'New Holiday' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'New holiday' })[0]);
     fireEvent.change(await screen.findByLabelText('Name *'), { target: { value: 'Onam' } });
     fireEvent.change(screen.getByLabelText('Date *'), { target: { value: '2030-09-01' } });
     fireEvent.change(screen.getByLabelText('Department'), { target: { value: 'd1' } });
@@ -126,7 +126,7 @@ describe('HolidaysPage (Comb)', () => {
   it('Given Add Holiday without a department / When saved / Then department_id is null (all departments)', async () => {
     renderPage();
     await screen.findByText('Republic Day');
-    fireEvent.click(screen.getAllByRole('button', { name: 'New Holiday' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'New holiday' })[0]);
     fireEvent.change(await screen.findByLabelText('Name *'), { target: { value: 'Onam' } });
     fireEvent.change(screen.getByLabelText('Date *'), { target: { value: '2030-09-01' } });
     fireEvent.submit(document.getElementById('holiday-form') as HTMLFormElement);

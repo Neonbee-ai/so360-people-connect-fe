@@ -8,8 +8,7 @@ import {
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
 import {
-    toast, Select, DataTable, useConfirm, type DataTableColumn,
-    Alert, Avatar, Button, Card, Checkbox, Cluster, DetailPageTemplate, FieldGrid, Grid, KpiCard,
+    toast, Select, DataTable, useConfirm, type DataTableColumn, Avatar, Button, Card, Checkbox, Cluster, DetailPageTemplate, FieldGrid, Grid, KpiCard,
     PageContainer, Skeleton, Stack, TextField, Textarea,
 } from '@so360/design-system';
 import EmptyState from '../components/EmptyState';
@@ -550,31 +549,16 @@ const DepartmentDetailPage: React.FC = () => {
                     `Created ${new Date(department.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`,
                     `${employeeTotal} employees`,
                 ].filter(Boolean).join(' · ')}
-                // TODO(comb-title-area): manual - not a JSX Button
-                secondaryActions={
-                    canEdit
-                        ? [
-                            <Button key="edit" variant="secondary" onClick={() => setShowEditModal(true)}>
-                                <Edit2 size={13} /> Edit
-                            </Button>,
-                            <Button key="assign" variant="secondary" onClick={() => setShowAssignManagerModal(true)}>
-                                <UserPlus size={13} /> Assign Manager
-                            </Button>,
-                            ...(!department.is_active && canArchive
-                                ? [
-                                    <Button key="restore" variant="secondary" onClick={handleRestore}>
-                                        <ArchiveRestore size={13} /> Restore
-                                    </Button>,
-                                ]
-                                : []),
-                        ]
-                        : undefined
-                }
-                overflowActions={
-                    canEdit && department.is_active && canArchive
-                        ? [{ label: 'Archive', icon: <Archive size={14} />, onSelect: handleArchive }]
-                        : undefined
-                }
+                secondaryActions={canEdit ? [
+                    { id: 'edit', label: 'Edit', icon: <Edit2 />, onSelect: () => setShowEditModal(true) },
+                    { id: 'assign-manager', label: 'Assign manager', icon: <UserPlus />, onSelect: () => setShowAssignManagerModal(true) },
+                    ...(!department.is_active && canArchive
+                        ? [{ id: 'restore', label: 'Restore', icon: <ArchiveRestore />, onSelect: handleRestore }]
+                        : []),
+                ] : undefined}
+                moreActions={canEdit && department.is_active && canArchive
+                    ? [{ id: 'archive', label: 'Archive', icon: <Archive />, kind: 'danger', onSelect: handleArchive }]
+                    : undefined}
                 tabs={TABS}
                 activeTab={activeTab}
                 onTabChange={(tab: string) => setActiveTab(tab as 'overview' | 'analytics' | 'access')}

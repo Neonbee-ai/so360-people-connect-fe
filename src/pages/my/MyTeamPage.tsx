@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Calendar, Check, X } from 'lucide-react';
-import { Button, Cluster, DashboardPageTemplate, SearchInput, SegmentedControl, Stack, TextField } from '@so360/design-system';
+import { Button, Cluster, DashboardPageTemplate, SearchInput, Stack, TextField } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { WhosOutEntry, DirectoryEntry, TeamLeaveRequest } from '../../services/meService';
 import { Avatar, MyCard, StatusPill } from './myUi';

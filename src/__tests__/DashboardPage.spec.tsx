@@ -70,7 +70,7 @@ describe('DashboardPage', () => {
 
     it('When the page loads / Then it shows the activity feed', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('New Person')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('New person')).toBeInTheDocument());
     });
   });
 

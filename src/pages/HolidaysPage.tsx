@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { CalendarDays, Edit2, Trash2, Copy, List as ListIcon } from 'lucide-react';
 import { filterHolidaysBySearch, duplicateSeed, holidayEvents } from '../utils/holidayView';
 import EmptyState from '../components/EmptyState';
-import { toast, useConfirm, Select, Button, IconButton, Badge, ListPageTemplate, DataTable, Modal, TextField, DateInput, Switch, Stack, Cluster, SearchInput, EventCalendar } from '@so360/design-system';
+import { toast, useConfirm, Select, Button, IconButton, Badge, ListPageTemplate, DataTable, Modal, TextField, DateInput, Switch, Stack, Cluster, EventCalendar } from '@so360/design-system';
 import type { DataTableColumn } from '@so360/design-system';
 import { useShellBridge } from '@so360/shell-context';
 import {
@@ -273,11 +273,11 @@ const HolidaysPage: React.FC = () => {
         filters={{
           fields: [
             { key: 'type', label: 'Type', type: 'select', options: HOLIDAY_TYPE_OPTIONS.map((t) => ({ value: t.value, label: t.label })) },
-            { key: 'year', label: 'Year', type: 'select', default: String(DEFAULT_YEAR), options: YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) })) },
+            { key: 'year', label: 'Year', type: 'select', default: String(currentYear), options: YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) })) },
           ],
           values: { type: typeFilter || undefined, year },
-          onChange: (v) => { setTypeFilter((v.type as string) || ''); setYear((v.year as string) || String(DEFAULT_YEAR)); },
-          onClear: () => { setTypeFilter(''); setYear(String(DEFAULT_YEAR)); },
+          onChange: (v) => { setTypeFilter((v.type as string) || ''); setYear((v.year as string) || String(currentYear)); },
+          onClear: () => { setTypeFilter(''); setYear(String(currentYear)); },
         }}
         secondaryActions={canManage ? [{
           id: 'copy-previous-year',

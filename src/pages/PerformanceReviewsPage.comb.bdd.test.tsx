@@ -42,7 +42,7 @@ describe('PerformanceReviewsPage (Comb)', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: 'Performance Reviews' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /New Review/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New review/ })).toBeInTheDocument();
   });
 
   it('Given no reviews / When loaded / Then the empty state shows', async () => {
@@ -55,13 +55,13 @@ describe('PerformanceReviewsPage (Comb)', () => {
     flagEnabled = false;
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /New Review/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New review/ })).not.toBeInTheDocument();
   });
 
   it('Given the My Reviews tab / When selected / Then the my-reviews endpoint is used', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: /My Reviews/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /My reviews/ }));
     await waitFor(() => expect(api.getMyReviews).toHaveBeenCalled());
   });
 
@@ -69,14 +69,14 @@ describe('PerformanceReviewsPage (Comb)', () => {
     api.getAll.mockResolvedValue({ data: [], total: 0 });
     renderPage();
     await waitFor(() => expect(screen.getByText('No performance reviews found')).toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole('button', { name: /New Review/ })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /New review/ })[0]);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('Given the create modal is open / When Cancel is clicked / Then it closes', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /New Review/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New review/ }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

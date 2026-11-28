@@ -77,7 +77,7 @@ describe('DepartmentsPage', () => {
     it('When the Create Department button is clicked / Then the modal opens', async () => {
       renderPage();
       await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('New Department'));
+      fireEvent.click(screen.getByText('New department'));
       await waitFor(() => expect(screen.getByPlaceholderText('ENG')).toBeInTheDocument());
     });
 
@@ -86,7 +86,7 @@ describe('DepartmentsPage', () => {
       mockApi.create.mockReturnValue(new Promise(r => { resolveCreate = r; }));
       renderPage();
       await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('New Department'));
+      fireEvent.click(screen.getByText('New department'));
       await waitFor(() => expect(screen.getByPlaceholderText('ENG')).toBeInTheDocument());
       fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'OPS' } });
       fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'Operations' } });
@@ -104,7 +104,7 @@ describe('DepartmentsPage', () => {
       mockApi.create.mockRejectedValue(new Error("Department code 'OPS' is used by an archived department."));
       renderPage();
       await waitFor(() => expect(screen.getByText('Engineering')).toBeInTheDocument());
-      fireEvent.click(screen.getByText('New Department'));
+      fireEvent.click(screen.getByText('New department'));
       await waitFor(() => expect(screen.getByPlaceholderText('ENG')).toBeInTheDocument());
       fireEvent.change(screen.getByPlaceholderText('ENG'), { target: { value: 'OPS' } });
       fireEvent.change(screen.getByPlaceholderText('Engineering'), { target: { value: 'Operations' } });
@@ -131,7 +131,7 @@ describe('DepartmentsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getTree.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No departments found')).toBeInTheDocument());
-    expect(screen.queryByText('New Department')).not.toBeInTheDocument();
+    expect(screen.queryByText('New department')).not.toBeInTheDocument();
   });
 
   it('When effectiveFlagsLoaded is true / Then Create Department button is present', async () => {
@@ -139,6 +139,6 @@ describe('DepartmentsPage — effectiveFlagsLoaded gate', () => {
     mockApi.getTree.mockResolvedValue({ data: [] });
     renderPage();
     await waitFor(() => expect(screen.queryByText('No departments found')).toBeInTheDocument());
-    expect(screen.queryAllByText('New Department').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('New department').length).toBeGreaterThan(0);
   });
 });

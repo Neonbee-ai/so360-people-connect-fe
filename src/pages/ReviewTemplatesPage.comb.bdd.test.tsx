@@ -39,7 +39,7 @@ describe('ReviewTemplatesPage (Comb)', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: 'Review Templates' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Annual 2024')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /New Template/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New template/ })).toBeInTheDocument();
   });
 
   it('Given no templates / When loaded / Then the empty state shows', async () => {
@@ -52,7 +52,7 @@ describe('ReviewTemplatesPage (Comb)', () => {
     flagEnabled = false;
     renderPage();
     await waitFor(() => expect(screen.getByText('Annual 2024')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /New Template/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New template/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
   });
 
@@ -60,14 +60,14 @@ describe('ReviewTemplatesPage (Comb)', () => {
     api.getAll.mockResolvedValue({ data: [], total: 0 });
     renderPage();
     await waitFor(() => expect(screen.getByText('No review templates found')).toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole('button', { name: /New Template/ })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /New template/ })[0]);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('Given the create modal is open / When Cancel is clicked / Then it closes', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Annual 2024')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /New Template/ }));
+    fireEvent.click(screen.getByRole('button', { name: /New template/ }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

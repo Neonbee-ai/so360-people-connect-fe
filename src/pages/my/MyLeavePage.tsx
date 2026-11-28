@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Plus } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
-import { Button, Cluster, DashboardPageTemplate, Grid, Stack, toast } from '@so360/design-system';
+import { Cluster, DashboardPageTemplate, Grid, Stack, toast } from '@so360/design-system';
 import { meService } from '../../services/meService';
 import type { MyLeaveBalance } from '../../services/meService';
 import { leaveRequestsApi } from '../../services/leaveRequestsService';

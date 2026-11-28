@@ -122,7 +122,7 @@ describe('Given an active department', () => {
     it('When Assign Manager opens / Then one searchable picker replaces search field plus dropdown', async () => {
         deptApi.getById.mockResolvedValue(active);
         renderPage();
-        fireEvent.click(await screen.findByRole('button', { name: /Assign Manager/i }));
+        fireEvent.click(await screen.findByRole('button', { name: /Assign manager/i }));
         expect(await screen.findByLabelText('Select Manager *')).toBeInTheDocument();
         expect(screen.queryByLabelText('Search')).toBeNull();
         expect(screen.getByPlaceholderText('Search by name...')).toBeInTheDocument();

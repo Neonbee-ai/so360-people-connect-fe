@@ -64,14 +64,14 @@ describe('LeaveBalancesPage (Comb)', () => {
     balances.initialize.mockResolvedValue({});
     renderPage();
     await pick();
-    fireEvent.click(screen.getByText('Initialize Balances'));
+    fireEvent.click(screen.getByText('Initialize balances'));
     await waitFor(() => expect(balances.initialize).toHaveBeenCalledWith(expect.objectContaining({ person_id: 'p1', fiscal_year: expect.any(Number) })));
   });
 
   it('Given the adjust flag is off / When rendered / Then Initialize is hidden', async () => {
     flags.adjust = false;
     renderPage();
-    expect(screen.queryByText('Initialize Balances')).not.toBeInTheDocument();
+    expect(screen.queryByText('Initialize balances')).not.toBeInTheDocument();
   });
 
   it('Given the balances API fails / When an employee is selected / Then an error toast shows', async () => {

@@ -53,7 +53,7 @@ describe('CompanyEventsPage (Comb)', () => {
   it('Given a user without create rights / When the page loads / Then New Event and row actions are hidden', async () => {
     renderPage();
     await screen.findByText('2 going · 1 maybe');
-    expect(screen.queryByRole('button', { name: /New Event/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /New event/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
   });
@@ -129,7 +129,7 @@ describe('CompanyEventsPage (Comb)', () => {
   it('Given a creator / When New Event is filled and saved / Then create gets UTC times and the audience', async () => {
     api.getAll.mockResolvedValue(list([], true));
     renderPage();
-    fireEvent.click((await screen.findAllByRole('button', { name: /New Event/ }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: /New event/ }))[0]);
     fireEvent.change(screen.getByLabelText('Title *'), { target: { value: 'Offsite' } });
     fireEvent.change(screen.getByLabelText('Starts *'), { target: { value: '2099-05-01T09:00' } });
     fireEvent.change(screen.getByLabelText('Ends *'), { target: { value: '2099-05-01T17:00' } });
@@ -143,7 +143,7 @@ describe('CompanyEventsPage (Comb)', () => {
   it('Given the form / When end is before start / Then a validation error shows and nothing is created', async () => {
     api.getAll.mockResolvedValue(list([], true));
     renderPage();
-    fireEvent.click((await screen.findAllByRole('button', { name: /New Event/ }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: /New event/ }))[0]);
     fireEvent.change(screen.getByLabelText('Title *'), { target: { value: 'Offsite' } });
     fireEvent.change(screen.getByLabelText('Starts *'), { target: { value: '2099-05-01T17:00' } });
     fireEvent.change(screen.getByLabelText('Ends *'), { target: { value: '2099-05-01T09:00' } });
@@ -155,7 +155,7 @@ describe('CompanyEventsPage (Comb)', () => {
   it('Given the form / When times are missing / Then it asks for start and end', async () => {
     api.getAll.mockResolvedValue(list([], true));
     renderPage();
-    fireEvent.click((await screen.findAllByRole('button', { name: /New Event/ }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: /New event/ }))[0]);
     fireEvent.change(screen.getByLabelText('Title *'), { target: { value: 'Offsite' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create Event' }));
     expect(await screen.findByText('Start and end are required')).toBeInTheDocument();
@@ -164,7 +164,7 @@ describe('CompanyEventsPage (Comb)', () => {
   it('Given a department audience with none picked / When saved / Then it asks for a department; picking one creates', async () => {
     api.getAll.mockResolvedValue(list([], true));
     renderPage();
-    fireEvent.click((await screen.findAllByRole('button', { name: /New Event/ }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: /New event/ }))[0]);
     fireEvent.change(screen.getByLabelText('Title *'), { target: { value: 'Sales sync' } });
     fireEvent.change(screen.getByLabelText('Starts *'), { target: { value: '2099-05-01T09:00' } });
     fireEvent.change(screen.getByLabelText('Ends *'), { target: { value: '2099-05-01T10:00' } });
@@ -181,7 +181,7 @@ describe('CompanyEventsPage (Comb)', () => {
   it('Given an all-day event in the form / When saved / Then it spans the whole day', async () => {
     api.getAll.mockResolvedValue(list([], true));
     renderPage();
-    fireEvent.click((await screen.findAllByRole('button', { name: /New Event/ }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: /New event/ }))[0]);
     fireEvent.change(screen.getByLabelText('Title *'), { target: { value: 'Founders day' } });
     fireEvent.click(screen.getByRole('switch', { name: 'All day' }));
     fireEvent.change(screen.getByLabelText('Start date *'), { target: { value: '2099-06-10' } });
@@ -196,7 +196,7 @@ describe('CompanyEventsPage (Comb)', () => {
     api.getAll.mockResolvedValue(list([], true));
     api.create.mockRejectedValue(new Error('Unknown department'));
     renderPage();
-    fireEvent.click((await screen.findAllByRole('button', { name: /New Event/ }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: /New event/ }))[0]);
     fireEvent.change(screen.getByLabelText('Title *'), { target: { value: 'X' } });
     fireEvent.change(screen.getByLabelText('Starts *'), { target: { value: '2099-05-01T09:00' } });
     fireEvent.change(screen.getByLabelText('Ends *'), { target: { value: '2099-05-01T10:00' } });

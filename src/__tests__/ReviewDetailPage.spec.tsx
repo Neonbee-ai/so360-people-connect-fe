@@ -106,7 +106,7 @@ describe('ReviewDetailPage', () => {
 
     it('When the page loads / Then it shows Submit Self Review button', async () => {
       renderPage();
-      await waitFor(() => expect(screen.getByText('Submit Self Review')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('Submit self review')).toBeInTheDocument());
     });
   });
 
@@ -171,7 +171,7 @@ describe('ReviewDetailPage', () => {
     it('When the page loads / Then it shows manager review button', async () => {
       renderPage('r3');
       await waitFor(() => expect(screen.getByText(/Alice - Annual Review/)).toBeInTheDocument());
-      expect(screen.getByText('Submit Manager Review')).toBeInTheDocument();
+      expect(screen.getByText('Submit manager review')).toBeInTheDocument();
     });
 
     it('When the page loads / Then it renders all field types', async () => {

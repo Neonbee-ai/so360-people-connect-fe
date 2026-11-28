@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Users, UserPlus, Briefcase, Mail, Upload, Download, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
+import { Users, UserPlus, Briefcase, Mail, Upload, MoreHorizontal, Pencil, UserMinus, UserCheck, Archive, Trash2, Send, XCircle } from 'lucide-react';
 import { peopleApi } from '../services/peopleService';
 import type { Person, CreatePersonPayload, PersonStatus } from '../types/people';
 import { departmentsApi, type Department } from '../services/departmentsService';
 import { usePeopleContext } from '../hooks/useShellContext';
 import { useCanViewCompensation } from '../hooks/useCanViewCompensation';
 import { useActivity, useShellBridge, useQuota, useSandboxLimit } from '@so360/shell-context';
-import {
-    QuotaBar, QuotaGate, toast, ListPageTemplate, DataTable, SearchInput, Button, IconButton,
-    Menu, ConfirmDialog, Modal, Pagination, TextField, Badge, StatusBadge, Avatar, EmptyState, Banner, Cluster, Stack,
+import { toast, ListPageTemplate, DataTable, Button, IconButton,
+    Menu, ConfirmDialog, Modal, Pagination, TextField, Badge, StatusBadge, Avatar, EmptyState, Cluster, Stack,
 } from '@so360/design-system';
 import { mastersApi, MasterRow } from '../services/mastersService';
 import { buildAtomicCreatePayload, inviteFailed } from './people/createPersonFlow';
@@ -639,55 +638,35 @@ const PeoplePage: React.FC = () => {
                 ) : undefined}
                 title="People Registry"
                 description="Manage people as costed, allocatable resources"
-                // TODO(comb-title-area): manual - not a plain Button (all items must be plain buttons to become PageActions)
-                headerSecondaryActions={[
-                    ...(canImportEmployees ? [
-                        // Land directly on the Import tab — clicking Import must
-                        // never drop the user on the Export section.
-                        <Button key="import" variant="secondary" onClick={() => navigate('/people/import-export?tab=import')}>
-                            <Upload size={16} />
-                            Import
-                        </Button>,
-                    ] : []),
-                    ...(canExportEmployees ? [
-                        // Downloads the filtered registry as CSV directly (Excel/format choice lives on Data Management).
-                        <Button key="export" variant="secondary" onClick={handleExportCsv} disabled={isExporting}>
-                            <Download size={16} />
-                            Export
-                        </Button>,
-                    ] : []),
-                ]}
-                // TODO(comb-title-area): manual - unsupported Button prop title
-                primaryAction={canAddEmployee ? (
-                    <QuotaGate
-                        quotaKey="max_employees"
-                        moduleCode="people"
-                        used={quotaData?.current_usage ?? 0}
-                        limit={quotaData?.limit ?? 0}
-                        isUnlimited={quotaData?.is_unlimited}
-                        disableOnExceeded
-                    >
-                        <Button
-                            variant="primary"
-                            onClick={() => setShowCreateModal(true)}
-                            disabled={isSandboxMode}
-                            title={isSandboxMode ? 'Not available in Sandbox mode' : undefined}
-                        >
-                            <UserPlus size={16} />
-                            New Person
-                        </Button>
-                    </QuotaGate>
-                ) : undefined}
-                // TODO(comb-title-area): manual - SearchInput prop name
-                search={
-                    <SearchInput
-                        name="people-search"
-                        placeholder="Search by name, email, or title..."
-                        value={search}
-                        onChange={setSearch}
-                        onClear={() => setSearch('')}
-                    />
-                }
+                // Land directly on the Import tab: clicking Import must never drop the user on the Export section.
+                secondaryActions={canImportEmployees ? [{
+                    id: 'import',
+                    label: 'Import',
+                    kind: 'import',
+                    icon: <Upload />,
+                    onSelect: () => navigate('/people/import-export?tab=import'),
+                }] : undefined}
+                // Downloads the filtered registry as CSV directly (Excel/format choice lives on Data Management).
+                export={canExportEmployees ? { onExport: handleExportCsv, disabled: isExporting } : undefined}
+                primaryAction={canAddEmployee ? {
+                    id: 'new-person',
+                    label: 'New person',
+                    icon: <UserPlus />,
+                    onSelect: () => setShowCreateModal(true),
+                    disabled: isSandboxMode,
+                    disabledReason: isSandboxMode ? 'Not available in Sandbox mode' : undefined,
+                    gate: {
+                        quota: {
+                            quotaKey: 'max_employees',
+                            moduleCode: 'people',
+                            used: quotaData?.current_usage ?? 0,
+                            limit: quotaData?.limit ?? 0,
+                            isUnlimited: quotaData?.is_unlimited,
+                            disableOnExceeded: true,
+                        },
+                    },
+                } : undefined}
+                search={{ placeholder: 'Search by name, email, or title...', value: search, onChange: setSearch }}
                 filters={{
                     fields: [
                         { key: 'status', label: 'Status', type: 'select', options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }, { value: 'on_leave', label: 'On Leave' }, { value: 'terminated', label: 'Terminated' }, { value: 'archived', label: 'Archived' }] },
@@ -723,15 +702,11 @@ const PeoplePage: React.FC = () => {
                     limit: quotaData.limit,
                     isUnlimited: quotaData.is_unlimited,
                 } : undefined}
-                // TODO(comb-title-area): manual - notice is an array; banner takes one banner
-                notice={[
-                    joinedRangeInvalid && <Banner key="range" variant="danger">From Date cannot be later than To Date.</Banner>,
-                    isSandboxMode && isLimited(totalPeople) && (
-                        <Banner key="sandbox" variant="warning">
-                            Sandbox: Showing {sandboxEntryLimit} of {totalPeople} records. Switch to Production to view all.
-                        </Banner>
-                    ),
-                ]}
+                banner={joinedRangeInvalid
+                    ? { variant: 'danger', message: 'From date cannot be later than to date.' }
+                    : isSandboxMode && isLimited(totalPeople)
+                        ? { variant: 'warning', message: `Sandbox: Showing ${sandboxEntryLimit} of ${totalPeople} records. Switch to Production to view all.` }
+                        : undefined}
                 loading={loading && people.length === 0}
                 isEmpty={people.length === 0}
                 empty={
